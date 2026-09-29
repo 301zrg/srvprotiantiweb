@@ -1,9 +1,11 @@
-import { message, Pagination } from "antd";
+import { Button, message, Pagination } from "antd";
 import React, { memo, useEffect, useState } from "react";
 
 import { CardMeta } from "@/api";
 import { isExtraDeckCard } from "@/common";
+import { useI18N } from "@/ui/I18N";
 import { DeckCard, DeckCardMouseUpEvent, IconFont } from "@/ui/Shared";
+import { deckMessages } from "@/variant/deckMessages";
 
 import { selectedCard } from "../..";
 import { editDeckStore } from "../../store";
@@ -16,6 +18,8 @@ export const CardResults: React.FC<{
 }> = memo(({ results, scrollToTop }) => {
   const itemsPerPage = 196; // 每页显示的数据数量
   const [currentPage, setCurrentPage] = useState(1);
+  const { language } = useI18N();
+  const text = deckMessages(language);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -78,13 +82,32 @@ export const CardResults: React.FC<{
         <>
           <div className={styles["search-cards"]}>
             {currentData.map((card) => (
-              <DeckCard
-                value={card}
-                key={card.id}
-                source="search"
-                onMouseUp={handleMouseUp}
-                onMouseEnter={() => showSelectedCard(card)}
-              />
+              <div key={card.id} style={{ minWidth: 0 }}>
+                <DeckCard
+                  value={card}
+                  source="search"
+                  onMouseUp={handleMouseUp}
+                  onMouseEnter={() => showSelectedCard(card)}
+                />
+                <div style={{ display: "flex", gap: 2 }}>
+                  <Button
+                    size="small"
+                    style={{ flex: 1, minWidth: 25, padding: 0 }}
+                    aria-label={`${text.addMain} ${card.text.name}`}
+                    onClick={() => handleAddCardToMain(card)}
+                  >
+                    {text.mainShort}
+                  </Button>
+                  <Button
+                    size="small"
+                    style={{ flex: 1, minWidth: 25, padding: 0 }}
+                    aria-label={`${text.addSide} ${card.text.name}`}
+                    onClick={() => handleAddCardToSide(card)}
+                  >
+                    {text.sideShort}
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
           {results.length > itemsPerPage && (
@@ -107,7 +130,7 @@ export const CardResults: React.FC<{
       ) : (
         <div className={styles.empty}>
           <IconFont type="icon-empty" size={40} />
-          <div>找不到相应卡片</div>
+          <div>{text.noCards}</div>
         </div>
       )}
     </>

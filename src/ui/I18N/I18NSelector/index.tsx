@@ -1,48 +1,37 @@
-import { Checkbox, Col, Row, Tooltip } from "antd";
-import React, { useEffect } from "react";
-import { FlagIcon, FlagIconCode } from "react-flag-kit";
-import { useTranslation } from "react-i18next";
+import { App, Select } from "antd";
+import { useState } from "react";
 
 import { useI18N } from "../I18NContext";
 
-const languageOptions: { value: string; label: string; flag: FlagIconCode }[] =
-  [
-    { value: "cn", label: "简体中文", flag: "CN" as FlagIconCode },
-    { value: "en", label: "English", flag: "US" as FlagIconCode },
-    { value: "fr", label: "Français", flag: "FR" as FlagIconCode },
-    { value: "ja", label: "日本語", flag: "JP" as FlagIconCode },
-    { value: "br", label: "Português do Brasil", flag: "BR" as FlagIconCode },
-    { value: "pt", label: "Português", flag: "PT" as FlagIconCode },
-    { value: "es", label: "Castellano", flag: "ES" as FlagIconCode },
-  ];
+const options = [
+  { value: "cn", label: "简体中文" },
+  { value: "en", label: "English" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+];
 
-export const I18NSelector: React.FC = () => {
-  const { i18n } = useTranslation();
+export const I18NSelector = () => {
   const { language, changeLanguage } = useI18N();
-
-  const onClickLanguageChange = (selectedLanguage: string) => {
-    changeLanguage(selectedLanguage);
-    i18n.changeLanguage(selectedLanguage);
-  };
-
-  useEffect(() => {
-    i18n.changeLanguage(language);
-  }, [language]);
-
+  const { message } = App.useApp();
+  const [loading, setLoading] = useState(false);
   return (
-    <Row gutter={[16, 16]}>
-      {languageOptions.map((lang) => (
-        <Col key={lang.value}>
-          <Tooltip title={lang.label}>
-            <Checkbox
-              checked={i18n.language === lang.value}
-              onChange={() => onClickLanguageChange(lang.value)}
-            >
-              <FlagIcon code={lang.flag} size={24} />
-            </Checkbox>
-          </Tooltip>
-        </Col>
-      ))}
-    </Row>
+    <Select
+      aria-label="界面语言"
+      value={language}
+      options={options}
+      loading={loading}
+      disabled={loading}
+      style={{ width: 112 }}
+      onChange={async (selected) => {
+        setLoading(true);
+        try {
+          await changeLanguage(selected);
+        } catch (error) {
+          message.error(error instanceof Error ? error.message : String(error));
+        } finally {
+          setLoading(false);
+        }
+      }}
+    />
   );
 };

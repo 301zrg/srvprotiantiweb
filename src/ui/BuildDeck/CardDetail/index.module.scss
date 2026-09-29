@@ -68,3 +68,14 @@
 .content {
   color: white;
 }
+
+@media (max-width: 700px) {
+  .detail.open {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2000;
+    padding: 0.5rem;
+  }
+}

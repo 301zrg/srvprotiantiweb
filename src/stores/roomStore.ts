@@ -5,6 +5,8 @@ import { ygopro } from "@/api";
 import StocHsPlayerChange = ygopro.StocHsPlayerChange;
 import SelfType = ygopro.StocTypeChange.SelfType;
 import HandType = ygopro.HandType;
+import type { HostInfo } from "@/variant/hostInfo";
+
 import { type NeosStore } from "./shared";
 
 export interface Player {
@@ -35,6 +37,7 @@ export enum RoomStage {
 
 export class RoomStore implements NeosStore {
   joined: boolean = false; // 是否已经加入房间
+  hostInfo?: HostInfo;
   players: (Player | undefined)[] = Array.from({ length: 4 }).map(
     (_) => undefined,
   ); // 进入房间的玩家列表
@@ -53,6 +56,7 @@ export class RoomStore implements NeosStore {
 
   reset(): void {
     this.joined = false;
+    this.hostInfo = undefined;
     this.players = [];
     this.observerCount = 0;
     this.isHost = false;

@@ -3,7 +3,6 @@ import {
   FilterOutlined,
   SearchOutlined,
   SortAscendingOutlined,
-  SwapOutlined,
 } from "@ant-design/icons";
 import { App, Button, Dropdown, Input, Space } from "antd";
 import { MenuProps } from "antd/lib";
@@ -16,13 +15,12 @@ import { useTranslation } from "react-i18next";
 import { CardMeta, searchCards } from "@/api";
 import { isToken } from "@/common";
 import { emptySearchConditions, FtsConditions } from "@/middleware/sqlite/fts";
-import { ScrollableArea, Select, Type } from "@/ui/Shared";
+import { ScrollableArea, Type } from "@/ui/Shared";
 
 import { Filter } from "../Filter";
 import styles from "../index.module.scss";
 import { editDeckStore } from "../store";
 import { CardResults } from "./CardResults";
-import { DeckResults, freshMdrpoDecks } from "./DeckResults";
 
 /** 卡片库，选择卡片加入正在编辑的卡组 */
 export const DeckDatabase: React.FC = () => {
@@ -36,8 +34,6 @@ export const DeckDatabase: React.FC = () => {
   const defaultSort = (a: CardMeta, b: CardMeta) => a.id - b.id;
   const sortRef = useRef<(a: CardMeta, b: CardMeta) => number>(defaultSort);
   const [sortEdited, setSortEdited] = useState(false);
-
-  const [showMdproDecks, setShowMdproDecks] = useState(false);
 
   const setSortRef = (sort: (a: CardMeta, b: CardMeta) => number) => {
     sortRef.current = sort;
@@ -69,14 +65,10 @@ export const DeckDatabase: React.FC = () => {
   ).map(([label, onClick], key) => ({ key, label, onClick }));
 
   const handleSearch = (conditions: FtsConditions = searchConditions) => {
-    if (showMdproDecks) {
-      freshMdrpoDecks(searchWord);
-    } else {
-      const result = searchCards({ query: searchWord, conditions })
-        .filter((card) => !isToken(card.data.type ?? 0))
-        .sort(sortRef.current); // 衍生物不显示
-      setSearchCardResult(() => result);
-    }
+    const result = searchCards({ query: searchWord, conditions })
+      .filter((card) => !isToken(card.data.type ?? 0))
+      .sort(sortRef.current);
+    setSearchCardResult(result);
   };
 
   useEffect(() => {
@@ -141,47 +133,22 @@ export const DeckDatabase: React.FC = () => {
           allowClear
           style={{ width: "250%" }}
         />
-        <Button
-          style={{ marginRight: "1rem" }}
-          icon={<SwapOutlined />}
-          onClick={() => setShowMdproDecks(!showMdproDecks)}
-        >
-          {showMdproDecks ? i18n("CardDatabase") : i18n("MDProOnlineDeck")}
-        </Button>
       </Space>
       <div className={styles["select-btns"]}>
-        {showMdproDecks ? (
-          <Select
-            title=""
-            style={{ width: "18.90rem" }}
-            defaultValue={false}
-            options={[
-              { value: true, label: i18n("OnlyShowDecksIUploaded") },
-              { value: false, label: i18n("ShowAllOnlineDecks") },
-            ]}
-            onChange={
-              // @ts-ignore
-              (value) => freshMdrpoDecks(searchWord, value)
-            }
-          />
-        ) : (
-          <Button
-            block
-            type={
-              isEqual(emptySearchConditions, searchConditions)
-                ? "text"
-                : "primary"
-            }
-            disabled={showMdproDecks}
-            icon={<FilterOutlined />}
-            onClick={showFilterModal}
-          >
-            {i18n("Filter")}
-          </Button>
-        )}
+        <Button
+          block
+          type={
+            isEqual(emptySearchConditions, searchConditions)
+              ? "text"
+              : "primary"
+          }
+          icon={<FilterOutlined />}
+          onClick={showFilterModal}
+        >
+          {i18n("Filter")}
+        </Button>
         <Dropdown
           menu={{ items: dropdownOptions }}
-          disabled={showMdproDecks}
           trigger={["click"]}
           placement="bottom"
           arrow
@@ -202,7 +169,6 @@ export const DeckDatabase: React.FC = () => {
         <Button
           block
           type="text"
-          disabled={showMdproDecks}
           icon={<DeleteOutlined />}
           onClick={() => {
             setSearchConditions(emptySearchConditions);
@@ -215,11 +181,7 @@ export const DeckDatabase: React.FC = () => {
         </Button>
       </div>
       <ScrollableArea className={styles["search-cards-container"]} ref={ref}>
-        {showMdproDecks ? (
-          <DeckResults />
-        ) : (
-          <CardResults results={searchCardResult} scrollToTop={scrollToTop} />
-        )}
+        <CardResults results={searchCardResult} scrollToTop={scrollToTop} />
       </ScrollableArea>
     </div>
   );

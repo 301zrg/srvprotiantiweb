@@ -11,8 +11,10 @@ import { isExtraDeckCard } from "@/common";
 import { getUIContainer } from "@/container/compat";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { IDeck, roomStore, SideStage, sideStore } from "@/stores";
+import { deckMessages } from "@/variant/deckMessages";
 
 import { CardDetail } from "../BuildDeck/CardDetail";
+import { useI18N } from "../I18N";
 import { Background, DeckZone, ScrollableArea, Type } from "../Shared";
 import { Chat } from "../WaitRoom/Chat";
 import styles from "./index.module.scss";
@@ -25,6 +27,8 @@ export const loader: LoaderFunction = async () => {
 };
 
 export const Component: React.FC = () => {
+  const { language } = useI18N();
+  const text = deckMessages(language);
   const container = getUIContainer();
   const { message } = App.useApp();
   const initialDeck = sideStore.getSideDeck();
@@ -39,7 +43,7 @@ export const Component: React.FC = () => {
       (type === "extra" && !isExtraDeckCard(cardType)) ||
       (type === "main" && isExtraDeckCard(cardType))
     ) {
-      return { result: false, reason: "卡片种类不符合" };
+      return { result: false, reason: text.typeMismatch };
     } else {
       return { result: true, reason: "" };
     }
@@ -50,7 +54,12 @@ export const Component: React.FC = () => {
     destination: Type,
   ) => {
     setDeck((prev) => {
-      const deck = { ...prev };
+      const deck = {
+        ...prev,
+        main: [...prev.main],
+        extra: [...prev.extra],
+        side: [...prev.side],
+      };
       if (source !== "search") {
         const removeIndex = deck[source].findIndex((id) => id === card.id);
         if (removeIndex !== -1) {
@@ -63,17 +72,39 @@ export const Component: React.FC = () => {
     });
   };
   const onReset = () => {
-    setDeck(initialDeck);
-    message.info("重置成功");
+    setDeck({
+      ...initialDeck,
+      main: [...initialDeck.main],
+      extra: [...initialDeck.extra],
+      side: [...initialDeck.side],
+    });
+    message.info(text.resetDone);
   };
   const onSummit = () => {
+    const original = [
+      ...initialDeck.main,
+      ...initialDeck.extra,
+      ...initialDeck.side,
+    ].sort((a, b) => a - b);
+    const updated = [...deck.main, ...deck.extra, ...deck.side].sort(
+      (a, b) => a - b,
+    );
+    if (
+      JSON.stringify(original) !== JSON.stringify(updated) ||
+      deck.main.length > 60 ||
+      deck.extra.length > 15 ||
+      deck.side.length > 15
+    ) {
+      message.error(text.sideInvalid);
+      return;
+    }
     sendUpdateDeck(container.conn, deck);
     sideStore.setSideDeck(deck);
   };
 
   useEffect(() => {
     if (stage === SideStage.SIDE_CHANGED) {
-      message.info("副卡组更换成功，请耐心等待其他玩家更换卡组");
+      message.info(text.sideChanged);
     }
     if (stage === SideStage.DUEL_START) {
       // 决斗开始，跳转
@@ -90,14 +121,14 @@ export const Component: React.FC = () => {
   return (
     <DndProvider options={HTML5toTouch}>
       <Background />
-      <div className={styles.container}>
+      <div className={styles.container} data-language={language}>
         <div className={styles.sider}>
           <Chat />
         </div>
         <div className={styles.content}>
           <div className={styles["deck-container"]}>
             <Space className={styles.title}>
-              <div>请拖动更换副卡组</div>
+              <div>{text.sideTitle}</div>
               <Space style={{ marginRight: 6 }}>
                 <Button
                   type="text"
@@ -105,7 +136,7 @@ export const Component: React.FC = () => {
                   icon={<UndoOutlined />}
                   onClick={onReset}
                 >
-                  重置
+                  {text.reset}
                 </Button>
                 <Button
                   type="primary"
@@ -114,7 +145,7 @@ export const Component: React.FC = () => {
                   disabled={stage > SideStage.SIDE_CHANGING}
                   onClick={onSummit}
                 >
-                  确定
+                  {text.confirm}
                 </Button>
               </Space>
             </Space>
@@ -127,13 +158,26 @@ export const Component: React.FC = () => {
                   canAdd={canAdd}
                   onChange={onChange}
                   onElementMouseUp={(event) => setSelectedCard(event.card.id)}
+                  onMoveCard={(card, source) => {
+                    const target =
+                      source === "side"
+                        ? isExtraDeckCard(card.data.type ?? 0)
+                          ? "extra"
+                          : "main"
+                        : "side";
+                    onChange(card, source, target);
+                  }}
                 />
               ))}
             </ScrollableArea>
           </div>
         </div>
         <div className={styles["detail-container"]}>
-          <CardDetail code={selectedCard} open={true} onClose={() => {}} />
+          <CardDetail
+            code={selectedCard}
+            open={selectedCard !== 0}
+            onClose={() => setSelectedCard(0)}
+          />
         </div>
       </div>
       <TpModal />

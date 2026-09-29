@@ -18,26 +18,43 @@ export enum SideStage {
 export class SideStore implements NeosStore {
   stage: SideStage = SideStage.NONE;
 
-  // 因为在上一局可能会出现断线重连，
-  // 所以side deck应该持久化存储在浏览器缓存里，
-  // 同时为了逻辑的收敛，暂时在`SideStore`提供接口。
+  // 换备牌组只属于当前标签页的连接；localStorage 会让同源的对手标签页互相覆盖。
+  // sessionStorage 保留本标签页刷新后的数据，但在离开房间时清除。
   //
   // TODO: 后续应该有个`Storage`模块统一管理浏览器存储的数据，
   // 这样一来卡组cdb还有文案的一些数据都可以做持久化存储，减少
   // 网络请求量。
   setSideDeck(deck: IDeck) {
     try {
-      localStorage.setItem(KEY, JSON.stringify(deck));
+      sessionStorage.setItem(KEY, JSON.stringify(deck));
     } catch (err) {
-      console.warn(`save side in localStorage error: ${err}`);
+      console.warn(`save side in sessionStorage error: ${err}`);
     }
   }
   getSideDeck(): IDeck {
-    const json = localStorage.getItem(KEY);
-    return json ? JSON.parse(json) : emptyDeck;
+    try {
+      const json = sessionStorage.getItem(KEY);
+      if (!json) return emptyDeck;
+      const deck = JSON.parse(json) as IDeck;
+      if (
+        !Array.isArray(deck.main) ||
+        !Array.isArray(deck.extra) ||
+        !Array.isArray(deck.side)
+      ) {
+        return emptyDeck;
+      }
+      return deck;
+    } catch {
+      return emptyDeck;
+    }
   }
   reset(): void {
     this.stage = SideStage.NONE;
+    try {
+      sessionStorage.removeItem(KEY);
+    } catch (err) {
+      console.warn(`clear side in sessionStorage error: ${err}`);
+    }
   }
 }
 

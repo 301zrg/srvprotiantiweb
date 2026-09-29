@@ -95,10 +95,10 @@ const messages: Record<
 };
 
 // Get the language from localStorage or default to 'cn' (I18N)
-const language = (localStorage.getItem("language") || "cn") as Language;
 /* End of definition (I18N) */
 
 export function interactTypeToString(t: InteractType): string {
+  const language = (localStorage.getItem("language") || "cn") as Language;
   const sSet = messages[language].sSet;
   const summon = messages[language].summon;
   const spSummon = messages[language].spSummon;

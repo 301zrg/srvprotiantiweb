@@ -1,0 +1,4 @@
+# Keep the audited 1103 source files byte-for-byte identical on every platform.
+resources-staging/1103/*.conf -text -whitespace
+resources-staging/1103/*/strings.conf -text -whitespace
+resources-staging/1103/*/cards.cdb -text

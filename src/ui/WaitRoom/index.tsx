@@ -98,7 +98,7 @@ export const Component: React.FC = () => {
     // 组件初始化时发一次更新卡组的包
     //
     // 否则娱乐匹配准备会有问题（原因不明）
-    if (deck) sendUpdateDeck(container.conn, deck);
+    if (deck) updateDeck(deck);
   }, []);
   useEffect(() => {
     if (room.stage === RoomStage.DUEL_START) {
@@ -131,6 +131,28 @@ export const Component: React.FC = () => {
           switchCollapse={() => setCollapsed(!collapsed)}
         />
         <div className={styles.wrap}>
+          {room.hostInfo && (
+            <div
+              data-testid="room-host-info"
+              style={{ textAlign: "center", fontSize: 12, padding: 8 }}
+            >
+              {`Mode: ${
+                ["Single", "Match", "Tag"][room.hostInfo.mode] ??
+                room.hostInfo.mode
+              } · LF: 0x${room.hostInfo.lflist
+                .toString(16)
+                .padStart(8, "0")} · MR: ${room.hostInfo.duelRule} · LP: ${
+                room.hostInfo.startLp
+              }`}
+              {(room.hostInfo.lflist !== 0x73ec4051 ||
+                room.hostInfo.duelRule !== 2) && (
+                <div role="status" style={{ color: "#ffcc66" }}>
+                  服务器房间规则与预期的 2011.3.1／MR2
+                  不同，请以服务器实际规则为准。
+                </div>
+              )}
+            </div>
+          )}
           <Controller onDeckChange={onDeckSelected} />
           <div className={styles["both-side-container"]}>
             <PlayerZone

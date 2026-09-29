@@ -91,3 +91,30 @@
   font-family: var(--theme-font);
   user-select: none;
 }
+
+@media (max-width: 700px) {
+  .layout {
+    width: 100%;
+    flex-direction: column;
+  }
+  .sider {
+    width: 100%;
+    flex: 0 0 9rem;
+    min-height: 0;
+    .deck-select-container { min-height: 0; max-height: 9rem; }
+  }
+  .content {
+    flex-direction: column;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 0 0.5rem 0.5rem;
+    .deck, .select { width: 100%; flex: none; min-height: 26rem; }
+    .deck { height: 32rem; }
+    .select { height: 34rem; }
+  }
+  .container {
+    height: 100%;
+    .deck-zone { --card-grid: 4; }
+    .title { height: auto; min-height: 2.75rem; flex-wrap: wrap; }
+  }
+}

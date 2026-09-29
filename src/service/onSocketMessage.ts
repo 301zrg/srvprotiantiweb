@@ -3,9 +3,8 @@
  *
  * */
 import { adaptStoc } from "@/api/ocgcore/ocgAdapter/adapter";
-import { YgoProPacket } from "@/api/ocgcore/ocgAdapter/packet";
+import { YgoProPacketFramer } from "@/api/ocgcore/ocgAdapter/packet";
 import { Container } from "@/container";
-import { replayStore } from "@/stores";
 
 import handleGameMsg from "./duel/gameMsg";
 import handleTimeLimit from "./duel/timeLimit";
@@ -31,31 +30,37 @@ import { handleWaitingSide } from "./side/waitingSide";
  *
  * */
 
-let animation: Promise<void> = Promise.resolve();
+const connections = new WeakMap<
+  Container,
+  { animation: Promise<void>; framer: YgoProPacketFramer }
+>();
 
 export default async function handleSocketMessage(
   container: Container,
   e: MessageEvent,
 ) {
   // 确保按序执行
-  animation = animation.then(() => _handle(container, e));
-  await animation;
+  let state = connections.get(container);
+  if (!state) {
+    state = { animation: Promise.resolve(), framer: new YgoProPacketFramer() };
+    connections.set(container, state);
+  }
+  state.animation = state.animation.then(() =>
+    _handle(container, e, state!.framer),
+  );
+  await state.animation;
 }
 
 // FIXME: 下面的所有`handler`中访问`Store`的时候都应该通过`Container`进行访问
-async function _handle(container: Container, e: MessageEvent) {
-  const packets = YgoProPacket.deserialize(e.data);
+async function _handle(
+  container: Container,
+  e: MessageEvent,
+  framer: YgoProPacketFramer,
+) {
+  const packets = framer.push(e.data);
 
   for (const packet of packets) {
     const pb = adaptStoc(packet);
-    const isReplayGameMsg = replayStore.isReplay && pb.msg === "stoc_game_msg";
-    const replayGameMsg = isReplayGameMsg
-      ? pb.stoc_game_msg.gameMsg
-      : undefined;
-
-    if (isReplayGameMsg) {
-      await replayStore.waitForAdvance(replayGameMsg);
-    }
 
     switch (pb.msg) {
       case "stoc_join_game": {
@@ -107,10 +112,6 @@ async function _handle(container: Container, e: MessageEvent) {
         break;
       }
       case "stoc_game_msg": {
-        if (!replayStore.isReplay) {
-          // 如果不是回放模式，则记录回放数据
-          replayStore.record(packet);
-        }
         await handleGameMsg(container, pb);
 
         break;
@@ -136,10 +137,6 @@ async function _handle(container: Container, e: MessageEvent) {
 
         break;
       }
-    }
-
-    if (isReplayGameMsg) {
-      replayStore.markAdvanced(replayGameMsg);
     }
   }
 }

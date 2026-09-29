@@ -1,11 +1,12 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createHashRouter, RouterProvider } from "react-router-dom";
 
-import { Component, loader } from "./Layout";
+import { Component, ErrorBoundary, loader } from "./Layout";
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: "/",
     Component,
+    ErrorBoundary,
     loader,
     children: [
       {

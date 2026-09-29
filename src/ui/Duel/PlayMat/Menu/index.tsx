@@ -35,6 +35,7 @@ import {
   matStore,
   replayStore,
 } from "@/stores";
+import { useI18N } from "@/ui/I18N";
 import { IconFont } from "@/ui/Shared";
 
 import styles from "./index.module.scss";
@@ -192,21 +193,6 @@ const messages: Record<
 };
 
 // Get the language from localStorage or default to 'cn' (I18N)
-const language = (localStorage.getItem("language") || "cn") as Language;
-const drawPhase = messages[language].drawPhase;
-const standbyPhase = messages[language].standbyPhase;
-const mainPhase1 = messages[language].mainPhase1;
-const battlePhase = messages[language].battlePhase;
-const battleStart = messages[language].battleStart;
-const battleStep = messages[language].battleStep;
-const damage = messages[language].damage;
-const damageCalc = messages[language].damageCalc;
-const mainPhase2 = messages[language].mainPhase2;
-const endPhase = messages[language].endPhase;
-const allChain = messages[language].allChain ?? "All Chain";
-const ignoreChain = messages[language].ignoreChain ?? "Ignore Chain";
-const smartChain = messages[language].smartChain ?? "Smart Chain";
-const unknown = messages[language].unknown;
 /* End of definition (I18N) */
 
 const phaseTestId = (phase: PhaseType) => {
@@ -247,27 +233,45 @@ const isBattleCommandPhase = (phase: PhaseType) =>
   ].includes(phase);
 
 // PhaseType, 中文, response, 是否显示，是否禁用
-const initialPhaseBind: [
+const initialPhaseBind = (
+  language: string,
+): [
   phase: PhaseType,
   label: string,
   response: number,
   show: boolean,
   disabled: boolean,
-][] = [
-  [PhaseType.DRAW, drawPhase, -1, true, true],
-  [PhaseType.STANDBY, standbyPhase, -1, true, true],
-  [PhaseType.MAIN1, mainPhase1, -1, true, true],
-  [PhaseType.BATTLE, battlePhase, 6, true, false],
-  [PhaseType.BATTLE_START, battleStart, 3, false, true],
-  [PhaseType.BATTLE_STEP, battleStep, 3, false, true],
-  [PhaseType.DAMAGE, damage, 3, false, true],
-  [PhaseType.DAMAGE_GAL, damageCalc, 3, false, true],
-  [PhaseType.MAIN2, mainPhase2, 2, true, false],
-  [PhaseType.END, endPhase, 7, true, false],
-  [PhaseType.UNKNOWN, unknown, -1, false, true],
-];
+][] => {
+  const {
+    drawPhase,
+    standbyPhase,
+    mainPhase1,
+    battlePhase,
+    battleStart,
+    battleStep,
+    damage,
+    damageCalc,
+    mainPhase2,
+    endPhase,
+    unknown,
+  } = messages[language as Language] ?? messages.en;
+  return [
+    [PhaseType.DRAW, drawPhase, -1, true, true],
+    [PhaseType.STANDBY, standbyPhase, -1, true, true],
+    [PhaseType.MAIN1, mainPhase1, -1, true, true],
+    [PhaseType.BATTLE, battlePhase, 6, true, false],
+    [PhaseType.BATTLE_START, battleStart, 3, false, true],
+    [PhaseType.BATTLE_STEP, battleStep, 3, false, true],
+    [PhaseType.DAMAGE, damage, 3, false, true],
+    [PhaseType.DAMAGE_GAL, damageCalc, 3, false, true],
+    [PhaseType.MAIN2, mainPhase2, 2, true, false],
+    [PhaseType.END, endPhase, 7, true, false],
+    [PhaseType.UNKNOWN, unknown, -1, false, true],
+  ];
+};
 
 export const Menu = () => {
+  const { language } = useI18N();
   const container = getUIContainer();
   const { t: i18n } = useTranslation("Menu");
   const {
@@ -275,7 +279,8 @@ export const Menu = () => {
     chainSetting,
     phase: { enableBp, enableM2, enableEp, currentPhase },
   } = useSnapshot(matStore);
-  const [phaseBind, setPhaseBind] = useState(initialPhaseBind);
+  const [phaseBind, setPhaseBind] = useState(() => initialPhaseBind(language));
+  useEffect(() => setPhaseBind(initialPhaseBind(language)), [language]);
   const [phaseSwitchItems, setPhaseSwitchItems] = useState<MenuProps["items"]>(
     [],
   );
@@ -336,10 +341,11 @@ export const Menu = () => {
     setPhaseSwitchItems(newPhaseSwitchItems);
   }, [container.conn, currentPhase, phaseBind]);
 
+  const languageTexts = messages[language as Language] ?? messages.en;
   const chainSettingTexts = [
-    [ChainSetting.CHAIN_ALL, allChain],
-    [ChainSetting.CHAIN_IGNORE, ignoreChain],
-    [ChainSetting.CHAIN_SMART, smartChain],
+    [ChainSetting.CHAIN_ALL, languageTexts.allChain ?? "All Chain"],
+    [ChainSetting.CHAIN_IGNORE, languageTexts.ignoreChain ?? "Ignore Chain"],
+    [ChainSetting.CHAIN_SMART, languageTexts.smartChain ?? "Smart Chain"],
   ] as const;
   const chainSettingTestIds = {
     [ChainSetting.CHAIN_ALL]: "all",

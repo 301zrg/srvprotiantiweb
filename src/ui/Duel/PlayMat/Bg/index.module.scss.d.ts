@@ -1,0 +1,21 @@
+declare const classNames: {
+  readonly "mat-bg": "mat-bg";
+  readonly row: "row";
+  readonly opponent: "opponent";
+  readonly block: "block";
+  readonly extra: "extra";
+  readonly szone: "szone";
+  readonly highlight: "highlight";
+  readonly "other-blocks": "other-blocks";
+  readonly op: "op";
+  readonly banish: "banish";
+  readonly field: "field";
+  readonly graveyard: "graveyard";
+  readonly deck: "deck";
+  readonly "extra-deck": "extra-deck";
+  readonly "disabled-cross": "disabled-cross";
+  readonly show: "show";
+  readonly glowing: "glowing";
+  readonly triangle: "triangle";
+};
+export = classNames;

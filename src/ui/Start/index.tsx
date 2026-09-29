@@ -1,82 +1,50 @@
-import { RightOutlined } from "@ant-design/icons";
-import { useTranslation } from "react-i18next";
-import { LoaderFunction, useNavigate } from "react-router-dom";
-import { useSnapshot } from "valtio";
+import { Button } from "antd";
+import { useNavigate } from "react-router-dom";
 
-import { getSSOSignInUrl } from "@/api";
-import { useConfig } from "@/config";
 import { AudioActionType, changeScene } from "@/infra/audio";
-import { accountStore, initStore } from "@/stores";
-import { Background, Loading, SpecialButton } from "@/ui/Shared";
+import { useI18N } from "@/ui/I18N";
+import { Background } from "@/ui/Shared";
+import { siteMessages } from "@/variant/messages";
 
 import styles from "./index.module.scss";
 
-const NeosConfig = useConfig();
-
-export const loader: LoaderFunction = async () => {
-  // 更新场景
+export const loader = () => {
   changeScene(AudioActionType.BGM_MENU);
   return null;
 };
 
-export const Component: React.FC = () => {
-  const { t } = useTranslation("Start");
-  const { user } = useSnapshot(accountStore);
-  const { progress } = useSnapshot(initStore.sqlite);
+export const Component = () => {
+  const navigate = useNavigate();
+  const { language } = useI18N();
+  const text = siteMessages(language);
   return (
     <>
       <Background />
       <div className={styles.wrap}>
-        {progress === 1 ? (
-          <main className={styles.main}>
-            <div className={styles.left}>
-              <img
-                className={styles["neos-logo"]}
-                src={`${NeosConfig.assetsPath}/neos-logo.svg`}
-                alt="YGO NEOS"
-              />
-              <div className={styles.title}>{t("Title")}</div>
-              <div className={styles.keywords}>{t("Keywords")}</div>
-              <div className={styles.details}>{t("Details")}</div>
-              <LoginBtn logined={Boolean(user)} />
-            </div>
-            <div className={styles.right}>
-              <img
-                className={styles["neos-main-bg"]}
-                src={`${NeosConfig.assetsPath}/neos-main-bg.webp`}
-              />
-              <img
-                className={styles["neos-main"]}
-                src={`${NeosConfig.assetsPath}/neos-main.webp`}
-              />
-            </div>
-          </main>
-        ) : (
-          <Loading progress={progress * 100} />
-        )}
+        <main
+          className={styles.main}
+          style={{
+            flexDirection: "column",
+            gap: 20,
+            maxWidth: 640,
+            margin: "auto",
+            padding: 24,
+          }}
+        >
+          <h1>{text.title}</h1>
+          <p>{text.subtitle}</p>
+          <Button
+            type="primary"
+            size="large"
+            onClick={() => navigate("/match")}
+          >
+            {text.start}
+          </Button>
+          <Button size="large" onClick={() => navigate("/build")}>
+            {text.edit}
+          </Button>
+        </main>
       </div>
     </>
-  );
-};
-Component.displayName = "Start";
-
-const LoginBtn: React.FC<{ logined: boolean }> = ({ logined }) => {
-  const { t } = useTranslation("Start");
-  const navigate = useNavigate();
-
-  const loginViaSSO = () =>
-    // 跳转回match页
-    location.replace(getSSOSignInUrl(`${location.origin}/match/`));
-
-  const goToMatch = () => navigate("/match");
-
-  return (
-    <SpecialButton
-      style={{ marginTop: "auto" }}
-      onClick={logined ? goToMatch : loginViaSSO}
-    >
-      <span>{logined ? t("StartGame") : t("LoginToGame")}</span>
-      <RightOutlined />
-    </SpecialButton>
   );
 };

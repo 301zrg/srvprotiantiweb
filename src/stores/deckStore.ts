@@ -61,7 +61,7 @@ export const deckStore = proxy({
     if (!deckStore.decks.length) {
       // 给玩家预设了几套卡组，一旦idb为空，就会给玩家添加这几套卡组
       const PRESET_DECKS: Record<string, { default: Omit<IDeck, "deckName"> }> =
-        import.meta.glob("/neos-assets/structure-decks/*.ydk", {
+        import.meta.glob("/neos-assets/structure-decks/1103-sample.ydk", {
           eager: true,
         });
       for (const key in PRESET_DECKS) {

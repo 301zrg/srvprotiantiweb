@@ -5,8 +5,7 @@ import { ygopro } from "@/api";
 import { useConfig } from "@/config";
 import { Container } from "@/container";
 import { sleep } from "@/infra";
-import { replayStore, RoomStage, SideStage } from "@/stores";
-import { replayStart } from "@/ui/Match/ReplayModal";
+import { RoomStage, SideStage } from "@/stores";
 
 import { genCard } from "../utils";
 const TOKEN_SIZE = 13; // 每人场上最多就只可能有13个token
@@ -93,10 +92,6 @@ export default async (
   context.cardStore.inner.push(...cards);
 
   // note: 额外卡组的卡会在对局开始后通过`UpdateData` msg更新
-
-  if (replayStore.isReplay) {
-    replayStart();
-  }
 
   // 初始化完后，sleep 1s，让UI初始化完成，
   // 否则在和AI对战时，由于后端给传给前端的`MSG`频率太高，会导致一些问题。

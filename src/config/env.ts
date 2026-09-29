@@ -18,4 +18,17 @@ type Expect<T extends true> = T;
  */
 type _ = Expect<Equal<typeof NeosDevConfig, typeof NeosProdConfig>>;
 
-export const envConfig = DEV ? NeosDevConfig : NeosProdConfig;
+import { assetsPath, banlistUrl, getEnvironmentFile } from "@/variant";
+
+const upstreamConfig = DEV ? NeosDevConfig : NeosProdConfig;
+
+export const envConfig = {
+  ...upstreamConfig,
+  assetsPath,
+  releaseResource: {
+    ...upstreamConfig.releaseResource,
+    cdb: getEnvironmentFile("cards.cdb"),
+    lflist: banlistUrl,
+  },
+  stringsUrl: getEnvironmentFile("strings.conf"),
+};

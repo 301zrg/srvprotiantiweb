@@ -73,3 +73,10 @@
     }
   }
 }
+
+@media (max-width: 700px) {
+  .main {
+    width: calc(100% - 2rem);
+    height: auto;
+  }
+}

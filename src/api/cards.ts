@@ -78,10 +78,7 @@ export function getCardStr(meta: CardMeta, idx: number): string | undefined {
 }
 
 export function getCardImgUrl(code: number, back = false) {
-  const ASSETS_BASE =
-    import.meta.env.BASE_URL === "/"
-      ? assetsPath
-      : `${import.meta.env.BASE_URL}${assetsPath}`;
+  const ASSETS_BASE = assetsPath;
   if (back || code === 0) {
     return `${ASSETS_BASE}/card_back.jpg`;
   } else if (isSuperReleaseCard(code)) {

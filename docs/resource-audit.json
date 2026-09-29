@@ -1,0 +1,2762 @@
+{
+  "auditDate": "2026-09-28",
+  "method": {
+    "sqlite": "Python sqlite3 read-only URI mode=ro plus PRAGMA query_only=ON",
+    "rowHash": "SHA-256 of UTF-8 JSON of SELECT * FROM datas ORDER BY id; JSON separators comma/colon, integer values retained exactly",
+    "sourceFilesModified": false,
+    "scope": "Local snapshots and checked-in source; not production runtime verification; no sensitive config read"
+  },
+  "databases": {
+    "zh": {
+      "path": "srvprotianti/plugins/card-catalog/databases/cards.zh.cdb",
+      "bytes": 8050688,
+      "sha256": "5f13245de4e665450858f66ef2f736a3d2f48cc7f0036961373a96a650cb6797",
+      "schema": {
+        "datas": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "ot",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "alias",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "setcode",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "type",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "atk",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "def",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "level",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "race",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "attribute",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "category",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ],
+        "texts": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "name",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "desc",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "str1",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "str2",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "str3",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "str4",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "str5",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "str6",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "str7",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "str8",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 11,
+            "name": "str9",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 12,
+            "name": "str10",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 13,
+            "name": "str11",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 14,
+            "name": "str12",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 15,
+            "name": "str13",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 16,
+            "name": "str14",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 17,
+            "name": "str15",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 18,
+            "name": "str16",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ]
+      },
+      "integrityCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "datasCount": 14981,
+      "textsCount": 14981,
+      "sortedDatasRowsSha256": "ed56f81f6b333f5a9b74c79f6519f2d133730af0d698f2f969781a61b34be11d",
+      "idSetSha256": "d313117048b73990a69aff01f6840e13da3f93b5dc632e1c96c1b4f620a693b0",
+      "missingTextsIds": [],
+      "extraTextsIds": [],
+      "otCounts": {
+        "1": 214,
+        "2": 25,
+        "3": 6190,
+        "9": 225,
+        "11": 8327
+      },
+      "aliasCount": 580,
+      "missingAliasTargets": [],
+      "tokenCount": 265,
+      "xyzCount": 630,
+      "pendulumCount": 399,
+      "linkCount": 506,
+      "blankNameIds": [],
+      "blankDescriptionIds": [
+        19144623,
+        77571455
+      ],
+      "unsafeJavascriptIntegerSetcodes": [
+        {
+          "id": 8512558,
+          "setcodeDecimal": "36592129229979791"
+        },
+        {
+          "id": 37279096,
+          "setcodeDecimal": "132858190492402150"
+        },
+        {
+          "id": 48486809,
+          "setcodeDecimal": "113768701513240740"
+        },
+        {
+          "id": 55088578,
+          "setcodeDecimal": "36592129229979791"
+        }
+      ]
+    },
+    "en": {
+      "path": "srvprotianti/plugins/card-catalog/databases/cards.en.cdb",
+      "bytes": 8057856,
+      "sha256": "41f9f496d6df9c762b084f20f6d18560adb41c81c0ac4ac3aa1fa8714c137824",
+      "schema": {
+        "datas": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "ot",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "alias",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "setcode",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "type",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "atk",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "def",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "level",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "race",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "attribute",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "category",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ],
+        "texts": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "name",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "desc",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "str1",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "str2",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "str3",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "str4",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "str5",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "str6",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "str7",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "str8",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 11,
+            "name": "str9",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 12,
+            "name": "str10",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 13,
+            "name": "str11",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 14,
+            "name": "str12",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 15,
+            "name": "str13",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 16,
+            "name": "str14",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 17,
+            "name": "str15",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 18,
+            "name": "str16",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ]
+      },
+      "integrityCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "datasCount": 14981,
+      "textsCount": 14981,
+      "sortedDatasRowsSha256": "afa89dc74f9f173bba2b5aa9681780c4ae5d76e98d1f42b755efa39178714349",
+      "idSetSha256": "d313117048b73990a69aff01f6840e13da3f93b5dc632e1c96c1b4f620a693b0",
+      "missingTextsIds": [],
+      "extraTextsIds": [],
+      "otCounts": {
+        "1": 434,
+        "2": 27,
+        "3": 14519,
+        "11": 1
+      },
+      "aliasCount": 580,
+      "missingAliasTargets": [],
+      "tokenCount": 265,
+      "xyzCount": 630,
+      "pendulumCount": 399,
+      "linkCount": 506,
+      "blankNameIds": [],
+      "blankDescriptionIds": [],
+      "unsafeJavascriptIntegerSetcodes": [
+        {
+          "id": 8512558,
+          "setcodeDecimal": "36592129229979791"
+        },
+        {
+          "id": 37279096,
+          "setcodeDecimal": "132858190492402150"
+        },
+        {
+          "id": 48486809,
+          "setcodeDecimal": "113768701513240740"
+        },
+        {
+          "id": 55088578,
+          "setcodeDecimal": "36592129229979791"
+        }
+      ]
+    },
+    "ja": {
+      "path": "srvprotianti/plugins/card-catalog/databases/cards.ja.cdb",
+      "bytes": 11808768,
+      "sha256": "ef751442241749dbd12196378767cf3e235fb86e04ca1b7077db115be7c98c06",
+      "schema": {
+        "datas": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "ot",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "alias",
+            "declaredType": "integet",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "setcode",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "type",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "atk",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "def",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "level",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "race",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "attribute",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "category",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ],
+        "texts": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "name",
+            "declaredType": "varchar(128)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "desc",
+            "declaredType": "varchar(1024)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "str1",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "str2",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "str3",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "str4",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "str5",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "str6",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "str7",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "str8",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 11,
+            "name": "str9",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 12,
+            "name": "str10",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 13,
+            "name": "str11",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 14,
+            "name": "str12",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 15,
+            "name": "str13",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 16,
+            "name": "str14",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 17,
+            "name": "str15",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 18,
+            "name": "str16",
+            "declaredType": "varchar(256)",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ]
+      },
+      "integrityCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "datasCount": 14968,
+      "textsCount": 14968,
+      "sortedDatasRowsSha256": "1e689e8dbd40a7284df96afd52c62aa20275ad9368d49c985cbb7f6fe98f6104",
+      "idSetSha256": "806cb67570b7a725ee9019b35c08266cca1ec2ccd53664e68f7c78b1c0ac0fd4",
+      "missingTextsIds": [],
+      "extraTextsIds": [],
+      "otCounts": {
+        "1": 434,
+        "2": 27,
+        "3": 14506,
+        "11": 1
+      },
+      "aliasCount": 568,
+      "missingAliasTargets": [],
+      "tokenCount": 265,
+      "xyzCount": 629,
+      "pendulumCount": 399,
+      "linkCount": 505,
+      "blankNameIds": [],
+      "blankDescriptionIds": [],
+      "unsafeJavascriptIntegerSetcodes": [
+        {
+          "id": 8512558,
+          "setcodeDecimal": "36592129229979791"
+        },
+        {
+          "id": 37279096,
+          "setcodeDecimal": "132858190492402150"
+        },
+        {
+          "id": 48486809,
+          "setcodeDecimal": "113768701513240740"
+        },
+        {
+          "id": 55088578,
+          "setcodeDecimal": "36592129229979791"
+        }
+      ]
+    },
+    "ko": {
+      "path": "srvprotianti/plugins/card-catalog/databases/cards.ko.cdb",
+      "bytes": 10701824,
+      "sha256": "05506195b5411aa97de300b083efbfdc10489655b6235a5144b71c24cff92101",
+      "schema": {
+        "datas": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "ot",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "alias",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "setcode",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "type",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "atk",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "def",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "level",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "race",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "attribute",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "category",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ],
+        "texts": [
+          {
+            "ordinal": 0,
+            "name": "id",
+            "declaredType": "INTEGER",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 1
+          },
+          {
+            "ordinal": 1,
+            "name": "name",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 2,
+            "name": "desc",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 3,
+            "name": "str1",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 4,
+            "name": "str2",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 5,
+            "name": "str3",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 6,
+            "name": "str4",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 7,
+            "name": "str5",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 8,
+            "name": "str6",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 9,
+            "name": "str7",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 10,
+            "name": "str8",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 11,
+            "name": "str9",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 12,
+            "name": "str10",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 13,
+            "name": "str11",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 14,
+            "name": "str12",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 15,
+            "name": "str13",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 16,
+            "name": "str14",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 17,
+            "name": "str15",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          },
+          {
+            "ordinal": 18,
+            "name": "str16",
+            "declaredType": "TEXT",
+            "notNull": false,
+            "default": null,
+            "primaryKeyPosition": 0
+          }
+        ]
+      },
+      "integrityCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "datasCount": 14968,
+      "textsCount": 14968,
+      "sortedDatasRowsSha256": "85e3c36140896deb931c3013856d891bab834ae8e95034cb777a685fd888f0d4",
+      "idSetSha256": "806cb67570b7a725ee9019b35c08266cca1ec2ccd53664e68f7c78b1c0ac0fd4",
+      "missingTextsIds": [],
+      "extraTextsIds": [],
+      "otCounts": {
+        "1": 433,
+        "2": 27,
+        "3": 14507,
+        "11": 1
+      },
+      "aliasCount": 568,
+      "missingAliasTargets": [],
+      "tokenCount": 265,
+      "xyzCount": 629,
+      "pendulumCount": 399,
+      "linkCount": 505,
+      "blankNameIds": [],
+      "blankDescriptionIds": [],
+      "unsafeJavascriptIntegerSetcodes": [
+        {
+          "id": 8512558,
+          "setcodeDecimal": "36592129229979791"
+        },
+        {
+          "id": 37279096,
+          "setcodeDecimal": "132858190492402150"
+        },
+        {
+          "id": 48486809,
+          "setcodeDecimal": "113768701513240740"
+        },
+        {
+          "id": 55088578,
+          "setcodeDecimal": "36592129229979791"
+        }
+      ]
+    }
+  },
+  "comparisonsToZh": {
+    "en": {
+      "missingIds": [],
+      "extraIds": [],
+      "differingRows": 8558,
+      "differingFields": {
+        "id": 0,
+        "ot": 8558,
+        "alias": 0,
+        "setcode": 0,
+        "type": 0,
+        "atk": 0,
+        "def": 0,
+        "level": 0,
+        "race": 0,
+        "attribute": 0,
+        "category": 1
+      },
+      "nonOtDifferences": [
+        {
+          "id": 45041488,
+          "changes": {
+            "category": {
+              "zh": 2148532226,
+              "en": -2146435070
+            }
+          }
+        }
+      ],
+      "missingRowsSummary": []
+    },
+    "ja": {
+      "missingIds": [
+        1498450,
+        9726841,
+        19899074,
+        23995350,
+        24094656,
+        27420824,
+        30581602,
+        38033133,
+        46986431,
+        48128081,
+        83764722,
+        91073014,
+        98338153
+      ],
+      "extraIds": [],
+      "differingRows": 8546,
+      "differingFields": {
+        "id": 0,
+        "ot": 8546,
+        "alias": 0,
+        "setcode": 0,
+        "type": 0,
+        "atk": 0,
+        "def": 0,
+        "level": 0,
+        "race": 0,
+        "attribute": 0,
+        "category": 1
+      },
+      "nonOtDifferences": [
+        {
+          "id": 45041488,
+          "changes": {
+            "category": {
+              "zh": 2148532226,
+              "ja": -2146435070
+            }
+          }
+        }
+      ],
+      "missingRowsSummary": [
+        {
+          "id": 1498450,
+          "ot": 11,
+          "alias": 1498449,
+          "type": 33,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 9726841,
+          "ot": 11,
+          "alias": 9726840,
+          "type": 65538,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 19899074,
+          "ot": 11,
+          "alias": 19899073,
+          "type": 161,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 23995350,
+          "ot": 11,
+          "alias": 23995346,
+          "type": 65,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 24094656,
+          "ot": 11,
+          "alias": 24094653,
+          "type": 2,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 27420824,
+          "ot": 11,
+          "alias": 27420823,
+          "type": 8388641,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 30581602,
+          "ot": 11,
+          "alias": 30581601,
+          "type": 67108897,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 38033133,
+          "ot": 11,
+          "alias": 38033121,
+          "type": 33,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 46986431,
+          "ot": 11,
+          "alias": 46986414,
+          "type": 17,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 48128081,
+          "ot": 1,
+          "alias": 0,
+          "type": 131074,
+          "aliasLocaleTextAvailable": false
+        },
+        {
+          "id": 83764722,
+          "ot": 11,
+          "alias": 83764718,
+          "type": 2,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 91073014,
+          "ot": 11,
+          "alias": 91073013,
+          "type": 33,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 98338153,
+          "ot": 11,
+          "alias": 98338152,
+          "type": 65538,
+          "aliasLocaleTextAvailable": true
+        }
+      ]
+    },
+    "ko": {
+      "missingIds": [
+        1498450,
+        9726841,
+        19899074,
+        23995350,
+        24094656,
+        27420824,
+        30581602,
+        38033133,
+        46986431,
+        48128081,
+        83764722,
+        91073014,
+        98338153
+      ],
+      "extraIds": [],
+      "differingRows": 8546,
+      "differingFields": {
+        "id": 0,
+        "ot": 8546,
+        "alias": 0,
+        "setcode": 0,
+        "type": 0,
+        "atk": 0,
+        "def": 0,
+        "level": 0,
+        "race": 0,
+        "attribute": 0,
+        "category": 1
+      },
+      "nonOtDifferences": [
+        {
+          "id": 45041488,
+          "changes": {
+            "category": {
+              "zh": 2148532226,
+              "ko": -2146435070
+            }
+          }
+        }
+      ],
+      "missingRowsSummary": [
+        {
+          "id": 1498450,
+          "ot": 11,
+          "alias": 1498449,
+          "type": 33,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 9726841,
+          "ot": 11,
+          "alias": 9726840,
+          "type": 65538,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 19899074,
+          "ot": 11,
+          "alias": 19899073,
+          "type": 161,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 23995350,
+          "ot": 11,
+          "alias": 23995346,
+          "type": 65,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 24094656,
+          "ot": 11,
+          "alias": 24094653,
+          "type": 2,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 27420824,
+          "ot": 11,
+          "alias": 27420823,
+          "type": 8388641,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 30581602,
+          "ot": 11,
+          "alias": 30581601,
+          "type": 67108897,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 38033133,
+          "ot": 11,
+          "alias": 38033121,
+          "type": 33,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 46986431,
+          "ot": 11,
+          "alias": 46986414,
+          "type": 17,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 48128081,
+          "ot": 1,
+          "alias": 0,
+          "type": 131074,
+          "aliasLocaleTextAvailable": false
+        },
+        {
+          "id": 83764722,
+          "ot": 11,
+          "alias": 83764718,
+          "type": 2,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 91073014,
+          "ot": 11,
+          "alias": 91073013,
+          "type": 33,
+          "aliasLocaleTextAvailable": true
+        },
+        {
+          "id": 98338153,
+          "ot": 11,
+          "alias": 98338152,
+          "type": 65538,
+          "aliasLocaleTextAvailable": true
+        }
+      ]
+    }
+  },
+  "findings": {
+    "sourceCatalogIsNotHistoricalWhitelist": {
+      "status": "fact",
+      "evidence": [
+        "srvprotianti/plugins/card-catalog/README.md:5",
+        "srvprotianti/plugins/card-catalog/README.md:17",
+        "srvprotianti/ygopro/gframe/game.h:946",
+        "srvprotianti/ygopro/gframe/deck_manager.cpp:82"
+      ],
+      "detail": "Catalog provides metadata and multilingual names. Full inputs include 630 Xyz, 399 Pendulum and 506 Link rows. ot bit 0x8 is AVAIL_SC in checked-in source, not a chronological exclusion flag."
+    },
+    "canonicalSourceCandidate": {
+      "status": "fact-with-runtime-unverified",
+      "detail": "Local srvprotianti/ygopro/cards.cdb byte-identical to cards.zh.cdb. Server source loads cards.cdb then expansions; actual deployed working directory, binary and expansion load order are unverified.",
+      "evidence": [
+        "srvprotianti/ygopro/gframe/game.cpp:108"
+      ]
+    },
+    "categoryRepresentation": {
+      "status": "fact",
+      "cardId": 45041488,
+      "zh": 2148532226,
+      "other": -2146435070,
+      "uint32Equal": true,
+      "detail": "This is a signed versus unsigned 32-bit representation difference, not a changed category bit mask. Raw row hashes still differ."
+    },
+    "otSemantics": {
+      "status": "source-fact",
+      "constants": {
+        "AVAIL_OCG": 1,
+        "AVAIL_TCG": 2,
+        "AVAIL_CUSTOM": 4,
+        "AVAIL_SC": 8,
+        "AVAIL_OCGTCG": 3
+      },
+      "ruleIndexToAvailabilityMask": [
+        1,
+        2,
+        8,
+        4,
+        3,
+        0
+      ],
+      "acceptExpression": "(ot & avail) == avail",
+      "evidence": [
+        "srvprotianti/ygopro/gframe/game.h:946",
+        "srvprotianti/ygopro/gframe/deck_manager.cpp:82",
+        "srvprotianti/ygopro/gframe/deck_manager.cpp:104"
+      ]
+    },
+    "banlistSemantics": {
+      "status": "source-fact",
+      "detail": "Local parser accepts counts 0..2; absent IDs are subject to the general three-copy cap. Copy counting spans main, extra and side and uses get_duel_code(), including alias/rule_code normalization. Banlist alone does not enforce the historical release cutoff.",
+      "evidence": [
+        "srvprotianti/ygopro/gframe/deck_manager.cpp:13",
+        "srvprotianti/ygopro/gframe/deck_manager.cpp:107",
+        "srvprotianti/ygopro/gframe/data_manager.cpp:74",
+        "srvprotianti/ygopro/gframe/data_manager.h:60"
+      ]
+    },
+    "historicalPoolCutoff": {
+      "status": "documented-requirement-not-runtime-proof",
+      "detail": "The ladder introduction specifies OCG cards released through 2011-08-31 and the March 2011 banlist. The banlist date must not be used as the card-pool cutoff.",
+      "evidence": [
+        "srvprotianti/plugins/ladder-web/web/intro.html:24"
+      ]
+    },
+    "emptyDescriptions": {
+      "status": "fact",
+      "detail": "Chinese blank description IDs 19144623 and 77571455 are both TYPE_TOKEN. Blank str1..str16 cells are not automatically missing translations."
+    },
+    "javascriptIntegerPrecision": {
+      "status": "fact",
+      "detail": "Each source has four setcode values outside Number.MAX_SAFE_INTEGER; preserve 64-bit values in build tooling and validate replay CardReader decoding without lossy JS Number conversion."
+    }
+  },
+  "pending": [
+    "Confirm canonical historical playable ID set through 2011-08-31 plus any intentional server exceptions and alternate-art policy. Do not derive it from ot, the banlist or catalog size.",
+    "Confirm the production core binary commit, active cards.cdb/expansion load order and effective rule/card-pool restrictions against source and a controlled deck rejection test.",
+    "Use one confirmed canonical datas snapshot and explicit playable pool to generate all four locale outputs; retain display-only tokens and referenced helper/alias cards separately from deck-search eligibility.",
+    "Approve per-card localization fallback and historical text override policy; twelve missing ja/ko rows have alias candidates but no runtime silent ID substitution is allowed.",
+    "Locate and pin four strings.conf files to the same environment release and validate system IDs and card prompt string slots against server/core/script fixtures.",
+    "Choose a release resource transport (LFS checkout during build, versioned release asset, or object storage), pin checksums and fail on Git LFS pointer stubs. Publish deployable bytes, not GitHub raw links.",
+    "Verify redistribution terms for Neos/core/WASM, card text, scripts and image provider separately before public distribution."
+  ],
+  "banlistReference": {
+    "path": "F:/MyCardLibrary/koishipro/KoishiPro-master-win32-zh-CN/expansions/lflist.conf",
+    "bytes": 1511,
+    "sha256": "ea375c0874c8674aac515e6020aa7db85b372608eebeb15e6896fc108143a1cc",
+    "lineCount": 139,
+    "sectionCount": 1,
+    "selectedSections": [
+      {
+        "name": "2011.3.1",
+        "entries": [
+          [
+            72989439,
+            0
+          ],
+          [
+            82301904,
+            0
+          ],
+          [
+            40737112,
+            0
+          ],
+          [
+            44910027,
+            0
+          ],
+          [
+            21593977,
+            0
+          ],
+          [
+            33184167,
+            0
+          ],
+          [
+            34853266,
+            0
+          ],
+          [
+            78010363,
+            0
+          ],
+          [
+            14878871,
+            0
+          ],
+          [
+            34124316,
+            0
+          ],
+          [
+            78706415,
+            0
+          ],
+          [
+            69015963,
+            0
+          ],
+          [
+            3078576,
+            0
+          ],
+          [
+            31560081,
+            0
+          ],
+          [
+            34206604,
+            0
+          ],
+          [
+            56570271,
+            0
+          ],
+          [
+            8131171,
+            0
+          ],
+          [
+            20663556,
+            0
+          ],
+          [
+            4031928,
+            0
+          ],
+          [
+            12580477,
+            0
+          ],
+          [
+            17375316,
+            0
+          ],
+          [
+            18144506,
+            0
+          ],
+          [
+            19613556,
+            0
+          ],
+          [
+            23557835,
+            0
+          ],
+          [
+            42829885,
+            0
+          ],
+          [
+            44763025,
+            0
+          ],
+          [
+            46411259,
+            0
+          ],
+          [
+            55144522,
+            0
+          ],
+          [
+            60682203,
+            0
+          ],
+          [
+            74191942,
+            0
+          ],
+          [
+            79571449,
+            0
+          ],
+          [
+            85602018,
+            0
+          ],
+          [
+            87910978,
+            0
+          ],
+          [
+            29762407,
+            0
+          ],
+          [
+            34906152,
+            0
+          ],
+          [
+            41482598,
+            0
+          ],
+          [
+            57953380,
+            0
+          ],
+          [
+            45986603,
+            0
+          ],
+          [
+            69243953,
+            0
+          ],
+          [
+            70828912,
+            0
+          ],
+          [
+            3280747,
+            0
+          ],
+          [
+            17484499,
+            0
+          ],
+          [
+            28566710,
+            0
+          ],
+          [
+            35316708,
+            0
+          ],
+          [
+            57728570,
+            0
+          ],
+          [
+            83555666,
+            0
+          ],
+          [
+            61740673,
+            0
+          ],
+          [
+            63519819,
+            0
+          ],
+          [
+            32646477,
+            0
+          ],
+          [
+            7391448,
+            0
+          ],
+          [
+            7902349,
+            1
+          ],
+          [
+            8124921,
+            1
+          ],
+          [
+            44519536,
+            1
+          ],
+          [
+            70903634,
+            1
+          ],
+          [
+            98777036,
+            1
+          ],
+          [
+            65192027,
+            1
+          ],
+          [
+            44330098,
+            1
+          ],
+          [
+            40044918,
+            1
+          ],
+          [
+            92826944,
+            1
+          ],
+          [
+            41470137,
+            1
+          ],
+          [
+            28297833,
+            1
+          ],
+          [
+            37742478,
+            1
+          ],
+          [
+            423585,
+            1
+          ],
+          [
+            85215458,
+            1
+          ],
+          [
+            2009101,
+            1
+          ],
+          [
+            33396948,
+            1
+          ],
+          [
+            95503687,
+            1
+          ],
+          [
+            26202165,
+            1
+          ],
+          [
+            80344569,
+            1
+          ],
+          [
+            4906301,
+            1
+          ],
+          [
+            31305911,
+            1
+          ],
+          [
+            15341821,
+            1
+          ],
+          [
+            16226786,
+            1
+          ],
+          [
+            33508719,
+            1
+          ],
+          [
+            33420078,
+            1
+          ],
+          [
+            96782886,
+            1
+          ],
+          [
+            1475311,
+            1
+          ],
+          [
+            2295440,
+            1
+          ],
+          [
+            32807846,
+            1
+          ],
+          [
+            37520316,
+            1
+          ],
+          [
+            42703248,
+            1
+          ],
+          [
+            43040603,
+            1
+          ],
+          [
+            45809008,
+            1
+          ],
+          [
+            53129443,
+            1
+          ],
+          [
+            58577036,
+            1
+          ],
+          [
+            72302403,
+            1
+          ],
+          [
+            72892473,
+            1
+          ],
+          [
+            81439173,
+            1
+          ],
+          [
+            83764718,
+            1
+          ],
+          [
+            94886282,
+            1
+          ],
+          [
+            46052429,
+            1
+          ],
+          [
+            14087893,
+            1
+          ],
+          [
+            23171610,
+            1
+          ],
+          [
+            48976825,
+            1
+          ],
+          [
+            67723438,
+            1
+          ],
+          [
+            73915051,
+            1
+          ],
+          [
+            3136426,
+            1
+          ],
+          [
+            27970830,
+            1
+          ],
+          [
+            66957584,
+            1
+          ],
+          [
+            77565204,
+            1
+          ],
+          [
+            91351370,
+            1
+          ],
+          [
+            52687916,
+            1
+          ],
+          [
+            50321796,
+            1
+          ],
+          [
+            15800838,
+            1
+          ],
+          [
+            27174286,
+            1
+          ],
+          [
+            32723153,
+            1
+          ],
+          [
+            36468556,
+            1
+          ],
+          [
+            44095762,
+            1
+          ],
+          [
+            46652477,
+            1
+          ],
+          [
+            53582587,
+            1
+          ],
+          [
+            64697231,
+            1
+          ],
+          [
+            17078030,
+            1
+          ],
+          [
+            85742772,
+            1
+          ],
+          [
+            93016201,
+            1
+          ],
+          [
+            97077563,
+            1
+          ],
+          [
+            41420027,
+            1
+          ],
+          [
+            57774843,
+            2
+          ],
+          [
+            59509952,
+            2
+          ],
+          [
+            9411399,
+            2
+          ],
+          [
+            14943837,
+            2
+          ],
+          [
+            48686504,
+            2
+          ],
+          [
+            85087012,
+            2
+          ],
+          [
+            23205979,
+            2
+          ],
+          [
+            3659803,
+            2
+          ],
+          [
+            72405967,
+            2
+          ],
+          [
+            98494543,
+            2
+          ],
+          [
+            5318639,
+            2
+          ],
+          [
+            91623717,
+            2
+          ],
+          [
+            22046459,
+            2
+          ],
+          [
+            29401950,
+            2
+          ],
+          [
+            29843091,
+            2
+          ],
+          [
+            53567095,
+            2
+          ],
+          [
+            62279055,
+            2
+          ],
+          [
+            84749824,
+            2
+          ]
+        ],
+        "entryCount": 134,
+        "limitCounts": {
+          "0": 50,
+          "1": 66,
+          "2": 18
+        },
+        "directives": [],
+        "duplicateIds": [],
+        "missingIdsInZh": [],
+        "listedAliasIds": [],
+        "ygoproHashHex": "0x73ec4051",
+        "ygoproHashUint32": 1944862801,
+        "sortedEntriesSha256": "08fe6b01406740760e900a841509229608a38ca733a90a2d884b57034cdf6a2c"
+      }
+    ]
+  },
+  "banlistLocalServerCheckout": {
+    "path": "srvprotianti/ygopro/lflist.conf",
+    "bytes": 436427,
+    "sha256": "01e0efcfcf58523eceddde122c8aadb227fb36cf0fa98cb87cbf2159c0a50730",
+    "lineCount": 12107,
+    "sectionCount": 71,
+    "selectedSections": [
+      {
+        "name": "2011.3.1",
+        "entries": [
+          [
+            72989439,
+            0
+          ],
+          [
+            82301904,
+            0
+          ],
+          [
+            40737112,
+            0
+          ],
+          [
+            44910027,
+            0
+          ],
+          [
+            21593977,
+            0
+          ],
+          [
+            33184167,
+            0
+          ],
+          [
+            34853266,
+            0
+          ],
+          [
+            78010363,
+            0
+          ],
+          [
+            14878871,
+            0
+          ],
+          [
+            34124316,
+            0
+          ],
+          [
+            78706415,
+            0
+          ],
+          [
+            69015963,
+            0
+          ],
+          [
+            3078576,
+            0
+          ],
+          [
+            31560081,
+            0
+          ],
+          [
+            34206604,
+            0
+          ],
+          [
+            56570271,
+            0
+          ],
+          [
+            8131171,
+            0
+          ],
+          [
+            20663556,
+            0
+          ],
+          [
+            4031928,
+            0
+          ],
+          [
+            12580477,
+            0
+          ],
+          [
+            17375316,
+            0
+          ],
+          [
+            18144506,
+            0
+          ],
+          [
+            19613556,
+            0
+          ],
+          [
+            23557835,
+            0
+          ],
+          [
+            42829885,
+            0
+          ],
+          [
+            44763025,
+            0
+          ],
+          [
+            46411259,
+            0
+          ],
+          [
+            55144522,
+            0
+          ],
+          [
+            60682203,
+            0
+          ],
+          [
+            74191942,
+            0
+          ],
+          [
+            79571449,
+            0
+          ],
+          [
+            85602018,
+            0
+          ],
+          [
+            87910978,
+            0
+          ],
+          [
+            29762407,
+            0
+          ],
+          [
+            34906152,
+            0
+          ],
+          [
+            41482598,
+            0
+          ],
+          [
+            57953380,
+            0
+          ],
+          [
+            45986603,
+            0
+          ],
+          [
+            69243953,
+            0
+          ],
+          [
+            70828912,
+            0
+          ],
+          [
+            3280747,
+            0
+          ],
+          [
+            17484499,
+            0
+          ],
+          [
+            28566710,
+            0
+          ],
+          [
+            35316708,
+            0
+          ],
+          [
+            57728570,
+            0
+          ],
+          [
+            83555666,
+            0
+          ],
+          [
+            61740673,
+            0
+          ],
+          [
+            63519819,
+            0
+          ],
+          [
+            32646477,
+            0
+          ],
+          [
+            7391448,
+            0
+          ],
+          [
+            7902349,
+            1
+          ],
+          [
+            8124921,
+            1
+          ],
+          [
+            44519536,
+            1
+          ],
+          [
+            70903634,
+            1
+          ],
+          [
+            98777036,
+            1
+          ],
+          [
+            65192027,
+            1
+          ],
+          [
+            44330098,
+            1
+          ],
+          [
+            40044918,
+            1
+          ],
+          [
+            92826944,
+            1
+          ],
+          [
+            41470137,
+            1
+          ],
+          [
+            28297833,
+            1
+          ],
+          [
+            37742478,
+            1
+          ],
+          [
+            423585,
+            1
+          ],
+          [
+            85215458,
+            1
+          ],
+          [
+            2009101,
+            1
+          ],
+          [
+            33396948,
+            1
+          ],
+          [
+            95503687,
+            1
+          ],
+          [
+            26202165,
+            1
+          ],
+          [
+            80344569,
+            1
+          ],
+          [
+            4906301,
+            1
+          ],
+          [
+            31305911,
+            1
+          ],
+          [
+            15341821,
+            1
+          ],
+          [
+            16226786,
+            1
+          ],
+          [
+            33508719,
+            1
+          ],
+          [
+            33420078,
+            1
+          ],
+          [
+            96782886,
+            1
+          ],
+          [
+            1475311,
+            1
+          ],
+          [
+            2295440,
+            1
+          ],
+          [
+            32807846,
+            1
+          ],
+          [
+            37520316,
+            1
+          ],
+          [
+            42703248,
+            1
+          ],
+          [
+            43040603,
+            1
+          ],
+          [
+            45809008,
+            1
+          ],
+          [
+            53129443,
+            1
+          ],
+          [
+            58577036,
+            1
+          ],
+          [
+            72302403,
+            1
+          ],
+          [
+            72892473,
+            1
+          ],
+          [
+            81439173,
+            1
+          ],
+          [
+            83764718,
+            1
+          ],
+          [
+            94886282,
+            1
+          ],
+          [
+            46052429,
+            1
+          ],
+          [
+            14087893,
+            1
+          ],
+          [
+            23171610,
+            1
+          ],
+          [
+            48976825,
+            1
+          ],
+          [
+            67723438,
+            1
+          ],
+          [
+            73915051,
+            1
+          ],
+          [
+            3136426,
+            1
+          ],
+          [
+            27970830,
+            1
+          ],
+          [
+            66957584,
+            1
+          ],
+          [
+            77565204,
+            1
+          ],
+          [
+            91351370,
+            1
+          ],
+          [
+            52687916,
+            1
+          ],
+          [
+            50321796,
+            1
+          ],
+          [
+            15800838,
+            1
+          ],
+          [
+            27174286,
+            1
+          ],
+          [
+            32723153,
+            1
+          ],
+          [
+            36468556,
+            1
+          ],
+          [
+            44095762,
+            1
+          ],
+          [
+            46652477,
+            1
+          ],
+          [
+            53582587,
+            1
+          ],
+          [
+            64697231,
+            1
+          ],
+          [
+            17078030,
+            1
+          ],
+          [
+            85742772,
+            1
+          ],
+          [
+            93016201,
+            1
+          ],
+          [
+            97077563,
+            1
+          ],
+          [
+            41420027,
+            1
+          ],
+          [
+            57774843,
+            2
+          ],
+          [
+            59509952,
+            2
+          ],
+          [
+            9411399,
+            2
+          ],
+          [
+            14943837,
+            2
+          ],
+          [
+            48686504,
+            2
+          ],
+          [
+            85087012,
+            2
+          ],
+          [
+            23205979,
+            2
+          ],
+          [
+            3659803,
+            2
+          ],
+          [
+            72405967,
+            2
+          ],
+          [
+            98494543,
+            2
+          ],
+          [
+            5318639,
+            2
+          ],
+          [
+            91623717,
+            2
+          ],
+          [
+            22046459,
+            2
+          ],
+          [
+            29401950,
+            2
+          ],
+          [
+            29843091,
+            2
+          ],
+          [
+            53567095,
+            2
+          ],
+          [
+            62279055,
+            2
+          ],
+          [
+            84749824,
+            2
+          ]
+        ],
+        "entryCount": 134,
+        "limitCounts": {
+          "0": 50,
+          "1": 66,
+          "2": 18
+        },
+        "directives": [],
+        "duplicateIds": [],
+        "missingIdsInZh": [],
+        "listedAliasIds": [],
+        "ygoproHashHex": "0x73ec4051",
+        "ygoproHashUint32": 1944862801,
+        "sortedEntriesSha256": "08fe6b01406740760e900a841509229608a38ca733a90a2d884b57034cdf6a2c"
+      }
+    ]
+  },
+  "otherLocalCdbSnapshots": [
+    {
+      "path": "srvprotianti/ygopro/cards.cdb",
+      "bytes": 8050688,
+      "sha256": "5f13245de4e665450858f66ef2f736a3d2f48cc7f0036961373a96a650cb6797",
+      "datasCount": 14981,
+      "otCounts": {
+        "1": 214,
+        "2": 25,
+        "3": 6190,
+        "9": 225,
+        "11": 8327
+      },
+      "sameBytesAsCatalogZh": true
+    },
+    {
+      "path": "srvprotianti/ygopro/cards1.cdb",
+      "bytes": 8026112,
+      "sha256": "70e9b45cef09dd079c8958a738d5561a302151e97b1cdeb213f13e76fe9e90b9",
+      "datasCount": 14949,
+      "otCounts": {
+        "1": 290,
+        "2": 22,
+        "3": 6273,
+        "9": 133,
+        "11": 8231
+      },
+      "sameBytesAsCatalogZh": false
+    },
+    {
+      "path": "F:/MyCardLibrary/koishipro/KoishiPro-master-win32-zh-CN/locales/1103_zh-CN/cards.cdb",
+      "bytes": 1695744,
+      "sha256": "fd5931455abab8cdf38febc00f2ef4296de4bb69f0b9bb702f5ff37412fddc83",
+      "datasCount": 5267,
+      "otCounts": {
+        "1": 143,
+        "3": 3737,
+        "9": 9,
+        "11": 1378
+      },
+      "sameBytesAsCatalogZh": false
+    },
+    {
+      "path": "F:/MyCardLibrary/koishipro/KoishiPro-master-win32-zh-CN/locales/1103_en-US/cards.cdb",
+      "bytes": 1900544,
+      "sha256": "da653c64b3eb344db42ae5a72127da4ae390ace20bdb256271576cf164c54ea8",
+      "datasCount": 5240,
+      "otCounts": {
+        "1": 143,
+        "3": 3800,
+        "9": 9,
+        "11": 1288
+      },
+      "sameBytesAsCatalogZh": false
+    }
+  ]
+}

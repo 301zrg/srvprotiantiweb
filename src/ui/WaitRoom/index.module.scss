@@ -34,6 +34,17 @@
   }
 }
 
+@media (max-width: 700px) {
+  .container {
+    --side-box-width: calc(100vw - 2rem);
+    .sider { display: none; }
+    .content { width: 100%; padding: 0.5rem; }
+    .content .wrap { width: 100%; max-width: 100%; height: auto; }
+  }
+  .both-side-container { width: 100%; margin-top: 2rem; }
+  .both-side-container .side-box { padding: 0 1rem; }
+}
+
 .both-side-container {
   display: flex;
   flex-direction: column;

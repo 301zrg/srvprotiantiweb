@@ -17,8 +17,22 @@ export default class SelectHand implements StocAdapter {
 
   upcast(): ygopro.YgoStocMsg {
     const reader = new BufferReader(this.packet.exData);
-    const meResult = reader.readUint8();
-    const opResult = reader.readUint8();
+    // YGOPro Core uses 1=scissors, 2=rock, 3=paper, while the
+    // generated Neos HandType enum uses 1=rock, 2=scissors, 3=paper.
+    const toHandType = (value: number): ygopro.HandType => {
+      switch (value) {
+        case 1:
+          return ygopro.HandType.SCISSORS;
+        case 2:
+          return ygopro.HandType.ROCK;
+        case 3:
+          return ygopro.HandType.PAPER;
+        default:
+          return ygopro.HandType.UNKNOWN;
+      }
+    };
+    const meResult = toHandType(reader.readUint8());
+    const opResult = toHandType(reader.readUint8());
     return new ygopro.YgoStocMsg({
       stoc_hand_result: new ygopro.StocHandResult({
         meResult,

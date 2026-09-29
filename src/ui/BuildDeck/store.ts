@@ -1,9 +1,10 @@
 import { shuffle } from "lodash-es";
 import { proxy } from "valtio";
 
-import { type CardMeta } from "@/api";
+import { type CardMeta, forbidden } from "@/api";
 import { isExtraDeckCard, isToken } from "@/common";
 import { Type } from "@/ui/Shared/DeckZone";
+import { getLanguage } from "@/variant";
 
 import { compareCards, type EditingDeck } from "./utils";
 
@@ -81,13 +82,6 @@ const messages: Record<
 };
 
 // Get the language from localStorage or default to 'cn' (I18N)
-const language = (localStorage.getItem("language") || "cn") as Language;
-const cardTypeNotMatch = messages[language].cardTypeNotMatch;
-const exceedsNumberCardsSameName =
-  messages[language].exceedsNumberCardsSameName;
-const limitCards = messages[language].limitCards;
-const exceedsLimit = messages[language].exceedsLimit;
-const cannotAddTokens = messages[language].cannotAddTokens;
 /* End of definition (I18N) */
 
 export const editDeckStore = proxy({
@@ -150,6 +144,13 @@ export const editDeckStore = proxy({
     type: Type,
     source: Type | "search",
   ): { result: boolean; reason: string } {
+    const {
+      cardTypeNotMatch,
+      exceedsNumberCardsSameName,
+      limitCards,
+      exceedsLimit,
+      cannotAddTokens,
+    } = messages[getLanguage()];
     const deckType = editDeckStore[type];
     const cardType = card.data.type ?? 0;
 
@@ -174,16 +175,13 @@ export const editDeckStore = proxy({
       result = false;
       reason = cardTypeNotMatch;
     }
-    const max = 3; // 这里无需参考禁卡表
+    const max = Math.min(3, forbidden.get(card) ?? 3);
+    const canonicalId = (value: CardMeta) => value.data.alias || value.id;
     const numOfSameCards =
       editDeckStore
         .getAll()
-        .filter(
-          (c) =>
-            c.id === card.id ||
-            c.data.alias === card.id ||
-            c.id === card.data.alias,
-        ).length - (source !== "search" ? 1 : 0);
+        .filter((existing) => canonicalId(existing) === canonicalId(card))
+        .length - (source !== "search" ? 1 : 0);
 
     if (numOfSameCards >= max) {
       result = false;

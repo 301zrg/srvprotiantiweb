@@ -2,7 +2,7 @@
  * Adapter模块的抽象层。
  *
  * */
-import { ygopro } from "../idl/ocgcore";
+import type { ygopro } from "../idl/ocgcore";
 
 const littleEndian: boolean = true;
 const PACKET_MIN_LEN = 3;
@@ -41,38 +41,51 @@ export class YgoProPacket {
    *
    * */
   static deserialize(array: ArrayBuffer): YgoProPacket[] {
-    try {
-      if (array.byteLength < PACKET_MIN_LEN) {
-        throw new Error(
-          "Packet length too short, length = " + array.byteLength,
-        );
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    const framer = new YgoProPacketFramer();
+    const packets = framer.push(array);
+    if (framer.pendingBytes) throw new Error("Incomplete YGOPro packet");
+    return packets;
+  }
+}
 
-    // 由于srvpro实现问题，目前可能出现粘包的情况，因此这里做下解包
-    const packets = [];
+/** WebSocket message boundaries are not YGOPro packet boundaries. */
+export class YgoProPacketFramer {
+  private pending = new Uint8Array(0);
 
+  get pendingBytes(): number {
+    return this.pending.length;
+  }
+
+  push(chunk: ArrayBuffer): YgoProPacket[] {
+    const incoming = new Uint8Array(chunk);
+    if (incoming.length > 2 * 1024 * 1024)
+      throw new Error("WebSocket message exceeded client limit");
+    const data = new Uint8Array(this.pending.length + incoming.length);
+    data.set(this.pending);
+    data.set(incoming, this.pending.length);
+    const packets: YgoProPacket[] = [];
     let offset = 0;
-    while (true) {
-      const buffer = array.slice(offset);
-
-      if (buffer.byteLength < PACKET_MIN_LEN) {
-        // 解包结束
-        break;
-      }
-
-      const dataView = new DataView(buffer);
-      const packetLen = dataView.getInt16(0, littleEndian);
-      const proto = dataView.getInt8(2);
-      const exData = buffer.slice(3, packetLen + 2);
-
-      packets.push(new YgoProPacket(packetLen, proto, new Uint8Array(exData)));
-
-      offset += packetLen + 2;
+    while (data.length - offset >= PACKET_MIN_LEN) {
+      const size = new DataView(
+        data.buffer,
+        data.byteOffset + offset,
+        2,
+      ).getUint16(0, littleEndian);
+      if (size < 1) throw new Error("Invalid YGOPro packet length");
+      const total = size + 2;
+      if (data.length - offset < total) break;
+      packets.push(
+        new YgoProPacket(
+          size,
+          data[offset + 2],
+          data.slice(offset + 3, offset + total),
+        ),
+      );
+      offset += total;
     }
-
+    this.pending = data.slice(offset);
+    if (this.pending.length > 65537)
+      throw new Error("YGOPro packet buffer exceeded limit");
     return packets;
   }
 }

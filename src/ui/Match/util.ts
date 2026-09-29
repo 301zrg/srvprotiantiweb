@@ -1,49 +1,35 @@
-import { initStrings, initSuperPrerelease } from "@/api";
 import { getUIContainer, initUIContainer } from "@/container/compat";
 import { WebSocketStream } from "@/infra";
-import { initReplaySocket, initSocket } from "@/middleware/socket";
+import { initSocket } from "@/middleware/socket";
 import { pollSocketLooper } from "@/service/executor";
+import { initStore } from "@/stores";
 
-import { initSqlite } from "../Layout/utils";
+let activeConnection: WebSocketStream | undefined;
+
+export const disconnectSrvpro = () => {
+  activeConnection?.close();
+  activeConnection = undefined;
+};
 
 // 连接SRVPRO服务
 export const connectSrvpro = async (params: {
   ip: string;
   player: string;
   passWd: string;
-  replay?: boolean;
-  replayData?: ArrayBuffer;
   customOnConnected?: (conn: WebSocketStream) => void;
 }) => {
   // 初始化sqlite
-  await initSqlite();
-
-  // 初始化I18N文案
-  await initStrings();
-
-  // 初始化超先行配置
-  await initSuperPrerelease();
-
-  if (params.replay && params.replayData) {
-    // initialize replay from local yrp3d data
-    const conn = initReplaySocket({
-      data: params.replayData,
-    });
-
-    // initialize the UI Container
-    initUIContainer(conn);
-
-    // execute the event looper
-    pollSocketLooper(getUIContainer());
-  } else {
-    // connect to the ygopro Server
-    const conn = initSocket(params);
-
-    // initialize the UI Contaner
-    initUIContainer(conn);
-
-    // execute the event looper
-
-    pollSocketLooper(getUIContainer());
+  if (
+    initStore.sqlite.progress !== 1 ||
+    !initStore.i18n ||
+    !initStore.forbidden
+  ) {
+    throw new Error("Game resources have not finished loading");
   }
+
+  disconnectSrvpro();
+  const conn = initSocket(params);
+  activeConnection = conn;
+  initUIContainer(conn);
+  void pollSocketLooper(getUIContainer(), () => activeConnection === conn);
 };

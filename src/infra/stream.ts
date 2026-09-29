@@ -4,6 +4,12 @@
 // 因此封装了一个`WebSocketStream`类，当每次Websocket连接中有消息到达时，往流中添加event，
 
 // 同时执行器会不断地从流中获取event进行处理。
+import { getLanguage } from "@/variant";
+import { connectionStore } from "@/variant/connection";
+import { siteMessages } from "@/variant/messages";
+
+const manuallyClosed = new WeakSet<WebSocketStream>();
+
 export class WebSocketStream {
   public ws: WebSocket;
   stream: ReadableStream;
@@ -12,19 +18,27 @@ export class WebSocketStream {
     ip: string,
     onWsOpen?: (conn: WebSocketStream, ev: Event) => any,
   ) {
-    this.ws = new WebSocket("wss://" + ip);
+    connectionStore.state = "connecting";
+    connectionStore.detail = "";
+    connectionStore.pendingJoinMessage = "";
+    this.ws = new WebSocket(ip.startsWith("wss://") ? ip : `wss://${ip}`);
+    const timer = window.setTimeout(() => {
+      if (this.ws.readyState === WebSocket.CONNECTING) this.ws.close();
+    }, 15000);
     if (onWsOpen) {
-      this.ws.onopen = (e) => onWsOpen(this, e);
+      this.ws.onopen = (e) => {
+        window.clearTimeout(timer);
+        connectionStore.state = "connected";
+        onWsOpen(this, e);
+      };
     }
-    this.ws.onerror = (e) => {
-      if (e instanceof ErrorEvent) {
-        alert(`websocket error: ${e.message}`);
-      } else {
-        alert(`websocket connect to ${ip} error`);
-      }
+    this.ws.onerror = () => {
+      if (!manuallyClosed.has(this))
+        connectionStore.detail ||= siteMessages(getLanguage()).connectionFailed;
     };
 
     const ws = this.ws;
+    const owner = this;
     this.stream = new ReadableStream({
       start(controller) {
         // 当Websocket有数据到达时，加入队列
@@ -32,10 +46,18 @@ export class WebSocketStream {
           controller.enqueue(event);
         };
         ws.onclose = (ev) => {
+          window.clearTimeout(timer);
+          ws.onmessage = null;
+          if (!manuallyClosed.has(owner)) {
+            connectionStore.state = "disconnected";
+            connectionStore.detail ||= `${
+              siteMessages(getLanguage()).connectionClosed
+            } (${ev.code})`;
+          }
           // 后续可能根据断线原因做处理，先暴露出来
           console.info("Websocket closed.", ev);
           // 下面这行注释掉，因为虽然websocket关掉了，但是已经收到的数据可能还在处理中
-          // controller.close();
+          controller.close();
         };
       },
       pull(_) {
@@ -51,39 +73,28 @@ export class WebSocketStream {
   async execute(onMessage: (event: MessageEvent) => Promise<void>) {
     const reader: ReadableStreamDefaultReader<MessageEvent> =
       this.stream.getReader();
-    const ws = this.ws;
-
-    reader.read().then(async function process({ done, value }): Promise<void> {
-      if (done) {
-        if (ws.readyState === WebSocket.CLOSED) {
-          // websocket connection has been closed
-          console.info("WebSocket closed, stream complete.");
-
-          return;
-        } else {
-          // websocket not closed, handle next message from server
-          await reader.read().then(process);
-        }
-      }
-
-      if (value) {
-        // wait some time, and then handle message from server
-        //
-        // but now it seems that we don't need wait any more,
-        // so comment the following line and check if it's ok without it.
-        //
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
         await onMessage(value);
-      } else {
-        console.warn("value from ReadableStream is undefined!");
       }
-
-      // read some more, and call process function again
-      await reader.read().then(process);
-    });
+    } catch (error) {
+      if (!manuallyClosed.has(this))
+        connectionStore.detail = `${
+          siteMessages(getLanguage()).packetFailed
+        }: ${error instanceof Error ? error.message : String(error)}`;
+      this.ws.close();
+    } finally {
+      reader.releaseLock();
+    }
   }
 
   // 关闭流
   close() {
+    manuallyClosed.add(this);
+    connectionStore.state = "idle";
+    connectionStore.detail = "";
     this.ws.close();
   }
 

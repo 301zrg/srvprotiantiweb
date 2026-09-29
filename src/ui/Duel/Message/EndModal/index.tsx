@@ -5,7 +5,7 @@ import { proxy, useSnapshot } from "valtio";
 
 import { fetchStrings, Region } from "@/api";
 import { getUIContainer } from "@/container/compat";
-import { replayStore, resetDuel } from "@/stores";
+import { resetDuel } from "@/stores";
 
 import { NeosModal } from "../NeosModal";
 import styles from "./index.module.scss";
@@ -27,7 +27,6 @@ export const EndModal: React.FC = () => {
   const container = getUIContainer();
   const { message } = App.useApp();
   const { isOpen, isWin, reason } = useSnapshot(localStore);
-  const { isReplay } = useSnapshot(replayStore);
   const navigate = useNavigate();
 
   const onReturn = () => {
@@ -45,30 +44,7 @@ export const EndModal: React.FC = () => {
     <NeosModal
       title={fetchStrings(Region.System, 1500)}
       open={isOpen}
-      onOk={() => {
-        if (!isReplay) {
-          const replayBuffers = replayStore.encode();
-          const blob = new Blob(replayBuffers, {
-            type: "application/octet-stream",
-          });
-          const url = URL.createObjectURL(blob);
-
-          const anchorElement = document.createElement("a");
-          document.body.appendChild(anchorElement);
-          anchorElement.style.display = "none";
-
-          anchorElement.href = url;
-          anchorElement.download =
-            new Date().toLocaleString() + ".neos" + ".yrp3d";
-          anchorElement.click();
-
-          // download the replay file
-          window.URL.revokeObjectURL(url);
-
-          document.body.removeChild(anchorElement);
-        }
-        onReturn();
-      }}
+      onOk={onReturn}
       onCancel={onReturn}
     >
       <div
@@ -84,7 +60,6 @@ export const EndModal: React.FC = () => {
           {isWin ? "Win" : "Defeated"}
         </p>
         <p className={styles.reason}>{reason}</p>
-        {isReplay ? <></> : <p>{fetchStrings(Region.System, 1340)}</p>}
       </div>
     </NeosModal>
   );

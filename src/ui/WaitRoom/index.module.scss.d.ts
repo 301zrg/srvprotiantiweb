@@ -1,0 +1,25 @@
+declare const classNames: {
+  readonly container: "container";
+  readonly content: "content";
+  readonly wrap: "wrap";
+  readonly sider: "sider";
+  readonly "both-side-container": "both-side-container";
+  readonly "side-box": "side-box";
+  readonly inner: "inner";
+  readonly ready: "ready";
+  readonly me: "me";
+  readonly op: "op";
+  readonly name: "name";
+  readonly check: "check";
+  readonly uncheck: "uncheck";
+  readonly "btn-join": "btn-join";
+  readonly "avatars-watch": "avatars-watch";
+  readonly "btns-side": "btns-side";
+  readonly btn: "btn";
+  readonly "btn-icon": "btn-icon";
+  readonly "btn-text": "btn-text";
+  readonly collapsed: "collapsed";
+  readonly "fake-btn-large": "fake-btn-large";
+  readonly "btns-action": "btns-action";
+};
+export = classNames;

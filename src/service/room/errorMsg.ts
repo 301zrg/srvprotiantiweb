@@ -2,6 +2,7 @@ import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
 import ErrorType = ygopro.StocErrorMsg.ErrorType;
 import { Container } from "@/container";
 import { AudioActionType, playEffect } from "@/infra/audio";
+import { connectionStore } from "@/variant/connection";
 
 // TODO: 是时候需要一个统一管理国际化文案的模块了
 
@@ -80,7 +81,11 @@ export default async function handleErrorMsg(
 
   switch (error_type) {
     case ErrorType.JOINERROR: {
-      roomStore.errorMsg = fetchStrings(Region.System, 1403 + error_code);
+      const reason =
+        connectionStore.pendingJoinMessage ||
+        fetchStrings(Region.System, 1403 + error_code);
+      roomStore.errorMsg = reason;
+      connectionStore.detail = reason;
       break;
     }
     case ErrorType.DECKERROR: {

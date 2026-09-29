@@ -13,6 +13,7 @@ import {
   Race2StringCodeMap,
   Type2StringCodeMap,
 } from "@/common";
+import { useI18N } from "@/ui/I18N";
 import { CardEffectText, IconFont, ScrollableArea, YgoCard } from "@/ui/Shared";
 
 import styles from "./index.module.scss";
@@ -23,10 +24,11 @@ export const CardDetail: React.FC<{
   onClose: () => void;
 }> = ({ code, open, onClose }) => {
   const { t: i18n } = useTranslation("CardDetails");
+  const { language } = useI18N();
   const [card, setCard] = useState<CardMeta>();
   useEffect(() => {
     setCard(fetchCard(code));
-  }, [code]);
+  }, [code, language]);
   const cardType = useMemo(
     () =>
       extraCardTypes(card?.data.type ?? 0)

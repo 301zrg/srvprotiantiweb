@@ -4,6 +4,8 @@ export * from "./I18NSelector";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 
+import { getLanguage } from "@/variant";
+
 /* Import all translation files */
 import translationBrazilian from "./Source/Brazilian/translation.json";
 import translationChinese from "./Source/Chinese/translation.json";
@@ -14,6 +16,28 @@ import translationPortuguese from "./Source/Portuguese/translation.json";
 import translationSpanish from "./Source/Spanish/translation.json";
 
 const resources = {
+  // Upstream has no Korean UI catalog yet; English keys remain readable while
+  // Korean card text and system strings come from the reviewed Korean CDB.
+  ko: {
+    Header: translationEnglish.Header,
+    Start: translationEnglish.Start,
+    Match: translationEnglish.Match,
+    BuildDeck: translationEnglish.BuildDeck,
+    Filter: translationEnglish.Filter,
+    CardDetails: translationEnglish.CardDetails,
+    WaitRoom: translationEnglish.WaitRoom,
+    CustomRoomContent: translationEnglish.CustomRoomContent,
+    WatchContent: translationEnglish.WatchContent,
+    DeckSelect: translationEnglish.DeckSelect,
+    Chat: translationEnglish.Chat,
+    MatchModal: translationEnglish.MatchModal,
+    ReplayModal: translationEnglish.ReplayModal,
+    Popover: translationEnglish.Popover,
+    Menu: translationEnglish.Menu,
+    SelectCardModal: translationEnglish.SelectCardModal,
+    SystemSettings: translationEnglish.SystemSettings,
+    DeckResults: translationEnglish.DeckResults,
+  },
   cn: {
     Header: translationChinese.Header,
     Start: translationChinese.Start,
@@ -158,7 +182,7 @@ const resources = {
 
 i18next.use(initReactI18next).init({
   resources,
-  lng: localStorage.getItem("language") ?? "cn", //default language
+  lng: getLanguage(),
 });
 
 export default i18next;

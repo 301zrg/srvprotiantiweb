@@ -20,15 +20,16 @@ import { type CardMeta } from "@/api";
 import { isExtraDeckCard } from "@/common";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { deckStore, emptyDeck, type IDeck, initStore } from "@/stores";
+import { useI18N } from "@/ui/I18N";
 import {
   Background,
   DeckCardMouseUpEvent,
   DeckZone,
   Loading,
   ScrollableArea,
-  Select,
 } from "@/ui/Shared";
 import { Type } from "@/ui/Shared/DeckZone";
+import { deckMessages } from "@/variant/deckMessages";
 
 import { CardDetail } from "./CardDetail";
 import { DeckDatabase } from "./DeckDatabase";
@@ -41,9 +42,6 @@ import {
   editingDeckToIDeck,
   iDeckToEditingDeck,
 } from "./utils";
-
-const ENV_OCG = 0;
-const ENV_408 = 1;
 
 export const loader: LoaderFunction = async () => {
   // 必须先加载卡组，不然页面会崩溃
@@ -92,6 +90,7 @@ export const Component: React.FC = () => {
   const { deck: snapSelectedDeck } = useSnapshot(selectedDeck);
 
   const { message } = App.useApp();
+  const { language } = useI18N();
   const { t: i18n } = useTranslation("BuildDeck");
   const handleDeckEditorReset = async () => {
     editDeckStore.set(await iDeckToEditingDeck(selectedDeck.deck as IDeck));
@@ -107,7 +106,7 @@ export const Component: React.FC = () => {
       editDeckStore.edited = false;
     } else {
       editDeckStore.set(await iDeckToEditingDeck(selectedDeck.deck as IDeck));
-      message.error("保存失败");
+      message.error(deckMessages(language).saveFailed);
       editDeckStore.edited = false;
     }
   };
@@ -186,9 +185,6 @@ export const DeckEditor: React.FC<{
 }> = ({ deck, onClear, onReset, onSave, onShuffle, onSort }) => {
   const snapEditDeck = useSnapshot(editDeckStore);
   const [deckName, setDeckName] = useState(editDeckStore.deckName);
-  const [env, setEnv] = useState(ENV_OCG);
-
-  const handleEnvChange = (value: any) => setEnv(value);
 
   useEffect(() => {
     iDeckToEditingDeck(deck).then(editDeckStore.set);
@@ -256,21 +252,6 @@ export const DeckEditor: React.FC<{
           value={deckName}
         />
         <Space style={{ marginRight: "0.4rem" }} size={5}>
-          <Select
-            title={i18n("Environment")}
-            value={env}
-            options={[
-              {
-                value: ENV_OCG,
-                label: "OCG",
-              },
-              {
-                value: ENV_408,
-                label: "408",
-              },
-            ]}
-            onChange={handleEnvChange}
-          />
           <Button
             type="text"
             size="small"
@@ -335,7 +316,8 @@ export const DeckEditor: React.FC<{
                 editDeckStore.add(type, card);
               }
             }}
-            is408={env === ENV_408}
+            onMoveCard={(card, source) => handleSwitchCard(source, card)}
+            onRemoveCard={(card, source) => editDeckStore.remove(source, card)}
           />
         ))}
       </ScrollableArea>

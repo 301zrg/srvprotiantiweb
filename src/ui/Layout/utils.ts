@@ -1,17 +1,15 @@
 import {
   CookieKeys,
   forbidden,
-  forbidden_408,
   getCookie,
   initStrings,
-  initSuperPrerelease,
   setCookie,
 } from "@/api";
 import { useConfig } from "@/config";
 import sqliteMiddleWare, { sqliteCmd } from "@/middleware/sqlite";
 import { accountStore, deckStore, initStore, type User } from "@/stores";
 
-const { releaseResource, preReleaseResource, env408Resource } = useConfig();
+const { releaseResource } = useConfig();
 
 /** 加载ygodb */
 export const initSqlite = async () => {
@@ -24,7 +22,6 @@ export const initSqlite = async () => {
       cmd: sqliteCmd.INIT,
       initInfo: {
         releaseDbUrl: releaseResource.cdb,
-        preReleaseDbUrl: preReleaseResource.cdb,
         progressCallback,
       },
     });
@@ -44,7 +41,6 @@ export const initDeck = async () => {
 export const initForbidden = async () => {
   if (!initStore.forbidden) {
     await forbidden.init(releaseResource.lflist);
-    await forbidden_408.init(env408Resource.lflist);
     initStore.forbidden = true;
   }
 };
@@ -58,13 +54,6 @@ export const initI18N = async () => {
 };
 
 /** 加载超先行服配置 */
-export const initSuper = async () => {
-  if (!initStore.superprerelease) {
-    await initSuperPrerelease();
-    initStore.superprerelease = true;
-  }
-};
-
 /** sso登录跳转回来 */
 export const handleSSOLogin = async (search: string) => {
   /** 从SSO跳转回的URL之中，解析用户信息 */

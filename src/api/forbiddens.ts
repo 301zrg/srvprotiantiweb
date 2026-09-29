@@ -7,8 +7,12 @@ class Forbidden {
   public time: string = "?";
 
   public async init(lflist: string): Promise<void> {
-    const text = await (await fetch(lflist)).text();
+    const response = await fetch(lflist);
+    if (!response.ok) throw new Error(`lflist.conf: HTTP ${response.status}`);
+    const text = await response.text();
     const { time, forbiddens } = this.extractForbiddensFromText(text);
+    if (time === "?" || !forbiddens.size)
+      throw new Error("Invalid banlist resource");
     this.time = time;
     this.setForbiddens(forbiddens);
   }

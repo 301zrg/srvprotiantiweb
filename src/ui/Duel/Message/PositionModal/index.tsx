@@ -29,7 +29,6 @@ interface Translations {
 }
 
 // Retrieve language from localStorage or default to "cn"
-const language = localStorage.getItem("language") || "cn";
 
 // Define translations for different languages (I18N)
 const translations: Translations = {
@@ -92,6 +91,7 @@ const translations: Translations = {
 };
 
 export const PositionModal = () => {
+  const language = localStorage.getItem("language") || "cn";
   const container = getUIContainer();
   const { isOpen, positions } = useSnapshot(localStore);
 
@@ -126,6 +126,7 @@ export const PositionModal = () => {
 
 // Function to get card position based on language
 function cardPosition(position: ygopro.CardPosition): string {
+  const language = localStorage.getItem("language") || "cn";
   const messages = translations[language];
 
   switch (position) {
