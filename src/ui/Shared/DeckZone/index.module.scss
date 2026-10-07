@@ -36,8 +36,21 @@
   }
 }
 
-@media (max-width: 700px) {
-  .card-actions button { height: 32px; }
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .card-continer {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  }
+  .card-actions button {
+    height: 44px;
+    min-width: 44px;
+  }
+  :is(.main, .extra, .side) {
+    padding: 12px 8px 26px;
+  }
+  .editing-zone-name {
+    font-size: 14px;
+    color: #d4d8e2;
+  }
 }
 
 .editing-zone-name {

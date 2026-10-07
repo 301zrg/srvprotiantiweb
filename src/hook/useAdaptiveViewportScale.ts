@@ -16,7 +16,15 @@ const setViewportScale = ({
   minScale = MIN_SCALE,
 }: AdaptiveViewportScaleOptions = {}) => {
   const viewportWidth = Math.max(window.innerWidth, 1);
-  const viewportHeight = Math.max(window.innerHeight, 1);
+  const viewportHeight = Math.max(
+    Math.min(
+      window.innerHeight,
+      window.visualViewport?.scale === 1
+        ? window.visualViewport.height
+        : window.innerHeight,
+    ),
+    1,
+  );
   const scale = Math.max(
     minScale,
     Math.min(1, viewportWidth / designWidth, viewportHeight / designHeight),

@@ -8,5 +8,7 @@ declare const classNames: {
   readonly profile: "profile";
   readonly main: "main";
   readonly localeFloating: "localeFloating";
+  readonly settingsLabel: "settingsLabel";
+  readonly "ant-select-selector": "ant-select-selector";
 };
 export = classNames;

@@ -45,7 +45,7 @@
   margin-inline-end: 0;
   margin-block-end: 0;
   flex-shrink: 0;
-  
+
   &.opponent {
     &::before {
       background-color: #dc003433;
@@ -60,4 +60,13 @@
   position: absolute;
   left: 0;
   top: 0;
+}
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .check-group {
+    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  }
+  .check-card {
+    width: 100%;
+  }
 }

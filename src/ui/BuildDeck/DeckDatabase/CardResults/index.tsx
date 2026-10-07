@@ -82,14 +82,19 @@ export const CardResults: React.FC<{
         <>
           <div className={styles["search-cards"]}>
             {currentData.map((card) => (
-              <div key={card.id} style={{ minWidth: 0 }}>
+              <div
+                key={card.id}
+                style={{ minWidth: 0 }}
+                data-testid="deck-search-card"
+                data-card-code={card.id}
+              >
                 <DeckCard
                   value={card}
                   source="search"
                   onMouseUp={handleMouseUp}
                   onMouseEnter={() => showSelectedCard(card)}
                 />
-                <div style={{ display: "flex", gap: 2 }}>
+                <div className={styles.cardActions}>
                   <Button
                     size="small"
                     style={{ flex: 1, minWidth: 25, padding: 0 }}

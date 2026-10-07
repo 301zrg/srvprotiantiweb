@@ -7,7 +7,7 @@ import {
   SwapOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
-import { App, Button, Input, message, Space, Tooltip } from "antd";
+import { App, Button, Input, message, Tooltip } from "antd";
 import { HTML5toTouch } from "rdndmb-html5-to-touch";
 import { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd-multi-backend";
@@ -16,7 +16,7 @@ import { LoaderFunction } from "react-router-dom";
 import { proxy, useSnapshot } from "valtio";
 import { subscribeKey } from "valtio/utils";
 
-import { type CardMeta } from "@/api";
+import { type CardMeta, fetchCard } from "@/api";
 import { isExtraDeckCard } from "@/common";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { deckStore, emptyDeck, type IDeck, initStore } from "@/stores";
@@ -30,6 +30,7 @@ import {
 } from "@/ui/Shared";
 import { Type } from "@/ui/Shared/DeckZone";
 import { deckMessages } from "@/variant/deckMessages";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import { CardDetail } from "./CardDetail";
 import { DeckDatabase } from "./DeckDatabase";
@@ -91,6 +92,10 @@ export const Component: React.FC = () => {
 
   const { message } = App.useApp();
   const { language } = useI18N();
+  const mobileText = mobileMessages(language);
+  const [mobileTab, setMobileTab] = useState<"manage" | "deck" | "search">(
+    "deck",
+  );
   const { t: i18n } = useTranslation("BuildDeck");
   const handleDeckEditorReset = async () => {
     editDeckStore.set(await iDeckToEditingDeck(selectedDeck.deck as IDeck));
@@ -122,15 +127,47 @@ export const Component: React.FC = () => {
   return (
     <DndProvider options={HTML5toTouch}>
       <Background />
-      <div className={styles.layout} style={{ width: "100%" }}>
-        <div className={styles.sider}>
-          <ScrollableArea className={styles["deck-select-container"]}>
+      <div
+        className={styles.layout}
+        data-mobile-tab={mobileTab}
+        style={{ width: "100%" }}
+      >
+        <div
+          className={styles.mobileTabs}
+          role="tablist"
+          aria-label={mobileText.editDeck}
+        >
+          {(
+            [
+              ["manage", mobileText.manageDecks],
+              ["deck", mobileText.editDeck],
+              ["search", mobileText.searchCards],
+            ] as const
+          ).map(([tab, label]) => (
+            <Button
+              key={tab}
+              role="tab"
+              aria-selected={mobileTab === tab}
+              type={mobileTab === tab ? "primary" : "text"}
+              data-testid={`deck-tab-${tab}`}
+              onClick={() => setMobileTab(tab)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        <div className={styles.sider} data-testid="deck-manage-panel">
+          <ScrollableArea
+            className={styles["deck-select-container"]}
+            hostClassName={styles.scrollHost}
+          >
             <DeckSelect
               decks={snapDecks.decks as IDeck[]}
               selected={snapSelectedDeck.deckName}
-              onSelect={(name) =>
-                setSelectedDeck(deckStore.get(name) ?? emptyDeck)
-              }
+              onSelect={(name) => {
+                setSelectedDeck(deckStore.get(name) ?? emptyDeck);
+                setMobileTab("deck");
+              }}
               onDelete={async (name) => await deckStore.delete(name)}
               onDownload={(name) => {
                 const deck = deckStore.get(name);
@@ -143,12 +180,11 @@ export const Component: React.FC = () => {
               }}
             />
           </ScrollableArea>
-          <HigherCardDetail />
         </div>
         <div className={styles.content}>
           {progress === 1 ? (
             <>
-              <div className={styles.deck}>
+              <div className={styles.deck} data-testid="deck-editor-panel">
                 <DeckEditor
                   deck={snapSelectedDeck as IDeck}
                   onClear={editDeckStore.clear}
@@ -158,7 +194,7 @@ export const Component: React.FC = () => {
                   onSort={handleDeckEditorSort}
                 />
               </div>
-              <div className={styles.select}>
+              <div className={styles.select} data-testid="deck-search-panel">
                 <DeckDatabase />
               </div>
             </>
@@ -167,6 +203,9 @@ export const Component: React.FC = () => {
               <Loading progress={progress * 100} />
             </div>
           )}
+        </div>
+        <div className={styles.detailHost}>
+          <HigherCardDetail />
         </div>
       </div>
     </DndProvider>
@@ -184,6 +223,7 @@ export const DeckEditor: React.FC<{
   onSave: () => void;
 }> = ({ deck, onClear, onReset, onSave, onShuffle, onSort }) => {
   const snapEditDeck = useSnapshot(editDeckStore);
+  const { language } = useI18N();
   const [deckName, setDeckName] = useState(editDeckStore.deckName);
 
   useEffect(() => {
@@ -193,6 +233,15 @@ export const DeckEditor: React.FC<{
   useEffect(() => {
     editDeckStore.deckName = deckName;
   }, [deckName]);
+
+  // Refresh text without rebuilding the editor or discarding unsaved cards.
+  useEffect(() => {
+    for (const type of ["main", "extra", "side"] as const) {
+      editDeckStore[type] = editDeckStore[type].map((card) =>
+        fetchCard(card.id),
+      );
+    }
+  }, [language]);
 
   const handleSwitchCard = (type: Type, card: CardMeta) => {
     const cardType = card.data.type ?? 0;
@@ -242,16 +291,17 @@ export const DeckEditor: React.FC<{
   const { t: i18n } = useTranslation("BuildDeck");
   return (
     <div className={styles.container}>
-      <Space className={styles.title}>
+      <div className={styles.title}>
         <Input
           placeholder={i18n("EnterTheDeckName")}
           variant="borderless"
           prefix={<EditOutlined />}
-          style={{ width: "8.8rem" }}
+          className={styles.deckName}
+          data-testid="deck-name"
           onChange={(e) => setDeckName(e.target.value)}
           value={deckName}
         />
-        <Space style={{ marginRight: "0.4rem" }} size={5}>
+        <div className={styles.editorActions}>
           <Button
             type="text"
             size="small"
@@ -285,6 +335,7 @@ export const DeckEditor: React.FC<{
             {i18n("Reset")}
           </Button>
           <Button
+            data-testid="deck-save"
             type={snapEditDeck.edited ? "primary" : "text"}
             size="small"
             icon={<CheckOutlined />}
@@ -295,9 +346,12 @@ export const DeckEditor: React.FC<{
           <Tooltip title={i18n("QuestionCircleTooltip")}>
             <QuestionCircleOutlined />
           </Tooltip>
-        </Space>
-      </Space>
-      <ScrollableArea className={styles["deck-zone"]}>
+        </div>
+      </div>
+      <ScrollableArea
+        className={styles["deck-zone"]}
+        hostClassName={styles.scrollHost}
+      >
         {(["main", "extra", "side"] as const).map((type) => (
           <DeckZone
             key={type}

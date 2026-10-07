@@ -15,18 +15,28 @@ export const ScrollableArea = forwardRef<
     scrollProps?: OverlayScrollbarsComponentProps;
     elementProps?: React.HTMLAttributes<HTMLElement>;
     className?: string;
+    hostClassName?: string;
     style?: React.CSSProperties;
     maxHeight?: string; // 如果不指定，默认"100%"
   }>
 >(
   (
-    { scrollProps = {}, elementProps, className, style, children, maxHeight },
+    {
+      scrollProps = {},
+      elementProps,
+      className,
+      hostClassName,
+      style,
+      children,
+      maxHeight,
+    },
     ref,
   ) => {
     const { options = {}, ...rest } = scrollProps;
 
     return (
       <OverlayScrollbarsComponent
+        className={hostClassName}
         options={{
           scrollbars: {
             autoHide: "scroll",

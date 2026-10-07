@@ -1,24 +1,7 @@
-.chatbox {
-  position: relative;
-  height: 60% !important;
-  width: 60% !important;
-  background-color: #0d0d0d8f !important;
-  left: 20%;
-  bottom: -30%;
-  border-radius: 6px;
-
-  :global(.ant-drawer-header) {
-    padding: 8px 4px;
-  }
-  :global(.ant-drawer-body) {
-    padding: 16px;
-  }
-}
-
 .container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: min(calc(var(--neos-adaptive-height, 100dvh) * 0.55), 420px);
   max-height: 100%;
 }
 
@@ -34,14 +17,14 @@
 .dialogs {
   display: flex;
   flex-direction: column;
-  position: absolute;
   padding: 8px 0;
   width: 100%;
   gap: 2px;
 
   .item {
     vertical-align: baseline;
-    .name, .content {
+    .name,
+    .content {
       display: inline-block;
     }
     .name {
@@ -53,5 +36,19 @@
       color: green;
       margin-top: 2px;
     }
+  }
+}
+
+.scrollHost {
+  flex: 1;
+  min-height: 0;
+}
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .input button {
+    min-width: 44px;
+    height: 44px;
+  }
+  .input textarea {
+    font-size: 16px;
   }
 }

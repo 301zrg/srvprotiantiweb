@@ -15,7 +15,7 @@ import { deckMessages } from "@/variant/deckMessages";
 
 import { CardDetail } from "../BuildDeck/CardDetail";
 import { useI18N } from "../I18N";
-import { Background, DeckZone, ScrollableArea, Type } from "../Shared";
+import { Background, DeckZone, ScrollableArea, Type, useChat } from "../Shared";
 import { Chat } from "../WaitRoom/Chat";
 import styles from "./index.module.scss";
 import { TpModal } from "./TpModal";
@@ -27,6 +27,7 @@ export const loader: LoaderFunction = async () => {
 };
 
 export const Component: React.FC = () => {
+  const chat = useChat();
   const { language } = useI18N();
   const text = deckMessages(language);
   const container = getUIContainer();
@@ -123,7 +124,7 @@ export const Component: React.FC = () => {
       <Background />
       <div className={styles.container} data-language={language}>
         <div className={styles.sider}>
-          <Chat />
+          <Chat controller={chat} />
         </div>
         <div className={styles.content}>
           <div className={styles["deck-container"]}>
@@ -140,6 +141,7 @@ export const Component: React.FC = () => {
                 </Button>
                 <Button
                   type="primary"
+                  data-testid="side-confirm"
                   size="small"
                   icon={<CheckOutlined />}
                   disabled={stage > SideStage.SIDE_CHANGING}
@@ -149,7 +151,10 @@ export const Component: React.FC = () => {
                 </Button>
               </Space>
             </Space>
-            <ScrollableArea className={styles["deck-zone"]}>
+            <ScrollableArea
+              className={styles["deck-zone"]}
+              hostClassName={styles.scrollHost}
+            >
               {(["main", "extra", "side"] as const).map((type) => (
                 <DeckZone
                   key={type}

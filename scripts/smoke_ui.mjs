@@ -18,6 +18,11 @@ try {
     ["mobile", { width: 390, height: 844 }, true],
   ]) {
     const context = await browser.newContext({ viewport, isMobile, hasTouch: isMobile });
+    // This smoke scenario checks an unconfigured release, independently of local build settings.
+    await context.route("**/duel-config.js", (route) => route.fulfill({
+      contentType: "application/javascript",
+      body: 'window.__SRVPRO_DUEL_CONFIG__ = { duelWebSocketUrl: "" };',
+    }));
     const page = await context.newPage();
     page.on("pageerror", (error) => errors.push(`${name}: ${error.message}`));
     page.on("response", (response) => {
@@ -66,8 +71,10 @@ try {
     await page.screenshot({ path: `.audit-tmp/${name}-match.png`, fullPage: true });
 
     await page.getByRole("button", { name: "编辑卡组" }).click();
-    await expect(page.getByText("1103-sample")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId("deck-name")).toHaveValue("1103-sample", { timeout: 15000 });
+    if (isMobile) await page.getByTestId("deck-tab-manage").click();
     await expect(page.getByTestId("deck-import-file")).toBeVisible();
+    if (isMobile) await page.getByTestId("deck-tab-deck").click();
     await page.screenshot({ path: `.audit-tmp/${name}-deck.png`, fullPage: true });
     await context.close();
   }

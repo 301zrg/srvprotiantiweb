@@ -1,82 +1,123 @@
 .wrap {
   position: relative;
-  height: calc(100% - var(--header-height));
+  height: calc(var(--neos-adaptive-height, 100vh) - var(--header-height));
+  overflow: auto;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3rem;
 }
 
 .main {
-  height: 50vh;
-  width: 60vw;
-  max-height: 100%;
-  position: relative;
+  width: 100%;
+  max-width: 640px;
+  flex-shrink: 0;
+  margin: auto;
   display: flex;
-  justify-content: space-between;
-  .left {
-    height: 100%;
-    width: 40%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    .neos-logo {
-      width: 9rem;
-      height: 2rem;
-    }
-    .title {
-      font-size: 2rem;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.86);
-    }
-    .keywords {
-      font-size: 1.5rem;
-      font-weight: 500;
-      color: rgba(235, 245, 235, 0.8);
-    }
-    .details {
-      margin-top: 2rem;
-      width: 28rem;
-      max-width: 100%;
-      font-size: 1rem;
-      font-weight: 500;
-      line-height: 1.75rem;
-      color: rgba(235, 245, 235, 0.5);
-    }
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 8px;
+
+  h1 {
+    margin: 0 0 12px;
+    font-size: 2rem;
+    line-height: 1.25;
   }
-  .right {
-    height: 100%;
-    width: 40%;
-    position: relative;
-    overflow: hidden;
-    border-bottom-right-radius: 11.25rem;
-    border-bottom-left-radius: 11.25rem;
-    .neos-main-bg {
-      position: absolute;
-      bottom: 0;
-      width: fit-content;
-      height: fit-content;
-      border-radius: 50%;
-      filter: brightness(0.7);
+
+  p {
+    margin: 0 0 24px;
+    color: rgba(235, 245, 255, 0.75);
+    line-height: 1.6;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.notice {
+  padding: 18px 20px;
+  border: 1px solid rgba(180, 205, 235, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 28, 47, 0.82);
+  color: rgba(235, 245, 255, 0.8);
+  font-size: 0.875rem;
+  line-height: 1.7;
+
+  h2 {
+    margin: 0 0 8px;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 8px 0 0;
+  }
+
+  a {
+    color: #91caff;
+    overflow-wrap: anywhere;
+
+    &:hover {
+      color: #c4e2ff;
+      text-decoration: underline;
     }
-    .neos-main {
-      position: absolute;
-      bottom: 0;
-      width: 80%;
-      border-bottom-right-radius: 50%;
-      transform: scale(1.25);
-      transform-origin: 50% 100%;
-      filter: drop-shadow(0px 8px 8px rgba(255, 255, 255, 0.3))
-        drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.8));
-      transition: 0.2s;
+
+    &:focus-visible {
+      outline: 2px solid #91caff;
+      outline-offset: 3px;
+      border-radius: 4px;
     }
   }
 }
 
-@media (max-width: 700px) {
-  .main {
-    width: calc(100% - 2rem);
-    height: auto;
+.website {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 44px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.community {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 6px 14px;
+    border: 1px solid rgba(145, 202, 255, 0.24);
+    border-radius: 8px;
+    background: rgba(145, 202, 255, 0.06);
+  }
+}
+
+@media (max-width: 480px) {
+  .wrap {
+    padding: 24px 16px;
+  }
+
+  .hero h1 {
+    font-size: 1.75rem;
+  }
+
+  .notice {
+    padding: 16px;
   }
 }

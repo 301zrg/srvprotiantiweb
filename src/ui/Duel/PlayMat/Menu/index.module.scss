@@ -25,3 +25,22 @@
     color: red;
   }
 }
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .menu-container {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    max-width: calc(
+      100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)
+    );
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px;
+    button {
+      height: 44px;
+      min-width: 44px;
+      padding: 0 8px;
+      font-size: 14px;
+    }
+  }
+}

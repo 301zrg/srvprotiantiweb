@@ -13,8 +13,11 @@ import {
   Race2StringCodeMap,
   Type2StringCodeMap,
 } from "@/common";
+import { useMobileInterface } from "@/hook";
 import { useI18N } from "@/ui/I18N";
 import { CardEffectText, IconFont, ScrollableArea, YgoCard } from "@/ui/Shared";
+import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import styles from "./index.module.scss";
 
@@ -25,6 +28,8 @@ export const CardDetail: React.FC<{
 }> = ({ code, open, onClose }) => {
   const { t: i18n } = useTranslation("CardDetails");
   const { language } = useI18N();
+  const mobile = useMobileInterface();
+  const text = mobileMessages(language);
   const [card, setCard] = useState<CardMeta>();
   useEffect(() => {
     setCard(fetchCard(code));
@@ -107,39 +112,63 @@ export const CardDetail: React.FC<{
     return result;
   }, [card]);
 
-  return (
-    <div className={classNames(styles.detail, { [styles.open]: open })}>
-      <div className={styles.container}>
+  const descriptions = (
+    <>
+      <Descriptions layout="vertical" size="small" items={items} />
+      <Descriptions
+        layout="vertical"
+        size="small"
+        items={desc.filter(Boolean).map((d, i) => ({
+          label:
+            desc.length > 1
+              ? i
+                ? i18n("MonsterEffect")
+                : i18n("PendulumEffect")
+              : i18n("CardEffect"),
+          span: 3,
+          children: <CardEffectText desc={d} />,
+        }))}
+      />
+    </>
+  );
+
+  const body = (
+    <div className={styles.container}>
+      {!mobile && (
         <Button
           className={styles["btn-close"]}
           icon={<IconFont type="icon-side-bar-fill" size={16} />}
           type="text"
           onClick={onClose}
+          aria-label={text.close}
         />
-        <a href={`https://ygocdb.com/card/${code}`} target="_blank">
-          <YgoCard className={styles.card} code={code} />
-        </a>
-        <div className={styles.title}>
-          <span>{card?.text.name}</span>
-        </div>
-        <ScrollableArea>
-          <Descriptions layout="vertical" size="small" items={items} />
-          <Descriptions
-            layout="vertical"
-            size="small"
-            items={desc.filter(Boolean).map((d, i) => ({
-              label:
-                desc.length > 1
-                  ? i
-                    ? i18n("MonsterEffect")
-                    : i18n("PendulumEffect")
-                  : i18n("CardEffect"),
-              span: 3,
-              children: <CardEffectText desc={d} />,
-            }))}
-          ></Descriptions>
-        </ScrollableArea>
+      )}
+      <a
+        href={`https://ygocdb.com/card/${code}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        <YgoCard className={styles.card} code={code} />
+      </a>
+      <div className={styles.title}>
+        <span>{card?.text.name}</span>
       </div>
+      {mobile ? descriptions : <ScrollableArea>{descriptions}</ScrollableArea>}
+    </div>
+  );
+  return mobile ? (
+    <DuelPanel
+      open={open}
+      onClose={onClose}
+      title={card?.text.name || text.cardDetails}
+      placement="left"
+      testId="deck-card-panel"
+    >
+      {body}
+    </DuelPanel>
+  ) : (
+    <div className={classNames(styles.detail, { [styles.open]: open })}>
+      {body}
     </div>
   );
 };

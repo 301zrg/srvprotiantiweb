@@ -70,6 +70,8 @@ export const DeckZone: React.FC<{
   });
   return (
     <div
+      data-testid={`deck-zone-${type}`}
+      data-card-count={cards.length}
       className={classNames(styles[type], {
         [styles.over]: isOver,
         [styles["not-allow-to-drop"]]: isOver && !allowToDrop,

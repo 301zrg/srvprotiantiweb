@@ -12,6 +12,15 @@ const messages = {
     subtitle: "2011 年 3 月禁限卡表 · 四语言卡池 · 天梯与普通房间",
     start: "进入联机",
     edit: "编辑卡组",
+    creditsTitle: "开源致谢",
+    creditsIntro: "本项目基于开源网页版客户端 ",
+    creditsThanks: " 修改，感谢 Neos 原作者与贡献者的开发和开源分享。",
+    updatesTitle: "天梯服与后续更新",
+    website: "天梯服官网",
+    updatesText: "录像播放、对战动画及 UI 优化等更多功能，将在后续逐步更新。",
+    feedbackText: "遇到问题或有建议？欢迎加入 Discord 或 QQ 群反馈交流。",
+    discord: "Discord 群",
+    qq: "QQ 群",
     nickname: "玩家昵称",
     room: "房间名",
     nicknameHint:
@@ -41,6 +50,18 @@ const messages = {
       "March 2011 banlist · Four card languages · Ladder and private rooms",
     start: "Play online",
     edit: "Edit decks",
+    creditsTitle: "Open-source credits",
+    creditsIntro: "This project is adapted from the open-source web client ",
+    creditsThanks:
+      ". Thanks to the Neos authors and contributors for their work and for sharing it as open source.",
+    updatesTitle: "Ladder server & upcoming updates",
+    website: "Ladder website",
+    updatesText:
+      "Replay playback, duel animations, UI improvements, and more will be added in future updates.",
+    feedbackText:
+      "Found a problem or have a suggestion? Join our Discord or QQ group to share feedback.",
+    discord: "Discord community",
+    qq: "QQ group",
     nickname: "Nickname",
     room: "Room name",
     nicknameHint:
@@ -74,6 +95,18 @@ const messages = {
       "2011年3月の禁止・制限カード · 4言語のカード · ランク戦と通常ルーム",
     start: "オンライン対戦",
     edit: "デッキ編集",
+    creditsTitle: "オープンソースへの謝辞",
+    creditsIntro: "本プロジェクトはオープンソースのウェブクライアント ",
+    creditsThanks:
+      " を基に改修しています。Neos の作者と貢献者の皆様に、開発とソースコードの公開を感謝します。",
+    updatesTitle: "ランク戦サーバーと今後の更新",
+    website: "ランク戦サーバー公式サイト",
+    updatesText:
+      "リプレイ再生、対戦アニメーション、UI の改善などは、今後の更新で順次追加予定です。",
+    feedbackText:
+      "不具合やご意見は、Discord または QQ グループでお知らせください。",
+    discord: "Discord コミュニティ",
+    qq: "QQ グループ",
     nickname: "プレイヤー名",
     room: "ルーム名",
     nicknameHint:
@@ -102,6 +135,18 @@ const messages = {
     subtitle: "2011년 3월 금지·제한 카드 · 4개 언어 카드 · 래더와 일반 방",
     start: "온라인 대전",
     edit: "덱 편집",
+    creditsTitle: "오픈 소스 감사 인사",
+    creditsIntro: "이 프로젝트는 오픈 소스 웹 클라이언트 ",
+    creditsThanks:
+      "를 바탕으로 수정했습니다. 개발과 소스 공개에 힘써 주신 Neos 원작자와 기여자 여러분께 감사드립니다.",
+    updatesTitle: "래더 서버 및 향후 업데이트",
+    website: "래더 서버 공식 사이트",
+    updatesText:
+      "리플레이 재생, 대전 애니메이션, UI 개선 등의 기능은 향후 업데이트에서 순차적으로 추가할 예정입니다.",
+    feedbackText:
+      "문제나 제안이 있다면 Discord 또는 QQ 그룹에 참여해 의견을 알려 주세요.",
+    discord: "Discord 커뮤니티",
+    qq: "QQ 그룹",
     nickname: "플레이어 이름",
     room: "방 이름",
     nicknameHint:

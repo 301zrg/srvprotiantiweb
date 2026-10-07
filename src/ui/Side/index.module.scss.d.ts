@@ -6,5 +6,6 @@ declare const classNames: {
   readonly title: "title";
   readonly "deck-zone": "deck-zone";
   readonly "detail-container": "detail-container";
+  readonly scrollHost: "scrollHost";
 };
 export = classNames;

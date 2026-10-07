@@ -6,6 +6,7 @@ import {
   MessageFilled,
   PauseCircleFilled,
   PlayCircleFilled,
+  SettingOutlined,
   StepForwardFilled,
 } from "@ant-design/icons";
 import {
@@ -19,7 +20,7 @@ import {
   Tooltip,
 } from "antd";
 import classNames from "classnames";
-import { cloneElement, useEffect, useState } from "react";
+import { cloneElement, useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
 import {
@@ -36,7 +37,9 @@ import {
   replayStore,
 } from "@/stores";
 import { useI18N } from "@/ui/I18N";
+import { openSettingPanel } from "@/ui/Setting";
 import { IconFont } from "@/ui/Shared";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import styles from "./index.module.scss";
 import PhaseType = ygopro.StocGameMessage.MsgNewPhase.PhaseType;
@@ -272,6 +275,24 @@ const initialPhaseBind = (
 
 export const Menu = () => {
   const { language } = useI18N();
+  const text = mobileMessages(language);
+  const menu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = menu.current;
+    if (!element) return;
+    const update = () =>
+      document.documentElement.style.setProperty(
+        "--duel-menu-height",
+        `${element.getBoundingClientRect().height}px`,
+      );
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    update();
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--duel-menu-height");
+    };
+  }, []);
   const container = getUIContainer();
   const { t: i18n } = useTranslation("Menu");
   const {
@@ -381,7 +402,13 @@ export const Menu = () => {
   const globalDisable = !matStore.isMe(currentPlayer);
 
   return (
-    <div className={styles["menu-container"]}>
+    <div
+      className={styles["menu-container"]}
+      ref={menu}
+      data-testid="duel-menu"
+      role="toolbar"
+      aria-label={text.settings}
+    >
       <SelectManager />
       <ReplayControl />
       <DropdownWithTitle
@@ -406,6 +433,9 @@ export const Menu = () => {
       >
         <Button
           data-testid="duel-chain-setting"
+          aria-label={
+            chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
+          }
           data-chain-setting={chainSettingTestIds[chainSetting]}
           icon={<ChainIcon chainSetting={chainSetting} />}
           type="text"
@@ -413,6 +443,8 @@ export const Menu = () => {
       </DropdownWithTitle>
       <Tooltip title={i18n("History")}>
         <Button
+          data-testid="duel-history"
+          aria-label={text.history}
           icon={<FileSearchOutlined />}
           onClick={displayActionHistory}
           type="text"
@@ -420,6 +452,8 @@ export const Menu = () => {
       </Tooltip>
       <Tooltip title={i18n("ChatRoom")}>
         <Button
+          data-testid="duel-chat"
+          aria-label={text.chat}
           icon={<MessageFilled />}
           onClick={openChatBox}
           type="text"
@@ -436,6 +470,13 @@ export const Menu = () => {
           type="text"
         ></Button>
       </DropdownWithTitle>
+      <Button
+        data-testid="duel-settings"
+        aria-label={text.settings}
+        icon={<SettingOutlined />}
+        type="text"
+        onClick={() => openSettingPanel({})}
+      />
     </div>
   );
 };
@@ -560,6 +601,7 @@ const SelectManager: React.FC = () => {
     sendSelectSingleResponse(container.conn, FINISH_CANCEL_RESPONSE);
     clearSelectInfo();
   };
+  if (!finishable && !cancelable) return null;
   return (
     <div className={styles["select-manager"]}>
       <Button

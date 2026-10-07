@@ -23,7 +23,10 @@ export const NeosModal: React.FC<ModalProps> = (props) => {
   useEffect(() => {
     close();
   }, []);
-  useEffect(() => setRealOpen(!!props.open), [props.open]);
+  useEffect(() => {
+    setRealOpen(!!props.open);
+    if (props.open) setMini(false);
+  }, [props.open]);
 
   return (
     <Modal

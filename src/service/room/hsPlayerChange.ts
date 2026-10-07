@@ -8,8 +8,8 @@ export default function handleHsPlayerChange(
   const change = pb.stoc_hs_player_change;
   const context = container.context;
 
-  if (change.pos > 1) {
-    console.log("Currently only supported 2v2 mode.");
+  if (change.pos < 0 || change.pos >= 4) {
+    return;
   } else {
     switch (change.state) {
       case ygopro.StocHsPlayerChange.State.UNKNOWN: {
@@ -18,7 +18,12 @@ export default function handleHsPlayerChange(
         break;
       }
       case ygopro.StocHsPlayerChange.State.MOVE: {
-        // TODO: 这个分支可能有BUG，后面注意一下
+        if (
+          change.moved_pos < 0 ||
+          change.moved_pos >= 4 ||
+          change.moved_pos === change.pos
+        )
+          break;
         console.info(
           "<HsPlayerChange>Player " +
             change.pos +

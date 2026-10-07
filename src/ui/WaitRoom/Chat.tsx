@@ -1,7 +1,9 @@
 import { Button, Input } from "antd";
 import { useTranslation } from "react-i18next";
 
+import { useI18N } from "@/ui/I18N";
 import { IconFont, ScrollableArea, useChat } from "@/ui/Shared";
+import { roomMessages } from "@/variant/roomMessages";
 
 import styles from "./Chat.module.scss";
 
@@ -11,14 +13,22 @@ interface ChatItem {
   content: string;
 }
 
-export const Chat: React.FC = () => {
-  const { dialogs, input, setInput, ref, onSend } = useChat();
+export const Chat: React.FC<{ controller: ReturnType<typeof useChat> }> = ({
+  controller,
+}) => {
+  const { dialogs, input, setInput, ref, onSend } = controller;
   const { t: i18n } = useTranslation("Chat");
+  const { language } = useI18N();
   return (
     <div className={styles.chat} data-testid="waitroom-chat">
       <ScrollableArea
         className={styles.dialogs}
-        data-testid="waitroom-chat-dialogs"
+        hostClassName={styles.scrollHost}
+        elementProps={
+          {
+            "data-testid": "waitroom-chat-dialogs",
+          } as React.HTMLAttributes<HTMLElement>
+        }
         ref={ref}
       >
         {dialogs.map((item, idx) => (
@@ -31,7 +41,7 @@ export const Chat: React.FC = () => {
           data-testid="waitroom-chat-input"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          autoSize
+          autoSize={{ minRows: 1, maxRows: 3 }}
           placeholder={i18n("PleaseEnterChatContent")}
           onPressEnter={(e) => {
             e.preventDefault();
@@ -41,6 +51,7 @@ export const Chat: React.FC = () => {
         <Button
           type="text"
           data-testid="waitroom-chat-send"
+          aria-label={roomMessages(language).send}
           icon={<IconFont type="icon-send" size={16} />}
           onClick={onSend}
         />

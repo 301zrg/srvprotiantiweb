@@ -1,5 +1,18 @@
-/** The only duel endpoint is supplied by the site operator at build time. */
-export const duelWebSocketUrl = (import.meta.env.VITE_DUEL_WS_URL ?? "").trim();
+declare global {
+  interface Window {
+    __SRVPRO_DUEL_CONFIG__?: { duelWebSocketUrl?: unknown };
+  }
+}
+
+/** The operator fixes the endpoint; players cannot edit it in the UI. */
+const publicConfig = window.__SRVPRO_DUEL_CONFIG__;
+export const duelWebSocketUrl =
+  publicConfig &&
+  Object.prototype.hasOwnProperty.call(publicConfig, "duelWebSocketUrl")
+    ? typeof publicConfig.duelWebSocketUrl === "string"
+      ? publicConfig.duelWebSocketUrl.trim()
+      : ""
+    : (import.meta.env.VITE_DUEL_WS_URL ?? "").trim();
 
 export const environmentId = "1103-201103-v1";
 export const basePath = import.meta.env.BASE_URL.endsWith("/")

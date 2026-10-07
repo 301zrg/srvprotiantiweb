@@ -7,6 +7,8 @@ export const theme: ThemeConfig = {
   },
   components: {
     Message: {
+      // Transient hints must not cover the close controls of an open panel.
+      zIndexPopup: 900,
       colorBgElevated: "#3f4d60",
       boxShadow:
         "0 6px 16px 0 rgb(51 51 51 / 80%), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05)",
@@ -31,6 +33,8 @@ export const theme: ThemeConfig = {
       colorBgContainer: "hsla(0, 0%, 100%, 0.05)",
     },
     Dropdown: {
+      // Card actions remain above the detail panel opened by the same tap.
+      zIndexPopup: 1200,
       colorBgElevated: "#2e3c50",
       boxShadow:
         "0 6px 16px 0 rgb(51 51 51 / 80%), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05)",

@@ -1,10 +1,17 @@
 .desc {
   line-height: 1.6;
   font-size: 0.875rem;
-  max-height: calc(100% - 14.8rem);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 
   .maro-item {
     display: flex;
     gap: 0.5rem;
+  }
+}
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .desc {
+    font-size: 16px;
   }
 }

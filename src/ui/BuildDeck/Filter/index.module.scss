@@ -49,3 +49,37 @@
     line-height: 1.25rem;
   }
 }
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .title {
+    margin: 8px 0 16px;
+    font-size: 20px;
+  }
+  .item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .item .item-name {
+    flex: none;
+  }
+  .item :global(.ant-select) {
+    width: 100% !important;
+  }
+  .item :global(.ant-select-selector),
+  .number :global(.ant-input-number) {
+    min-height: 44px;
+    align-items: center;
+  }
+  .number :global(.ant-input-number-input) {
+    height: 44px;
+    font-size: 16px;
+  }
+  .btns {
+    padding-top: 16px;
+    button {
+      min-height: 44px;
+      width: 100%;
+    }
+  }
+}

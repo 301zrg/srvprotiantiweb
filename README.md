@@ -4,7 +4,7 @@
 
 ## 当前进度
 
-本地首版已接入四语卡库生成器、2011.3.1 禁表、YDK 导入／导出、统一联机表单及固定 WSS 配置，移除了入口的 MyCard 登录依赖。`npm run build` 生成的 `dist/` 包含静态页、四语环境资源和 Neos WASM/界面资源。已用隔离的本地 SRVPro 实例验证真实 WSS：两个浏览器分别完成普通 Single 房和 `TT` Match 的入房、卡组准备、猜拳及开局，均进入对局画面。当前正式天梯的 `121.4.34.71:7911` 是 YGOPro **TCP** 入口，浏览器不能直接连接；生产 WSS 地址和完整比赛／重连验收仍缺，当前产物不应标为可发布线上版。
+本地首版已接入四语卡库生成器、2011.3.1 禁表、YDK 导入／导出、统一联机表单及固定 WSS 配置，移除了入口的 MyCard 登录依赖。`npm run build` 生成的 `dist/` 包含静态页、四语环境资源和 Neos WASM/界面资源。隔离的本地 SRVPro 已通过普通 Single 和 TT G1–G3 生命周期、两次换备提交及退出保留昵称／密码；弃权回归不代替全部卡片交互。正式入口 `wss://duel.ygomatch.xyz/neos` 在服务器本机握手通过，公网因未备案受阻。今年继续使用现有主机，采用无需改 DNS 的临时隧道与外部静态站点上线测试；已部署网页经公网 WSS 的普通房开局、弃权结束和首次再次入场通过。正式禁表 hash 差异已定位到两个错误卡号，修正版及 [替换步骤](docs/banlist-diagnosis.md) 已备妥；正式新房间规则一致性、TT 实战、真机和断线恢复仍待验收。
 
 ## 本地运行
 
@@ -25,6 +25,18 @@ npm run dev
 
 当前构建产物约 12.7 MB（未压缩、含四语 CDB 与 WASM）。首版保留提示音，关闭背景音乐；打包脚本不复制上游约 53 MB 背景音乐和约 11 MB 未使用的卡组封面。基础页面和新增组卡操作有四语文案，上游尚未翻译的韩语对局界面目前回退为英语。
 
+## 现有服务器上线测试
+
+2026-10-07 手机界面已调整组卡分页、触摸按钮、横竖屏详情与操作历史、设置关闭入口；本地复测与更新测试站点的方法见 [手机界面调整](docs/mobile-ui.md)。`npm run test:mobile-ui` 自行启动临时 Vite，检查三个触控视口及设置关闭；Android／iOS 真机验收仍待完成。
+
+决斗准备页进一步改为显式文字操作与底部蓝色准备按钮，入房及选择卡组保持未准备；Tag 等待页按四席全员准备判断，但完整双打对局仍需单独适配。`npm run test:waitroom-ui` 已通过手机横竖屏、小屏与桌面回归，细节见 [准备页与双打范围](docs/waitroom-ui.md)。
+
+当前外部静态网页已上传到 [Workers 测试站点](https://black-surf-69e5.1627406938.workers.dev/)，服务器允许的网页 origin 使用该地址去掉末尾斜杠。2026-10-07 正式服务器 Quick Tunnel 已启动，当前临时地址为 `wss://districts-studios-rear-representation.trycloudflare.com/neos`：受信任 TLS、Node 101、Edge 浏览器握手及错误 Origin 拒绝已通过。用户更新上传后，公网连接配置与候选包一致、`no-store` 生效；没有覆盖浏览器配置，两个临时昵称已完成独立普通 Single 房的准备、开局、弃权结束、双方昵称／房名保留与首次再次入场。该房间返回 MR2，但禁表 hash 为 `0x4250bce9`，客户端／本地 Core 验证基线为 `0x73ec4051`；用户提供的正式文件已复现差异，修正版恢复客户端基线，正式替换及新房间复验仍待执行。检查没有进入 TT 或使用正式玩家账号；正常完整比赛、生产结算与真机仍待验收。Workers Static Assets 和 Pages 均适用本项目静态包，隧道重启后必须更新地址。
+
+按照 [Windows 服务器 + Pages 上线步骤](docs/current-server-online-test.md) 部署本机 Nginx 网关与 Cloudflare Quick Tunnel。`npm run package:test` 生成可上传 Pages 的网页包和服务器工具包；未取得公网 WSS 时，包内明确禁用联机。取得真实 URL 后运行 `npm run package:test -- --wss-url wss://实际地址/neos --site-origin https://实际站点.pages.dev` 即可生成新部署，无需重复构建。`duel-config.js` 为站方公开配置，优先于构建入口；不能写入密码或 Token。玩家仍只填写昵称和房名。
+
+`npm run test:tunnel-gateway` 验证独立 Nginx 的 IP／Origin／二进制转发；准备官方 Nginx 和 cloudflared 后，网络允许时可运行 `npm run test:tunnel-wss`，让隔离 SRVPro 的两个浏览器经真实公网隧道完成回归。开发机自身未能建立中继连接；正式服务器创建的隧道已通过客户端公网握手，完整比赛继续待验收。Quick Tunnel 地址会变化且无可用性保证，适用于本轮测试，长期入口另行确定。
+
 四语原始 CDB、strings 和禁表在 `resources-staging/1103/`，生成器只写 `public/environment/`。发布时只上传构建后的 `dist/` 到外部静态托管，不上传原始暂存文件至天梯服务器。每次修改输入或生成规则需要提升环境资源修订号，避免静态缓存混用。
 
 ## 项目文档
@@ -35,6 +47,10 @@ npm run dev
 - [服务器契约审计](docs/server-contract-audit.md)
 - [上游审计](docs/upstream-audit.md)
 - [WSS 配置与本地联调](docs/wss-integration.md)
+- [当前服务器上线测试](docs/current-server-online-test.md)
+- [手机界面调整与复测](docs/mobile-ui.md)
+- [决斗准备页与双打支持范围](docs/waitroom-ui.md)
+- [给服务器与域名维护者的 WSS 证书说明](docs/wss-certificate-handoff.md)
 
 ## 协作
 

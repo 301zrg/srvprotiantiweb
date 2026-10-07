@@ -54,10 +54,41 @@
   position: relative;
 }
 
-@media (max-width: 700px) {
-  .container { flex-direction: column; }
-  .sider { display: none; }
-  .content { width: 100%; height: 100%; padding: 0.5rem; }
-  .deck-container .deck-zone { --card-grid: 6; }
-  .detail-container { position: static; width: 0; height: 0; min-height: 0; flex: none; }
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .container {
+    flex-direction: column;
+  }
+  .sider {
+    display: none;
+  }
+  .content {
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem;
+  }
+  .deck-container .deck-zone {
+    --card-grid: 6;
+    height: auto;
+  }
+  .deck-container .title {
+    padding: 8px;
+    height: auto;
+    min-height: 60px;
+    flex: none;
+  }
+  .deck-container .title button {
+    min-height: 44px;
+  }
+  .detail-container {
+    position: static;
+    width: 0;
+    height: 0;
+    min-height: 0;
+    flex: none;
+  }
+}
+
+.scrollHost {
+  flex: 1;
+  min-height: 0;
 }

@@ -1,4 +1,5 @@
-import { App, Button } from "antd";
+import { SettingOutlined } from "@ant-design/icons";
+import { Button } from "antd";
 import { NavLink, Outlet, useLocation, useRouteError } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
@@ -10,7 +11,7 @@ import { siteMessages } from "@/variant/messages";
 
 import { setCssProperties } from "../Duel/PlayMat/css";
 import { I18NSelector, useI18N } from "../I18N";
-import { Setting } from "../Setting";
+import { openSettingPanel, SettingPanel } from "../Setting";
 import styles from "./index.module.scss";
 import { initDeck, initForbidden, initI18N, initSqlite } from "./utils";
 
@@ -37,20 +38,21 @@ export const ErrorBoundary = () => {
 
 export const Component = () => {
   const { pathname } = useLocation();
-  const inDuel = pathname === "/duel";
-  useAdaptiveViewportScale(
-    inDuel
-      ? { designWidth: 1000, designHeight: 920 }
-      : { designWidth: 390, designHeight: 620, minScale: 1 },
-  );
+  // HUD and portal overlays always retain their physical touch target sizes.
+  // Only the duel board scales inside its own available area.
+  useAdaptiveViewportScale({
+    designWidth: 390,
+    designHeight: 620,
+    minScale: 1,
+  });
   const hideHeader = ["/waitroom", "/duel", "/side"].includes(pathname);
-  const { modal } = App.useApp();
   const connection = useSnapshot(connectionStore);
   const { language } = useI18N();
   const text = siteMessages(language);
 
   return (
     <>
+      <SettingPanel />
       {!hideHeader && (
         <nav className={styles.navbar} aria-label="主导航">
           <NavLink to="/" className={styles["logo-container"]}>
@@ -69,21 +71,17 @@ export const Component = () => {
           <span style={{ flexGrow: 1 }} />
           <I18NSelector />
           <Button
+            data-testid="open-settings"
+            aria-label={text.settings}
+            icon={<SettingOutlined />}
             size="small"
-            onClick={() =>
-              modal.info({
-                content: <Setting />,
-                icon: null,
-                footer: null,
-                width: 460,
-              })
-            }
+            onClick={() => openSettingPanel({})}
           >
-            {text.settings}
+            <span className={styles.settingsLabel}>{text.settings}</span>
           </Button>
         </nav>
       )}
-      {hideHeader && (
+      {hideHeader && pathname !== "/duel" && pathname !== "/waitroom" && (
         <div className={styles.localeFloating}>
           <I18NSelector />
         </div>
@@ -110,7 +108,7 @@ export const Component = () => {
             {connection.detail} <NavLink to="/match">{text.back}</NavLink>
           </div>
         )}
-        <Outlet key={pathname === "/build" ? language : pathname} />
+        <Outlet key={pathname} />
       </main>
     </>
   );

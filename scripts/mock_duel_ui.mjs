@@ -37,7 +37,7 @@ try {
 
   for (const scenario of [
     { name: "ladder-mobile", nickname: "测试玩家$abc", room: "TT", mode: 1, mobile: true },
-    { name: "private-desktop", nickname: "player", room: "友谊房$pw", mode: 0, mobile: false },
+    { name: "private-desktop", nickname: "player", room: "友谊房$pw", mode: 0, mobile: false, runtimeUrl: "wss://operator-config-test.invalid/neos" },
   ]) {
     const context = await browser.newContext({
       viewport: scenario.mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 },
@@ -45,6 +45,12 @@ try {
       hasTouch: scenario.mobile,
     });
     const page = await context.newPage();
+    if (scenario.runtimeUrl) {
+      await context.route("**/duel-config.js", (route) => route.fulfill({
+        contentType: "application/javascript",
+        body: `window.__SRVPRO_DUEL_CONFIG__ = ${JSON.stringify({ duelWebSocketUrl: scenario.runtimeUrl })};`,
+      }));
+    }
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await context.addInitScript(() => {
@@ -144,7 +150,7 @@ try {
       storage: { ...localStorage },
       tabStorage: { ...sessionStorage },
     }));
-    assert.deepEqual(state.urls, ["wss://local-client-test.invalid/neos"]);
+    assert.deepEqual(state.urls, [scenario.runtimeUrl || "wss://local-client-test.invalid/neos"]);
     const player = state.packets.find((packet) => packet[2] === 16);
     const join = state.packets.find((packet) => packet[2] === 18);
     assert.ok(player && join, `${scenario.name}: initial packets missing`);

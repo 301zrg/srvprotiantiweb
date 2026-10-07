@@ -1,11 +1,10 @@
 import React, { memo, useRef, useState } from "react";
 import { useDrag } from "react-dnd";
 
-import { CardMeta, forbidden, forbidden_408 } from "@/api";
+import { CardMeta, forbidden, forbidden_408, getCardImgUrl } from "@/api";
 import { useConfig } from "@/config";
 
 import { Type } from "../DeckZone";
-import { YgoCard } from "../YgoCard";
 import styles from "./index.module.scss";
 
 const { assetsPath } = useConfig();
@@ -34,7 +33,8 @@ export const DeckCard: React.FC<{
       }),
     });
     drag(ref);
-    const [showText, setShowText] = useState(true);
+    const [loadedCode, setLoadedCode] = useState<number | null>(null);
+    const showText = loadedCode !== value.id;
     const limitCnt = is408 ? forbidden_408.get(value) : forbidden.get(value);
 
     return (
@@ -42,23 +42,49 @@ export const DeckCard: React.FC<{
         className={styles.card}
         ref={ref}
         style={{ opacity: isDragging && source !== "search" ? 0 : 1 }}
+        data-testid="deck-card"
+        data-card-code={value.id}
+        role="button"
+        tabIndex={0}
+        aria-label={value.text.name || String(value.id)}
+        onClick={(event) => onMouseUp?.({ event, card: value })}
         onMouseUp={(event) =>
+          event.button !== 0 &&
           onMouseUp?.({
             event,
             card: value,
           })
         }
-        onMouseEnter={onMouseEnter}
+        onPointerEnter={(event) => {
+          if (
+            event.pointerType === "mouse" &&
+            window.matchMedia("(hover: hover)").matches
+          )
+            onMouseEnter?.();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.currentTarget.click();
+          }
+        }}
         onDoubleClick={() => onDoubleClick?.(value)}
         onContextMenu={(e) => {
           e.preventDefault();
         }}
       >
         {showText && <div className={styles.cardname}>{value.text.name}</div>}
-        <YgoCard
+        <img
           className={styles.cardcover}
-          code={value.id}
-          onLoad={() => setShowText(false)}
+          data-card-image
+          src={getCardImgUrl(value.id)}
+          alt=""
+          draggable={false}
+          loading="lazy"
+          decoding="async"
+          style={{ opacity: showText ? 0 : 1 }}
+          onLoad={() => setLoadedCode(value.id)}
+          onError={() => setLoadedCode(null)}
         />
         {limitCnt !== undefined && (
           <img

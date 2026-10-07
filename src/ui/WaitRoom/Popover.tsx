@@ -25,9 +25,11 @@ export const MoraPopover: React.FC<
   // 需要在mora的service之中，emit一个事件，让这个组件监听到，然后打开popover
   useEffect(() => {
     // 这里不能用`once`，因为如果双方猜拳结果一样的话会重新猜拳
-    eventbus.on(Task.Mora, () => {
-      setOpen(true);
-    });
+    const show = () => setOpen(true);
+    eventbus.on(Task.Mora, show);
+    return () => {
+      eventbus.off(Task.Mora, show);
+    };
   }, []);
 
   const onClick = (result: Mora) => {
@@ -48,12 +50,13 @@ export const MoraPopover: React.FC<
     <Popover
       overlayStyle={{ backdropFilter: "blur(10px)" }}
       content={
-        <Space>
+        <Space wrap style={{ maxWidth: "min(420px, calc(100vw - 48px))" }}>
           {[Mora.Rock, Mora.Scissors, Mora.Paper].map((mora) => (
             <Button
               key={mora}
               data-testid={`waitroom-mora-${mora}`}
               size="large"
+              style={{ minHeight: 44, minWidth: 80 }}
               type="text"
               icon={<IconFont type={`icon-hand-${mora}`} size={16} />}
               onClick={() => onClick(mora)}
@@ -80,9 +83,11 @@ export const TpPopover: React.FC<
   const { t: i18n } = useTranslation("Popover");
   // 需要在mora的service之中，emit一个事件，让这个组件监听到，然后打开popover
   useEffect(() => {
-    eventbus.once(Task.Tp, () => {
-      setOpen(true);
-    });
+    const show = () => setOpen(true);
+    eventbus.on(Task.Tp, show);
+    return () => {
+      eventbus.off(Task.Tp, show);
+    };
   }, []);
 
   const onClick = (result: Tp) => {
@@ -100,7 +105,7 @@ export const TpPopover: React.FC<
     <Popover
       overlayStyle={{ backdropFilter: "blur(0.625rem)" }}
       content={
-        <Space>
+        <Space wrap style={{ maxWidth: "min(420px, calc(100vw - 48px))" }}>
           {[Tp.First, Tp.Second].map((item) => (
             <Button
               key={item}
@@ -108,6 +113,7 @@ export const TpPopover: React.FC<
                 item === Tp.First ? "first" : "second"
               }`}
               size="large"
+              style={{ minHeight: 44, minWidth: 80 }}
               type="text"
               icon={
                 <IconFont
