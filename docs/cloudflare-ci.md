@@ -21,11 +21,13 @@
 | --- | --- |
 | Git 仓库 | `301zrg/srvprotiantiweb` |
 | 生产分支 / Git branch | `deploy/cloudflare` |
-| Root directory | 留空；若必须填写，填 `.` |
+| Root directory / 路径 | 保持界面默认的 `/`，表示仓库根目录；不要填本机路径或 `dist` |
 | Build command | `npm ci --include=dev && npm run build:cloudflare` |
 | Deploy command | `npm run deploy:cloudflare` |
 | API token | 选择 Cloudflare 界面自动创建／默认使用的构建 Token，无需发给开发者 |
 | 非生产分支预览 | 初次配置可关闭，只部署发布分支；以后需要 PR 预览再启用 |
+| Preview command / 预览命令 | 保留默认 `npx wrangler preview`；关闭“启用预览构建”时不会执行 |
+| Build cache / 构建缓存 | 开启；缓存 npm 下载，环境资源生成与 Vite 构建仍会执行 |
 
 Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wrangler.json` 的 `assets.directory = ./dist` 指定。无需选择 `build:prod`，那是保留的上游构建命令，使用了上游 CDN 基路径。[Workers 构建配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[静态资源](https://developers.cloudflare.com/workers/static-assets/)
 
@@ -38,9 +40,11 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 | `PYTHON_VERSION` | `3.13.3` | 使用当前构建镜像已支持的版本生成四语环境资源 |
 | `VITE_DUEL_WS_URL` | `wss://districts-studios-rear-representation.trycloudflare.com/neos` | 2026-10-08 读取现有站点公开配置确认的临时对战入口；如隧道地址已改变，填实际新地址 |
 
-WSS 是公开地址，不是玩家密码。不要放玩家凭据、证书私钥、隧道 Token 或 GitHub Token。Cloudflare 的构建环境支持 Node／Python 版本覆盖与跳过自动依赖安装。[构建镜像说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)
+以上四个值均为公开构建参数，不需要勾选“加密”；WSS 会写入发布的网页配置，勾选加密也不会对玩家隐藏入口。不要放玩家凭据、证书私钥、隧道 Token 或 GitHub Token。Cloudflare 的构建环境支持 Node／Python 版本覆盖与跳过自动依赖安装。[构建镜像说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)、[构建缓存](https://developers.cloudflare.com/workers/ci-cd/builds/build-caching/)
 
-5. 保存设置。若保存连接后未自动开始构建，在构建页选择 **Run build / Build now**；也可以由维护者向发布分支推送新提交来触发。初次成功后不再需要手动上传 ZIP。
+5. 保存仓库连接和构建设置。对于已有 Worker，官方接入步骤要求向连接的 Git 分支推送新提交来触发构建；连接之前已经存在的提交不能作为首次自动构建已启动的依据。由维护者向 `deploy/cloudflare` 推送一次提交，初次成功后不再需要手动上传 ZIP。[已有 Worker 的首次触发步骤](https://developers.cloudflare.com/workers/ci-cd/builds/)
+
+6. 在当前 Worker 的 **Deployments（部署）** 页底部点击 **View build history（查看构建历史）**，再点具体记录查看日志。截图若写着“此 Worker 还没有构建”，表示还没有构建记录；先到 **Settings（设置）→ Builds（构建）** 确认已连接 `301zrg/srvprotiantiweb`、生产分支为 `deploy/cloudflare`，然后检查连接后推送的新提交是否触发记录。手动上传的部署不等于 Git 构建记录。[构建状态与日志入口](https://developers.cloudflare.com/workers/ci-cd/builds/)
 
 连接、推送和生产分支规则见 [GitHub 接入](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/github-integration/)、[构建分支](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/)。若将来启用 PR 预览，预览站的 origin 可能不在现有 WSS 网关白名单中，预览构建成功不代表已能在线对战；需要单独安排本地或测试网关联调。
 
