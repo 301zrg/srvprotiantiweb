@@ -39,7 +39,8 @@ npm run package:test
 
 - `web-pages.zip` 与 `web/`：只包含网页静态资源；未配置 WSS 时联机按钮禁用，可先测试首页、语言和组卡。
 - `windows-server-kit.zip`：Nginx 配置、下载／启动／检查脚本和本说明；不含玩家凭据、私密配置或证书。
-- `SHA256SUMS.json`：两个压缩包的校验值。
+- `pm2-tunnel-kit.zip`：已部署服务器改用 PM2 时所需的两个启动文件和操作说明；使用已有 cloudflared，不含 Nginx 配置、二进制或运行数据。
+- `SHA256SUMS.json`：三个压缩包的校验值。
 
 已在开发机校验官方工具后，`npm run package:test -- --include-cloudflared` 可将便携 `cloudflared.exe` 与官方许可证附进服务器包，避免正式服务器再次下载。该二进制只进服务器包，不进网页包；若来源或 SHA 不符，打包会拒绝。
 
@@ -142,6 +143,8 @@ Neos test endpoint: wss://实际随机地址.trycloudflare.com/neos
 ```
 
 保留这个终端运行。Ctrl+C 只停止本脚本启动的隧道，停止后测试入口失效；重新运行会产生新地址。运行日志和 endpoint.txt 在包目录的 `runtime/quick-.../` 下。不要把创建隧道成功、根路径 404 或本机 101 当作公开对局验收。
+
+需要关闭 PowerShell 后继续运行时，使用新增的 [PM2 后台隧道步骤](pm2-quick-tunnel.md)，将 `neos-quick-tunnel.cjs` 和 `ecosystem.neos.config.js` 交给 PM2，而不是把前台 PowerShell 脚本直接包在 PM2 内。切换会创建新临时地址，先更新网页并验证，再停止旧隧道；运行方式变化不使 Quick Tunnel 的地址变成固定域名。
 
 脚本使用专用空配置，避免误加载账户已有的命名隧道配置。若服务器有代理的 fake-IP DNS、连接日志出现 `198.18.*` 或 TLS EOF，需要核对代理对 Cloudflare 中继域名的 DNS／路由；不要关闭 TLS 验证。开发机和正式服务器的网络可达性必须分别记录。
 
