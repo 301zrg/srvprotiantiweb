@@ -1,0 +1,8 @@
+{
+  "name": "black-surf-69e5",
+  "compatibility_date": "2026-10-08",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist"
+  }
+}

@@ -41,6 +41,8 @@
   "scripts": {
     "dev": "python scripts/build_environment_assets.py && vite",
     "build": "python scripts/build_environment_assets.py && vite build && node scripts/copy_assets.mjs",
+    "build:cloudflare": "node scripts/build_cloudflare.mjs",
+    "deploy:cloudflare": "npx --yes wrangler@4.148.0 deploy",
     "build:prod": "vite build --base=https://cdn02.moecube.com:444/neos/",
     "preview": "vite preview",
     "preview:static": "node scripts/serve_dist.mjs",
