@@ -1,0 +1,49 @@
+{
+  "input": {
+    "name": "lflist.conf",
+    "sha256": "2e5e0dba26bb74f5f713a32b32805ac82bcff19c13107eeb28ea58b858469376",
+    "hash": "0x4250bce9",
+    "entries": 135,
+    "counts": [
+      50,
+      67,
+      18
+    ]
+  },
+  "output": {
+    "name": "lflist.fixed.conf",
+    "sha256": "c75a96b1bbe2ceb36db9a48e6b32ec01915bc8cfc36a9df812f4b0efac994338",
+    "hash": "0x73ec4051",
+    "entries": 134,
+    "counts": [
+      50,
+      66,
+      18
+    ]
+  },
+  "changes": [
+    {
+      "inputLine": 57,
+      "code": 26202165,
+      "action": "Correct comment to Sangan; limit stays 1"
+    },
+    {
+      "inputLine": 90,
+      "code": 26202465,
+      "action": "Remove misspelled duplicate Sangan ID; absent from locked 1103 CDB"
+    },
+    {
+      "inputLine": 102,
+      "code": 72304203,
+      "correctedCode": 72302403,
+      "action": "Restore Swords of Revealing Light limit 1"
+    }
+  ],
+  "checks": {
+    "all134EntriesEqualClientBaseline": true,
+    "all134IdsPresentInLockedCdb": true,
+    "other102SectionsByteIdentical": true,
+    "originalUnchanged": true
+  },
+  "productionStatus": "Corrected file prepared locally; operator replacement and fresh room HostInfo verification pending"
+}

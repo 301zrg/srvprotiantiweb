@@ -39,3 +39,20 @@
     margin-block-end: 0;
   }
 }
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .container {
+    .check-card-group {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+    .check-card {
+      width: 100%;
+      max-width: none;
+      min-height: 44px;
+    }
+    :global(.ant-pro-checkcard-description) {
+      font-size: 16px;
+      overflow-wrap: anywhere;
+    }
+  }
+}

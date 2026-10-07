@@ -1,10 +1,10 @@
-import { LeftOutlined } from "@ant-design/icons";
-import { Divider, Drawer, Space, Tag } from "antd";
+import { Divider, Space, Tag } from "antd";
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
 import { type CardMeta, fetchStrings, Region } from "@/api";
 import { YgoCard } from "@/ui/Shared";
+import { DuelPanel } from "@/ui/Shared/DuelPanel";
 
 import {
   Attribute2StringCodeMap,
@@ -52,17 +52,13 @@ export const CardModal = () => {
   const def = meta?.data.def;
 
   return (
-    // TODO: 宽度要好好设置 根据屏幕宽度
-    <Drawer
+    <DuelPanel
       open={isOpen}
       placement="left"
       onClose={() => (store.isOpen = false)}
-      rootClassName={styles.root}
-      className={styles.drawer}
-      mask={false}
       title={name}
-      closeIcon={<LeftOutlined />}
-      width={350}
+      testId="duel-card-panel"
+      zIndex={1100}
     >
       <div
         className={styles.container}
@@ -73,6 +69,7 @@ export const CardModal = () => {
           align="start"
           size={18}
           style={{ position: "relative", display: "flex" }}
+          className={styles.overview}
         >
           <YgoCard
             code={meta?.id}
@@ -93,7 +90,7 @@ export const CardModal = () => {
         <Divider style={{ margin: "0.875rem 0" }}></Divider>
         <Desc desc={desc} />
       </div>
-    </Drawer>
+    </DuelPanel>
   );
 };
 

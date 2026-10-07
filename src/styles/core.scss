@@ -45,14 +45,35 @@ body {
   --header-height: 3.5rem;
   #root {
     position: fixed;
-    left: 50%;
-    top: 50%;
+    left: 0;
+    top: 0;
     width: var(--neos-adaptive-width);
     height: var(--neos-adaptive-height);
     margin: 0;
-    transform: translate(-50%, -50%) scale(var(--neos-adaptive-scale));
-    transform-origin: center center;
-    will-change: transform;
+  }
+}
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  // Keep dialogs, dropdowns, and form controls readable and tappable.
+  :is(button, input, textarea, select) {
+    touch-action: manipulation;
+  }
+  :is(.ant-modal-close, .ant-drawer-close) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  :is(.ant-dropdown-menu-item, .ant-select-item-option) {
+    min-height: 44px;
+  }
+  .ant-modal-wrap {
+    height: var(--neos-adaptive-height, 100dvh);
+  }
+  .ant-modal-body {
+    max-height: calc(var(--neos-adaptive-height, 100dvh) - 150px);
+    overflow-y: auto;
+  }
+  .ant-modal-footer button {
+    min-height: 44px;
   }
 }
 

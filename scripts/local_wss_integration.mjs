@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 
 import { chromium, expect } from "@playwright/test";
 import { build, preview } from "vite";
+import { startNginxGateway, startQuickTunnel, stopChild, waitForTcp } from "./tunnel_support.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const serverRoot = resolve(projectRoot, "../srvprotianti");
@@ -25,10 +26,13 @@ const runtime = mkdtempSync(join(auditRoot, "local-wss-"));
 const manualMode =
   process.argv.includes("--manual") || process.argv.includes("--manual-check");
 const manualCheck = process.argv.includes("--manual-check");
+const tunnelMode = process.argv.includes("--tunnel");
 const notes = [];
 let serverProcess;
 let previewServer;
 let browser;
+let nginxProcess;
+let publicTunnel;
 
 const copy = (source, target) => {
   mkdirSync(dirname(target), { recursive: true });
@@ -178,7 +182,7 @@ try {
       http: {
         port: httpPort,
         ssl: {
-          enabled: true,
+          enabled: !tunnelMode,
           port: httpsPort,
           cert: join(certDir, "cert.pem"),
           key: join(certDir, "key.pem"),
@@ -209,9 +213,18 @@ try {
   };
   serverProcess.stdout.on("data", record);
   serverProcess.stderr.on("data", record);
-  await waitForTls(wssPort);
-  console.log("Local SRVPro WSS is listening...");
-  process.env.VITE_DUEL_WS_URL = `wss://127.0.0.1:${wssPort}/`;
+  if (tunnelMode) {
+    await waitForTcp(wssPort, serverProcess, 90000);
+    const gatewayPort = await freePort();
+    nginxProcess = await startNginxGateway({ runtime, upstreamPort: wssPort, gatewayPort });
+    publicTunnel = await startQuickTunnel({ runtime, gatewayPort });
+    process.env.VITE_DUEL_WS_URL = publicTunnel.url;
+    console.log("Isolated SRVPro is connected through a public Cloudflare Quick Tunnel...");
+  } else {
+    await waitForTls(wssPort);
+    process.env.VITE_DUEL_WS_URL = `wss://127.0.0.1:${wssPort}/`;
+    console.log("Local SRVPro WSS is listening...");
+  }
   process.env.VITE_BASE_PATH = "/";
   if (manualMode) {
     console.log("Building manual browser preview...");
@@ -231,7 +244,7 @@ try {
     previewServer = await preview({
       logLevel: "error",
       build: { outDir },
-      preview: { host: "127.0.0.1", port: 0, strictPort: false },
+      preview: { host: "127.0.0.1", port: tunnelMode ? 4173 : 0, strictPort: tunnelMode },
     });
     const origin = previewServer.resolvedUrls.local[0];
     const edge =
@@ -241,9 +254,9 @@ try {
       executablePath:
         process.env.PLAYWRIGHT_BROWSER_EXECUTABLE ||
         (process.platform === "win32" && existsSync(edge) ? edge : undefined),
-      args: ["--ignore-certificate-errors"],
+      args: tunnelMode ? [] : ["--ignore-certificate-errors"],
     });
-    const page = await browser.newPage({ ignoreHTTPSErrors: true });
+    const page = await browser.newPage({ ignoreHTTPSErrors: !tunnelMode });
     await page.addInitScript(() => localStorage.setItem("language", "cn"));
     await page.goto(origin, { waitUntil: "domcontentloaded" });
     await expect(page.locator('main[data-ready="true"]')).toBeVisible({
@@ -290,7 +303,7 @@ try {
     previewServer = await preview({
       logLevel: "error",
       build: { outDir },
-      preview: { host: "127.0.0.1", port: 0, strictPort: false },
+      preview: { host: "127.0.0.1", port: tunnelMode ? 4173 : 0, strictPort: tunnelMode },
     });
     const origin = previewServer.resolvedUrls.local[0];
     const edge =
@@ -300,9 +313,9 @@ try {
       executablePath:
         process.env.PLAYWRIGHT_BROWSER_EXECUTABLE ||
         (process.platform === "win32" && existsSync(edge) ? edge : undefined),
-      args: ["--ignore-certificate-errors"],
+      args: tunnelMode ? [] : ["--ignore-certificate-errors"],
     });
-    const browserContext = await browser.newContext({ ignoreHTTPSErrors: true });
+    const browserContext = await browser.newContext({ ignoreHTTPSErrors: !tunnelMode });
     const pageErrors = [];
     const pageTraces = new WeakMap();
     async function joinRoom(nickname, roomName, mode) {
@@ -373,10 +386,10 @@ try {
         await expect(readyFirst).toBeVisible();
         await expect(readySecond).toBeVisible();
         for (const ready of [readyFirst, readySecond]) {
-          // YGOPro may mark a player ready as soon as the default deck uploads.
-          // Clicking that state would toggle readiness off.
-          if ((await ready.getAttribute("data-player-ready")) !== "true")
-            await ready.click();
+          // Joining and selecting a deck must not send UPDATE_DECK, which the
+          // server-mode Core would otherwise treat as an implicit confirmation.
+          await expect(ready).toHaveAttribute("data-player-ready", "false");
+          await ready.click();
           await expect(ready).toHaveAttribute("data-player-ready", "true", {
             timeout: 10000,
           });
@@ -447,6 +460,44 @@ try {
       "Two browser clients entered TT ladder matching with 2011.3 banlist hash",
     );
     await startDuel(ladderA, ladderB, "TT ladder");
+    // Split the first two wins so the same live match must reach G3.
+    async function surrender(page) {
+      await page.getByTestId("duel-surrender").click();
+      await page.getByTestId("duel-surrender-confirm").click();
+    }
+    async function sideAndStart(loser, other, label) {
+      for (const page of [loser, other]) {
+        await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
+        await page.locator(".ant-modal-footer button").last().click();
+        await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/side/);
+      }
+      const ownDeck = await loser.evaluate(() => sessionStorage.getItem("side_deck"));
+      const otherDeck = await other.evaluate(() => sessionStorage.getItem("side_deck"));
+      await loser.screenshot({ path: join(auditRoot, `tt-side-${label.replaceAll(" ", "-")}.png`) });
+      await loser.getByTestId("side-confirm").click();
+      await other.bringToFront();
+      assert.equal(await loser.evaluate(() => sessionStorage.getItem("side_deck")), ownDeck);
+      assert.equal(await other.evaluate(() => sessionStorage.getItem("side_deck")), otherDeck);
+      await other.getByTestId("side-confirm").click();
+      await loser.getByTestId("side-tp-first").click();
+      for (const page of [loser, other]) {
+        await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/duel/);
+        await expect(page.getByTestId("duel-player-life").first()).toBeVisible();
+      }
+      console.log(`${label}: side decks submitted and both clients entered the next game`);
+    }
+    await surrender(ladderA);
+    await sideAndStart(ladderA, ladderB, "TT G2");
+    await surrender(ladderB);
+    await sideAndStart(ladderB, ladderA, "TT G3");
+    await surrender(ladderA);
+    for (const page of [ladderA, ladderB]) {
+      await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
+      await page.locator(".ant-modal-footer button").last().click();
+      await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/match/);
+    }
+    await expect(ladderA.locator("#player-nickname")).toHaveValue("TTWebA$pass123");
+    console.log("TT Match completed G1-G3, both side phases and exit with retained nickname/password");
     await ladderB.close();
     await ladderA.close();
     assert.equal(pageErrors.length, 0, pageErrors.join("; "));
@@ -467,6 +518,8 @@ try {
     await new Promise((resolveClose) =>
       previewServer.httpServer.close(resolveClose),
     );
+  await stopChild(publicTunnel?.child);
+  await stopChild(nginxProcess);
   if (serverProcess && serverProcess.exitCode == null) {
     if (process.platform === "win32")
       spawnSync("taskkill", ["/T", "/F", "/PID", String(serverProcess.pid)], {

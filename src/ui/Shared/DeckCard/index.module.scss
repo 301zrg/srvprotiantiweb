@@ -28,6 +28,9 @@
   }
   .cardcover {
     position: relative;
+    width: 100%;
+    aspect-ratio: var(--card-ratio);
+    object-fit: contain;
   }
   .cardlimit {
     position: absolute;

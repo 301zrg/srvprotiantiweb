@@ -1,6 +1,8 @@
 @use "/src/styles/utils.scss";
 
 .detail {
+  visibility: hidden;
+  pointer-events: none;
   z-index: 10;
   position: absolute;
   left: -100%;
@@ -13,6 +15,8 @@
 
 .detail.open {
   left: 0;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .container {
@@ -69,13 +73,23 @@
   color: white;
 }
 
-@media (max-width: 700px) {
-  .detail.open {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 2000;
-    padding: 0.5rem;
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .container {
+    height: auto;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .card,
+  .card:hover {
+    --width: 120px;
+  }
+  .title {
+    margin: 8px 0 16px;
+    font-size: 18px;
+  }
+  .container :global(.ant-descriptions-item-content) {
+    font-size: 16px;
   }
 }

@@ -3,6 +3,10 @@
 .audit-tmp/
 node_modules/
 dist/
+releases/
+/deployment/windows/runtime/
+/deployment/windows/cloudflared.exe
+/deployment/windows/*.download
 coverage/
 playwright-report/
 test-results/

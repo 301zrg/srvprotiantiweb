@@ -59,3 +59,26 @@
     filter: brightness(1.2);
   }
 }
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .deck-select {
+    button {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    .item {
+      min-height: 56px;
+      height: auto;
+      padding: 4px 8px;
+      gap: 8px;
+    }
+    .item > span {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+    }
+    .btns {
+      flex: none;
+    }
+  }
+}

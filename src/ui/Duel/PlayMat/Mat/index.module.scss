@@ -6,10 +6,12 @@ body {
 
 section.mat {
   position: absolute;
-  width: 100%;
-  left: 0;
-  top: 0;
-  height: 100%;
+  width: 1000px;
+  left: 50%;
+  top: 50%;
+  height: 920px;
+  transform: translate(-50%, -50%) scale(var(--duel-board-scale, 1));
+  transform-origin: center;
   .camera {
     height: 100%;
     display: flex;
@@ -27,6 +29,29 @@ section.mat {
     transform: translateX(0) translateY(0) translateZ(0)
       rotateX(var(--plane-rotate-x));
     width: fit-content;
+  }
+}
+
+.viewport {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .viewport {
+    top: calc(80px + env(safe-area-inset-top));
+    bottom: calc(
+      var(--duel-menu-height, 60px) + 16px + env(safe-area-inset-bottom)
+    );
+  }
+  @media (orientation: landscape) {
+    .viewport {
+      top: max(8px, env(safe-area-inset-top));
+      left: calc(156px + env(safe-area-inset-left));
+      right: env(safe-area-inset-right);
+    }
   }
 }
 

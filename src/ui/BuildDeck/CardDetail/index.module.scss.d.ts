@@ -6,5 +6,6 @@ declare const classNames: {
   readonly card: "card";
   readonly title: "title";
   readonly content: "content";
+  readonly "ant-descriptions-item-content": "ant-descriptions-item-content";
 };
 export = classNames;

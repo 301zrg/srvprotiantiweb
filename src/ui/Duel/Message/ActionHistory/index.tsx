@@ -1,12 +1,13 @@
-import { RightOutlined } from "@ant-design/icons";
-import { Drawer } from "antd";
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
 import { fetchStrings, Region, ygopro } from "@/api";
 import { useConfig } from "@/config";
 import { History, HistoryOp, historyStore } from "@/stores";
-import { ScrollableArea, YgoCard } from "@/ui/Shared";
+import { useI18N } from "@/ui/I18N";
+import { YgoCard } from "@/ui/Shared";
+import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import styles from "./index.module.scss";
 
@@ -19,27 +20,27 @@ const defaultStore = {
 const store = proxy(defaultStore);
 
 export const ActionHistory: React.FC = () => {
+  const { language } = useI18N();
+  const text = mobileMessages(language);
   const { isOpen } = useSnapshot(store);
   const { historys } = useSnapshot(historyStore);
   return (
-    <Drawer
+    <DuelPanel
       open={isOpen}
       placement="right"
-      rootClassName={styles.root}
-      className={styles.drawer}
-      mask={false}
-      closeIcon={<RightOutlined />}
       onClose={() => (store.isOpen = false)}
-      title="操作历史" // TODO: I18N
+      title={text.history}
+      testId="duel-history-panel"
     >
-      <ScrollableArea className={styles.container} maxHeight="var(--height)">
+      <div className={styles.container}>
+        {!historys.length && <p>{text.emptyHistory}</p>}
         <div className={styles.timeline}>
           {historys.map((history, idx) => (
             <HistoryItem key={idx} {...(history as History)} />
           ))}
         </div>
-      </ScrollableArea>
-    </Drawer>
+      </div>
+    </DuelPanel>
   );
 };
 

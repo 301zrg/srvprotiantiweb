@@ -4,7 +4,7 @@ import {
   SearchOutlined,
   SortAscendingOutlined,
 } from "@ant-design/icons";
-import { App, Button, Dropdown, Input, Space } from "antd";
+import { App, Button, Dropdown, Input } from "antd";
 import { MenuProps } from "antd/lib";
 import { isEqual } from "lodash-es";
 import { OverlayScrollbarsComponentRef } from "overlayscrollbars-react";
@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { CardMeta, searchCards } from "@/api";
 import { isToken } from "@/common";
 import { emptySearchConditions, FtsConditions } from "@/middleware/sqlite/fts";
+import { useI18N } from "@/ui/I18N";
 import { ScrollableArea, Type } from "@/ui/Shared";
 
 import { Filter } from "../Filter";
@@ -25,6 +26,7 @@ import { CardResults } from "./CardResults";
 /** 卡片库，选择卡片加入正在编辑的卡组 */
 export const DeckDatabase: React.FC = () => {
   const { modal } = App.useApp();
+  const { language } = useI18N();
   const [searchWord, setSearchWord] = useState("");
   const [searchConditions, setSearchConditions] = useState<FtsConditions>(
     emptySearchConditions,
@@ -73,7 +75,7 @@ export const DeckDatabase: React.FC = () => {
 
   useEffect(() => {
     handleSearch();
-  }, []);
+  }, [language]);
 
   const [_, dropRef] = useDrop({
     accept: ["Card"], // 指明该区域允许接收的拖放物。可以是单个，也可以是数组
@@ -116,12 +118,15 @@ export const DeckDatabase: React.FC = () => {
   const { t: i18n } = useTranslation("BuildDeck");
   return (
     <div className={styles.container} ref={dropRef}>
-      <Space className={styles.title} direction="horizontal">
+      <div className={styles.title}>
         <Input
+          data-testid="deck-search-input"
           placeholder={i18n("KeywordsPlaceholder")}
           variant="borderless"
           suffix={
             <Button
+              data-testid="deck-search-submit"
+              aria-label={i18n("KeywordsPlaceholder")}
               type="text"
               icon={<SearchOutlined />}
               onClick={() => handleSearch()}
@@ -131,9 +136,9 @@ export const DeckDatabase: React.FC = () => {
           onChange={(e) => setSearchWord(e.target.value)}
           onKeyUp={(e) => e.key === "Enter" && handleSearch()}
           allowClear
-          style={{ width: "250%" }}
+          style={{ width: "100%" }}
         />
-      </Space>
+      </div>
       <div className={styles["select-btns"]}>
         <Button
           block
@@ -180,7 +185,11 @@ export const DeckDatabase: React.FC = () => {
           {i18n("Reset")}
         </Button>
       </div>
-      <ScrollableArea className={styles["search-cards-container"]} ref={ref}>
+      <ScrollableArea
+        className={styles["search-cards-container"]}
+        hostClassName={styles.scrollHost}
+        ref={ref}
+      >
         <CardResults results={searchCardResult} scrollToTop={scrollToTop} />
       </ScrollableArea>
     </div>

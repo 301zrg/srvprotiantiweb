@@ -1,10 +1,12 @@
-import { DownOutlined } from "@ant-design/icons";
-import { Button, Drawer, Input } from "antd";
+import { Button, Input } from "antd";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
+import { useI18N } from "@/ui/I18N";
 import { IconFont, ScrollableArea, useChat } from "@/ui/Shared";
+import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import styles from "./index.module.scss";
 
@@ -16,23 +18,26 @@ interface ChatItem {
 }
 
 export const ChatBox: React.FC = () => {
+  const { language } = useI18N();
   const { open } = useSnapshot(store);
   const { dialogs, input, setInput, ref, onSend } = useChat(true);
   const { t: i18n } = useTranslation("Chat");
   const onClose = () => (store.open = false);
 
   return (
-    <Drawer
+    <DuelPanel
       open={open}
       placement="bottom"
-      mask={false}
-      className={styles.chatbox}
+      title={mobileMessages(language).chat}
+      testId="duel-chat-panel"
       onClose={onClose}
-      maskClosable
-      closeIcon={<DownOutlined />}
     >
       <div className={styles.container}>
-        <ScrollableArea className={styles.dialogs} ref={ref}>
+        <ScrollableArea
+          className={styles.dialogs}
+          hostClassName={styles.scrollHost}
+          ref={ref}
+        >
           {dialogs.map((item, idx) => (
             <DialogItem key={idx} {...item} />
           ))}
@@ -50,13 +55,14 @@ export const ChatBox: React.FC = () => {
             }}
           />
           <Button
+            aria-label={i18n("PleaseEnterChatContent")}
             type="text"
             icon={<IconFont type="icon-send" size={14} />}
             onClick={onSend}
           />
         </div>
       </div>
-    </Drawer>
+    </DuelPanel>
   );
 };
 

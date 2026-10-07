@@ -21,6 +21,7 @@ export const TpModal: React.FC = () => {
     >
       <div className={styles.container}>
         <Button
+          data-testid="side-tp-first"
           onClick={() => {
             sendTpResult(container.conn, true);
             sideStore.stage = SideStage.TP_SELECTED;
