@@ -20,7 +20,7 @@ try {
   process.exit(1);
 }
 
-execSync("npm run build", {
+execSync("npm run build:static", {
   stdio: "inherit",
   env: {
     ...process.env,
