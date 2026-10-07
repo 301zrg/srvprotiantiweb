@@ -7,11 +7,12 @@ import {
 } from "@ant-design/icons";
 import { App, Button, Input, Modal } from "antd";
 import React, { useRef, useState } from "react";
-import YGOProDeck from "ygopro-deck-encode";
 
-import { fetchCard } from "@/api";
+import { importDeckContent } from "@/service/deckImport";
 import { deckStore, IDeck } from "@/stores";
 import { useI18N } from "@/ui/I18N";
+import { DeckImportError } from "@/variant/deckImport";
+import { deckImportMessages } from "@/variant/deckImportMessages";
 import { deckMessages } from "@/variant/deckMessages";
 
 import styles from "./index.module.scss";
@@ -33,24 +34,24 @@ export const DeckSelect: React.FC<{
 
   const addYdk = async (ydkText: string, name: string) => {
     try {
-      const parsed = YGOProDeck.fromYdkString(ydkText);
-      if (!parsed.main.length && !parsed.extra.length && !parsed.side.length) {
-        throw new Error(text.emptyImport);
-      }
-      const deckName = name || `${text.deck} ${new Date().toLocaleString()}`;
-      if (!(await deckStore.add({ deckName, ...parsed }))) {
-        throw new Error(text.duplicate);
-      }
-      onSelect(deckName);
-      message.success(text.imported);
-      const unknown = [...parsed.main, ...parsed.extra, ...parsed.side].filter(
-        (id) => !fetchCard(id).text.name,
-      ).length;
-      if (unknown) message.warning(`${unknown} ${text.unknownCards}`);
+      const result = await importDeckContent(
+        { format: "ydk", text: ydkText },
+        name,
+        text.deck,
+      );
+      onSelect(result.deck.deckName);
+      if (result.persisted) message.success(text.imported);
+      else message.warning(deckImportMessages(language).memory, 8);
+      if (result.unknown)
+        message.warning(`${result.unknown} ${text.unknownCards}`);
       setPasteOpen(false);
       setPasteText("");
     } catch (error) {
-      message.error(error instanceof Error ? error.message : String(error));
+      message.error(
+        error instanceof DeckImportError
+          ? deckImportMessages(language).errors[error.code]
+          : text.saveFailed,
+      );
     }
   };
 
@@ -89,7 +90,10 @@ export const DeckSelect: React.FC<{
         style={{ display: "none" }}
         onChange={async (event) => {
           for (const file of Array.from(event.target.files ?? [])) {
-            await addYdk(await file.text(), file.name.replace(/\.ydk$/i, ""));
+            if (file.size > 65536)
+              message.error(deckImportMessages(language).errors["too-large"]);
+            else
+              await addYdk(await file.text(), file.name.replace(/\.ydk$/i, ""));
           }
           event.target.value = "";
         }}

@@ -7,7 +7,7 @@ import {
   SwapOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
-import { App, Button, Input, message, Tooltip } from "antd";
+import { Alert, App, Button, Input, message, Tooltip } from "antd";
 import { HTML5toTouch } from "rdndmb-html5-to-touch";
 import { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd-multi-backend";
@@ -29,7 +29,9 @@ import {
   ScrollableArea,
 } from "@/ui/Shared";
 import { Type } from "@/ui/Shared/DeckZone";
+import { deckImportMessages } from "@/variant/deckImportMessages";
 import { deckMessages } from "@/variant/deckMessages";
+import { storageKey } from "@/variant/deployment";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import { CardDetail } from "./CardDetail";
@@ -68,7 +70,7 @@ export const loader: LoaderFunction = async () => {
 
   // A direct /build visit can import this module before IndexedDB is ready.
   if (!deckStore.get(selectedDeck.deck.deckName)) {
-    setSelectedDeck(deckStore.decks[0] ?? emptyDeck);
+    setSelectedDeck(storedEditingDeck() ?? deckStore.decks[0] ?? emptyDeck);
   }
 
   // 更新场景
@@ -82,12 +84,25 @@ export const selectedCard = proxy({
   open: false,
 });
 
+function storedEditingDeck() {
+  try {
+    return deckStore.get(
+      sessionStorage.getItem(storageKey("editingDeckName")) ?? "",
+    );
+  } catch {
+    return undefined;
+  }
+}
+
 const selectedDeck = proxy<{ deck: IDeck }>({
-  deck: deckStore.decks.at(0) ?? emptyDeck,
+  deck: storedEditingDeck() ?? deckStore.decks.at(0) ?? emptyDeck,
 });
 
 export const setSelectedDeck = (deck: IDeck) => {
   selectedDeck.deck = deck;
+  try {
+    sessionStorage.setItem(storageKey("editingDeckName"), deck.deckName);
+  } catch {}
 };
 
 export const Component: React.FC = () => {
@@ -115,9 +130,7 @@ export const Component: React.FC = () => {
       message.info(`${i18n("SaveSuccessful")}`);
       editDeckStore.edited = false;
     } else {
-      editDeckStore.set(await iDeckToEditingDeck(selectedDeck.deck as IDeck));
       message.error(deckMessages(language).saveFailed);
-      editDeckStore.edited = false;
     }
   };
 
@@ -175,6 +188,13 @@ export const Component: React.FC = () => {
               }}
               onDelete={async (name) => await deckStore.delete(name)}
               onDownload={(name) => {
+                if (
+                  !snapDecks.persistenceAvailable &&
+                  selectedDeck.deck.deckName === name
+                ) {
+                  downloadDeckAsYDK(editingDeckToIDeck(editDeckStore));
+                  return;
+                }
                 const deck = deckStore.get(name);
                 if (deck) downloadDeckAsYDK(deck);
               }}
@@ -187,27 +207,38 @@ export const Component: React.FC = () => {
           </ScrollableArea>
         </div>
         <div className={styles.content}>
-          {progress === 1 ? (
-            <>
-              <div className={styles.deck} data-testid="deck-editor-panel">
-                <DeckEditor
-                  deck={snapSelectedDeck as IDeck}
-                  onClear={editDeckStore.clear}
-                  onReset={handleDeckEditorReset}
-                  onSave={handleDeckEditorSave}
-                  onShuffle={handleDeckEditorShuffle}
-                  onSort={handleDeckEditorSort}
-                />
-              </div>
-              <div className={styles.select} data-testid="deck-search-panel">
-                <DeckDatabase />
-              </div>
-            </>
-          ) : (
-            <div className={styles.container}>
-              <Loading progress={progress * 100} />
-            </div>
+          {!snapDecks.persistenceAvailable && (
+            <Alert
+              data-testid="deck-storage-warning"
+              type="warning"
+              showIcon
+              message={deckImportMessages(language).memory}
+              style={{ flexShrink: 0 }}
+            />
           )}
+          <div className={styles.editorColumns}>
+            {progress === 1 ? (
+              <>
+                <div className={styles.deck} data-testid="deck-editor-panel">
+                  <DeckEditor
+                    deck={snapSelectedDeck as IDeck}
+                    onClear={editDeckStore.clear}
+                    onReset={handleDeckEditorReset}
+                    onSave={handleDeckEditorSave}
+                    onShuffle={handleDeckEditorShuffle}
+                    onSort={handleDeckEditorSort}
+                  />
+                </div>
+                <div className={styles.select} data-testid="deck-search-panel">
+                  <DeckDatabase />
+                </div>
+              </>
+            ) : (
+              <div className={styles.container}>
+                <Loading progress={progress * 100} />
+              </div>
+            )}
+          </div>
         </div>
         <div className={styles.detailHost}>
           <HigherCardDetail />

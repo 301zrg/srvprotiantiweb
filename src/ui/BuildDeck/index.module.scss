@@ -23,6 +23,7 @@
 
 .content {
   display: flex;
+  flex-direction: column;
   flex: 1;
   padding-bottom: 0;
   padding-right: 1rem;
@@ -37,6 +38,13 @@
       gap: 0.5rem;
     }
   }
+}
+
+.editorColumns {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 
 .container {
@@ -170,6 +178,9 @@
     display: contents;
     padding: 0;
     overflow: visible;
+  }
+  .editorColumns {
+    display: contents;
   }
   .content :is(.deck, .select) {
     width: 100%;

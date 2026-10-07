@@ -108,9 +108,10 @@ export const editDeckStore = proxy({
   },
   set(deck: EditingDeck) {
     editDeckStore.deckName = deck.deckName;
-    editDeckStore.main = deck.main;
-    editDeckStore.extra = deck.extra.sort(compareCards);
-    editDeckStore.side = deck.side.sort(compareCards);
+    // Loading an imported deck must not reorder its original zones.
+    editDeckStore.main = [...deck.main];
+    editDeckStore.extra = [...deck.extra];
+    editDeckStore.side = [...deck.side];
     editDeckStore.edited = false;
   },
   clear() {

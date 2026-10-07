@@ -56,6 +56,8 @@
     "test:packet": "node scripts/test_packet_framer.mjs",
     "test:duel-animation": "node --experimental-transform-types scripts/test_duel_animation.mjs",
     "test:resource-recovery": "node scripts/resource_recovery_ui.mjs",
+    "test:deck-import": "node --experimental-strip-types scripts/test_deck_import.mjs",
+    "test:deck-import-ui": "python scripts/build_environment_assets.py && node scripts/deck_import_ui.mjs",
     "test:smoke": "node scripts/smoke_ui.mjs",
     "test:mobile-ui": "python scripts/build_environment_assets.py && node scripts/mobile_ui.mjs",
     "test:duel-feedback": "python scripts/build_environment_assets.py && node scripts/duel_feedback_ui.mjs",

@@ -2,12 +2,30 @@ import { publishedResourceName, siteStorage } from "./deployment";
 
 declare global {
   interface Window {
-    __SRVPRO_DUEL_CONFIG__?: { duelWebSocketUrl?: unknown };
+    __SRVPRO_DUEL_CONFIG__?: {
+      duelWebSocketUrl?: unknown;
+      deckImportOrigins?: unknown;
+    };
   }
 }
 
 /** The operator fixes the endpoint; players cannot edit it in the UI. */
 const publicConfig = window.__SRVPRO_DUEL_CONFIG__;
+const configuredDeckImportOrigins = publicConfig?.deckImportOrigins;
+/** A link's origin parameter can choose from this list, never expand it. */
+export const deckImportOrigins: string[] = (
+  Array.isArray(configuredDeckImportOrigins)
+    ? configuredDeckImportOrigins
+    : ["http://121.4.34.71:7922", "https://duel.ygomatch.xyz"]
+).filter((origin): origin is string => {
+  if (typeof origin !== "string") return false;
+  try {
+    const url = new URL(origin);
+    return ["http:", "https:"].includes(url.protocol) && url.origin === origin;
+  } catch {
+    return false;
+  }
+});
 export const duelWebSocketUrl =
   publicConfig &&
   Object.prototype.hasOwnProperty.call(publicConfig, "duelWebSocketUrl")

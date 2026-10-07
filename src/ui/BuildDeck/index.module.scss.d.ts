@@ -6,6 +6,7 @@ declare const classNames: {
   readonly deck: "deck";
   readonly select: "select";
   readonly "select-btns": "select-btns";
+  readonly editorColumns: "editorColumns";
   readonly container: "container";
   readonly title: "title";
   readonly "deck-zone": "deck-zone";

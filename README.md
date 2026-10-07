@@ -62,4 +62,8 @@ BiliToy 专用上传包通过 `npm run package:bilitoy -- --wss-url wss://实际
 
 ## 协作
 
-源码发布在 [301zrg/srvprotiantiweb](https://github.com/301zrg/srvprotiantiweb)。建议通过分支和 Pull Request 提交改动；提交前运行上文列出的资源检查、类型检查、lint 与构建。`resources-staging/1103/` 中的原始资源按字节锁定，修改须同步更新资源审计与 revision。不要提交 `.env.local`、证书、真实玩家凭据、未授权卡组或录像。当前仓库提供可构建的本地首版，生产 WSS 与完整实战验收仍待完成。
+源码发布在 [301zrg/srvprotiantiweb](https://github.com/301zrg/srvprotiantiweb)。建议通过分支和 Pull Request 提交改动；提交前运行上文列出的资源检查、类型检查、lint 与构建。`resources-staging/1103/` 中的原始资源按字节锁定，修改须同步更新资源审计与 revision。不要提交 `.env.local`、证书、真实玩家凭据、未授权卡组或录像。用户确认第一期已可使用，具体测试记录及历史待测项见施工清单。
+
+第二期录像功能目前只完成调研与规划，等待用户确认后开工：本地导入／下载、服务器对局结束后自动缓存、匹配旧裁定环境的标准 `.yrp` 网页播放。范围、`special.lua` 初始化及验收顺序见 [第二期录像计划](docs/replay-phase2-plan.md)。
+
+网页版已单独实现卡组接收入口：公开内容链接支持 YDK、原生 deckbuffer、三分区 JSON，受限卡组支持指定来源的跨窗口交接；保存后进入编辑器，同名另存、同内容复用，存储失败可临时编辑并下载备份。参数、白名单、来源页消息格式与本地试用见 [卡组接收说明](docs/deck-import.md)。本次未修改天梯官网按钮；官网改造和录像入口的后续方案见 [官网一键打开调研](docs/website-replay-deck-handoff-research.md)。
