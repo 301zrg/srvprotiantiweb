@@ -27,6 +27,7 @@ const manualMode =
   process.argv.includes("--manual") || process.argv.includes("--manual-check");
 const manualCheck = process.argv.includes("--manual-check");
 const tunnelMode = process.argv.includes("--tunnel");
+const roomLinksMode = process.argv.includes("--room-links");
 const notes = [];
 let serverProcess;
 let previewServer;
@@ -181,6 +182,7 @@ try {
       },
       http: {
         port: httpPort,
+        public_roomlist: roomLinksMode ? true : undefined,
         ssl: {
           enabled: !tunnelMode,
           port: httpsPort,
@@ -190,6 +192,9 @@ try {
       },
       tips: { enabled: false },
       dialogues: { enabled: false },
+      ...(roomLinksMode
+        ? { cloud_replay: { enabled: true, enable_halfway_watch: true } }
+        : {}),
     },
   };
   mkdirSync(join(runtime, "config"), { recursive: true });
@@ -433,12 +438,64 @@ try {
         throw error;
       }
     }
+    async function joinSpectator(roomName, running) {
+      const page = await browserContext.newPage();
+      page.on("pageerror", (error) =>
+        pageErrors.push(`Spectator: ${error.message}`),
+      );
+      const sent = [];
+      page.on("websocket", (socket) =>
+        socket.on("framesent", (frame) => {
+          if (typeof frame.payload !== "string")
+            sent.push(Buffer.from(frame.payload)[2]);
+        }),
+      );
+      await page.addInitScript(() => localStorage.setItem("language", "cn"));
+      const query = new URLSearchParams({ room: roomName, spectate: "1" });
+      await page.goto(`${origin}#/match?${query}`, {
+        waitUntil: "domcontentloaded",
+      });
+      if (running) {
+        await expect(page.getByTestId("duel-switch-view")).toBeVisible({
+          timeout: 30000,
+        });
+        await expect(page.getByTestId("duel-surrender")).toHaveCount(0);
+        await page.getByTestId("duel-switch-view").click();
+        await expect(page.getByTestId("duel-switch-view")).toHaveAttribute(
+          "data-view-controller",
+          "1",
+        );
+        await page.getByTestId("duel-leave-spectating").click();
+      } else {
+        await expect(page.getByTestId("waitroom-role-toggle")).toHaveText(
+          /加入决斗者/,
+          { timeout: 30000 },
+        );
+        await expect(page.getByTestId("waitroom-ready-toggle")).toHaveCount(0);
+        await page.getByRole("button", { name: "退出房间" }).click();
+      }
+      await expect(page.locator("#player-nickname")).toBeVisible();
+      assert.equal(sent.filter((opcode) => opcode === 18).length, 1);
+      assert.equal(sent.filter((opcode) => opcode === 33).length, 1);
+      assert.ok(
+        !sent.some((opcode) => [2, 34, 37].includes(opcode)),
+        "Spectators must never upload decks, ready, or start",
+      );
+      await page.close();
+      console.log(
+        `Room link spectating passed: ${
+          running ? "running" : "waiting"
+        } ${roomName}`,
+      );
+    }
     const ordinaryA = await joinRoom("LocalWebA", "LOCAL-WSS-ROOM", "Single");
+    if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", false);
     const ordinaryB = await joinRoom("LocalWebB", "LOCAL-WSS-ROOM", "Single");
     console.log(
       "Two browser clients joined the same ordinary room with 2011.3 banlist hash",
     );
     await startDuel(ordinaryA, ordinaryB, "Ordinary room");
+    if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", true);
     await ordinaryA.getByTestId("duel-surrender").click();
     await ordinaryA.getByTestId("duel-surrender-confirm").click();
     for (const page of [ordinaryA, ordinaryB]) {
@@ -460,6 +517,19 @@ try {
       "Two browser clients entered TT ladder matching with 2011.3 banlist hash",
     );
     await startDuel(ladderA, ladderB, "TT ladder");
+    if (roomLinksMode) {
+      const response = await fetch(`http://127.0.0.1:${httpPort}/api/getrooms`);
+      assert.ok(response.ok);
+      const { rooms } = await response.json();
+      const room = rooms.find((room) =>
+        room.roomname.startsWith("M#TT,RANDOM#"),
+      );
+      assert.ok(
+        room,
+        "Expected a concrete TT room in the local public room list",
+      );
+      await joinSpectator(room.roomname, true);
+    }
     // Split the first two wins so the same live match must reach G3.
     async function surrender(page) {
       await page.getByTestId("duel-surrender").click();

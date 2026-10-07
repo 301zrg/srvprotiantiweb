@@ -1,8 +1,9 @@
 import { App, Button, Input } from "antd";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
+import { ygopro } from "@/api";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { resetUniverse, roomStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
@@ -11,6 +12,12 @@ import { duelWebSocketUrl, validateDuelWebSocketUrl } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { siteStorage } from "@/variant/deployment";
 import { siteMessages } from "@/variant/messages";
+import {
+  isRoomCommand,
+  readRoomLink,
+  type RoomLink,
+  websiteObserverNickname,
+} from "@/variant/roomLink";
 
 import styles from "./index.module.scss";
 import { connectSrvpro, disconnectSrvpro } from "./util";
@@ -25,12 +32,33 @@ export const loader = () => {
 };
 
 export const Component = () => {
-  const [nickname, setNickname] = useState(
-    () => joinFormDraft.nickname ?? siteStorage.getItem("playerNickname") ?? "",
+  const { search } = useLocation();
+  return (
+    <JoinRoomForm
+      key={search}
+      link={readRoomLink(new URLSearchParams(search))}
+    />
   );
-  const [roomName, setRoomName] = useState(() => joinFormDraft.roomName ?? "");
+};
+
+const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
+  const spectate = !!link?.spectate;
+  const autoStarted = useRef(false);
+  const [invalidLink, setInvalidLink] = useState(!!link?.invalid);
+  const [nickname, setNickname] = useState(
+    () =>
+      link?.nickname ??
+      (spectate
+        ? websiteObserverNickname
+        : joinFormDraft.nickname ??
+          siteStorage.getItem("playerNickname") ??
+          ""),
+  );
+  const [roomName, setRoomName] = useState(
+    () => link?.room ?? joinFormDraft.roomName ?? "",
+  );
   const [connecting, setConnecting] = useState(false);
-  const { joined, errorMsg } = useSnapshot(roomStore);
+  const { joined, errorMsg, selfType } = useSnapshot(roomStore);
   const connection = useSnapshot(connectionStore);
   const { message } = App.useApp();
   const navigate = useNavigate();
@@ -39,8 +67,36 @@ export const Component = () => {
   const endpointError = validateDuelWebSocketUrl(language);
 
   useEffect(() => {
-    if (joined) navigate("/waitroom");
-  }, [joined, navigate]);
+    if (
+      joined &&
+      (!spectate || selfType === ygopro.StocTypeChange.SelfType.OBSERVER)
+    )
+      navigate("/waitroom", { replace: !!link });
+  }, [joined, selfType, spectate, link, navigate]);
+
+  useEffect(() => {
+    if (
+      !spectate ||
+      !connecting ||
+      !joined ||
+      selfType === ygopro.StocTypeChange.SelfType.OBSERVER
+    )
+      return;
+    const timer = window.setTimeout(() => {
+      disconnectSrvpro();
+      resetUniverse();
+      setConnecting(false);
+      message.error(text.spectatorNotAccepted);
+    }, 10000);
+    return () => window.clearTimeout(timer);
+  }, [
+    spectate,
+    connecting,
+    joined,
+    selfType,
+    message,
+    text.spectatorNotAccepted,
+  ]);
 
   useEffect(() => {
     if (errorMsg) {
@@ -54,7 +110,8 @@ export const Component = () => {
     if (connection.state === "disconnected") setConnecting(false);
   }, [connection.state]);
 
-  const connect = async () => {
+  const connect = useCallback(async () => {
+    if (invalidLink) return message.error(text.invalidRoomLink);
     if (endpointError) return message.error(endpointError);
     const nicknameParts = nickname.split("$");
     if (
@@ -69,20 +126,31 @@ export const Component = () => {
     if (!roomName.trim() || roomName.length > 19 || /[\0\r\n]/.test(roomName)) {
       return message.error(text.invalidRoom);
     }
-    if (nickname.includes("$")) siteStorage.removeItem("playerNickname");
-    else siteStorage.setItem("playerNickname", nickname);
+    if (spectate && isRoomCommand(roomName))
+      return message.error(text.spectatorRoomCommand);
+    if (!spectate) {
+      if (nickname.includes("$")) siteStorage.removeItem("playerNickname");
+      else siteStorage.setItem("playerNickname", nickname);
+    }
     setConnecting(true);
     try {
       await connectSrvpro({
         ip: duelWebSocketUrl,
         player: nickname,
         passWd: roomName,
+        spectate,
       });
     } catch (error) {
       setConnecting(false);
       message.error(error instanceof Error ? error.message : String(error));
     }
-  };
+  }, [invalidLink, endpointError, nickname, roomName, spectate, message, text]);
+
+  useEffect(() => {
+    if (!spectate || autoStarted.current) return;
+    autoStarted.current = true;
+    void connect();
+  }, [spectate, connect]);
 
   return (
     <>
@@ -100,7 +168,10 @@ export const Component = () => {
           borderRadius: 12,
         }}
       >
-        <h1>{text.connect}</h1>
+        <h1>{spectate ? text.spectate : text.connect}</h1>
+        {spectate && connecting && (
+          <p role="status">{text.spectatorLinkHint}</p>
+        )}
         <label htmlFor="player-nickname">{text.nickname}</label>
         <Input
           id="player-nickname"
@@ -108,11 +179,14 @@ export const Component = () => {
           maxLength={19}
           onChange={(event) => {
             setNickname(event.target.value);
-            joinFormDraft.nickname = event.target.value;
+            setInvalidLink(false);
+            if (!spectate) joinFormDraft.nickname = event.target.value;
           }}
           autoComplete="off"
         />
-        <small>{text.nicknameHint}</small>
+        <small>
+          {spectate ? text.spectatorNicknameHint : text.nicknameHint}
+        </small>
         <label htmlFor="room-name">{text.room}</label>
         <Input
           id="room-name"
@@ -120,11 +194,13 @@ export const Component = () => {
           maxLength={19}
           onChange={(event) => {
             setRoomName(event.target.value);
-            joinFormDraft.roomName = event.target.value;
+            setInvalidLink(false);
+            if (!spectate) joinFormDraft.roomName = event.target.value;
           }}
           onPressEnter={connect}
         />
-        <p>{text.roomHint}</p>
+        <p>{spectate ? text.spectatorRoomCommand : text.roomHint}</p>
+        {invalidLink && <p role="alert">{text.invalidRoomLink}</p>}
         {endpointError && <p role="alert">{endpointError}</p>}
         {connection.state === "disconnected" && (
           <p role="alert">{connection.detail}</p>
@@ -137,8 +213,11 @@ export const Component = () => {
           disabled={!!endpointError}
           onClick={connect}
         >
-          {text.join}
+          {spectate ? text.spectate : text.join}
         </Button>
+        {link && (
+          <Button onClick={() => navigate("/match")}>{text.back}</Button>
+        )}
         <Button onClick={() => navigate("/build")}>{text.edit}</Button>
       </div>
     </>

@@ -3,6 +3,7 @@ import { WebSocketStream } from "@/infra";
 import { initSocket } from "@/middleware/socket";
 import { pollSocketLooper } from "@/service/executor";
 import { initStore } from "@/stores";
+import { requestSpectatorSeat } from "@/variant/spectatorSession";
 
 let activeConnection: WebSocketStream | undefined;
 
@@ -16,6 +17,7 @@ export const connectSrvpro = async (params: {
   ip: string;
   player: string;
   passWd: string;
+  spectate?: boolean;
   customOnConnected?: (conn: WebSocketStream) => void;
 }) => {
   // 初始化sqlite
@@ -29,6 +31,7 @@ export const connectSrvpro = async (params: {
 
   disconnectSrvpro();
   const conn = initSocket(params);
+  if (params.spectate) requestSpectatorSeat(conn);
   activeConnection = conn;
   initUIContainer(conn);
   void pollSocketLooper(getUIContainer(), () => activeConnection === conn);
