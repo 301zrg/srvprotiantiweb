@@ -78,8 +78,10 @@ def main():
         shutil.copyfile(connector_license, kit / 'cloudflared-LICENSE.txt')
     guide = ROOT / 'docs' / 'current-server-online-test.md'
     if guide.is_file():
-        shutil.copyfile(guide, kit / 'ONLINE_TEST.md')
+        (kit / 'ONLINE_TEST.md').write_text(guide.read_text(encoding='utf-8').replace(
+            '](pm2-quick-tunnel.md)', '](PM2_TUNNEL.md)'), encoding='utf-8')
         shutil.copyfile(ROOT / 'docs' / 'wss-integration.md', kit / 'wss-integration.md')
+        shutil.copyfile(ROOT / 'docs' / 'pm2-quick-tunnel.md', kit / 'PM2_TUNNEL.md')
     if args.site_origin:
         nginx = kit / 'neos-tunnel.conf'
         nginx.write_text(nginx.read_text(encoding='utf-8').replace(
@@ -101,12 +103,19 @@ def main():
     (web / 'deployment-info.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     archive(web, output / 'web-pages.zip')
     archive(kit, output / 'windows-server-kit.zip')
+    pm2_kit = output / 'pm2-kit'
+    pm2_kit.mkdir()
+    for name in ('neos-quick-tunnel.cjs', 'ecosystem.neos.config.js', 'PM2_TUNNEL.md'):
+        shutil.copyfile(kit / name, pm2_kit / name)
+    shutil.copyfile(ROOT / 'LICENSE', pm2_kit / 'LICENSE.txt')
+    archive(pm2_kit, output / 'pm2-tunnel-kit.zip')
     hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
               for path in output.glob('*.zip')}
     (output / 'SHA256SUMS.json').write_text(json.dumps(hashes, indent=2) + '\n', encoding='utf-8')
     print(f'Web folder for Pages upload: {web}')
     print(f'Web zip: {output / "web-pages.zip"}')
     print(f'Windows server kit: {output / "windows-server-kit.zip"}')
+    print(f'PM2 tunnel-only upgrade kit: {output / "pm2-tunnel-kit.zip"}')
     print(f'Fixed public endpoint: {args.wss_url or "NOT SET: joining is disabled until configured"}')
     if not args.site_origin:
         print('Set the exact Pages origin in server-kit/neos-tunnel.conf before uploading the website.')

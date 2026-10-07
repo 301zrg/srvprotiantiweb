@@ -48,6 +48,7 @@ npm run dev
 - [上游审计](docs/upstream-audit.md)
 - [WSS 配置与本地联调](docs/wss-integration.md)
 - [当前服务器上线测试](docs/current-server-online-test.md)
+- [PM2 后台运行 Windows 临时隧道](docs/pm2-quick-tunnel.md)
 - [手机界面调整与复测](docs/mobile-ui.md)
 - [决斗准备页与双打支持范围](docs/waitroom-ui.md)
 - [给服务器与域名维护者的 WSS 证书说明](docs/wss-certificate-handoff.md)
