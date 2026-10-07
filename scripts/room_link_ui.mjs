@@ -257,6 +257,38 @@ try {
     );
     await running.close();
 
+    const locked = await open("room=locked&spectate=1&autojoin=0", true);
+    await expect(locked.locator("#player-nickname")).toHaveValue(
+      "observer from web",
+    );
+    await expect(locked.locator("#room-name")).toHaveValue("locked");
+    await expect(locked.locator("body")).toContainText("此链接不会自动连接");
+    assert.equal(await locked.evaluate(() => window.__roomLink.urls.length), 0);
+    await locked.locator("#room-name").fill("locked$dummy");
+    assert.equal(await locked.evaluate(() => window.__roomLink.urls.length), 0);
+    await locked.getByTestId("connect-submit").click();
+    await locked.waitForFunction(() => !!window.__confirmSpectator);
+    await locked.evaluate(() => window.__confirmSpectator());
+    await expect(locked.getByTestId("waitroom-role-toggle")).toHaveText(
+      /加入决斗者/,
+    );
+    const lockedPackets = await locked.evaluate(
+      () => window.__roomLink.packets,
+    );
+    assert.equal(
+      decode(
+        lockedPackets.find((p) => p[2] === 18),
+        11,
+      ),
+      "locked$dummy",
+    );
+    assert.ok(!locked.url().includes("dummy"));
+    assert.equal(
+      await locked.evaluate(() => localStorage.getItem("playerNickname")),
+      "SavedPlayer",
+    );
+    await locked.close();
+
     const prefill = await open(new URLSearchParams({ room }).toString(), true);
     await expect(prefill.locator("#room-name")).toHaveValue(room);
     await expect(prefill.locator("#player-nickname")).toHaveValue(
@@ -319,6 +351,7 @@ try {
     for (const [query, warning] of [
       ["room=TT&spectate=1", "具体房间名"],
       ["room=test&spectate=unexpected", "参数无效"],
+      ["room=test&spectate=1&autojoin=unexpected", "参数无效"],
       ["room=test&spectate=1&nickname=player%24dummy", "参数无效"],
       ["room=test%24dummy&spectate=1", "参数无效"],
       ["room=" + "x".repeat(20) + "&spectate=1", "1–19"],

@@ -147,10 +147,10 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   }, [invalidLink, endpointError, nickname, roomName, spectate, message, text]);
 
   useEffect(() => {
-    if (!spectate || autoStarted.current) return;
+    if (!spectate || !link?.autojoin || autoStarted.current) return;
     autoStarted.current = true;
     void connect();
-  }, [spectate, connect]);
+  }, [spectate, link?.autojoin, connect]);
 
   return (
     <>
@@ -172,6 +172,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
         {spectate && connecting && (
           <p role="status">{text.spectatorLinkHint}</p>
         )}
+        {spectate && !link?.autojoin && <p>{text.spectatorManualHint}</p>}
         <label htmlFor="player-nickname">{text.nickname}</label>
         <Input
           id="player-nickname"

@@ -43,7 +43,7 @@ npm run dev
 
 ## 项目文档
 
-已支持房间列表链接 `#/match?room=编码后的实际房名&spectate=1`：默认以 `observer from web` 自动观战，可选 `nickname`；仅传房名时预填表单。观战入口保留原玩家昵称，等待服务器确认观战席位。参数、后续房间列表 HTML 示例及服务端边界见 [房间链接观战](docs/room-spectator-links.md)。
+已支持房间列表链接 `#/match?room=编码后的实际房名&spectate=1`：默认以 `observer from web` 自动观战，可选 `nickname`；仅传房名时预填表单。密码房增加 `autojoin=0`，由玩家补充密码后手动观战。观战入口保留原玩家昵称，等待服务器确认观战席位。本地 `srvprotianti` 已开局及换备房间的列表链接已接入，桌面助手保持原生入口。参数及服务端边界见 [房间链接观战](docs/room-spectator-links.md)。
 
 BiliToy 专用上传包通过 `npm run package:bilitoy -- --wss-url wss://实际地址/neos` 生成，无需手动改卡库或覆盖原 `dist/`。资源采用相对路径与平台允许的后缀，图标随包提供，字体使用系统回退；`npm run test:bilitoy-ui` 检查最新专用包。上传前仍须确认账号权限、外部服务域名与运营协议，见下方评估文档。
 
