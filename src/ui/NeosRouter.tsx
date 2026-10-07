@@ -1,6 +1,12 @@
 import { createHashRouter, RouterProvider } from "react-router-dom";
 
+import { normalizeRoomLink } from "@/variant/roomLink";
+
 import { Component, ErrorBoundary, loader } from "./Layout";
+
+const roomLinkUrl = normalizeRoomLink(new URL(window.location.href));
+if (roomLinkUrl)
+  window.history.replaceState(window.history.state, "", roomLinkUrl);
 
 const router = createHashRouter([
   {

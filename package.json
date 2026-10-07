@@ -57,6 +57,8 @@
     "test:smoke": "node scripts/smoke_ui.mjs",
     "test:mobile-ui": "python scripts/build_environment_assets.py && node scripts/mobile_ui.mjs",
     "test:duel-feedback": "python scripts/build_environment_assets.py && node scripts/duel_feedback_ui.mjs",
+    "test:room-links": "python scripts/build_environment_assets.py && node scripts/room_link_ui.mjs",
+    "test:room-links:local": "python scripts/build_environment_assets.py && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --room-links",
     "test:waitroom-ui": "python scripts/build_environment_assets.py && node scripts/waitroom_ui.mjs",
     "test:mock-duel": "python scripts/build_environment_assets.py && node scripts/mock_duel_ui.mjs",
     "test:local-wss": "python scripts/build_environment_assets.py && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs",

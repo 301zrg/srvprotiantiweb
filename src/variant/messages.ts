@@ -28,6 +28,14 @@ const messages = {
     roomHint:
       "输入 TT 进入天梯匹配；其他房间名按原版 YGOPro 联机规则进入普通房间。",
     join: "连接",
+    spectate: "进入观战",
+    spectatorLinkHint: "正在通过房间链接连接，服务器确认观战身份后进入房间。",
+    spectatorNicknameHint: "这是网页观战昵称，不会覆盖你原先保存的联机昵称。",
+    spectatorRoomCommand:
+      "观战请使用列表中的具体房间名，不能填写 TT 等房间命令。",
+    spectatorNotAccepted: "服务器未确认观战身份，请确认该房间允许观战后重试。",
+    invalidRoomLink:
+      "房间链接参数无效；spectate 只能为 0 或 1，链接中不能包含账号或房间密码。",
     missingWss: "站点尚未配置对战 WSS 地址。",
     invalidWss: "站点的对战 WSS 地址无效。",
     requireWss: "对战地址必须使用 WSS。",
@@ -69,6 +77,17 @@ const messages = {
     roomHint:
       "Enter TT for ladder matchmaking. Other names use normal YGOPro rooms.",
     join: "Connect",
+    spectate: "Spectate",
+    spectatorLinkHint:
+      "Connecting from a room link. Waiting for the server to confirm spectator access.",
+    spectatorNicknameHint:
+      "This spectator nickname does not replace your saved player nickname.",
+    spectatorRoomCommand:
+      "Use a concrete room name from the list, not a command such as TT.",
+    spectatorNotAccepted:
+      "The server did not confirm spectator access. Check whether spectating is allowed and retry.",
+    invalidRoomLink:
+      "Invalid room link. spectate must be 0 or 1; account and room passwords cannot be included in links.",
     missingWss: "The site has no duel WSS endpoint configured.",
     invalidWss: "The duel WSS URL is invalid.",
     requireWss: "The duel endpoint must use WSS.",
@@ -114,6 +133,17 @@ const messages = {
     roomHint:
       "TT でランク戦に参加します。それ以外は通常の YGOPro ルームに入ります。",
     join: "接続",
+    spectate: "観戦する",
+    spectatorLinkHint:
+      "ルームリンクから接続中です。サーバーの観戦確認を待っています。",
+    spectatorNicknameHint:
+      "観戦用の名前は、保存済みのプレイヤー名を変更しません。",
+    spectatorRoomCommand:
+      "一覧の具体的なルーム名を指定してください。TT などのコマンドは使用できません。",
+    spectatorNotAccepted:
+      "観戦が確認されませんでした。ルームの観戦設定を確認して再試行してください。",
+    invalidRoomLink:
+      "リンクが無効です。spectate は 0 または 1 を指定し、アカウントやルームのパスワードを含めないでください。",
     missingWss: "対戦用 WSS の設定がありません。",
     invalidWss: "対戦用 WSS の URL が無効です。",
     requireWss: "対戦接続には WSS が必要です。",
@@ -154,6 +184,17 @@ const messages = {
     roomHint:
       "TT를 입력하면 래더 매칭에 참여합니다. 다른 이름은 일반 YGOPro 방으로 연결됩니다.",
     join: "연결",
+    spectate: "관전하기",
+    spectatorLinkHint:
+      "방 링크로 접속 중입니다. 서버의 관전 승인을 기다립니다.",
+    spectatorNicknameHint:
+      "이 관전 닉네임은 저장된 플레이어 닉네임을 변경하지 않습니다.",
+    spectatorRoomCommand:
+      "목록의 실제 방 이름을 사용하세요. TT 같은 명령은 사용할 수 없습니다.",
+    spectatorNotAccepted:
+      "서버에서 관전이 확인되지 않았습니다. 방의 관전 허용 여부를 확인한 후 다시 시도하세요.",
+    invalidRoomLink:
+      "잘못된 방 링크입니다. spectate는 0 또는 1이어야 하며 계정이나 방 비밀번호를 링크에 포함할 수 없습니다.",
     missingWss: "대전용 WSS 주소가 설정되지 않았습니다.",
     invalidWss: "대전용 WSS 주소가 올바르지 않습니다.",
     requireWss: "대전 연결에는 WSS가 필요합니다.",
