@@ -1,9 +1,11 @@
 import { proxy } from "valtio";
 
+import { storageKey } from "@/variant/deployment";
+
 import { emptyDeck, IDeck } from "./deckStore";
 import { type NeosStore } from "./shared";
 
-const KEY = "side_deck";
+const KEY = storageKey("side_deck");
 
 export enum SideStage {
   NONE = 0, // 没有进入SIDE阶段

@@ -1,10 +1,12 @@
 import { clear, createStore, del, set, values } from "idb-keyval";
 import { proxy } from "valtio";
 
+import { storageKey } from "@/variant/deployment";
+
 import { type NeosStore } from "./shared";
 
 const IDB_NAME = "decks";
-const deckIdb = createStore(IDB_NAME, IDB_NAME);
+const deckIdb = createStore(storageKey(IDB_NAME), IDB_NAME);
 
 export interface IDeck {
   deckName: string;

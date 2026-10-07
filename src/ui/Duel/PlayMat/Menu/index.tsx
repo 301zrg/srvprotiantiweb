@@ -8,6 +8,7 @@ import {
   PlayCircleFilled,
   SettingOutlined,
   StepForwardFilled,
+  SwapOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -21,6 +22,7 @@ import {
 } from "antd";
 import classNames from "classnames";
 import { cloneElement, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import {
@@ -46,6 +48,7 @@ import PhaseType = ygopro.StocGameMessage.MsgNewPhase.PhaseType;
 import { useTranslation } from "react-i18next";
 
 import { getUIContainer } from "@/container/compat";
+import { useMobileInterface } from "@/hook";
 
 import { displayActionHistory } from "../../Message";
 import { clearAllIdleInteractivities, clearSelectInfo } from "../../utils";
@@ -274,7 +277,9 @@ const initialPhaseBind = (
 };
 
 export const Menu = () => {
+  const mobile = useMobileInterface();
   const { language } = useI18N();
+  const navigate = useNavigate();
   const text = mobileMessages(language);
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -297,6 +302,8 @@ export const Menu = () => {
   const { t: i18n } = useTranslation("Menu");
   const {
     currentPlayer,
+    selfType,
+    observerView,
     chainSetting,
     phase: { enableBp, enableM2, enableEp, currentPhase },
   } = useSnapshot(matStore);
@@ -399,7 +406,9 @@ export const Menu = () => {
     },
   ].map((item, i) => ({ key: i, ...item }));
 
-  const globalDisable = !matStore.isMe(currentPlayer);
+  const observing =
+    selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
+  const globalDisable = observing || !matStore.isMe(currentPlayer);
 
   return (
     <div
@@ -409,7 +418,7 @@ export const Menu = () => {
       role="toolbar"
       aria-label={text.settings}
     >
-      <SelectManager />
+      {!observing && <SelectManager />}
       <ReplayControl />
       <DropdownWithTitle
         title={i18n("SelectPhase")}
@@ -433,6 +442,7 @@ export const Menu = () => {
       >
         <Button
           data-testid="duel-chain-setting"
+          disabled={observing}
           aria-label={
             chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
           }
@@ -441,7 +451,7 @@ export const Menu = () => {
           type="text"
         ></Button>
       </DropdownWithTitle>
-      <Tooltip title={i18n("History")}>
+      <Tooltip title={i18n("History")} open={mobile ? false : undefined}>
         <Button
           data-testid="duel-history"
           aria-label={text.history}
@@ -450,7 +460,7 @@ export const Menu = () => {
           type="text"
         />
       </Tooltip>
-      <Tooltip title={i18n("ChatRoom")}>
+      <Tooltip title={i18n("ChatRoom")} open={mobile ? false : undefined}>
         <Button
           data-testid="duel-chat"
           aria-label={text.chat}
@@ -459,17 +469,41 @@ export const Menu = () => {
           type="text"
         ></Button>
       </Tooltip>
-      <DropdownWithTitle
-        title={i18n("DoYouSurrunder")}
-        menu={{ items: surrenderMenuItems }}
-      >
-        <Button
-          aria-label={i18n("DoYouSurrunder")}
-          data-testid="duel-surrender"
-          icon={<CloseCircleFilled />}
-          type="text"
-        ></Button>
-      </DropdownWithTitle>
+      {observing ? (
+        <>
+          <Button
+            data-testid="duel-switch-view"
+            aria-label={text.switchView}
+            data-view-controller={observerView}
+            icon={<SwapOutlined />}
+            type="text"
+            onClick={() => {
+              matStore.observerView = observerView === 0 ? 1 : 0;
+            }}
+          >
+            {text.switchView}
+          </Button>
+          <Button
+            data-testid="duel-leave-spectating"
+            aria-label={text.leaveSpectating}
+            icon={<CloseCircleFilled />}
+            type="text"
+            onClick={() => navigate("/match")}
+          />
+        </>
+      ) : (
+        <DropdownWithTitle
+          title={i18n("DoYouSurrunder")}
+          menu={{ items: surrenderMenuItems }}
+        >
+          <Button
+            aria-label={i18n("DoYouSurrunder")}
+            data-testid="duel-surrender"
+            icon={<CloseCircleFilled />}
+            type="text"
+          ></Button>
+        </DropdownWithTitle>
+      )}
       <Button
         data-testid="duel-settings"
         aria-label={text.settings}

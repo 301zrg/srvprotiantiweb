@@ -11,6 +11,8 @@ export interface BothSide<T> {
 
 export interface MatState {
   selfType: number;
+  observerSwapped: boolean; // Room seats differ from core controller order.
+  observerView: 0 | 1; // Presentation only; never changes protocol identity.
 
   initInfo: BothSide<InitInfo> & {
     set: (controller: number, obj: Partial<InitInfo>) => void;

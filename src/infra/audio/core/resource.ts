@@ -1,11 +1,12 @@
 import { clear, createStore, del, get, set } from "idb-keyval";
 
 import { useConfig } from "@/config";
+import { storageKey } from "@/variant/deployment";
 
 import { AudioActionType } from "../type";
 
 const AUDIO_DB_NAME = "audio";
-const sourceDb = createStore(AUDIO_DB_NAME, "sources");
+const sourceDb = createStore(storageKey(AUDIO_DB_NAME), "sources");
 
 const { assetsPath } = useConfig();
 

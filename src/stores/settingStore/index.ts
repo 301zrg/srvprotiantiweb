@@ -2,12 +2,14 @@ import { isSSR } from "@react-spring/shared";
 import { pick } from "lodash-es";
 import { proxy, subscribe } from "valtio";
 
+import { storageKey } from "@/variant/deployment";
+
 import { type NeosStore } from "../shared";
 import { AnimationConfig, defaultAnimationConfig } from "./animation";
 import { AudioConfig, defaultAudioConfig } from "./audio";
 
 /** 将设置保存到本地 */
-const NEO_SETTING_CONFIG = "__neo_setting_config__";
+const NEO_SETTING_CONFIG = storageKey("__neo_setting_config__");
 
 /** 设置项 */
 type SettingStoreConfig = Pick<SettingStore, "audio" | "animation">;

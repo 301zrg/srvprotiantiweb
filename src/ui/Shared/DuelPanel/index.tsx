@@ -41,14 +41,14 @@ export function DuelPanel({
       placement={bottom ? "bottom" : placement}
       height={
         bottom
-          ? "min(calc(var(--neos-adaptive-height, 100dvh) * 0.85), 720px)"
+          ? "min(calc(var(--neos-adaptive-height, 100dvh) * 0.65), 620px)"
           : undefined
       }
-      width="min(440px, 100vw)"
+      width={mobile ? "min(340px, 100vw)" : "340px"}
       mask={mobile}
       keyboard
       maskClosable
-      rootClassName={styles.root}
+      rootClassName={classNames(styles.root, { [styles.docked]: !mobile })}
       className={styles.panel}
       extra={
         <Button data-testid={`${testId}-close`} onClick={onClose}>

@@ -3,17 +3,40 @@ import classNames from "classnames";
 import React, { useEffect, useState } from "react";
 import { useSnapshot } from "valtio";
 
+import { ygopro } from "@/api";
 import { useEnv } from "@/hook";
-import { matStore, roomStore } from "@/stores";
+import { matStore, type Player, roomStore } from "@/stores";
 
 import styles from "./index.module.scss";
 
 const LIFE_ANIMATION_DURATION = 500;
 
+function spectatorName(
+  players: readonly (Readonly<Player> | undefined)[],
+  tag: boolean,
+  controller: number,
+  swapped: boolean,
+) {
+  const seat = controller ^ (swapped ? 1 : 0);
+  if (tag)
+    return (
+      [players[seat * 2]?.name, players[seat * 2 + 1]?.name]
+        .filter(Boolean)
+        .join(" / ") || "?"
+    );
+  return players[seat]?.name ?? "?";
+}
+
 export const LifeBar: React.FC = () => {
   const snapInitInfo = useSnapshot(matStore.initInfo);
   const snapPlayer = useSnapshot(roomStore);
-  const { currentPlayer } = useSnapshot(matStore);
+  const { currentPlayer, selfType, observerView, observerSwapped } =
+    useSnapshot(matStore);
+  const observing =
+    selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
+  const flipped = observing && observerView === 1;
+  const nearController = observing ? observerView : matStore.isMe(0) ? 0 : 1;
+  const farController = 1 - nearController;
 
   const [meLife, setMeLife] = React.useState(0);
   const [opLife, setOpLife] = React.useState(0);
@@ -57,17 +80,45 @@ export const LifeBar: React.FC = () => {
   return (
     <div className={styles.container}>
       <LifeBarItem
-        active={!matStore.isMe(currentPlayer)}
-        name={snapPlayer.getOpPlayer()?.name ?? "?"}
-        life={opLife}
-        timeLimit={opTimeLimit}
+        active={
+          observing
+            ? currentPlayer === farController
+            : !matStore.isMe(currentPlayer)
+        }
+        name={
+          observing
+            ? spectatorName(
+                snapPlayer.players,
+                snapPlayer.hostInfo?.mode === 2,
+                farController,
+                observerSwapped,
+              )
+            : snapPlayer.getOpPlayer()?.name ?? "?"
+        }
+        life={flipped ? meLife : opLife}
+        timeLimit={flipped ? myTimeLimit : opTimeLimit}
+        controller={farController}
         isMe={false}
       />
       <LifeBarItem
-        active={matStore.isMe(currentPlayer)}
-        name={snapPlayer.getMePlayer()?.name ?? "?"}
-        life={meLife}
-        timeLimit={myTimeLimit}
+        active={
+          observing
+            ? currentPlayer === nearController
+            : matStore.isMe(currentPlayer)
+        }
+        name={
+          observing
+            ? spectatorName(
+                snapPlayer.players,
+                snapPlayer.hostInfo?.mode === 2,
+                nearController,
+                observerSwapped,
+              )
+            : snapPlayer.getMePlayer()?.name ?? "?"
+        }
+        life={flipped ? opLife : meLife}
+        timeLimit={flipped ? opTimeLimit : myTimeLimit}
+        controller={nearController}
         isMe={true}
       />
     </div>
@@ -80,7 +131,8 @@ const LifeBarItem: React.FC<{
   life: number;
   timeLimit: number;
   isMe: boolean;
-}> = ({ active, name, life, timeLimit, isMe }) => {
+  controller: number;
+}> = ({ active, name, life, timeLimit, isMe, controller }) => {
   const animatedLife = useAnimatedLifeNumber(life);
   const mm = Math.floor(timeLimit / 60);
   const ss = timeLimit % 60;
@@ -92,6 +144,7 @@ const LifeBarItem: React.FC<{
     <div
       data-testid="duel-player-life"
       data-player={isMe ? "me" : "op"}
+      data-controller={controller}
       data-life={life}
       style={{
         flexDirection: isMe ? "column-reverse" : "column",
@@ -106,7 +159,9 @@ const LifeBarItem: React.FC<{
           "life-bar-activated": active,
         })}
       >
-        <div className={styles.name}>{name}</div>
+        <div className={styles.name} data-testid="duel-player-name">
+          {name}
+        </div>
         <div
           className={styles.life}
           data-testid="duel-player-life-value"

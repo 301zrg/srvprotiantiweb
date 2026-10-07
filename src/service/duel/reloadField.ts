@@ -2,6 +2,8 @@ import { v4 as v4uuid } from "uuid";
 
 import { ygopro } from "@/api";
 import { Container } from "@/container";
+import { closeCardListModal } from "@/ui/Duel/Message/CardListModal";
+import { closeCardModal } from "@/ui/Duel/Message/CardModal";
 
 import { genCard } from "../utils";
 type MsgReloadField = ygopro.StocGameMessage.MsgReloadField;
@@ -10,6 +12,8 @@ export default (container: Container, field: MsgReloadField) => {
   const context = container.context;
   // 重置
   context.cardStore.reset();
+  closeCardModal();
+  closeCardListModal();
 
   const actions = field.actions;
   actions.forEach((action) => {

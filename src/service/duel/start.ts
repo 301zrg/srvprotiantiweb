@@ -17,6 +17,11 @@ export default async (
   const context = container.context;
   // 先初始化`matStore`
   context.matStore.selfType = start.playerType;
+  context.matStore.observerSwapped = Boolean(
+    (start as ygopro.StocGameMessage.MsgStart & { observerSwapped?: boolean })
+      .observerSwapped,
+  );
+  context.matStore.observerView = 0;
 
   if (context.sideStore.stage !== SideStage.NONE) {
     // 更新Side状态

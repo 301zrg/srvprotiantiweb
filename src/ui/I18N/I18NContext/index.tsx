@@ -22,6 +22,7 @@ import {
   languages,
   serverLanguageCommand,
 } from "@/variant";
+import { siteStorage } from "@/variant/deployment";
 
 interface I18NContextType {
   language: string;
@@ -62,9 +63,10 @@ export const I18NProvider: React.FC<{ children: React.ReactNode }> = ({
     activateCardDatabase(results[0].value);
     activateStrings(results[1].value);
     for (const card of cardStore.inner) {
-      if (card.code > 0) card.meta = fetchCard(card.code);
+      if (card.code > 0)
+        card.meta = { ...card.meta, text: fetchCard(card.code).text };
     }
-    localStorage.setItem("language", selected);
+    siteStorage.setItem("language", selected);
     await i18next.changeLanguage(selected);
     setLanguage(selected);
     if (roomStore.joined) {
@@ -75,7 +77,7 @@ export const I18NProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    localStorage.setItem("language", language);
+    siteStorage.setItem("language", language);
     document.documentElement.lang = languageLocales[language as Language];
   }, [language]);
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
-import { fetchStrings, Region, ygopro } from "@/api";
+import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
 import { useConfig } from "@/config";
 import { History, HistoryOp, historyStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
@@ -49,40 +49,56 @@ const HistoryItem: React.FC<History> = ({
   currentLocation,
   operation,
   target,
-}) => (
-  <div className={styles.history}>
-    <div className={styles["card-container"]}>
-      <YgoCard className={styles.card} code={card} />
-      {currentLocation && (
-        <div className={styles.location}>{`${zone2Text(
-          currentLocation.zone,
-        )}`}</div>
-      )}
+}) => {
+  const { language } = useI18N();
+  if (operation === HistoryOp.ANNOUNCE)
+    return (
+      <div className={styles.announcement} data-testid="duel-history-announce">
+        <YgoCard code={card} width="3rem" />
+        <div>
+          <strong>{mobileMessages(language).declaredCard}</strong>
+          <div>{fetchCard(card).text.name ?? card}</div>
+        </div>
+      </div>
+    );
+  return (
+    <div className={styles.history}>
+      <div className={styles["card-container"]}>
+        <YgoCard className={styles.card} code={card} />
+        {currentLocation && (
+          <div className={styles.location}>{`${zone2Text(
+            currentLocation.zone,
+          )}`}</div>
+        )}
+      </div>
+      <div className={styles["op-container"]}>
+        <div className={styles["op-text"]}>{Op2Text(operation)}</div>
+        {operation === HistoryOp.MOVE ? (
+          <img src={`${assetsPath}/arrow.svg`} className={styles["op-icon"]} />
+        ) : operation === HistoryOp.EFFECT ? (
+          <img src={`${assetsPath}/effect.png`} className={styles["op-icon"]} />
+        ) : operation === HistoryOp.TARGETED ? (
+          <img
+            src={`${assetsPath}/targeted.png`}
+            className={styles["op-icon"]}
+          />
+        ) : operation === HistoryOp.CONFIRMED ? (
+          <img
+            src={`${assetsPath}/confirmed.png`}
+            className={styles["op-icon"]}
+          />
+        ) : operation === HistoryOp.ATTACK ? (
+          <img src={`${assetsPath}/attack.png`} className={styles["op-icon"]} />
+        ) : operation === HistoryOp.SET ? (
+          <img src={`${assetsPath}/set.png`} className={styles["op-icon"]} />
+        ) : (
+          <img src={`${assetsPath}/summon.png`} className={styles["op-icon"]} />
+        )}
+      </div>
+      {target && <div className={styles.target}>{`${zone2Text(target)}`}</div>}
     </div>
-    <div className={styles["op-container"]}>
-      <div className={styles["op-text"]}>{Op2Text(operation)}</div>
-      {operation === HistoryOp.MOVE ? (
-        <img src={`${assetsPath}/arrow.svg`} className={styles["op-icon"]} />
-      ) : operation === HistoryOp.EFFECT ? (
-        <img src={`${assetsPath}/effect.png`} className={styles["op-icon"]} />
-      ) : operation === HistoryOp.TARGETED ? (
-        <img src={`${assetsPath}/targeted.png`} className={styles["op-icon"]} />
-      ) : operation === HistoryOp.CONFIRMED ? (
-        <img
-          src={`${assetsPath}/confirmed.png`}
-          className={styles["op-icon"]}
-        />
-      ) : operation === HistoryOp.ATTACK ? (
-        <img src={`${assetsPath}/attack.png`} className={styles["op-icon"]} />
-      ) : operation === HistoryOp.SET ? (
-        <img src={`${assetsPath}/set.png`} className={styles["op-icon"]} />
-      ) : (
-        <img src={`${assetsPath}/summon.png`} className={styles["op-icon"]} />
-      )}
-    </div>
-    {target && <div className={styles.target}>{`${zone2Text(target)}`}</div>}
-  </div>
-);
+  );
+};
 
 function zone2Text(zone: ygopro.CardZone): string {
   return fetchStrings(Region.System, zone + 1000);
@@ -109,6 +125,8 @@ function Op2Text(op: HistoryOp): string {
       return fetchStrings(Region.System, 1154);
     case HistoryOp.SET:
       return fetchStrings(Region.System, 1153);
+    case HistoryOp.ANNOUNCE:
+      return "";
   }
 }
 

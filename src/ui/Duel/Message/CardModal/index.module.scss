@@ -24,7 +24,21 @@
 .info {
   justify-content: space-between;
   position: relative;
-  height: 15rem; // TODO - fix this
+  min-width: 0;
+  gap: 8px;
+}
+
+.hint {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #537eaa;
+  border-radius: 8px;
+  background: #223247;
+  overflow-wrap: anywhere;
+  strong { color: #a8d4ff; }
 }
 
 .overview {

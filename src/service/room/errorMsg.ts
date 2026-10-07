@@ -3,6 +3,7 @@ import ErrorType = ygopro.StocErrorMsg.ErrorType;
 import { Container } from "@/container";
 import { AudioActionType, playEffect } from "@/infra/audio";
 import { connectionStore } from "@/variant/connection";
+import { siteStorage } from "@/variant/deployment";
 
 // TODO: 是时候需要一个统一管理国际化文案的模块了
 
@@ -75,7 +76,7 @@ export default async function handleErrorMsg(
   const roomStore = container.context.roomStore;
 
   // Get the language from localStorage or default to 'cn' (I18N)
-  const language = (localStorage.getItem("language") || "cn") as Language;
+  const language = (siteStorage.getItem("language") || "cn") as Language;
   const mainDeckWarning = messages[language].mainDeckWarning;
   //const extraDeckWarning = messages[language].extraDeckWarning;
 

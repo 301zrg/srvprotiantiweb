@@ -15,6 +15,7 @@ export enum HistoryOp {
   SP_SUMMON = 7,
   FLIP_SUMMON = 8,
   SET = 9,
+  ANNOUNCE = 10,
 }
 
 export interface History {
@@ -50,6 +51,14 @@ export class HistoryStore implements NeosStore {
       opponent: !context.matStore.isMe(location.controller),
       currentLocation: location,
       operation: HistoryOp.EFFECT,
+    });
+  }
+
+  putAnnounce(context: Context, card: number, player: number) {
+    this.historys.push({
+      card,
+      opponent: !context.matStore.isMe(player),
+      operation: HistoryOp.ANNOUNCE,
     });
   }
 

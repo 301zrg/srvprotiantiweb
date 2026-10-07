@@ -31,6 +31,8 @@ npm run dev
 
 决斗准备页进一步改为显式文字操作与底部蓝色准备按钮，入房及选择卡组保持未准备；Tag 等待页按四席全员准备判断，但完整双打对局仍需单独适配。`npm run test:waitroom-ui` 已通过手机横竖屏、小屏与桌面回归，细节见 [准备页与双打范围](docs/waitroom-ui.md)。
 
+对局反馈已补齐断线通知遮挡、恢复场面的实时攻守／素材／指示物、禁止令宣言卡及观战昵称映射；观战工具栏新增切换视角与退出入口，左右侧栏避开桌面生命值区域。`npm run test:duel-feedback` 使用本地合成原生封包检查三种视口及两种观战先后手顺序，详情和生产复测步骤见 [对局反馈修复](docs/duel-feedback-fixes.md)。
+
 当前外部静态网页已上传到 [Workers 测试站点](https://black-surf-69e5.1627406938.workers.dev/)，服务器允许的网页 origin 使用该地址去掉末尾斜杠。2026-10-07 正式服务器 Quick Tunnel 已启动，当前临时地址为 `wss://districts-studios-rear-representation.trycloudflare.com/neos`：受信任 TLS、Node 101、Edge 浏览器握手及错误 Origin 拒绝已通过。用户更新上传后，公网连接配置与候选包一致、`no-store` 生效；没有覆盖浏览器配置，两个临时昵称已完成独立普通 Single 房的准备、开局、弃权结束、双方昵称／房名保留与首次再次入场。该房间返回 MR2，但禁表 hash 为 `0x4250bce9`，客户端／本地 Core 验证基线为 `0x73ec4051`；用户提供的正式文件已复现差异，修正版恢复客户端基线，正式替换及新房间复验仍待执行。检查没有进入 TT 或使用正式玩家账号；正常完整比赛、生产结算与真机仍待验收。Workers Static Assets 和 Pages 均适用本项目静态包，隧道重启后必须更新地址。
 
 按照 [Windows 服务器 + Pages 上线步骤](docs/current-server-online-test.md) 部署本机 Nginx 网关与 Cloudflare Quick Tunnel。`npm run package:test` 生成可上传 Pages 的网页包和服务器工具包；未取得公网 WSS 时，包内明确禁用联机。取得真实 URL 后运行 `npm run package:test -- --wss-url wss://实际地址/neos --site-origin https://实际站点.pages.dev` 即可生成新部署，无需重复构建。`duel-config.js` 为站方公开配置，优先于构建入口；不能写入密码或 Token。玩家仍只填写昵称和房名。
@@ -40,6 +42,8 @@ npm run dev
 四语原始 CDB、strings 和禁表在 `resources-staging/1103/`，生成器只写 `public/environment/`。发布时只上传构建后的 `dist/` 到外部静态托管，不上传原始暂存文件至天梯服务器。每次修改输入或生成规则需要提升环境资源修订号，避免静态缓存混用。
 
 ## 项目文档
+
+BiliToy 专用上传包通过 `npm run package:bilitoy -- --wss-url wss://实际地址/neos` 生成，无需手动改卡库或覆盖原 `dist/`。资源采用相对路径与平台允许的后缀，图标随包提供，字体使用系统回退；`npm run test:bilitoy-ui` 检查最新专用包。上传前仍须确认账号权限、外部服务域名与运营协议，见下方评估文档。
 
 - [设计与验收标准](YGOPro_706_Web_Client_Design.md)
 - [施工清单](IMPLEMENTATION_PLAN.md)
@@ -52,6 +56,7 @@ npm run dev
 - [手机界面调整与复测](docs/mobile-ui.md)
 - [决斗准备页与双打支持范围](docs/waitroom-ui.md)
 - [给服务器与域名维护者的 WSS 证书说明](docs/wss-certificate-handoff.md)
+- [BiliToy 托管评估与 Nginx 接入](docs/bilitoy-feasibility.md)
 
 ## 协作
 

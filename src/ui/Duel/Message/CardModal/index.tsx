@@ -2,15 +2,19 @@ import { Divider, Space, Tag } from "antd";
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
-import { type CardMeta, fetchStrings, Region } from "@/api";
+import { type CardMeta, fetchCard, fetchStrings, Region } from "@/api";
+import { cardStore, type CardType } from "@/stores";
+import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import {
   Attribute2StringCodeMap,
   extraCardTypes,
   Race2StringCodeMap,
   TYPE_LINK,
+  TYPE_MONSTER,
   Type2StringCodeMap,
 } from "../../../../common";
 import { Desc } from "./Desc";
@@ -20,6 +24,8 @@ const CARD_WIDTH = "8.75rem";
 
 const defaultStore = {
   isOpen: false,
+  uuid: undefined as string | undefined,
+  hint: undefined as CardType["hint"],
   meta: {
     id: 0,
     data: {},
@@ -40,8 +46,13 @@ const store = proxy(defaultStore);
 
 export const CardModal = () => {
   const snap = useSnapshot(store);
-
-  const { isOpen, meta, counters } = snap;
+  const { inner } = useSnapshot(cardStore);
+  const uuid = snap.uuid;
+  const liveCard = uuid ? inner.find((card) => card.uuid === uuid) : undefined;
+  const { language } = useI18N();
+  const text = mobileMessages(language);
+  const { isOpen } = snap;
+  const { meta, counters, hint } = liveCard ?? snap;
 
   const name = meta?.text.name;
   const types = extraCardTypes(meta?.data.type ?? 0);
@@ -77,16 +88,34 @@ export const CardModal = () => {
             style={{ borderRadius: 4 }}
           />
           <Space direction="vertical" className={styles.info}>
-            <AtkLine
-              atk={atk}
-              def={types.includes(TYPE_LINK) ? undefined : def}
-            />
+            {((meta?.data.type ?? 0) & TYPE_MONSTER) !== 0 && (
+              <AtkLine
+                atk={atk}
+                def={types.includes(TYPE_LINK) ? undefined : def}
+              />
+            )}
             <CounterLine counters={counters} />
             <AttLine types={types} race={race} attribute={attribute} />
-            {/* TODO: 只有怪兽卡需要展示攻击防御 */}
             {/* TODO: 展示星级/LINK数 */}
           </Space>
         </Space>
+        {hint && (
+          <div
+            className={styles.hint}
+            data-testid="duel-card-hint"
+            data-hint-type={hint.type}
+            data-hint-value={hint.value}
+          >
+            <strong>
+              {hint.type === 2 ? text.declaredCard : text.cardHint}
+            </strong>
+            <span>
+              {hint.type === 2
+                ? fetchCard(hint.value).text.name ?? hint.value
+                : hint.value}
+            </span>
+          </div>
+        )}
         <Divider style={{ margin: "0.875rem 0" }}></Divider>
         <Desc desc={desc} />
       </div>
@@ -173,11 +202,13 @@ const CounterLine = (props: { counters: { [type: number]: number } }) => {
 };
 
 export const showCardModal = (
-  card: Partial<Pick<typeof store, "meta" | "counters">>,
+  card: Partial<Pick<CardType, "uuid" | "meta" | "counters" | "hint">>,
 ) => {
   store.isOpen = true;
   store.meta = card?.meta ?? defaultStore.meta;
   store.counters = card?.counters ?? defaultStore.counters;
+  store.uuid = card?.uuid;
+  store.hint = card?.hint;
 };
 
 export const closeCardModal = () => {

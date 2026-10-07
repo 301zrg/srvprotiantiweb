@@ -1,4 +1,5 @@
 import { ygopro } from "@/api";
+import { CardHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardHint";
 import { Container } from "@/container";
 import { replayStore } from "@/stores";
 import { showWaiting } from "@/ui/Duel/Message";
@@ -7,6 +8,7 @@ import onAnnounce from "./announce";
 import onMsgAttack from "./attack";
 import onMsgAttackDisable from "./attackDisable";
 import onMsgBecomeTarget from "./becomeTarget";
+import onMsgCardHint from "./cardHint";
 import onMsgChainEnd from "./chainEnd";
 import onMsgChaining from "./chaining";
 import onMsgChainSolved from "./chainSolved";
@@ -82,6 +84,10 @@ export default async function handleGameMsg(
   pb: ygopro.YgoStocMsg,
 ): Promise<void> {
   const msg = pb.stoc_game_msg;
+  if (msg instanceof CardHintGameMessage) {
+    onMsgCardHint(container, msg.cardHint);
+    return;
+  }
 
   if (ActiveList.includes(msg.gameMsg)) {
     showWaiting(false);
