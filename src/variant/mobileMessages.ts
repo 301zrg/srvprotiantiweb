@@ -16,6 +16,7 @@ const messages = {
     cardHint: "卡片提示",
     switchView: "切换视角",
     leaveSpectating: "退出观战",
+    observerWaitSide: "等待双方换备，下一局将自动继续观战",
   },
   en: {
     manageDecks: "Decks",
@@ -32,6 +33,8 @@ const messages = {
     cardHint: "Card hint",
     switchView: "Switch view",
     leaveSpectating: "Leave spectator mode",
+    observerWaitSide:
+      "Waiting for side decking. The next game will start automatically.",
   },
   ja: {
     manageDecks: "デッキ管理",
@@ -48,6 +51,8 @@ const messages = {
     cardHint: "カードのヒント",
     switchView: "視点切替",
     leaveSpectating: "観戦を終了",
+    observerWaitSide:
+      "両者のサイドチェンジを待っています。次の対戦も自動で観戦します。",
   },
   ko: {
     manageDecks: "덱 관리",
@@ -64,6 +69,8 @@ const messages = {
     cardHint: "카드 힌트",
     switchView: "시점 전환",
     leaveSpectating: "관전 종료",
+    observerWaitSide:
+      "양측의 사이드 교체를 기다리는 중입니다. 다음 게임을 자동으로 관전합니다.",
   },
 } as const;
 

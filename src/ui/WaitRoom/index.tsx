@@ -44,6 +44,7 @@ import {
   sideStore,
 } from "@/stores";
 import { I18NSelector, useI18N } from "@/ui/I18N";
+import { requireSession } from "@/ui/requireSession";
 import { Background, IconFont, useChat } from "@/ui/Shared";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { roomMessages } from "@/variant/roomMessages";
@@ -55,6 +56,8 @@ import { Mora, MoraPopover, Tp, TpPopover } from "./Popover";
 const NeosConfig = useConfig();
 
 export const loader: LoaderFunction = async () => {
+  const redirected = requireSession();
+  if (redirected) return redirected;
   changeScene(AudioActionType.BGM_MENU);
   return null;
 };

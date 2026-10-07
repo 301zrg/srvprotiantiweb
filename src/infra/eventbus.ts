@@ -1,5 +1,4 @@
 import { EventEmitter } from "eventemitter3";
-import { v4 as v4uuid } from "uuid";
 
 const eventEmitter = new EventEmitter();
 
@@ -11,35 +10,45 @@ export enum Task {
   Tp = "tp", // 选边
 }
 
-const getEnd = (task: Task) => `${task}-end`;
+interface AnimationHandler {
+  run: (...args: any[]) => Promise<unknown>;
+  disposed: Promise<void>;
+  dispose: () => void;
+}
 
-/** 在组件之中注册方法，注意注册的方法一旦执行成功，必须返回一个true */
+const animations = new Map<Task, Map<string, AnimationHandler>>();
+
+/** A mounted card owns its animations and releases pending calls on unmount. */
 const register = <T extends unknown[]>(
   task: Task,
-  fn: (...args: T) => Promise<boolean>,
+  target: string,
+  fn: (...args: T) => Promise<unknown>,
 ) => {
-  eventEmitter.on(
-    task,
-    async ({ taskId, args }: { taskId: string; args: T }) => {
-      const result = await fn(...args);
-      if (result) eventEmitter.emit(getEnd(task), taskId);
-    },
-  );
+  const handlers = animations.get(task) ?? new Map<string, AnimationHandler>();
+  animations.set(task, handlers);
+  let dispose!: () => void;
+  const disposed = new Promise<void>((resolve) => (dispose = resolve));
+  const owner: AnimationHandler = {
+    run: (...args) => fn(...(args as T)),
+    disposed,
+    dispose,
+  };
+  handlers.get(target)?.dispose();
+  handlers.set(target, owner);
+  return () => {
+    owner.dispose();
+    if (handlers.get(target) === owner) handlers.delete(target);
+    if (!handlers.size && animations.get(task) === handlers)
+      animations.delete(task);
+  };
 };
 
-/** 在service之中调用组件中的方法 */
-const call = (task: Task, ...args: any[]) =>
-  new Promise<void>((rs) => {
-    const taskId = v4uuid();
-    const cb = (respTaskId: string) => {
-      if (respTaskId === taskId) {
-        eventEmitter.removeListener(getEnd(task), cb);
-        rs();
-      }
-    };
-    eventEmitter.emit(task, { taskId, args });
-    eventEmitter.on(getEnd(task), cb);
-  });
+/** Missing cards need no animation: their mount reads the latest field state. */
+const call = async (task: Task, target: string, ...args: any[]) => {
+  const handler = animations.get(task)?.get(target);
+  if (!handler) return;
+  await Promise.race([handler.run(...args), handler.disposed]);
+};
 
 export const eventbus = {
   call,

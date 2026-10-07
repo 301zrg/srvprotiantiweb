@@ -1,8 +1,23 @@
 import { createHashRouter, RouterProvider } from "react-router-dom";
 
+import { ResourceLoadError } from "@/infra/resource";
 import { normalizeRoomLink } from "@/variant/roomLink";
 
 import { Component, ErrorBoundary, loader } from "./Layout";
+
+async function loadPage<T>(name: string, load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    if (
+      /module script|dynamically imported|loading chunk|preload CSS|unexpected end|unexpected EOF/i.test(
+        String(error),
+      )
+    )
+      throw new ResourceLoadError(`Page: ${name}`, error);
+    throw error;
+  }
+}
 
 const roomLinkUrl = normalizeRoomLink(new URL(window.location.href));
 if (roomLinkUrl)
@@ -17,27 +32,27 @@ const router = createHashRouter([
     children: [
       {
         path: "/",
-        lazy: () => import("./Start"),
+        lazy: () => loadPage("home", () => import("./Start")),
       },
       {
         path: "/match/*",
-        lazy: () => import("./Match"),
+        lazy: () => loadPage("online", () => import("./Match")),
       },
       {
         path: "/build",
-        lazy: () => import("./BuildDeck"),
+        lazy: () => loadPage("decks", () => import("./BuildDeck")),
       },
       {
         path: "/waitroom",
-        lazy: () => import("./WaitRoom"),
+        lazy: () => loadPage("room", () => import("./WaitRoom")),
       },
       {
         path: "/duel",
-        lazy: () => import("./Duel/Main"),
+        lazy: () => loadPage("duel", () => import("./Duel/Main")),
       },
       {
         path: "/side",
-        lazy: () => import("./Side"),
+        lazy: () => loadPage("side", () => import("./Side")),
       },
     ],
   },

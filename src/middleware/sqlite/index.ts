@@ -1,7 +1,7 @@
-import initSqlJs, { Database } from "sql.js";
+import initSqlJs, { Database, type SqlJsStatic } from "sql.js";
 
 import { CardData, CardMeta, CardText } from "@/api/cards";
-import { pfetch } from "@/infra";
+import { resourceBytes } from "@/infra/resource";
 import { assetsPath } from "@/variant";
 
 import { FtsParams, invokeFts } from "./fts";
@@ -30,7 +30,18 @@ export interface sqliteResult {
   ftsResult?: CardMeta[];
 }
 
-const sqlPromise = initSqlJs({ locateFile: (file) => `${assetsPath}/${file}` });
+let sqlPromise: Promise<SqlJsStatic> | undefined;
+function loadSql() {
+  // Fetch and validate WASM before calling sql.js: that library memoizes even
+  // rejected initialization promises, so a transient fetch must not poison it.
+  sqlPromise ??= resourceBytes(`${assetsPath}/sql-wasm.wasm`, [0, 97, 115, 109])
+    .then((wasmBinary) => initSqlJs({ wasmBinary }))
+    .catch((error) => {
+      sqlPromise = undefined;
+      throw error;
+    });
+  return sqlPromise;
+}
 let db: Database | null = null;
 
 export async function prepareCardDatabase(
@@ -38,11 +49,8 @@ export async function prepareCardDatabase(
   progressCallback?: (progress: number) => void,
 ) {
   const [SQL, buffer] = await Promise.all([
-    sqlPromise,
-    pfetch(url, { progressCallback }).then((response) => {
-      if (!response.ok) throw new Error(`cards.cdb: HTTP ${response.status}`);
-      return response.arrayBuffer();
-    }),
+    loadSql(),
+    resourceBytes(url, "SQLite format 3\0", progressCallback),
   ]);
   const next = new SQL.Database(new Uint8Array(buffer));
   const check = next.exec("PRAGMA quick_check");

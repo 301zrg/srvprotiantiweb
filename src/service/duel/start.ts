@@ -4,10 +4,12 @@ import { v4 as v4uuid } from "uuid";
 import { ygopro } from "@/api";
 import { useConfig } from "@/config";
 import { Container } from "@/container";
+import { isUIContainer } from "@/container/compat";
 import { sleep } from "@/infra";
 import { RoomStage, SideStage } from "@/stores";
 
 import { genCard } from "../utils";
+import { prepareDuelPresentation } from "./presentation";
 const TOKEN_SIZE = 13; // 每人场上最多就只可能有13个token
 
 export default async (
@@ -15,6 +17,19 @@ export default async (
   start: ygopro.StocGameMessage.MsgStart,
 ) => {
   const context = container.context;
+  const presented = isUIContainer(container)
+    ? prepareDuelPresentation(container)
+    : undefined;
+  if (
+    start.playerType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
+  ) {
+    // A late spectator receives earlier games of the same match too. There
+    // is no player result dialog to reset their field between games.
+    context.cardStore.reset();
+    context.matStore.reset();
+    context.placeStore.reset();
+    context.historyStore.reset();
+  }
   // 先初始化`matStore`
   context.matStore.selfType = start.playerType;
   context.matStore.observerSwapped = Boolean(
@@ -26,6 +41,7 @@ export default async (
   if (context.sideStore.stage !== SideStage.NONE) {
     // 更新Side状态
     context.sideStore.stage = SideStage.DUEL_START;
+    context.roomStore.stage = RoomStage.DUEL_START;
   } else {
     // 临时添加，防止上局在`EndModal`里面通过判断`conn.isClosed`返回
     // Match页了，但是`handleDuelEnd`继续执行，这时候`matStore.duelEnd`是true
@@ -98,7 +114,8 @@ export default async (
 
   // note: 额外卡组的卡会在对局开始后通过`UpdateData` msg更新
 
-  // 初始化完后，sleep 1s，让UI初始化完成，
-  // 否则在和AI对战时，由于后端给传给前端的`MSG`频率太高，会导致一些问题。
-  await sleep(useConfig().startDelay);
+  // A fixed delay can expire before a phone mounts the duel route. Do not
+  // consume any historical actions until this game's card handlers exist.
+  if (presented) await presented;
+  else await sleep(useConfig().startDelay);
 };

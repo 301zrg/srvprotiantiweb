@@ -8,6 +8,9 @@ const messages = {
     settings: "设置",
     retry: "重试",
     loadFailed: "环境资源加载失败",
+    pageFailed: "页面未能正常打开",
+    recoveryHint:
+      "重试会重新获取页面和资源，不删除已保存的卡组。对局页面将返回联机页，请重新入场。",
     title: "YGOPRO 1103 网页版",
     subtitle: "2011 年 3 月禁限卡表 · 四语言卡池 · 天梯与普通房间",
     start: "进入联机",
@@ -55,6 +58,9 @@ const messages = {
     settings: "Settings",
     retry: "Retry",
     loadFailed: "Failed to load game resources",
+    pageFailed: "Unable to open this page",
+    recoveryHint:
+      "Retry fetches a fresh page and resources and keeps saved decks. Duel pages return to Online so you can rejoin.",
     title: "YGOPRO 1103 Web",
     subtitle:
       "March 2011 banlist · Four card languages · Ladder and private rooms",
@@ -113,6 +119,9 @@ const messages = {
     settings: "設定",
     retry: "再試行",
     loadFailed: "ゲームデータの読み込みに失敗しました",
+    pageFailed: "ページを開けませんでした",
+    recoveryHint:
+      "再試行でページとデータを再取得します。保存済みデッキは削除しません。対戦画面は接続画面に戻るので、再入室してください。",
     title: "YGOPRO 1103 Web",
     subtitle:
       "2011年3月の禁止・制限カード · 4言語のカード · ランク戦と通常ルーム",
@@ -167,6 +176,9 @@ const messages = {
     settings: "설정",
     retry: "다시 시도",
     loadFailed: "게임 리소스를 불러오지 못했습니다",
+    pageFailed: "페이지를 열 수 없습니다",
+    recoveryHint:
+      "다시 시도하면 페이지와 리소스를 새로 가져옵니다. 저장된 덱은 유지되며 대전 화면은 재입장을 위해 온라인 화면으로 돌아갑니다.",
     title: "YGOPRO 1103 웹",
     subtitle: "2011년 3월 금지·제한 카드 · 4개 언어 카드 · 래더와 일반 방",
     start: "온라인 대전",

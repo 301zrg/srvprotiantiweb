@@ -20,6 +20,13 @@ try {
     ["landscape", 844, 390, true],
   ]) {
     const context = await browser.newContext({ viewport: { width, height }, isMobile: touch, hasTouch: touch });
+    const origin = vite.resolvedUrls.local[0];
+    // Synthetic protocol checks must not wait on public fonts or other CDNs.
+    await context.route("**/*", route =>
+      route.request().url().startsWith(origin)
+        ? route.continue()
+        : route.abort("blockedbyclient"),
+    );
     await context.addInitScript(() => localStorage.setItem("language", "cn"));
     await context.route("**/duel-config.js", route => route.fulfill({ contentType: "application/javascript", body: 'window.__SRVPRO_DUEL_CONFIG__={duelWebSocketUrl:""};' }));
     await context.route(/https?:\/\/(?!127\.0\.0\.1).*\.(jpg|png)(\?.*)?$/, route => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6AAAASUVORK5CYII=", "base64") }));

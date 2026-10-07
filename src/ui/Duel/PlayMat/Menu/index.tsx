@@ -37,6 +37,8 @@ import {
   DEFAULT_REPLAY_ADVANCE_MASK,
   matStore,
   replayStore,
+  SideStage,
+  sideStore,
 } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
@@ -285,20 +287,29 @@ export const Menu = () => {
   useEffect(() => {
     const element = menu.current;
     if (!element) return;
-    const update = () =>
-      document.documentElement.style.setProperty(
-        "--duel-menu-height",
-        `${element.getBoundingClientRect().height}px`,
-      );
-    const observer = new ResizeObserver(update);
+    let frame = 0;
+    let previous = "";
+    const update = () => {
+      const next = `${element.getBoundingClientRect().height}px`;
+      if (next !== previous) {
+        previous = next;
+        document.documentElement.style.setProperty("--duel-menu-height", next);
+      }
+    };
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    });
     observer.observe(element);
     update();
     return () => {
       observer.disconnect();
+      cancelAnimationFrame(frame);
       document.documentElement.style.removeProperty("--duel-menu-height");
     };
   }, []);
   const container = getUIContainer();
+  const { stage: sideStage } = useSnapshot(sideStore);
   const { t: i18n } = useTranslation("Menu");
   const {
     currentPlayer,
@@ -471,6 +482,15 @@ export const Menu = () => {
       </Tooltip>
       {observing ? (
         <>
+          {sideStage === SideStage.WAITING && (
+            <span
+              className={styles["observer-wait"]}
+              data-testid="duel-observer-wait"
+              role="status"
+            >
+              {text.observerWaitSide}
+            </span>
+          )}
           <Button
             data-testid="duel-switch-view"
             aria-label={text.switchView}

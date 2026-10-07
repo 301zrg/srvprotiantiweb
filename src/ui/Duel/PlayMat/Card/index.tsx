@@ -76,48 +76,60 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       }) satisfies SpringApiProps,
   );
 
-  // 每张卡都需要移动到初始位置
-  useEffect(() => {
-    addToAnimation(() => move({ card, api }));
-  }, []);
-
   const [glowing, setGrowing] = useState(false);
   const [classFocus, setClassFocus] = useState(false);
 
   // >>> 动画 >>>
   /** 动画序列的promise */
-  const animationQueue = useRef(new Promise<void>((rs) => rs()));
+  const animationQueue = useRef(Promise.resolve());
+  const mounted = useRef(false);
 
-  const addToAnimation = (p: () => Promise<void>) =>
-    new Promise((rs) => {
-      animationQueue.current = animationQueue.current.then(p).then(rs);
-    });
-
-  const register = <T extends any[]>(
-    task: Task,
-    fn: (...args: T) => Promise<unknown>,
-  ) => {
-    eventbus.register(task, async (uuid, ...rest: T) => {
-      if (uuid === card.uuid) {
-        await fn(...rest);
-        return true;
-      } else return false;
-    });
+  const addToAnimation = (p: () => Promise<void>) => {
+    const next = animationQueue.current.then(() =>
+      mounted.current ? p() : undefined,
+    );
+    // Preserve the error for this caller without poisoning later animations.
+    animationQueue.current = next.catch(() => {});
+    return next;
   };
 
   useEffect(() => {
-    register(Task.Move, async (options?: MoveOptions) => {
-      await addToAnimation(() => move({ card, api, options }));
-    });
+    mounted.current = true;
+    const unregisterMove = eventbus.register(
+      Task.Move,
+      card.uuid,
+      async (options?: MoveOptions) => {
+        await addToAnimation(() => move({ card, api, options }));
+      },
+    );
 
-    register(Task.Focus, async () => {
-      setClassFocus(true);
-      await focus({ card, api });
-    });
+    const unregisterFocus = eventbus.register(
+      Task.Focus,
+      card.uuid,
+      async () => {
+        await addToAnimation(async () => {
+          setClassFocus(true);
+          await focus({ card, api });
+        });
+      },
+    );
 
-    register(Task.Attack, async (options: AttackOptions) => {
-      await addToAnimation(() => attack({ card, api, options }));
-    });
+    const unregisterAttack = eventbus.register(
+      Task.Attack,
+      card.uuid,
+      async (options: AttackOptions) => {
+        await addToAnimation(() => attack({ card, api, options }));
+      },
+    );
+    // State may already contain catch-up messages received before this mount.
+    void addToAnimation(() => move({ card, api }));
+    return () => {
+      mounted.current = false;
+      unregisterMove();
+      unregisterFocus();
+      unregisterAttack();
+      api.stop(true);
+    };
   }, []);
 
   // <<< 动画 <<<
