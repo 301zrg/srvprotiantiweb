@@ -4,6 +4,7 @@ export interface RoomLink {
   room: string;
   nickname?: string;
   spectate: boolean;
+  autojoin: boolean;
   invalid: boolean;
 }
 
@@ -13,12 +14,15 @@ export function readRoomLink(params: URLSearchParams): RoomLink | undefined {
   const room = params.get("room") ?? "";
   const nickname = params.get("nickname") ?? undefined;
   const mode = params.get("spectate");
+  const autojoin = params.get("autojoin");
   return {
     room,
     nickname,
     spectate: mode === "1",
+    autojoin: autojoin !== "0",
     invalid:
       (mode !== null && mode !== "0" && mode !== "1") ||
+      (autojoin !== null && autojoin !== "0" && autojoin !== "1") ||
       room.includes("$") ||
       !!nickname?.includes("$"),
   };
@@ -34,7 +38,7 @@ export function normalizeRoomLink(url: URL): URL | undefined {
   const search = queryIndex < 0 ? "" : hash.slice(queryIndex + 1);
   if (route && route !== "/" && route !== "/match") return;
   const params = new URLSearchParams(search);
-  for (const key of ["room", "spectate", "nickname"]) {
+  for (const key of ["room", "spectate", "nickname", "autojoin"]) {
     if (!params.has(key) && outer.has(key)) params.set(key, outer.get(key)!);
     outer.delete(key);
   }

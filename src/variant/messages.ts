@@ -31,6 +31,8 @@ const messages = {
     spectate: "进入观战",
     spectatorLinkHint: "正在通过房间链接连接，服务器确认观战身份后进入房间。",
     spectatorNicknameHint: "这是网页观战昵称，不会覆盖你原先保存的联机昵称。",
+    spectatorManualHint:
+      "此链接不会自动连接。密码房请把房间名补成「房间名$房间密码」，再点击进入观战。",
     spectatorRoomCommand:
       "观战请使用列表中的具体房间名，不能填写 TT 等房间命令。",
     spectatorNotAccepted: "服务器未确认观战身份，请确认该房间允许观战后重试。",
@@ -82,6 +84,8 @@ const messages = {
       "Connecting from a room link. Waiting for the server to confirm spectator access.",
     spectatorNicknameHint:
       "This spectator nickname does not replace your saved player nickname.",
+    spectatorManualHint:
+      "This link waits for manual connection. For password rooms, enter roomName$roomPassword, then select Spectate.",
     spectatorRoomCommand:
       "Use a concrete room name from the list, not a command such as TT.",
     spectatorNotAccepted:
@@ -138,6 +142,8 @@ const messages = {
       "ルームリンクから接続中です。サーバーの観戦確認を待っています。",
     spectatorNicknameHint:
       "観戦用の名前は、保存済みのプレイヤー名を変更しません。",
+    spectatorManualHint:
+      "自動接続はしません。パスワード付きルームは ルーム名$パスワード を入力して「観戦する」を押してください。",
     spectatorRoomCommand:
       "一覧の具体的なルーム名を指定してください。TT などのコマンドは使用できません。",
     spectatorNotAccepted:
@@ -189,6 +195,8 @@ const messages = {
       "방 링크로 접속 중입니다. 서버의 관전 승인을 기다립니다.",
     spectatorNicknameHint:
       "이 관전 닉네임은 저장된 플레이어 닉네임을 변경하지 않습니다.",
+    spectatorManualHint:
+      "자동으로 접속하지 않습니다. 비밀번호 방은 방이름$방비밀번호를 입력한 후 관전하기를 누르세요.",
     spectatorRoomCommand:
       "목록의 실제 방 이름을 사용하세요. TT 같은 명령은 사용할 수 없습니다.",
     spectatorNotAccepted:
