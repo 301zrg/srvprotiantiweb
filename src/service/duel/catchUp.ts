@@ -7,10 +7,3 @@ export const isObserver = (container: Container) =>
     ygopro.StocTypeChange.SelfType.OBSERVER ||
   container.context.matStore.selfType ===
     ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
-
-export const shouldSkipDuelAnimation = (container: Container) =>
-  document.hidden ||
-  (isObserver(container) &&
-    (container.conn.pendingMessages ?? 0) +
-      (container.conn.pendingPackets ?? 0) >
-      0);

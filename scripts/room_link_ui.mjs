@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 
-import { chromium, expect } from "@playwright/test";
+import { chromium, expect, webkit } from "@playwright/test";
 import { createServer, preview } from "vite";
 
 const built = process.argv.includes("--built");
+const safari = process.argv.includes("--webkit");
 const results = [];
 let browser, vite;
 try {
@@ -15,10 +16,10 @@ try {
   const origin = vite.resolvedUrls.local[0];
   const edge =
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-  browser = await chromium.launch({
+  browser = await (safari ? webkit : chromium).launch({
     headless: true,
     executablePath:
-      process.env.PLAYWRIGHT_BROWSER_EXECUTABLE ||
+      safari ? undefined : process.env.PLAYWRIGHT_BROWSER_EXECUTABLE ||
       (process.platform === "win32" && existsSync(edge) ? edge : undefined),
   });
   for (const mobile of [false, true]) {
@@ -144,6 +145,7 @@ try {
                 }
                 if (roomName.startsWith("SLOW-SPECTATE")) {
                   this.emit(1, [90, 0, 1, 0, 0, 0, 0]); // Public hidden draw.
+                  this.emit(1, [131, 0, 2, 2, 5]); // Both dice results must be visible.
                   const life = new Uint8Array(4);
                   new DataView(life.buffer).setInt32(0, 5500, true);
                   this.emit(1, [94, 0, ...life]);
@@ -184,9 +186,12 @@ try {
         waitUntil: "domcontentloaded",
         timeout: 60000,
       });
-      await expect(page.locator('main[data-ready="true"]')).toBeVisible({
-        timeout: 45000,
-      });
+      try {
+        await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
+      } catch (error) {
+        console.log(JSON.stringify({ body: await page.locator("body").innerText(), errors }));
+        throw error;
+      }
       return page;
     }
     const room = "测试房 # + & ?";
@@ -288,8 +293,17 @@ try {
     await running.close();
 
     // A cold phone can take longer than the old one-second start delay to
-    // mount card components. History must still finish and live updates work.
+    // mount card components. History must PLAY before live updates, not snap.
     const slow = await open("room=SLOW-SPECTATE&spectate=1", false, true);
+    // Even after the old fixed start delay, the draw waits for the cold route.
+    if (!built) {
+      await slow.waitForTimeout(1400);
+      const early = await slow.evaluate(async () => {
+        const { cardStore } = await import("/src/stores/cardStore.ts");
+        return cardStore.inner.filter((card) => card.location.zone === 2).length;
+      });
+      assert.equal(early, 0, "historical draw must wait for mounted card effects");
+    }
     await expect(slow.getByTestId("duel-switch-view")).toBeVisible({
       timeout: 20000,
     });
@@ -297,7 +311,7 @@ try {
       '[data-testid="duel-player-life"][data-player="me"]',
     );
     await expect(nearLife).toHaveAttribute("data-life", "5500", {
-      timeout: 5000,
+      timeout: 8000,
     });
     await slow.evaluate(() => {
       const life = new Uint8Array(4);
@@ -315,6 +329,8 @@ try {
           starts: 0, stops: 0, values: {},
           start() { this.starts++; return [new Promise(() => {})]; },
           stop() { this.stops++; },
+          pause() { this.pauses = (this.pauses || 0) + 1; },
+          resume() { this.resumes = (this.resumes || 0) + 1; },
           set(values) { this.values = values; },
         });
         // A suspended spring never fires onResolve. Its timeout must release
@@ -323,26 +339,50 @@ try {
         const suspended = makeApi(), before = performance.now();
         await asyncStart(suspended)({ x: 42 });
         const duration = performance.now() - before;
-        // Buffered observer history skips presentation but applies state.
+        // Buffered history must use the same animation path as live events.
         conn.pendingMessages = 1;
         const catchup = makeApi();
-        await asyncStart(catchup)({ x: 73 });
+        let resolveHistory;
+        catchup.start = function () {
+          this.starts++;
+          return [new Promise((resolve) => { resolveHistory = resolve; })];
+        };
+        let historyFinished = false;
+        const buffered = asyncStart(catchup)({ x: 73 }).then(() => { historyFinished = true; });
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        const historyPending = !historyFinished;
+        resolveHistory();
+        await buffered;
         conn.pendingMessages = 0;
         const background = makeApi();
-        const pending = asyncStart(background)({ y: 15 });
+        let resolveBackground;
+        background.start = function () {
+          this.starts++;
+          return [new Promise((resolve) => { resolveBackground = resolve; })];
+        };
+        let backgroundFinished = false;
+        const pending = asyncStart(background)({ y: 15 }).then(() => { backgroundFinished = true; });
+        await new Promise((resolve) => setTimeout(resolve, 20));
         Object.defineProperty(document, "hidden", { configurable: true, value: true });
         document.dispatchEvent(new Event("visibilitychange"));
-        await pending;
+        await new Promise((resolve) => setTimeout(resolve, 3200));
+        const backgroundPending = !backgroundFinished;
         delete document.hidden;
-        return { suspended, duration, catchup, background };
+        document.dispatchEvent(new Event("visibilitychange"));
+        resolveBackground();
+        await pending;
+        return { suspended, duration, catchup, historyPending, background, backgroundPending };
       });
       assert.equal(animation.suspended.stops, 1);
       assert.equal(animation.suspended.values.x, 42);
       assert.ok(animation.duration >= 2900 && animation.duration < 4500);
-      assert.equal(animation.catchup.starts, 0);
-      assert.equal(animation.catchup.values.x, 73);
-      assert.equal(animation.background.stops, 1);
-      assert.equal(animation.background.values.y, 15);
+      assert.equal(animation.catchup.starts, 1);
+      assert.equal(animation.catchup.stops, 0);
+      assert.equal(animation.historyPending, true);
+      assert.equal(animation.backgroundPending, true);
+      assert.equal(animation.background.stops, 0);
+      assert.equal(animation.background.pauses, 1);
+      assert.equal(animation.background.resumes, 1);
     }
     await slow.getByTestId("duel-leave-spectating").click();
     await expect(slow.locator("#player-nickname")).toBeVisible();
@@ -521,6 +561,37 @@ try {
         room: "inner?name",
         buildUnchanged: true,
       });
+      // A failed initialization must reset progress and allow a same-document
+      // retry. Two concurrent callers must await one shared database load.
+      let failedLoads = 0;
+      await utility.route(/\/cards\.cdb(?:\?|$)/, route => {
+        failedLoads++;
+        return route.fulfill({ contentType: "text/html", body: "<html>Error</html>" });
+      });
+      const failedInit = await utility.evaluate(async () => {
+        const { initStore } = await import("/src/stores/initStore.ts");
+        const { initSqlite } = await import("/src/ui/Layout/utils.ts");
+        initStore.sqlite.progress = 0;
+        let failed = false;
+        try { await initSqlite(); } catch { failed = true; }
+        return { failed, progress: initStore.sqlite.progress };
+      });
+      assert.deepEqual(failedInit, { failed: true, progress: 0 });
+      assert.equal(failedLoads, 3);
+      await utility.unroute(/\/cards\.cdb(?:\?|$)/);
+      let goodLoads = 0;
+      await utility.route(/\/cards\.cdb(?:\?|$)/, route => {
+        goodLoads++;
+        return route.continue();
+      });
+      const progress = await utility.evaluate(async () => {
+        const { initStore } = await import("/src/stores/initStore.ts");
+        const { initSqlite } = await import("/src/ui/Layout/utils.ts");
+        await Promise.all([initSqlite(), initSqlite()]);
+        return initStore.sqlite.progress;
+      });
+      assert.equal(progress, 1);
+      assert.equal(goodLoads, 1);
       await utility.close();
     }
     results.push({
@@ -530,6 +601,7 @@ try {
       existingNicknamePreserved: true,
       runningRoom: true,
       coldSpectatorHistory: true,
+      historyAnimationsPreserved: true,
       automaticMatchContinuation: true,
       boundedAnimations: !built,
       prefillOnly: true,
@@ -537,7 +609,7 @@ try {
     });
     await context.close();
   }
-  console.log(JSON.stringify({ built, results }));
+  console.log(JSON.stringify({ built, engine: safari ? "webkit" : "chromium", results }));
 } finally {
   await browser?.close();
   if (built && vite)

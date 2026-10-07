@@ -1,17 +1,21 @@
 import { type SpringConfig, type SpringRef } from "@react-spring/web";
 
 import { getUIContainer } from "@/container/compat";
-import { shouldSkipDuelAnimation } from "@/service/duel/catchUp";
+import { waitForDuelForeground } from "@/service/duel/presentation";
 import { settingStore } from "@/stores/settingStore";
 
 export const asyncStart = <T extends {}>(api: SpringRef<T>) => {
-  return (p: Partial<T> & { config?: SpringConfig }) =>
-    new Promise<void>((resolve, reject) => {
+  return async (p: Partial<T> & { config?: SpringConfig }) => {
+    const signal = getUIContainer().conn.signal;
+    await waitForDuelForeground(signal);
+    if (signal?.aborted) return;
+    return new Promise<void>((resolve, reject) => {
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
       const cleanup = () => {
         clearTimeout(timer);
         document.removeEventListener("visibilitychange", onVisibility);
+        signal?.removeEventListener("abort", onAbort);
       };
       const finish = (snap: boolean) => {
         if (settled) return;
@@ -25,16 +29,22 @@ export const asyncStart = <T extends {}>(api: SpringRef<T>) => {
         resolve();
       };
       const onVisibility = () => {
-        if (document.hidden) finish(true);
+        clearTimeout(timer);
+        if (document.hidden) api.pause();
+        else {
+          api.resume();
+          timer = setTimeout(() => finish(true), 3000);
+        }
       };
-      if (shouldSkipDuelAnimation(getUIContainer())) {
-        finish(true);
-        return;
-      }
-      // Safari may suspend frame callbacks on tab/app switches. Presentation
-      // must never keep the ordered network queue waiting indefinitely.
+      const onAbort = () => {
+        api.stop(true);
+        finish(false);
+      };
+      // Only a stalled foreground animation gets a deadline. Message backlog
+      // and background suspension never fast-forward spectator history.
       timer = setTimeout(() => finish(true), 3000);
       document.addEventListener("visibilitychange", onVisibility);
+      signal?.addEventListener("abort", onAbort, { once: true });
       try {
         void Promise.all(
           api.start({ ...p, onResolve: () => finish(false) }),
@@ -52,6 +62,7 @@ export const asyncStart = <T extends {}>(api: SpringRef<T>) => {
         reject(error);
       }
     });
+  };
 };
 
 export function getDuration(): number {

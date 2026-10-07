@@ -11,6 +11,7 @@ import { isExtraDeckCard } from "@/common";
 import { getUIContainer } from "@/container/compat";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { IDeck, roomStore, SideStage, sideStore } from "@/stores";
+import { requireSession } from "@/ui/requireSession";
 import { deckMessages } from "@/variant/deckMessages";
 
 import { CardDetail } from "../BuildDeck/CardDetail";
@@ -21,6 +22,8 @@ import styles from "./index.module.scss";
 import { TpModal } from "./TpModal";
 
 export const loader: LoaderFunction = async () => {
+  const redirected = requireSession();
+  if (redirected) return redirected;
   // 更新场景
   changeScene(AudioActionType.BGM_DECK);
   return null;

@@ -8,7 +8,8 @@ import {
 } from "./resource";
 
 class AudioManager {
-  private musicContext = new NeosAudioContext();
+  // Audio is optional; missing/blocked Web Audio must not abort module loading.
+  private musicContext?: NeosAudioContext;
   private effectContextSet: WeakSet<NeosAudioContext> = new WeakSet();
   /** 当前播放的音频路径 */
   private _currentMusicPath: string = "";
@@ -29,15 +30,14 @@ class AudioManager {
 
   public async playMusic() {
     if (!this.enableBGM || !this._scene) return;
-    if (!this.musicContext.closed) {
-      this.musicContext.close();
-    }
-    this.musicContext = new NeosAudioContext(this._musicVolume);
-    this.musicContext.once("ended", () => {
-      this.playMusic();
-    });
     const name = getMusicName(this._scene, this._currentMusicPath);
     try {
+      if (this.musicContext && !this.musicContext.closed)
+        await this.musicContext.close();
+      this.musicContext = new NeosAudioContext(this._musicVolume);
+      this.musicContext.once("ended", () => {
+        void this.playMusic();
+      });
       const resource = await loadAudio(name);
       await this.musicContext.play(resource);
       this._currentMusicPath = name;
@@ -65,7 +65,7 @@ class AudioManager {
 
   public updateMusicVolume(volume = 1) {
     this._musicVolume = volume;
-    this.musicContext.updateVolume(volume);
+    this.musicContext?.updateVolume(volume);
   }
 
   public enableMusic() {
@@ -75,7 +75,7 @@ class AudioManager {
 
   public disableMusic() {
     this.enableBGM = false;
-    this.musicContext.suspend();
+    void this.musicContext?.suspend();
   }
 
   public switchDisableMusic() {

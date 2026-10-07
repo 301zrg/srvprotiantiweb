@@ -1,5 +1,7 @@
 import { isNil } from "lodash-es";
 
+import { loadResource } from "@/infra/resource";
+
 import { CardMeta } from "./cards";
 
 class Forbidden {
@@ -7,12 +9,15 @@ class Forbidden {
   public time: string = "?";
 
   public async init(lflist: string): Promise<void> {
-    const response = await fetch(lflist);
-    if (!response.ok) throw new Error(`lflist.conf: HTTP ${response.status}`);
-    const text = await response.text();
-    const { time, forbiddens } = this.extractForbiddensFromText(text);
-    if (time === "?" || !forbiddens.size)
-      throw new Error("Invalid banlist resource");
+    const { time, forbiddens } = await loadResource(
+      lflist,
+      async (response) => {
+        const parsed = this.extractForbiddensFromText(await response.text());
+        if (parsed.time === "?" || !parsed.forbiddens.size)
+          throw new Error("Invalid banlist resource");
+        return parsed;
+      },
+    );
     this.time = time;
     this.setForbiddens(forbiddens);
   }

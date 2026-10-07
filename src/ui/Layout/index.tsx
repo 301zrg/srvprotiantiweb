@@ -1,24 +1,38 @@
 import { SettingOutlined } from "@ant-design/icons";
 import { Button } from "antd";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink, Outlet, useLocation, useRouteError } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import { useAdaptiveViewportScale } from "@/hook";
+import {
+  freshPageUrl,
+  repairPageAssets,
+  ResourceLoadError,
+} from "@/infra/resource";
 import { initStore } from "@/stores";
-import { environmentId } from "@/variant";
+import { basePath, environmentId } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { siteStorage } from "@/variant/deployment";
 import { siteMessages } from "@/variant/messages";
 
 import { setCssProperties } from "../Duel/PlayMat/css";
 import { I18NSelector, useI18N } from "../I18N";
+import { disconnectSrvpro } from "../Match/util";
 import { openSettingPanel, SettingPanel } from "../Setting";
 import styles from "./index.module.scss";
 import { initDeck, initForbidden, initI18N, initSqlite } from "./utils";
 
 export const loader = async () => {
-  await Promise.all([initDeck(), initSqlite(), initForbidden(), initI18N()]);
+  const results = await Promise.allSettled([
+    initDeck(),
+    initSqlite(),
+    initForbidden(),
+    initI18N(),
+  ]);
+  const failed = results.find((result) => result.status === "rejected");
+  if (failed?.status === "rejected") throw failed.reason;
   setCssProperties();
   return null;
 };
@@ -26,14 +40,52 @@ export const loader = async () => {
 export const ErrorBoundary = () => {
   const error = useRouteError();
   const text = siteMessages(siteStorage.getItem("language") ?? "en");
+  useEffect(() => disconnectSrvpro(), []);
+  const [retrying, setRetrying] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  const retry = async () => {
+    setRetrying(true);
+    setRecoveryError("");
+    try {
+      if (
+        error instanceof ResourceLoadError &&
+        error.resource.startsWith("Page:")
+      )
+        await repairPageAssets(basePath);
+      location.replace(freshPageUrl());
+    } catch (failure) {
+      setRecoveryError(
+        failure instanceof Error ? failure.message : String(failure),
+      );
+      setRetrying(false);
+    }
+  };
   return (
     <div
       role="alert"
+      data-testid="page-load-error"
       style={{ maxWidth: 600, margin: "10vh auto", padding: 24 }}
     >
-      <h1>{text.loadFailed}</h1>
+      <h1>
+        {error instanceof ResourceLoadError ? text.loadFailed : text.pageFailed}
+      </h1>
       <p>{error instanceof Error ? error.message : String(error)}</p>
-      <Button onClick={() => location.reload()}>{text.retry}</Button>
+      <p>{text.recoveryHint}</p>
+      {recoveryError && <p role="status">{recoveryError}</p>}
+      <Button
+        data-testid="retry-page-load"
+        type="primary"
+        loading={retrying}
+        onClick={retry}
+      >
+        {text.retry}
+      </Button>
+      <Button
+        style={{ marginLeft: 12 }}
+        onClick={() => location.replace(freshPageUrl(true))}
+      >
+        {text.back}
+      </Button>
     </div>
   );
 };

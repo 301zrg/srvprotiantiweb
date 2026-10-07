@@ -10,23 +10,31 @@ import sqliteMiddleWare, { sqliteCmd } from "@/middleware/sqlite";
 import { accountStore, deckStore, initStore, type User } from "@/stores";
 
 const { releaseResource } = useConfig();
+let sqliteLoading: Promise<void> | undefined;
 
 /** 加载ygodb */
 export const initSqlite = async () => {
-  if (!initStore.sqlite.progress) {
+  if (initStore.sqlite.progress === 1) return;
+  if (sqliteLoading) return sqliteLoading;
+  sqliteLoading = (async () => {
     const { sqlite } = initStore;
     const progressCallback = (progress: number) =>
       (sqlite.progress = progress * 0.9);
     sqlite.progress = 0.01;
-    await sqliteMiddleWare({
-      cmd: sqliteCmd.INIT,
-      initInfo: {
-        releaseDbUrl: releaseResource.cdb,
-        progressCallback,
-      },
-    });
-    sqlite.progress = 1;
-  }
+    try {
+      await sqliteMiddleWare({
+        cmd: sqliteCmd.INIT,
+        initInfo: { releaseDbUrl: releaseResource.cdb, progressCallback },
+      });
+      sqlite.progress = 1;
+    } catch (error) {
+      sqlite.progress = 0;
+      throw error;
+    } finally {
+      sqliteLoading = undefined;
+    }
+  })();
+  return sqliteLoading;
 };
 
 /** 加载卡组 */

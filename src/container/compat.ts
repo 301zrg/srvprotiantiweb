@@ -15,6 +15,11 @@ import { Container } from "./impl";
 
 const UI_KEY = "NEOS_UI";
 
+export const isUIContainer = (container: Container) =>
+  CONTAINERS.get(UI_KEY) === container;
+
+export const hasUIContainer = () => CONTAINERS.has(UI_KEY);
+
 export function initUIContainer(conn: WebSocketStream) {
   const context = new Context({
     matStore,

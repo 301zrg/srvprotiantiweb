@@ -4,8 +4,6 @@ import { sleep } from "@/infra";
 import { AudioActionType, playEffect } from "@/infra/audio";
 import { callCardFocus, callCardMove } from "@/ui/Duel/PlayMat/Card";
 
-import { shouldSkipDuelAnimation } from "./catchUp";
-
 const { MZONE, SZONE } = ygopro.CardZone;
 const { FACEUP_ATTACK, FACEDOWN_ATTACK, FACEDOWN_DEFENSE, FACEDOWN } =
   ygopro.CardPosition;
@@ -60,7 +58,7 @@ export default async (
         await callCardMove(target.uuid);
 
         // 暂停一会再盖上
-        if (!shouldSkipDuelAnimation(container)) await sleep(WAIT_TIME);
+        await sleep(WAIT_TIME);
 
         // 恢复position
         target.location.position = position;

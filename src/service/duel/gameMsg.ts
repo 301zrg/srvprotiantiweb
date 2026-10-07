@@ -1,6 +1,7 @@
 import { ygopro } from "@/api";
 import { CardHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardHint";
 import { Container } from "@/container";
+import { isUIContainer } from "@/container/compat";
 import { replayStore } from "@/stores";
 import { showWaiting } from "@/ui/Duel/Message";
 
@@ -25,6 +26,7 @@ import onMsgMove from "./move";
 import onMsgNewPhase from "./newPhase";
 import onMsgNewTurn from "./newTurn";
 import onMsgPosChange from "./posChange";
+import { waitForDuelForeground } from "./presentation";
 import onMsgReloadField from "./reloadField";
 import onMsgRockPaperScissors from "./rockPaperScissors";
 import onMsgSelectBattleCmd from "./selectBattleCmd";
@@ -84,6 +86,10 @@ export default async function handleGameMsg(
   container: Container,
   pb: ygopro.YgoStocMsg,
 ): Promise<void> {
+  if (isUIContainer(container) && isObserver(container)) {
+    await waitForDuelForeground(container.conn.signal);
+    if (container.conn.cancelled) return;
+  }
   const msg = pb.stoc_game_msg;
   if (msg instanceof CardHintGameMessage) {
     onMsgCardHint(container, msg.cardHint);
@@ -320,7 +326,7 @@ export default async function handleGameMsg(
       break;
     }
     case "toss": {
-      onMsgToss(container, msg.toss);
+      await onMsgToss(container, msg.toss);
 
       break;
     }

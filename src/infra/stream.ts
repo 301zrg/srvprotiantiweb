@@ -15,6 +15,11 @@ export class WebSocketStream {
   stream: ReadableStream;
   pendingMessages = 0;
   pendingPackets = 0;
+  private cancellation = new AbortController();
+
+  get signal() {
+    return this.cancellation.signal;
+  }
 
   get cancelled() {
     return manuallyClosed.has(this);
@@ -101,6 +106,7 @@ export class WebSocketStream {
   // 关闭流
   close() {
     manuallyClosed.add(this);
+    this.cancellation.abort();
     connectionStore.state = "idle";
     connectionStore.detail = "";
     this.ws.close();

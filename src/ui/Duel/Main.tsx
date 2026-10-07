@@ -6,6 +6,7 @@ import { ygopro } from "@/api";
 import { useEnv } from "@/hook";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { matStore, SideStage, sideStore } from "@/stores";
+import { requireSession } from "@/ui/requireSession";
 
 import {
   ActionHistory,
@@ -26,6 +27,8 @@ import {
 import { ChatBox, HandChain, LifeBar, Mat, Menu, Underlying } from "./PlayMat";
 
 export const loader: LoaderFunction = async () => {
+  const redirected = requireSession();
+  if (redirected) return redirected;
   // 更新场景
   changeScene(AudioActionType.BGM_DUEL);
   return null;
