@@ -35,7 +35,7 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 | --- | --- | --- |
 | `SKIP_DEPENDENCY_INSTALL` | `1` | 由上述构建命令显式执行 `npm ci`，避免平台先自动装一次 |
 | `NODE_VERSION` | `24` | 使用 Node 24 系列，满足固定 Wrangler 的 Node ≥22 要求 |
-| `PYTHON_VERSION` | `3.13` | 生成四语环境资源 |
+| `PYTHON_VERSION` | `3.13.3` | 使用当前构建镜像已支持的版本生成四语环境资源 |
 | `VITE_DUEL_WS_URL` | `wss://districts-studios-rear-representation.trycloudflare.com/neos` | 2026-10-08 读取现有站点公开配置确认的临时对战入口；如隧道地址已改变，填实际新地址 |
 
 WSS 是公开地址，不是玩家密码。不要放玩家凭据、证书私钥、隧道 Token 或 GitHub Token。Cloudflare 的构建环境支持 Node／Python 版本覆盖与跳过自动依赖安装。[构建镜像说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)
