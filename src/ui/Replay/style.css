@@ -1,0 +1,286 @@
+.replay-page,
+.replay-player {
+  height: calc(100dvh - var(--header-height, 48px));
+  overflow: auto;
+  padding: 20px;
+  color: #ecf1f8;
+  background: linear-gradient(140deg, #171c2a, #111523);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.replay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.replay-header h1 {
+  font-size: 24px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.replay-tools,
+.replay-controls,
+.replay-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.replay-tools .ant-input {
+  width: 280px;
+  max-width: 100%;
+}
+.replay-import {
+  position: relative;
+  cursor: pointer;
+  background: #286fba;
+  padding: 10px 18px;
+  border-radius: 8px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.replay-import input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.replay-note {
+  font-size: 14px;
+  color: #a8b7ce;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+.replay-link {
+  background: none;
+  border: 0;
+  color: #88bbff;
+  cursor: pointer;
+}
+.replay-list {
+  display: grid;
+  gap: 10px;
+}
+.replay-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #354055;
+  border-radius: 10px;
+  background: #1c2333;
+}
+.replay-entry h2 {
+  font-size: 17px;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.replay-entry p {
+  margin: 3px 0;
+  font-size: 13px;
+  color: #b1bfd4;
+}
+.replay-entry strong {
+  color: #ffd184;
+  font-size: 14px;
+}
+.replay-error {
+  background: #512e36;
+  padding: 12px;
+  border-radius: 8px;
+  color: #ffe3e5;
+  overflow-wrap: anywhere;
+}
+.replay-empty {
+  padding: 36px 16px;
+  border: 1px dashed #475369;
+  border-radius: 10px;
+  color: #bdc9da;
+}
+.replay-actions {
+  flex-shrink: 0;
+}
+.replay-controls .ant-input {
+  width: 66px;
+}
+.replay-controls .ant-select {
+  width: 76px;
+}
+.replay-progress {
+  padding: 10px 0;
+  font-size: 14px;
+  color: #c6d8ee;
+}
+.replay-progress strong {
+  color: #ffda97;
+}
+.replay-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.replay-side {
+  border: 1px solid #3b475d;
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 0;
+  background: #1a2232;
+}
+.replay-side > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.replay-side h2 {
+  font-size: 18px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.replay-side > header strong {
+  white-space: nowrap;
+  color: #a8e4ce;
+  margin-left: 8px;
+}
+.replay-zone {
+  margin: 8px 0;
+}
+.replay-zone h3 {
+  font-size: 13px;
+  color: #aebbd1;
+  margin: 0 0 4px;
+}
+.replay-zone h3 span {
+  color: #fff;
+}
+.replay-zone > div {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  min-height: 12px;
+}
+.replay-card {
+  flex: 0 0 72px;
+  width: 72px;
+  padding: 3px;
+  background: #253148;
+  border: 1px solid #4b5b75;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+}
+.replay-card img {
+  width: 62px;
+  height: 90px;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+}
+.replay-card span {
+  font-size: 11px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.replay-card small {
+  font-size: 10px;
+  white-space: nowrap;
+}
+.replay-facedown {
+  border-style: dashed;
+  border-color: #c3a061;
+}
+.replay-detail-image {
+  display: block;
+  max-height: 40dvh;
+  max-width: 100%;
+  margin: 14px auto;
+}
+.replay-description {
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+.replay-history {
+  padding-left: 22px;
+  line-height: 1.8;
+}
+.replay-history li {
+  padding: 7px 0;
+  border-bottom: 1px solid #ddd;
+}
+.replay-player .ant-btn,
+.replay-page .ant-btn {
+  min-height: 36px;
+}
+@media (max-width: 800px) {
+  .replay-page,
+  .replay-player {
+    padding: 12px;
+  }
+  .replay-entry {
+    display: block;
+    padding: 12px;
+  }
+  .replay-actions {
+    margin-top: 10px;
+  }
+  .replay-board {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .replay-player .ant-btn,
+  .replay-page .ant-btn,
+  .replay-controls .ant-select-selector,
+  .replay-controls .ant-input {
+    min-height: 44px;
+  }
+  .replay-card {
+    flex-basis: 70px;
+  }
+  .replay-header h1 {
+    font-size: 21px;
+  }
+  .replay-controls {
+    position: sticky;
+    top: -12px;
+    z-index: 5;
+    background: #171c2a;
+    padding: 8px 0;
+  }
+  .replay-tools .ant-input {
+    width: 100%;
+  }
+  .replay-side {
+    padding: 9px;
+  }
+}
+@media (max-height: 500px) and (min-width: 650px) {
+  .replay-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .replay-controls {
+    position: static;
+  }
+  .replay-card img {
+    height: 72px;
+    width: 50px;
+  }
+  .replay-card {
+    flex-basis: 62px;
+    width: 62px;
+  }
+  .replay-player .ant-btn {
+    min-height: 44px;
+  }
+}
+.replay-drawer .ant-drawer-content-wrapper {
+  max-width: 100vw;
+}

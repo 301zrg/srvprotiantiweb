@@ -9,6 +9,8 @@ import arraybuffer from "vite-plugin-arraybuffer";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  worker: { format: "es" },
+  optimizeDeps: { entries: ["index.html"] },
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [
     ...(process.env.VITE_DEPLOY_TARGET === "bilitoy"

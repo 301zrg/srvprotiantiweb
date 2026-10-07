@@ -12,6 +12,12 @@ export const disconnectSrvpro = () => {
   activeConnection = undefined;
 };
 
+export const finishSrvproReplays = async () => {
+  const conn = activeConnection;
+  await conn?.replayCapture.finish();
+  if (activeConnection === conn) disconnectSrvpro();
+};
+
 // 连接SRVPRO服务
 export const connectSrvpro = async (params: {
   ip: string;

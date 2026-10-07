@@ -71,6 +71,8 @@ def main():
     web.mkdir(parents=True)
     environment = {**os.environ, 'VITE_BASE_PATH': './', 'VITE_DEPLOY_TARGET': 'bilitoy',
                    'VITE_DUEL_WS_URL': '', 'PYTHONUTF8': '1'}
+    subprocess.run(['node', 'scripts/check_replay_assets.mjs'], cwd=ROOT,
+                   env=environment, check=True)
     subprocess.run(['python', 'scripts/build_environment_assets.py'], cwd=ROOT,
                    env=environment, check=True)
     subprocess.run(['node', 'node_modules/vite/bin/vite.js', 'build', '--outDir',

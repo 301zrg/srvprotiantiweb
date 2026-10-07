@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import {
   cpSync,
@@ -19,7 +20,7 @@ import { build, preview } from "vite";
 import { startNginxGateway, startQuickTunnel, stopChild, waitForTcp } from "./tunnel_support.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const serverRoot = resolve(projectRoot, "../srvprotianti");
+const serverRoot = resolve(process.env.SRVPRO_TEST_ROOT || resolve(projectRoot, "../srvprotianti"));
 const auditRoot = resolve(projectRoot, ".audit-tmp");
 mkdirSync(auditRoot, { recursive: true });
 const runtime = mkdtempSync(join(auditRoot, "local-wss-"));
@@ -28,6 +29,7 @@ const manualMode =
 const manualCheck = process.argv.includes("--manual-check");
 const tunnelMode = process.argv.includes("--tunnel");
 const roomLinksMode = process.argv.includes("--room-links");
+const replayMode = process.argv.includes("--replays");
 const notes = [];
 let serverProcess;
 let previewServer;
@@ -323,10 +325,72 @@ try {
     const browserContext = await browser.newContext({ ignoreHTTPSErrors: !tunnelMode });
     const pageErrors = [];
     const pageTraces = new WeakMap();
+    const capturedReplays = new WeakMap();
+    async function verifyReplays(pages, minimum) {
+      if (!replayMode) return;
+      const originals = new Map(
+        pages
+          .flatMap((p) => capturedReplays.get(p) || [])
+          .map((b) => [
+            createHash("sha256").update(b).digest("hex"),
+            b.toString("base64"),
+          ]),
+      );
+      assert.ok(
+        originals.size >= minimum,
+        `Expected ${minimum} distinct native replay files`,
+      );
+      const stored = await pages[0].evaluate(async () => {
+        const db = await new Promise((r, j) => {
+          const q = indexedDB.open("srvpro-replays");
+          q.onsuccess = () => r(q.result);
+          q.onerror = () => j(q.error);
+        });
+        const tx = db.transaction(["blobs", "occurrences"], "readonly");
+        const request = (q) =>
+          new Promise((r, j) => {
+            q.onsuccess = () => r(q.result);
+            q.onerror = () => j(q.error);
+          });
+        const blobs = await request(tx.objectStore("blobs").getAll());
+        const associations = await request(
+          tx.objectStore("occurrences").getAll(),
+        );
+        db.close();
+        return {
+          files: await Promise.all(
+            blobs.map(async (b) => ({
+              hash: b.hash,
+              bytes: btoa(
+                String.fromCharCode(
+                  ...new Uint8Array(await b.blob.arrayBuffer()),
+                ),
+              ),
+            })),
+          ),
+          associations,
+        };
+      });
+      for (const [hash, bytes] of originals)
+        assert.equal(
+          stored.files.find((f) => f.hash === hash)?.bytes,
+          bytes,
+          "Saved replay must equal the raw native WSS payload",
+        );
+      assert.ok(
+        !JSON.stringify(stored.associations).includes("pass123") &&
+          !JSON.stringify(stored.associations).includes("pass456"),
+        "Capture metadata must not include credentials",
+      );
+      console.log(
+        `Native WSS replay capture: ${originals.size} original files saved byte-for-byte`,
+      );
+    }
     async function joinRoom(nickname, roomName, mode) {
       const page = await browserContext.newPage();
       const clientTrace = [];
       pageTraces.set(page, clientTrace);
+      capturedReplays.set(page, []);
       page.on("pageerror", (error) =>
         pageErrors.push(`${nickname}: ${error.message}`),
       );
@@ -335,6 +399,21 @@ try {
           clientTrace.push(`console ${message.type()}: ${message.text()}`);
       });
       page.on("websocket", (socket) => {
+        let pending = Buffer.alloc(0);
+        if (replayMode)
+          socket.on("framereceived", (frame) => {
+            if (typeof frame.payload === "string") return;
+            pending = Buffer.concat([pending, Buffer.from(frame.payload)]);
+            while (pending.length >= 3) {
+              const size = pending.readUInt16LE(0);
+              if (pending.length < size + 2) break;
+              if (pending[2] === 0x17)
+                capturedReplays
+                  .get(page)
+                  .push(Buffer.from(pending.subarray(3, size + 2)));
+              pending = pending.subarray(size + 2);
+            }
+          });
         clientTrace.push(`websocket ${socket.url()}`);
         socket.on("framesent", (frame) =>
           clientTrace.push(
@@ -527,6 +606,7 @@ try {
     }
     await expect(ordinaryA.locator("#player-nickname")).toHaveValue("LocalWebA");
     await expect(ordinaryA.locator("#room-name")).toHaveValue("LOCAL-WSS-ROOM");
+    await verifyReplays([ordinaryA, ordinaryB], 1);
     await ordinaryA.locator("#room-name").fill("LOCAL-REJOIN-ROOM");
     await ordinaryA.getByTestId("connect-submit").click();
     await expect(ordinaryA.getByTestId("room-host-info")).toBeVisible({ timeout: 25000 });
@@ -623,6 +703,7 @@ try {
       await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/match/);
     }
     await expect(ladderA.locator("#player-nickname")).toHaveValue("TTWebA$pass123");
+    await verifyReplays([ladderA, ladderB], 3);
     if (continuingSpectator) {
       await expect(continuingSpectator.locator("#player-nickname")).toBeVisible({ timeout: 30000 });
       await continuingSpectator.context().close();

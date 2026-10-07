@@ -2,7 +2,13 @@ import { SettingOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { NavLink, Outlet, useLocation, useRouteError } from "react-router-dom";
+import {
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigation,
+  useRouteError,
+} from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import { useAdaptiveViewportScale } from "@/hook";
@@ -11,6 +17,7 @@ import {
   repairPageAssets,
   ResourceLoadError,
 } from "@/infra/resource";
+import { replayCaptureStatus } from "@/replay/capture";
 import { initStore } from "@/stores";
 import { basePath, environmentId } from "@/variant";
 import { connectionStore } from "@/variant/connection";
@@ -92,6 +99,8 @@ export const ErrorBoundary = () => {
 
 export const Component = () => {
   const { pathname } = useLocation();
+  const navigation = useNavigation();
+  const capture = useSnapshot(replayCaptureStatus);
   // HUD and portal overlays always retain their physical touch target sizes.
   // Only the duel board scales inside its own available area.
   useAdaptiveViewportScale({
@@ -107,6 +116,19 @@ export const Component = () => {
   return (
     <>
       <SettingPanel />
+      {navigation.state === "loading" &&
+        navigation.location?.pathname === "/match" &&
+        capture.state === "receiving" &&
+        createPortal(
+          <div className={styles.replayTail} role="status">
+            <span>
+              正在接收录像，已保存 {capture.saved}{" "}
+              份。立即返回可能漏掉尚未下发的录像。
+            </span>
+            <Button onClick={disconnectSrvpro}>立即返回</Button>
+          </div>,
+          document.body,
+        )}
       {!hideHeader && (
         <nav className={styles.navbar} aria-label="主导航">
           <NavLink to="/" className={styles["logo-container"]}>

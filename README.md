@@ -37,7 +37,7 @@ npm run dev
 
 按照 [Windows 服务器 + Pages 上线步骤](docs/current-server-online-test.md) 部署本机 Nginx 网关与 Cloudflare Quick Tunnel。`npm run package:test` 生成可上传 Pages 的网页包和服务器工具包；未取得公网 WSS 时，包内明确禁用联机。取得真实 URL 后运行 `npm run package:test -- --wss-url wss://实际地址/neos --site-origin https://实际站点.pages.dev` 即可生成新部署，无需重复构建。`duel-config.js` 为站方公开配置，优先于构建入口；不能写入密码或 Token。玩家仍只填写昵称和房名。
 
-现有 Workers 站点可按 [GitHub 自动部署设置](docs/cloudflare-ci.md) 一次性连接 `deploy/cloudflare` 发布分支。仓库已提供 `wrangler.json`、`build:cloudflare` 与固定版本的 `deploy:cloudflare`；在 Cloudflare 的构建变量中设置实际 `VITE_DUEL_WS_URL` 后，更新发布分支即可自动构建并部署，无需再上传 ZIP。账号连接和首次线上构建仍需站点所有者完成。
+现有 Workers 站点已按 [GitHub 自动部署设置](docs/cloudflare-ci.md) 连接 `deploy/cloudflare` 发布分支，并成功自动发布 `17aa0c25`。仓库提供 `wrangler.json`、`build:cloudflare` 与固定版本的 `deploy:cloudflare`；更新发布分支即可自动构建并部署，无需再上传 ZIP。云构建使用已锁定资源快照，不依赖 Python 的 SQLite 模块，也不在 CI 编译录像内核。
 
 `npm run test:tunnel-gateway` 验证独立 Nginx 的 IP／Origin／二进制转发；准备官方 Nginx 和 cloudflared 后，网络允许时可运行 `npm run test:tunnel-wss`，让隔离 SRVPro 的两个浏览器经真实公网隧道完成回归。开发机自身未能建立中继连接；正式服务器创建的隧道已通过客户端公网握手，完整比赛继续待验收。Quick Tunnel 地址会变化且无可用性保证，适用于本轮测试，长期入口另行确定。
 
@@ -66,6 +66,6 @@ BiliToy 专用上传包通过 `npm run package:bilitoy -- --wss-url wss://实际
 
 源码发布在 [301zrg/srvprotiantiweb](https://github.com/301zrg/srvprotiantiweb)。建议通过分支和 Pull Request 提交改动；提交前运行上文列出的资源检查、类型检查、lint 与构建。`resources-staging/1103/` 中的原始资源按字节锁定，修改须同步更新资源审计与 revision。不要提交 `.env.local`、证书、真实玩家凭据、未授权卡组或录像。用户确认第一期已可使用，具体测试记录及历史待测项见施工清单。
 
-第二期录像功能目前只完成调研与规划，等待用户确认后开工：本地导入／下载、服务器对局结束后自动缓存、匹配旧裁定环境的标准 `.yrp` 网页播放。范围、`special.lua` 初始化及验收顺序见 [第二期录像计划](docs/replay-phase2-plan.md)。
+第二期录像首版已在 `codex/replay-phase2` 实现：首页「录像库」支持本地导入／原件下载、对局结束自动保存、标准 YRP2／UNIFORM `0x1362` 在固定旧裁定环境内播放，以及暂停、单步、倍速、跳回合和切视角。YRP1／双打／谜题／其他版本／旧 `.yrp3d` 暂仅保存与下载。三份原生样本、Single／TT 三局 WSS 捕获、存储失败和桌面／触屏尺寸回归通过；真实 Android／iOS 与正式服样本仍待验收。普通静态试用执行 `npm ci --include=dev`、`npm run build:static`、`npm run preview:static`，无需 Python 或 Emscripten。[使用、资源锁与证据](docs/replay-usage.md)、[第二期设计](docs/replay-phase2-plan.md)。本轮不改天梯官网 HTML。
 
 网页版已单独实现卡组接收入口：公开内容链接支持 YDK、原生 deckbuffer、三分区 JSON，受限卡组支持指定来源的跨窗口交接；保存后进入编辑器，同名另存、同内容复用，存储失败可临时编辑并下载备份。参数、白名单、来源页消息格式与本地试用见 [卡组接收说明](docs/deck-import.md)。本次未修改天梯官网按钮；官网改造和录像入口的后续方案见 [官网一键打开调研](docs/website-replay-deck-handoff-research.md)。

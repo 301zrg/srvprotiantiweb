@@ -63,6 +63,7 @@ async function _handle(
   for (const packet of packets) {
     if (container.conn.cancelled) return;
     container.conn.pendingPackets--;
+    if (packet.proto === 0x17) continue; // Independently saved at network arrival.
     const pb = adaptStoc(packet);
 
     switch (pb.msg) {

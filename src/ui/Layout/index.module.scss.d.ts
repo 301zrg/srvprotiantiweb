@@ -1,5 +1,6 @@
 declare const classNames: {
   readonly navbar: "navbar";
+  readonly replayTail: "replayTail";
   readonly "logo-container": "logo-container";
   readonly logo: "logo";
   readonly link: "link";

@@ -41,6 +41,10 @@ const router = createHashRouter([
         lazy: () => loadPage("online", () => import("./Match")),
       },
       {
+        path: "/replays",
+        lazy: () => loadPage("replays", () => import("./Replay")),
+      },
+      {
         path: "/build",
         lazy: () => loadPage("decks", () => import("./BuildDeck")),
       },
