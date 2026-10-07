@@ -43,7 +43,7 @@ Get-Content .\runtime\pm2-quick\endpoint.txt
 
 新地址确定后：
 
-1. 将 `runtime\pm2-quick\duel-config.js` 下载到开发机，作为现有 Workers 静态部署中的同名文件重新上传；或用新 WSS 重新执行原来的 `npm run package:test` 再上传网页包。只改连接配置时无需重建前端。
+1. 将 `runtime\pm2-quick\duel-config.js` 下载到开发机，替换本机完整网页发布目录中的同名文件，再将整套静态资源重新上传到现有 Workers；或用新 WSS 重新执行原来的 `npm run package:test`，再上传生成的完整 `web-pages.zip`。只改连接配置时无需重建前端。
 2. 刷新网页，确认公开 `duel-config.js` 中为新地址，验证一次联机。也可在开发机执行 `npm run check:wss -- wss://新地址/neos --origin https://black-surf-69e5.1627406938.workers.dev` 检查可信 TLS／101。
 3. 等仍在旧入口的比赛结束后，在旧 PowerShell 窗口按 Ctrl+C 停止旧隧道。这个操作不会停止 PM2 新启动的隧道。
 4. 保存 PM2 清单：
