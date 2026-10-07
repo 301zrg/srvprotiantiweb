@@ -55,6 +55,35 @@
   flex: 1;
 }
 
+.connectionAlert {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(680px, calc(100% - 24px));
+  box-sizing: border-box;
+  z-index: 10050;
+  padding: 10px 14px;
+  border: 1px solid #ee8e8e;
+  border-radius: 8px;
+  background: #812323;
+  color: white;
+  box-shadow: 0 4px 18px #0006;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  a {
+    color: white;
+    text-decoration: underline;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+}
+
 .localeFloating {
   position: fixed;
   right: 0.5rem;

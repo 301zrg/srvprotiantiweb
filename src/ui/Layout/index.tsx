@@ -1,5 +1,6 @@
 import { SettingOutlined } from "@ant-design/icons";
 import { Button } from "antd";
+import { createPortal } from "react-dom";
 import { NavLink, Outlet, useLocation, useRouteError } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
@@ -7,6 +8,7 @@ import { useAdaptiveViewportScale } from "@/hook";
 import { initStore } from "@/stores";
 import { environmentId } from "@/variant";
 import { connectionStore } from "@/variant/connection";
+import { siteStorage } from "@/variant/deployment";
 import { siteMessages } from "@/variant/messages";
 
 import { setCssProperties } from "../Duel/PlayMat/css";
@@ -23,7 +25,7 @@ export const loader = async () => {
 
 export const ErrorBoundary = () => {
   const error = useRouteError();
-  const text = siteMessages(localStorage.getItem("language") ?? "en");
+  const text = siteMessages(siteStorage.getItem("language") ?? "en");
   return (
     <div
       role="alert"
@@ -91,23 +93,19 @@ export const Component = () => {
         data-environment={environmentId}
         data-ready={initStore.sqlite.progress === 1}
       >
-        {connection.state === "disconnected" && pathname !== "/match" && (
-          <div
-            role="alert"
-            style={{
-              position: "fixed",
-              top: 12,
-              left: 12,
-              right: 12,
-              zIndex: 1000,
-              padding: 12,
-              background: "#812323",
-              color: "white",
-            }}
-          >
-            {connection.detail} <NavLink to="/match">{text.back}</NavLink>
-          </div>
-        )}
+        {connection.state === "disconnected" &&
+          pathname !== "/match" &&
+          createPortal(
+            <div
+              role="alert"
+              data-testid="connection-alert"
+              className={styles.connectionAlert}
+            >
+              <span>{connection.detail}</span>
+              <NavLink to="/match">{text.back}</NavLink>
+            </div>,
+            document.body,
+          )}
         <Outlet key={pathname} />
       </main>
     </>

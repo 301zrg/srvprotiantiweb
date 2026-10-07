@@ -1,3 +1,5 @@
+import { publishedResourceName, siteStorage } from "./deployment";
+
 declare global {
   interface Window {
     __SRVPRO_DUEL_CONFIG__?: { duelWebSocketUrl?: unknown };
@@ -31,7 +33,7 @@ export const languageLocales: Record<Language, string> = {
 };
 
 export function getLanguage(): Language {
-  const stored = localStorage.getItem("language");
+  const stored = siteStorage.getItem("language");
   const selected = languages.find((language) => language === stored);
   if (selected) return selected;
   for (const preferred of navigator.languages) {
@@ -48,10 +50,14 @@ export function getEnvironmentFile(
   file: "cards.cdb" | "strings.conf",
   language = getLanguage(),
 ) {
-  return `${environmentPath}/${languageLocales[language]}/${file}`;
+  return `${environmentPath}/${
+    languageLocales[language]
+  }/${publishedResourceName(file)}`;
 }
 
-export const banlistUrl = `${environmentPath}/lflist.conf`;
+export const banlistUrl = `${environmentPath}/${publishedResourceName(
+  "lflist.conf",
+)}`;
 
 export function serverLanguageCommand(language: Language): string {
   return language === "cn" ? "/zh" : `/${language}`;

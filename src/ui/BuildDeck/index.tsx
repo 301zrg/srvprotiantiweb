@@ -66,6 +66,11 @@ export const loader: LoaderFunction = async () => {
     });
   }
 
+  // A direct /build visit can import this module before IndexedDB is ready.
+  if (!deckStore.get(selectedDeck.deck.deckName)) {
+    setSelectedDeck(deckStore.decks[0] ?? emptyDeck);
+  }
+
   // 更新场景
   changeScene(AudioActionType.BGM_DECK);
 

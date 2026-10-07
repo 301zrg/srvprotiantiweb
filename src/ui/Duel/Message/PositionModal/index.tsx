@@ -5,6 +5,7 @@ import { proxy, useSnapshot } from "valtio";
 
 import { sendSelectPositionResponse, ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
+import { siteStorage } from "@/variant/deployment";
 
 import { NeosModal } from "../NeosModal";
 import styles from "./index.module.scss";
@@ -91,7 +92,7 @@ const translations: Translations = {
 };
 
 export const PositionModal = () => {
-  const language = localStorage.getItem("language") || "cn";
+  const language = siteStorage.getItem("language") || "cn";
   const container = getUIContainer();
   const { isOpen, positions } = useSnapshot(localStore);
 
@@ -126,7 +127,7 @@ export const PositionModal = () => {
 
 // Function to get card position based on language
 function cardPosition(position: ygopro.CardPosition): string {
-  const language = localStorage.getItem("language") || "cn";
+  const language = siteStorage.getItem("language") || "cn";
   const messages = translations[language];
 
   switch (position) {

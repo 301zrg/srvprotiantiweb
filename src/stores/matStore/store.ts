@@ -66,6 +66,8 @@ const initialState: Omit<MatState, "reset"> = {
   },
   initInfo,
   selfType: ygopro.StocTypeChange.SelfType.UNKNOWN,
+  observerSwapped: false,
+  observerView: 0,
   hint: { code: -1 },
   currentPlayer: -1,
   phase: {
@@ -104,6 +106,8 @@ export class MatStore implements MatState, NeosStore {
   timeLimits = initialState.timeLimits;
   initInfo = initialState.initInfo;
   selfType = initialState.selfType;
+  observerSwapped = initialState.observerSwapped;
+  observerView: 0 | 1 = 0;
   hint = initialState.hint;
   currentPlayer = initialState.currentPlayer;
   phase = initialState.phase;
@@ -124,6 +128,8 @@ export class MatStore implements MatState, NeosStore {
     this.initInfo.me = defaultInitInfo;
     this.initInfo.op = defaultInitInfo;
     this.selfType = ygopro.StocTypeChange.SelfType.UNKNOWN;
+    this.observerSwapped = false;
+    this.observerView = 0;
     this.hint = { code: -1 };
     this.currentPlayer = -1;
     this.phase = {

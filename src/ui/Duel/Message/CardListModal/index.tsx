@@ -25,18 +25,19 @@ const store = proxy(defaultStore);
 
 export const CardListModal = () => {
   const { zone, monster, isOpen, isZone, controller } = useSnapshot(store);
-  let cardList: CardType[] = [];
-
-  if (isZone) {
-    cardList = cardStore.at(zone, controller);
-  } else {
-    // 看超量素材
-    cardList = cardStore.findOverlay(
-      monster.location.zone,
-      monster.location.controller,
-      monster.location.sequence,
-    );
-  }
+  const { inner } = useSnapshot(cardStore);
+  const filterZone = isZone ? zone : monster.location.zone;
+  const filterController = isZone ? controller : monster.location.controller;
+  const filterSequence = isZone ? undefined : monster.location.sequence;
+  const overlay = !isZone;
+  const cardList = inner.filter(
+    (card) =>
+      card.location.zone === filterZone &&
+      card.location.controller === filterController &&
+      card.location.is_overlay === overlay &&
+      (filterSequence === undefined ||
+        card.location.sequence === filterSequence),
+  );
 
   const handleOkOrCancel = () => {
     store.isOpen = false;
@@ -51,19 +52,26 @@ export const CardListModal = () => {
       style={{ maxHeight: "100%" }}
       mask={false}
     >
-      <Space direction="vertical">
-        {cardList.map((card) => (
-          <YgoCard
-            code={card.code}
-            key={card.uuid}
-            targeted={card.targeted}
-            width={CARD_WIDTH}
-            onClick={() => showCardModal(card)}
-          />
-        ))}
-      </Space>
+      <div data-testid="duel-card-list" data-card-count={cardList.length}>
+        <Space direction="vertical">
+          {cardList.map((card) => (
+            <YgoCard
+              code={card.code}
+              // Card identity is server-owned, including recovered materials.
+              key={card.uuid}
+              targeted={card.targeted}
+              width={CARD_WIDTH}
+              onClick={() => showCardModal(card)}
+            />
+          ))}
+        </Space>
+      </div>
     </Drawer>
   );
+};
+
+export const closeCardListModal = () => {
+  store.isOpen = false;
 };
 
 export const displayCardListModal = ({

@@ -9,6 +9,7 @@ import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
 import { duelWebSocketUrl, validateDuelWebSocketUrl } from "@/variant";
 import { connectionStore } from "@/variant/connection";
+import { siteStorage } from "@/variant/deployment";
 import { siteMessages } from "@/variant/messages";
 
 import styles from "./index.module.scss";
@@ -25,8 +26,7 @@ export const loader = () => {
 
 export const Component = () => {
   const [nickname, setNickname] = useState(
-    () =>
-      joinFormDraft.nickname ?? localStorage.getItem("playerNickname") ?? "",
+    () => joinFormDraft.nickname ?? siteStorage.getItem("playerNickname") ?? "",
   );
   const [roomName, setRoomName] = useState(() => joinFormDraft.roomName ?? "");
   const [connecting, setConnecting] = useState(false);
@@ -69,8 +69,8 @@ export const Component = () => {
     if (!roomName.trim() || roomName.length > 19 || /[\0\r\n]/.test(roomName)) {
       return message.error(text.invalidRoom);
     }
-    if (nickname.includes("$")) localStorage.removeItem("playerNickname");
-    else localStorage.setItem("playerNickname", nickname);
+    if (nickname.includes("$")) siteStorage.removeItem("playerNickname");
+    else siteStorage.setItem("playerNickname", nickname);
     setConnecting(true);
     try {
       await connectSrvpro({

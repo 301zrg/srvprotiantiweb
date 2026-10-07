@@ -1,6 +1,7 @@
 import { useConfig } from "@/config";
 import sqliteMiddleWare, { sqliteCmd } from "@/middleware/sqlite";
 import { FtsParams } from "@/middleware/sqlite/fts";
+import { siteStorage } from "@/variant/deployment";
 
 import { isSuperReleaseCard } from "./superPreRelease";
 
@@ -85,7 +86,7 @@ export function getCardImgUrl(code: number, back = false) {
     return `${preReleaseResource.img}/${code}.jpg`;
   } else {
     // Define translations for different languages (I18N)
-    const language = localStorage.getItem("language");
+    const language = siteStorage.getItem("language");
     let imgUrl;
 
     switch (language) {

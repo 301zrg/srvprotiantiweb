@@ -12,6 +12,7 @@ import MsgAnnounceCard from "./announceCard";
 import MsgAnnounceNumber from "./announceNumber";
 import MsgAnnounceRace from "./announceRace";
 import MsgAttack from "./attack";
+import MsgCardHintAdapter from "./cardHint";
 import MsgConfirmCardsAdapter from "./confirmCards";
 import MsgDamage from "./damage";
 import MsgDrawAdapter from "./draw";
@@ -68,6 +69,11 @@ export default class GameMsgAdapter implements StocAdapter {
 
     const func = dataView.getUint8(0);
     const gameData = exData.slice(1);
+    if (func === GAME_MSG.MSG_CARD_HINT) {
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: MsgCardHintAdapter(gameData),
+      });
+    }
     let gameMsg: any = new ygopro.StocGameMessage({}).toObject();
 
     if (!PENETRATE.penetrate(func, gameMsg, gameData)) {

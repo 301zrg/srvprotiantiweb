@@ -1,9 +1,9 @@
 import { cpSync, mkdirSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 
-mkdirSync("dist", { recursive: true });
+mkdirSync(process.argv[2] || "dist", { recursive: true });
 const assetsRoot = resolve("neos-assets");
-cpSync("neos-assets", join("dist", "neos-assets"), {
+cpSync("neos-assets", join(process.argv[2] || "dist", "neos-assets"), {
   recursive: true,
   force: true,
   filter(source) {

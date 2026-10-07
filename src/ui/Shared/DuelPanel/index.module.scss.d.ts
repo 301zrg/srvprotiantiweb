@@ -6,5 +6,6 @@ declare const classNames: {
   readonly "ant-drawer-title": "ant-drawer-title";
   readonly "ant-drawer-body": "ant-drawer-body";
   readonly body: "body";
+  readonly docked: "docked";
 };
 export = classNames;

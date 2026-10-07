@@ -12,6 +12,10 @@ const messages = {
     settings: "设置",
     emptyHistory: "暂无操作记录",
     viewCard: "查看卡片",
+    declaredCard: "宣言卡片",
+    cardHint: "卡片提示",
+    switchView: "切换视角",
+    leaveSpectating: "退出观战",
   },
   en: {
     manageDecks: "Decks",
@@ -24,6 +28,10 @@ const messages = {
     settings: "Settings",
     emptyHistory: "No actions yet",
     viewCard: "View card",
+    declaredCard: "Declared card",
+    cardHint: "Card hint",
+    switchView: "Switch view",
+    leaveSpectating: "Leave spectator mode",
   },
   ja: {
     manageDecks: "デッキ管理",
@@ -36,6 +44,10 @@ const messages = {
     settings: "設定",
     emptyHistory: "操作履歴はありません",
     viewCard: "カードを見る",
+    declaredCard: "宣言したカード",
+    cardHint: "カードのヒント",
+    switchView: "視点切替",
+    leaveSpectating: "観戦を終了",
   },
   ko: {
     manageDecks: "덱 관리",
@@ -48,6 +60,10 @@ const messages = {
     settings: "설정",
     emptyHistory: "기록이 없습니다",
     viewCard: "카드 보기",
+    declaredCard: "선언한 카드",
+    cardHint: "카드 힌트",
+    switchView: "시점 전환",
+    leaveSpectating: "관전 종료",
   },
 } as const;
 

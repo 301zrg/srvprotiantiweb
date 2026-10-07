@@ -1,6 +1,7 @@
 import { ygopro } from "@/api";
 import { InteractType } from "@/stores";
 import { IconFont } from "@/ui/Shared";
+import { siteStorage } from "@/variant/deployment";
 
 import CardPosition = ygopro.CardPosition;
 
@@ -98,7 +99,7 @@ const messages: Record<
 /* End of definition (I18N) */
 
 export function interactTypeToString(t: InteractType): string {
-  const language = (localStorage.getItem("language") || "cn") as Language;
+  const language = (siteStorage.getItem("language") || "cn") as Language;
   const sSet = messages[language].sSet;
   const summon = messages[language].summon;
   const spSummon = messages[language].spSummon;
