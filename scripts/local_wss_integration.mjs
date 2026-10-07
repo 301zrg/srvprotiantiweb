@@ -438,8 +438,21 @@ try {
         throw error;
       }
     }
-    async function joinSpectator(roomName, running) {
-      const page = await browserContext.newPage();
+    async function joinSpectator(roomName, running, options = {}) {
+      const spectatorContext = options.mobile
+        ? await browser.newContext({
+            ignoreHTTPSErrors: !tunnelMode,
+            viewport: { width: 390, height: 844 },
+            isMobile: true,
+            hasTouch: true,
+          })
+        : browserContext;
+      const page = await spectatorContext.newPage();
+      if (options.slow)
+        await page.route(/\/assets\/Main-[^/]+\.js$/, async route => {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          await route.continue();
+        });
       page.on("pageerror", (error) =>
         pageErrors.push(`Spectator: ${error.message}`),
       );
@@ -460,12 +473,16 @@ try {
           timeout: 30000,
         });
         await expect(page.getByTestId("duel-surrender")).toHaveCount(0);
+        await expect.poll(
+          () => page.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(),
+          { timeout: 30000 },
+        ).toBeGreaterThanOrEqual(10);
         await page.getByTestId("duel-switch-view").click();
         await expect(page.getByTestId("duel-switch-view")).toHaveAttribute(
           "data-view-controller",
           "1",
         );
-        await page.getByTestId("duel-leave-spectating").click();
+        if (!options.keep) await page.getByTestId("duel-leave-spectating").click();
       } else {
         await expect(page.getByTestId("waitroom-role-toggle")).toHaveText(
           /加入决斗者/,
@@ -474,19 +491,24 @@ try {
         await expect(page.getByTestId("waitroom-ready-toggle")).toHaveCount(0);
         await page.getByRole("button", { name: "退出房间" }).click();
       }
-      await expect(page.locator("#player-nickname")).toBeVisible();
+      if (!options.keep)
+        await expect(page.locator("#player-nickname")).toBeVisible();
       assert.equal(sent.filter((opcode) => opcode === 18).length, 1);
       assert.equal(sent.filter((opcode) => opcode === 33).length, 1);
       assert.ok(
         !sent.some((opcode) => [2, 34, 37].includes(opcode)),
         "Spectators must never upload decks, ready, or start",
       );
-      await page.close();
+      if (!options.keep) {
+        await page.close();
+        if (options.mobile) await spectatorContext.close();
+      }
       console.log(
         `Room link spectating passed: ${
           running ? "running" : "waiting"
         } ${roomName}`,
       );
+      return page;
     }
     const ordinaryA = await joinRoom("LocalWebA", "LOCAL-WSS-ROOM", "Single");
     if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", false);
@@ -517,6 +539,7 @@ try {
       "Two browser clients entered TT ladder matching with 2011.3 banlist hash",
     );
     await startDuel(ladderA, ladderB, "TT ladder");
+    let ladderRoomName, continuingSpectator;
     if (roomLinksMode) {
       const response = await fetch(`http://127.0.0.1:${httpPort}/api/getrooms`);
       assert.ok(response.ok);
@@ -528,6 +551,7 @@ try {
         room,
         "Expected a concrete TT room in the local public room list",
       );
+      ladderRoomName = room.roomname;
       await joinSpectator(room.roomname, true);
     }
     // Split the first two wins so the same live match must reach G3.
@@ -558,8 +582,40 @@ try {
     }
     await surrender(ladderA);
     await sideAndStart(ladderA, ladderB, "TT G2");
+    if (roomLinksMode) {
+      continuingSpectator = await joinSpectator(ladderRoomName, true, {
+        keep: true,
+        mobile: true,
+        slow: true,
+      });
+      await expect(continuingSpectator.getByTestId("duel-end-modal")).toBeHidden();
+      console.log("Cold mobile spectator caught up through G1 history to live TT G2");
+      const handsBefore = await continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count();
+      await expect(ladderA.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 20000 });
+      await ladderA.getByTestId("duel-phase-select").click();
+      await ladderA.getByTestId("duel-phase-end").click();
+      await expect.poll(
+        () => continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(),
+        { timeout: 30000 },
+      ).toBeGreaterThan(handsBefore);
+      console.log("Mobile spectator received a new live turn and draw after history catch-up");
+    }
     await surrender(ladderB);
+    if (continuingSpectator) {
+      await expect(continuingSpectator.getByTestId("duel-observer-wait")).toBeVisible({ timeout: 30000 });
+      await expect(continuingSpectator.getByTestId("duel-end-modal")).toBeHidden();
+    }
     await sideAndStart(ladderB, ladderA, "TT G3");
+    if (continuingSpectator) {
+      await expect(continuingSpectator.getByTestId("duel-observer-wait")).toHaveCount(0);
+      await expect.poll(
+        () => continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(),
+        { timeout: 30000 },
+      ).toBeGreaterThanOrEqual(10);
+      for (const life of await continuingSpectator.getByTestId("duel-player-life").all())
+        await expect(life).toHaveAttribute("data-life", "8000");
+      console.log("Mobile spectator followed live win, side decking and TT G3 automatically");
+    }
     await surrender(ladderA);
     for (const page of [ladderA, ladderB]) {
       await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
@@ -567,6 +623,10 @@ try {
       await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/match/);
     }
     await expect(ladderA.locator("#player-nickname")).toHaveValue("TTWebA$pass123");
+    if (continuingSpectator) {
+      await expect(continuingSpectator.locator("#player-nickname")).toBeVisible({ timeout: 30000 });
+      await continuingSpectator.context().close();
+    }
     console.log("TT Match completed G1-G3, both side phases and exit with retained nickname/password");
     await ladderB.close();
     await ladderA.close();

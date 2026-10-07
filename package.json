@@ -54,6 +54,7 @@
     "test:pm2-tunnel": "node scripts/test_pm2_tunnel.mjs",
     "test:tunnel-wss": "python scripts/build_environment_assets.py && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --tunnel",
     "test:packet": "node scripts/test_packet_framer.mjs",
+    "test:duel-animation": "node --experimental-transform-types scripts/test_duel_animation.mjs",
     "test:smoke": "node scripts/smoke_ui.mjs",
     "test:mobile-ui": "python scripts/build_environment_assets.py && node scripts/mobile_ui.mjs",
     "test:duel-feedback": "python scripts/build_environment_assets.py && node scripts/duel_feedback_ui.mjs",

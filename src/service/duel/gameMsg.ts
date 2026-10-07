@@ -9,6 +9,7 @@ import onMsgAttack from "./attack";
 import onMsgAttackDisable from "./attackDisable";
 import onMsgBecomeTarget from "./becomeTarget";
 import onMsgCardHint from "./cardHint";
+import { isObserver } from "./catchUp";
 import onMsgChainEnd from "./chainEnd";
 import onMsgChaining from "./chaining";
 import onMsgChainSolved from "./chainSolved";
@@ -92,7 +93,7 @@ export default async function handleGameMsg(
   if (ActiveList.includes(msg.gameMsg)) {
     showWaiting(false);
 
-    if (replayStore.isReplay) return;
+    if (replayStore.isReplay || isObserver(container)) return;
   }
 
   switch (msg.gameMsg) {

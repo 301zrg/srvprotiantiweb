@@ -15,6 +15,16 @@ export default async (
   start: ygopro.StocGameMessage.MsgStart,
 ) => {
   const context = container.context;
+  if (
+    start.playerType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
+  ) {
+    // A late spectator receives earlier games of the same match too. There
+    // is no player result dialog to reset their field between games.
+    context.cardStore.reset();
+    context.matStore.reset();
+    context.placeStore.reset();
+    context.historyStore.reset();
+  }
   // 先初始化`matStore`
   context.matStore.selfType = start.playerType;
   context.matStore.observerSwapped = Boolean(
@@ -26,6 +36,7 @@ export default async (
   if (context.sideStore.stage !== SideStage.NONE) {
     // 更新Side状态
     context.sideStore.stage = SideStage.DUEL_START;
+    context.roomStore.stage = RoomStage.DUEL_START;
   } else {
     // 临时添加，防止上局在`EndModal`里面通过判断`conn.isClosed`返回
     // Match页了，但是`handleDuelEnd`继续执行，这时候`matStore.duelEnd`是true

@@ -13,6 +13,12 @@ const manuallyClosed = new WeakSet<WebSocketStream>();
 export class WebSocketStream {
   public ws: WebSocket;
   stream: ReadableStream;
+  pendingMessages = 0;
+  pendingPackets = 0;
+
+  get cancelled() {
+    return manuallyClosed.has(this);
+  }
 
   constructor(
     ip: string,
@@ -43,6 +49,7 @@ export class WebSocketStream {
       start(controller) {
         // 当Websocket有数据到达时，加入队列
         ws.onmessage = (event) => {
+          owner.pendingMessages++;
           controller.enqueue(event);
         };
         ws.onclose = (ev) => {
@@ -76,7 +83,8 @@ export class WebSocketStream {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done || this.cancelled) break;
+        this.pendingMessages--;
         await onMessage(value);
       }
     } catch (error) {

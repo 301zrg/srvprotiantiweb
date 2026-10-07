@@ -58,8 +58,11 @@ async function _handle(
   framer: YgoProPacketFramer,
 ) {
   const packets = framer.push(e.data);
+  container.conn.pendingPackets = packets.length;
 
   for (const packet of packets) {
+    if (container.conn.cancelled) return;
+    container.conn.pendingPackets--;
     const pb = adaptStoc(packet);
 
     switch (pb.msg) {

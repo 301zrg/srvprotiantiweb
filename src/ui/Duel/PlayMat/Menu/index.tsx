@@ -37,6 +37,8 @@ import {
   DEFAULT_REPLAY_ADVANCE_MASK,
   matStore,
   replayStore,
+  SideStage,
+  sideStore,
 } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
@@ -299,6 +301,7 @@ export const Menu = () => {
     };
   }, []);
   const container = getUIContainer();
+  const { stage: sideStage } = useSnapshot(sideStore);
   const { t: i18n } = useTranslation("Menu");
   const {
     currentPlayer,
@@ -471,6 +474,15 @@ export const Menu = () => {
       </Tooltip>
       {observing ? (
         <>
+          {sideStage === SideStage.WAITING && (
+            <span
+              className={styles["observer-wait"]}
+              data-testid="duel-observer-wait"
+              role="status"
+            >
+              {text.observerWaitSide}
+            </span>
+          )}
           <Button
             data-testid="duel-switch-view"
             aria-label={text.switchView}

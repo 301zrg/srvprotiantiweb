@@ -4,6 +4,8 @@ import MsgToss = ygopro.StocGameMessage.MsgToss;
 import { Container } from "@/container";
 import { AudioActionType, playEffect } from "@/infra/audio";
 
+import { shouldSkipDuelAnimation } from "./catchUp";
+
 export default async (container: Container, toss: MsgToss) => {
   const context = container.context;
   const player = toss.player;
@@ -30,6 +32,6 @@ export default async (container: Container, toss: MsgToss) => {
     }
 
     // 等待1s，不然多个结果刷新太快了
-    await sleep(1000);
+    if (!shouldSkipDuelAnimation(container)) await sleep(1000);
   }
 };

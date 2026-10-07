@@ -5,7 +5,7 @@ import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
 import { AudioActionType, changeScene } from "@/infra/audio";
-import { resetUniverse, roomStore } from "@/stores";
+import { resetUniverse, RoomStage, roomStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
 import { duelWebSocketUrl, validateDuelWebSocketUrl } from "@/variant";
@@ -58,7 +58,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
     () => link?.room ?? joinFormDraft.roomName ?? "",
   );
   const [connecting, setConnecting] = useState(false);
-  const { joined, errorMsg, selfType } = useSnapshot(roomStore);
+  const { joined, errorMsg, selfType, stage } = useSnapshot(roomStore);
   const connection = useSnapshot(connectionStore);
   const { message } = App.useApp();
   const navigate = useNavigate();
@@ -71,8 +71,10 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
       joined &&
       (!spectate || selfType === ygopro.StocTypeChange.SelfType.OBSERVER)
     )
-      navigate("/waitroom", { replace: !!link });
-  }, [joined, selfType, spectate, link, navigate]);
+      navigate(stage === RoomStage.DUEL_START ? "/duel" : "/waitroom", {
+        replace: !!link,
+      });
+  }, [joined, selfType, stage, spectate, link, navigate]);
 
   useEffect(() => {
     if (

@@ -12,6 +12,15 @@
   overflow: hidden;
 }
 
+.observer-wait {
+  align-self: center;
+  max-width: 240px;
+  padding: 0 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #c8def8;
+}
+
 :global(.ant-dropdown-menu-item) {
   gap: 0.5rem;
 }

@@ -89,7 +89,11 @@ try {
               }, 0);
               return;
             }
-            const running = decode(packet.slice(11)) === "M#TT,RANDOM#12345";
+            const roomName = decode(packet.slice(11));
+            const running =
+              roomName === "M#TT,RANDOM#12345" ||
+              roomName.startsWith("SLOW-SPECTATE") ||
+              roomName === "HISTORY-MATCH";
             setTimeout(() => {
               mock.ack = true;
               const host = new Uint8Array(20),
@@ -126,6 +130,24 @@ try {
                 v.setUint16(9, 40, true);
                 v.setUint16(13, 40, true);
                 this.emit(1, [4, ...start]);
+                if (roomName === "HISTORY-MATCH") {
+                  this.emit(1, [5, 0, 0]); // Earlier game in the same match.
+                  this.emit(8, []); // Players side deck; observers stay connected.
+                  this.emit(21, []);
+                  this.emit(1, [4, ...start]);
+                  v.setInt32(1, 4800, true);
+                  this.emit(1, [5, 1, 0]);
+                  this.emit(8, []);
+                  this.emit(21, []);
+                  this.emit(1, [4, ...start]); // Current third game.
+                  this.emit(1, [90, 0, 1, 0, 0, 0, 0]);
+                }
+                if (roomName.startsWith("SLOW-SPECTATE")) {
+                  this.emit(1, [90, 0, 1, 0, 0, 0, 0]); // Public hidden draw.
+                  const life = new Uint8Array(4);
+                  new DataView(life.buffer).setInt32(0, 5500, true);
+                  this.emit(1, [94, 0, ...life]);
+                }
               }
             }, 30);
           } else if (packet[2] === 33) {
@@ -147,9 +169,17 @@ try {
       window.WebSocket = MockWebSocket;
     });
     const errors = [];
-    async function open(query, outer = false) {
+    async function open(query, outer = false, slowDuel = false) {
       const page = await context.newPage();
       page.on("pageerror", (error) => errors.push(error.message));
+      if (slowDuel)
+        await page.route(
+          built ? /\/assets\/Main-[^/]+\.js$/ : "**/src/ui/Duel/Main.tsx",
+          async (route) => {
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+            await route.continue();
+          },
+        );
       await page.goto(`${origin}${outer ? "?" : "#/match?"}${query}`, {
         waitUntil: "domcontentloaded",
         timeout: 60000,
@@ -256,6 +286,105 @@ try {
       "SavedPlayer",
     );
     await running.close();
+
+    // A cold phone can take longer than the old one-second start delay to
+    // mount card components. History must still finish and live updates work.
+    const slow = await open("room=SLOW-SPECTATE&spectate=1", false, true);
+    await expect(slow.getByTestId("duel-switch-view")).toBeVisible({
+      timeout: 20000,
+    });
+    const nearLife = slow.locator(
+      '[data-testid="duel-player-life"][data-player="me"]',
+    );
+    await expect(nearLife).toHaveAttribute("data-life", "5500", {
+      timeout: 5000,
+    });
+    await slow.evaluate(() => {
+      const life = new Uint8Array(4);
+      new DataView(life.buffer).setInt32(0, 5100, true);
+      window.__roomSocket.emit(1, [94, 0, ...life]);
+    });
+    await expect(nearLife).toHaveAttribute("data-life", "5100");
+    await expect(slow.locator('[data-testid="duel-card"][data-card-zone="HAND"]')).toHaveCount(1);
+    if (!built) {
+      const animation = await slow.evaluate(async () => {
+        const { asyncStart } = await import("/src/ui/Duel/PlayMat/Card/springs/utils.ts");
+        const { getUIContainer } = await import("/src/container/compat.ts");
+        const conn = getUIContainer().conn;
+        const makeApi = () => ({
+          starts: 0, stops: 0, values: {},
+          start() { this.starts++; return [new Promise(() => {})]; },
+          stop() { this.stops++; },
+          set(values) { this.values = values; },
+        });
+        // A suspended spring never fires onResolve. Its timeout must release
+        // the caller and commit the requested final position.
+        conn.pendingMessages = 0;
+        const suspended = makeApi(), before = performance.now();
+        await asyncStart(suspended)({ x: 42 });
+        const duration = performance.now() - before;
+        // Buffered observer history skips presentation but applies state.
+        conn.pendingMessages = 1;
+        const catchup = makeApi();
+        await asyncStart(catchup)({ x: 73 });
+        conn.pendingMessages = 0;
+        const background = makeApi();
+        const pending = asyncStart(background)({ y: 15 });
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+        await pending;
+        delete document.hidden;
+        return { suspended, duration, catchup, background };
+      });
+      assert.equal(animation.suspended.stops, 1);
+      assert.equal(animation.suspended.values.x, 42);
+      assert.ok(animation.duration >= 2900 && animation.duration < 4500);
+      assert.equal(animation.catchup.starts, 0);
+      assert.equal(animation.catchup.values.x, 73);
+      assert.equal(animation.background.stops, 1);
+      assert.equal(animation.background.values.y, 15);
+    }
+    await slow.getByTestId("duel-leave-spectating").click();
+    await expect(slow.locator("#player-nickname")).toBeVisible();
+    await slow.close();
+
+    const history = await open("room=HISTORY-MATCH&spectate=1");
+    await expect(history.getByTestId("duel-switch-view")).toBeVisible({
+      timeout: 20000,
+    });
+    const historyLife = history.locator(
+      '[data-testid="duel-player-life"][data-player="me"]',
+    );
+    await expect(historyLife).toHaveAttribute("data-life", "4800", {
+      timeout: 12000,
+    });
+    await expect(history.getByTestId("duel-end-modal")).toBeHidden();
+    await expect(history.getByTestId("duel-card")).toHaveCount(106);
+    await expect(history.locator('[data-testid="duel-card"][data-card-zone="HAND"]')).toHaveCount(1);
+    await history.evaluate(() => {
+      window.__roomSocket.emit(1, [5, 0, 0]);
+      window.__roomSocket.emit(8, []);
+    });
+    await expect(history.getByTestId("duel-observer-wait")).toBeVisible();
+    await expect(history.getByTestId("duel-end-modal")).toBeHidden();
+    await expect(history.getByTestId("duel-leave-spectating")).toBeEnabled();
+    await history.evaluate(() => {
+      const start = new Uint8Array(17), view = new DataView(start.buffer);
+      start[0] = 0x11;
+      view.setInt32(1, 8000, true);
+      view.setInt32(5, 7000, true);
+      view.setUint16(9, 40, true);
+      view.setUint16(13, 40, true);
+      window.__roomSocket.emit(21, []);
+      window.__roomSocket.emit(1, [4, ...start]);
+    });
+    await expect(historyLife).toHaveAttribute("data-life", "8000");
+    await expect(history.getByTestId("duel-observer-wait")).toHaveCount(0);
+    await expect(history.getByTestId("duel-card")).toHaveCount(106);
+    await expect(history.locator('[data-testid="duel-card"][data-card-zone="HAND"]')).toHaveCount(0);
+    await history.getByTestId("duel-leave-spectating").click();
+    await expect(history.locator("#player-nickname")).toBeVisible();
+    await history.close();
 
     const locked = await open("room=locked&spectate=1&autojoin=0", true);
     await expect(locked.locator("#player-nickname")).toHaveValue(
@@ -400,6 +529,9 @@ try {
       roleConfirmed: true,
       existingNicknamePreserved: true,
       runningRoom: true,
+      coldSpectatorHistory: true,
+      automaticMatchContinuation: true,
+      boundedAnimations: !built,
       prefillOnly: true,
       invalidLinksBlocked: true,
     });
