@@ -1,6 +1,7 @@
 import { createHashRouter, RouterProvider } from "react-router-dom";
 
 import { ResourceLoadError } from "@/infra/resource";
+import { captureDeckImport } from "@/variant/deckImportSession";
 import { normalizeRoomLink } from "@/variant/roomLink";
 
 import { Component, ErrorBoundary, loader } from "./Layout";
@@ -19,6 +20,7 @@ async function loadPage<T>(name: string, load: () => Promise<T>): Promise<T> {
   }
 }
 
+captureDeckImport();
 const roomLinkUrl = normalizeRoomLink(new URL(window.location.href));
 if (roomLinkUrl)
   window.history.replaceState(window.history.state, "", roomLinkUrl);
@@ -41,6 +43,10 @@ const router = createHashRouter([
       {
         path: "/build",
         lazy: () => loadPage("decks", () => import("./BuildDeck")),
+      },
+      {
+        path: "/import",
+        lazy: () => loadPage("deck import", () => import("./ImportDeck")),
       },
       {
         path: "/waitroom",
