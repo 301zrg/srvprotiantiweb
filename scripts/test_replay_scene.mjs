@@ -29,14 +29,16 @@ try {
   const kinds = new Set();
   let batches = 0,
     visible = 0;
-  for (const name of [
+  const fixtures = [
     "native-deckout",
     "native-battle-equip",
     "native-monk-flip",
-  ]) {
-    let scene = seedScene(
-      engine.open(readFileSync(`tests/fixtures/replay/${name}.yrp`)),
-    );
+    "native-confirm-search",
+  ].map((name) => `tests/fixtures/replay/${name}.yrp`);
+  if (process.env.SRVPRO_REPLAY_FIXTURE)
+    fixtures.push(process.env.SRVPRO_REPLAY_FIXTURE);
+  for (const fixture of fixtures) {
+    let scene = seedScene(engine.open(readFileSync(fixture)));
     assert.deepEqual(
       seedScene(scene, {
         ...scene,
