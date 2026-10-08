@@ -15,13 +15,15 @@ import { createHash } from "node:crypto";
 const root = resolve("."),
   server = resolve(process.argv[2] || "../../../srvprotianti");
 const monk = process.argv.includes("--monk"),
-  battle = monk || process.argv.includes("--battle");
+  confirm = process.argv.includes("--confirm"),
+  battle = monk || confirm || process.argv.includes("--battle");
 const table = readFileSync("public/replay/706-v1/cards.data"),
   validCodes = new Set();
 for (let p = 0; p < table.length; p += 80)
   validCodes.add(table.readUInt32LE(p));
 for (const code of [
   44178886, 21502796, 69247929, 69140098, 40619825, 89631139, 46986414,
+  91188343, 64734921,
 ])
   if (!validCodes.has(code))
     throw new Error(`Synthetic input card is missing: ${code}`);
@@ -136,7 +138,13 @@ try {
           deck.writeUInt32LE(40);
           for (let i = 0; i < 40; i++)
             deck.writeUInt32LE(
-              monk
+              confirm
+                ? player === 0
+                  ? i % 2
+                    ? 64734921
+                    : 91188343
+                  : 46986414
+                : monk
                 ? player === 0
                   ? 44178886
                   : 21502796
@@ -185,7 +193,9 @@ try {
         }
         if (code === 16)
           socket.write(packet(1, u32(monk && body[4] && body[2] ? 0 : -1)));
-        if (code === 12 || code === 13) socket.write(packet(1, u32(0)));
+        if (code === 12 || code === 13)
+          socket.write(packet(1, u32(confirm && player === 0 ? 1 : 0)));
+        if (code === 14) socket.write(packet(1, u32(0)));
         if (code === 15) {
           const n = body[3];
           socket.write(
@@ -234,7 +244,11 @@ try {
             }
           }
         }
-        if (player === 0 && [40, 41, 5, 91, 92, 100, 60, 70].includes(code))
+        if (
+          player === 0 &&
+          ([40, 41, 5, 91, 92, 100, 60, 70].includes(code) ||
+            (confirm && code === 31))
+        )
           trace.push({ code, data: Array.from(body.subarray(1)) });
       }
     });
@@ -246,7 +260,9 @@ try {
   }
   const target = join(root, "tests/fixtures/replay");
   mkdirSync(target, { recursive: true });
-  const name = monk
+  const name = confirm
+    ? "native-confirm-search"
+    : monk
     ? "native-monk-flip"
     : battle
     ? "native-battle-equip"
