@@ -66,6 +66,6 @@ BiliToy 专用上传包通过 `npm run package:bilitoy -- --wss-url wss://实际
 
 源码发布在 [301zrg/srvprotiantiweb](https://github.com/301zrg/srvprotiantiweb)。建议通过分支和 Pull Request 提交改动；提交前运行上文列出的资源检查、类型检查、lint 与构建。`resources-staging/1103/` 中的原始资源按字节锁定，修改须同步更新资源审计与 revision。不要提交 `.env.local`、证书、真实玩家凭据、未授权卡组或录像。用户确认第一期已可使用，具体测试记录及历史待测项见施工清单。
 
-第二期录像首版已在 `codex/replay-phase2` 实现：首页「录像库」支持本地导入／原件下载、对局结束自动保存、标准 YRP2／UNIFORM `0x1362` 在固定旧裁定环境内播放，以及暂停、单步、倍速、跳回合和切视角。YRP1／双打／谜题／其他版本／旧 `.yrp3d` 暂仅保存与下载。三份原生样本、Single／TT 三局 WSS 捕获、存储失败和桌面／触屏尺寸回归通过；真实 Android／iOS 与正式服样本仍待验收。普通静态试用执行 `npm ci --include=dev`、`npm run build:static`、`npm run preview:static`，无需 Python 或 Emscripten。[使用、资源锁与证据](docs/replay-usage.md)、[第二期设计](docs/replay-phase2-plan.md)。本轮不改天梯官网 HTML。
+第二期录像首版已在 `codex/replay-phase2` 实现：首页「录像库」支持本地导入／原件下载、对局结束自动保存、标准 YRP2／UNIFORM `0x1362` 在固定旧裁定环境内播放，以及暂停、单步、倍速、跳回合和切视角。YRP1／双打／谜题／其他版本／旧 `.yrp3d` 暂仅保存与下载。三份原生样本、Single／TT 三局 WSS 捕获、存储失败和桌面／触屏尺寸回归通过；真实 Android／iOS 与正式服样本仍待验收。普通静态试用执行 `npm ci --include=dev`、`npm run build:static`、`npm run preview:static`，无需 Python 或 Emscripten。[使用、资源锁与证据](docs/replay-usage.md)、[第二期设计](docs/replay-phase2-plan.md)。后续授权的官网配套已实现，见 [录像接收](docs/replay-import.md)；先发布网页版，再上传官网文件。
 
 网页版已单独实现卡组接收入口：公开内容链接支持 YDK、原生 deckbuffer、三分区 JSON，受限卡组支持指定来源的跨窗口交接；保存后进入编辑器，同名另存、同内容复用，存储失败可临时编辑并下载备份。参数、白名单、来源页消息格式与本地试用见 [卡组接收说明](docs/deck-import.md)。本次未修改天梯官网按钮；官网改造和录像入口的后续方案见 [官网一键打开调研](docs/website-replay-deck-handoff-research.md)。
