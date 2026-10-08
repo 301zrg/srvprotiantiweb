@@ -74,3 +74,5 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 本机验证记录：Node 24.15.0、Python 3.13.14。无 `.env.local`、未初始化上游子模块的干净检出已通过 `npm ci --include=dev`、`npm run build:cloudflare`、资源校验及 Wrangler 4.148.0 的 `--dry-run`；核对 99 个静态文件、四语卡库、WASM、公开 WSS 配置、no-store 响应头与源码提交号，最大单文件约 2.40 MB。缺少 WSS 时会在构建前失败。Cloudflare 账号连接、Ubuntu 构建镜像和正式部署仍需由站点所有者完成首次运行后确认；本机 dry-run 没有上传或修改现有线上站点。
 
 修复 `_sqlite3` 后的验证：快照测试覆盖空目录精确还原、LF／CRLF 指纹一致、卡库／生成规则／归档篡改拒绝、解压上限及路径越界拒绝；原 Python 校验确认四语 5,267 卡 ruleset 和 134 条禁表不变。独立检出将 PATH 中的 Python 替换为立即报错的测试程序，`npm run build:cloudflare` 仍完成资源还原、Vite 与复制，核对 99 个静态文件，Wrangler dry-run 通过；整个云端命令不再需要 `_sqlite3`。真实 Cloudflare 重试状态与发布提交需继续核对，不把本机成功算作云端部署成功。
+
+2026-10-08 真实云端验收：构建 `854bace4-2694-49fa-8c6d-9cc7363ddc5b` 返回 success，`deployment-info.json.sourceCommit` 为 `17aa0c2562fdbd8902dc6481b6a06cd90d3fdf96`。核对 25 个 JS／CSS 和四语卡库／strings／禁表完整 SHA；Edge 桌面／390px 触控尺寸的首页、联机表单、示例卡组、参数卡组导入与 Hash 清理通过，公开配置未被测试覆盖；真实网页 origin 的浏览器 WSS 握手成功。未登录玩家或运行比赛，未做 iOS 真机测试。无需为本次部署重启 SRVPro、Nginx 或隧道。

@@ -1,6 +1,6 @@
 # 第二期：本地录像库、对局自动保存与标准录像播放
 
-更新：2026-10-07。状态：**调研与规划完成后交用户确认，尚未开工**。用户确认第一期已可使用；本期“上传”已确认是选择本机文件导入浏览器，不上传云端。本文补充主设计 P4–P5，不把源码核查当作播放验收。
+更新：2026-10-08。状态：**第二期首版已实现，R0–R3 的本地自动化验收通过，R4 真机与生产样本待验收**。用户确认第一期已可使用；本期“上传”已确认是选择本机文件导入浏览器，不上传云端。本文补充主设计 P4–P5；实际使用、构建与证据见 [录像说明](replay-usage.md)，不把源码核查或触屏模拟当作真机验收。用户后续已授权官网 HTML 配套，[录像接收](replay-import.md) 与官网按钮分别交付，不自动上传服务器。
 
 ## 1. 本期交付与边界
 
@@ -25,15 +25,15 @@
 
 | 核查对象 | 本轮结论 |
 | --- | --- |
-| 网页现有播放器代码 | [replay.ts](../src/api/ocgcore/replay.ts) 解析 `.yrp3d` 消息记录，不解压、重演标准 `.yrp`。现路由没有录像入口；保留的播放控制及测试只提供可复用基础。当前 SQLite WASM 不是录像 Core |
-| 原生录像接收 | [onSocketMessage.ts](../src/service/onSocketMessage.ts) 和 adapter 尚未处理 `STOC_REPLAY 0x17`，未知包会走默认日志；实现时先捕获原始 payload，避免打印完整录像 |
+| 上游播放器代码 | [replay.ts](../src/api/ocgcore/replay.ts) 只解析 `.yrp3d` 消息记录；新标准播放器位于 `src/replay/` 与 `src/ui/Replay/`，经 `#/replays` 进入。SQLite WASM 与录像 Core 不同 |
+| 原生录像接收 | [stream.ts](../src/infra/stream.ts) 已在动画队列之前用独立 framer 捕获 `0x17` 原件；[onSocketMessage.ts](../src/service/onSocketMessage.ts) 跳过该包，不打印完整录像 |
 | 清理行为 | [resetUniverse](../src/stores/index.ts) 会重置 `replayStore`；持久库和待保存队列必须独立于对局 UI 清理 |
 | 服务器尾包 | `CLIENT_send_replays()`、`DUEL_END` 和 `REPLAY` hook 可在 Match 末连续发送多局；大会模式可阻止给玩家录像。未下发不能宣称已保存 |
 | 本地原生格式 | [replay.h](../../srvprotianti/ygopro/gframe/replay.h) 定义 32 字节基础头；本地 YRP2 扩展头为 80 字节，含 8 个 32 位 seed 和扩展字段；解码按版本分支，不给其他格式套同一偏移 |
 | 压缩与规则 | 当前源码是 raw LZMA1／LZMA1EXT，props 和解压长度在头中；`REPLAY_UNIFORM=0x10`，Tag 和单人谜题另有标志。不是 ZIP、gzip 或视频文件 |
 | 脚本初始化 | 本地 Core 的 interpreter 默认只加载 `constant.lua → utility.lua → procedure.lua`，没有自动加载 `special.lua` |
 
-本地候选快照如下，**不代表已确认的正式服务器运行版本**。本轮没有读取生产私密配置、下载真实玩家录像、编译 WASM 或执行重放。
+本地候选快照如下，**不代表已确认的正式服务器运行版本**。本轮已经编译 WASM，并用隔离原生实例生成和重演脱敏录像；没有读取生产私密配置或下载真实玩家录像。
 
 | 输入 | 已核对的版本／规模 |
 | --- | --- |
@@ -61,10 +61,10 @@ flowchart LR
   CDN[外部静态资源 / 固定版本] --> Worker[Worker: 解压 + Core WASM + Lua]
   Player --> Worker
   Worker --> Bridge[GAME_MSG 与必要场地查询]
-  Bridge --> UI[现有决斗 UI / 手机播放控件]
+  Bridge --> UI[独立只读区域界面 / 手机播放控件]
 ```
 
-优先将与服务器兼容的原 Core、Lua 和 raw LZMA 解码器编译为单线程 WASM，给旧 C API 增加很薄的绑定。需要保留多 seed、`set_responseb`、`query_*`、脚本／卡片读取回调与错误输出。Emscripten 支持 C/C++ 与 JS 调用及文件打包，技术路径成立；实际构建、包体、异常处理和手机性能留给 R0 验证。[调用机制](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html)、[文件打包](https://emscripten.org/docs/porting/files/packaging_files.html)。
+已将上述候选 Core、Lua 和 raw LZMA 解码器编译为单线程 WASM，保留多 seed、`set_responseb`、完整 `query_*`、同步读卡／读脚本回调与有界错误输出；桥接见 `runtime/replay/core_bridge.cpp`。固定首播资源约 6.60 MiB，编译与内核回归通过，手机真机性能仍待测。[调用机制](https://emscripten.org/docs/porting/connecting_cpp_and_javascript/Interacting-with-code.html)、[文件打包](https://emscripten.org/docs/porting/files/packaging_files.html)。
 
 已有 [n1xx1/ocgcore-wasm](https://github.com/n1xx1/ocgcore-wasm) 可参考绑定和构建方式，但它使用 EDOPro Core，示例是另一套 seed/API，异步版本还要求 JSPI。**本期不直接换成这个内核**；将它用于当前旧录像之前必须另证随机序列、规则、Lua 与消息 ABI 一致，不能因“同为 ocgcore”就认为兼容。
 
@@ -124,9 +124,9 @@ Worker 先验证并加载固定资源，注册同步 CardReader／ScriptReader�
 
 初始建议由已锁定 CDB 在构建时生成精确的 Core 卡数据表，Worker 同步按 ID 查询；其生成源 SHA 写进资源 manifest。以核对后的服务器有效 datas 为依据：与当前 1103 基线一致时复用，不一致时列出规则字段差异并建立兼容 profile，不能拿现代数据库静默替代。保留 alias、type、setcode、Token 及跨卡依赖，64 位整数不能经过 JS Number 舍入。卡文和语言可以切换，但不能改变播放时固定的规则数据。
 
-回放桥接先从头信息和初始牌组建立姓名、LP、规则、视角及场地状态，必要时合成 UI 使用的初始 START，不能假定 Core 自动给出在线服务器才生成的入场消息。Core 输出需分割真实 GAME_MSG，并按原生 ReplayRefresh 时机执行 `query_card/query_field_card`，生成 UI 所需的 UPDATE_DATA／UPDATE_CARD；只把 `get_message()` 顺序喂给 UI 会缺实时攻守、素材和指示物更新。沿用已修复的 adapter 和决斗 UI，复测禁止令宣言、素材、实时 ATK/DEF、双方姓名／生命值／视角映射。
+实际首版先从头信息建立姓名与规则，每个可显示步骤直接查询 Core 的 LP、回合、阶段、当前玩家及双方所有区域，关闭 query 缓存，读取实时 ATK/DEF、素材和指示物。`messages.ts` 按该原生版本的消息长度拆分 GAME_MSG，宣言卡另行跟踪。不能只把 `get_message()` 顺序喂给 UI，否则会缺这些状态。
 
-播放器建立独立 `ReplayContext` 和只读 transport。当前部分 service／播放控制引用全局 store，涉及的路径需改为显式上下文；不让回放进入在线时间确认、选卡响应、准备、聊天、弃权或重连逻辑。原生选择由录像 response 驱动，不要求用户再选择一次。活跃在线会话和回放不得共用 singleton，离开回放不重置保存队列或用户联机草稿。
+实现选择独立 `ReplayEngine`／Worker 和只读区域界面，而不复用仍引用在线全局 store 的 service／决斗组件，避免播放意外触发时间确认、选卡响应、准备、聊天、弃权或重连。复用四语卡片 API、卡图与详情数据，原生选择由录像 response 驱动。进入录像页关闭该标签页原有连接，离开播放终止 Worker，不重置保存队列、组卡或联机草稿。以后若统一场地外观，应先把共享展示组件与在线响应拆开，保留本轮隔离回归。
 
 倍速只是提高显示推进速度，不改变 Core 决策。单步按有效状态事件推进；跳到回合通过确定性重演和有界快进实现，显示进度并可取消。没有状态快照时不承诺任意进度条瞬时跳转；重新开始和跳回需销毁旧 duel、从同一 seed／资源重建。暂停停止请求后续批次，切后台自动暂停。
 
@@ -181,7 +181,7 @@ Cloudflare Pages 单文件限制当前是 25 MiB，因此按压缩后的实物�
 
 ## 9. 施工顺序与验收门槛
 
-下表全是**待开工的任务**，没有已实现项。用户确认后先做 R0，再推进可并行的库与捕获，避免 UI 做完才发现历史内核不兼容。
+2026-10-08 用户已授权施工。R0 历史内核、R1 本地库、R2 网络捕获和 R3 播放已实现；验收用原生脱敏样本及隔离 WSS。下表保留完整门槛，未有设备或生产证据的项仍待测，不宣称整张矩阵已完成。
 
 | 阶段 | 工作 | 完成门槛 |
 | --- | --- | --- |
@@ -208,4 +208,10 @@ Cloudflare Pages 单文件限制当前是 25 MiB，因此按压缩后的实物�
 
 测试用隔离服务器和明确允许发布的脱敏录像；真实玩家原始录像含牌组，不直接提交公开仓库。保留头信息、资源 manifest 和生成来源；正常文件至少比较初始牌组／起手、回合阶段、关键事件、LP、实时属性、赢家及 response 消费，不能只对最终画面做截图。
 
-本轮已完成源码和公开资料调研，核对桌面 special 处理、远端补丁 SHA 与本地副本、基础脚本规模及候选版本，并形成上述范围、结构、限额和验收计划。未修改运行时代码、生成播放资源或部署正式服。下一步由用户确认本计划并宣布第二期开工。
+前期已完成源码和公开资料调研，核对桌面 special 处理、远端补丁 SHA 与本地副本、基础脚本规模及候选版本，并形成上述范围、结构、限额和验收计划。2026-10-08 用户已授权本轮自动部署验收后开工，不再等待第二次开工确认。
+
+施工准备记录：已建立 `codex/replay-phase2` 独立工作分支，并合入已成功自动发布的 `17aa0c25` 构建修复；尚未向发布分支合入录像功能。Cloudflare 真实构建成功，线上提交号匹配；25 个 JS／CSS、四语卡库／strings／禁表 SHA、桌面与手机尺寸首页／组卡／卡组参数导入、浏览器 WSS 正常握手均通过，没有发送玩家登录或对局请求。自动部署门槛已满足，进入录像 R0。
+
+复核本地候选 Core／基础脚本仍为第 2 节所列提交，原始响应上限需以实际 Core 的 `SIZE_RETURN_VALUE=256` 和文件单字节长度为准，不套旧实现常见的 64 字节假设；CardReader 还包含规则 alias 转换与额外系列码，应连同 datas 一起复制其有效语义。当前 Docker daemon 未运行，WSL 枚举不可用；已在项目忽略目录安装官方 Emscripten 4.0.23（emsdk 提交 `c0bb220cb6e6f4e0fabb6f6db9efd53390ef5e56`），后续生成固定 WASM 资源和可复现构建说明。
+
+施工结果：已生成固定 WASM、5267 张 Core 卡表和 13542 份完整 Lua，复用核对过的现有 special bootstrap，仅调用一次。三份原生 fixture 共 483 个检查点、738 条响应匹配，重新开始全帧摘要相同；武僧样本移除反转效果 hook 后产生可区分差异。存储事务、失败回滚、旧会话隔离和触屏尺寸播放器通过；真实本地 Single 与 TT G1–G3 的原始尾包逐字节入库，并验证换备与首次重新入房。实际 Core 对象的素材与指示物完整查询及本地 BiliToy 相对路径 iframe 播放也已通过。神警部分目前是实际 Card／Effect 与受控参数边界测试，完整原生神警对局、更多特殊状态、正式服授权样本、Android／iOS 真机和平台实际 iframe 仍须补验。[详细证据与命令](replay-usage.md)。

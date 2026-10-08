@@ -128,12 +128,43 @@ try {
     assert.ok(content.includes("#main") && content.includes("#extra") && content.includes("!side"));
     assert.equal(content.split(/\r?\n/).filter(line => /^\d+$/.test(line)).length, 40);
     await frame.locator('input[type="file"]').setInputFiles({ name: "Toy-import.ydk", mimeType: "text/plain", buffer: Buffer.from(content) });
-    await expect(frame.getByTestId("deck-name")).toHaveValue("Toy-import");
+    // An identical imported deck reuses the existing saved entry.
+    await expect(frame.getByTestId("deck-name")).toHaveValue(savedName);
     await frame.goto(`${origin}/toy/square/456-v1/index.html#/build`, { waitUntil: "domcontentloaded" });
     await expect(frame.getByTestId("deck-name")).toHaveValue("1103-sample", { timeout: 30000 });
     assert.equal(await frame.evaluate(() => localStorage.getItem("language")), "en");
     const databases = await frame.evaluate(async () => (await indexedDB.databases()).map(db => db.name));
     assert.ok(databases.includes("decks") && databases.includes("srvprotiantiweb:bilitoy:square%2F123:decks") && databases.includes("srvprotiantiweb:bilitoy:square%2F456:decks"));
+    assert.ok(
+      ![...requested].some((path) => path.includes("/replay/706-v1/")),
+      "Existing entry points must not load Core/Lua",
+    );
+    await frame.goto(`${origin}/toy/square/123-v2/index.html#/replays`);
+    const replayFixture = resolve("tests/fixtures/replay/native-monk-flip.yrp");
+    await frame.locator('input[type="file"]').setInputFiles(replayFixture);
+    await expect(frame.locator(".replay-entry")).toHaveCount(1);
+    await frame.getByRole("button", { name: "播放", exact: true }).click();
+    await expect(
+      frame.locator(".replay-board,.replay-error").first(),
+    ).toBeVisible({ timeout: 60000 });
+    assert.equal(
+      await frame.locator(".replay-error").count(),
+      0,
+      "Replay in relative iframe path must initialize",
+    );
+    await frame.getByRole("button", { name: "单步", exact: true }).click();
+    await expect(frame.locator(".replay-progress")).toContainText("步骤 1");
+    await frame.getByRole("button", { name: "退出播放", exact: true }).click();
+    const replayDownload = page.waitForEvent("download");
+    await frame.getByRole("button", { name: "下载", exact: true }).click();
+    assert.deepEqual(
+      readFileSync(await (await replayDownload).path()),
+      readFileSync(replayFixture),
+    );
+    await frame.goto(`${origin}/toy/square/123-v3/index.html#/replays`);
+    await expect(frame.locator(".replay-entry")).toHaveCount(1);
+    await frame.goto(`${origin}/toy/square/456-v1/index.html#/replays`);
+    await expect(frame.locator(".replay-entry")).toHaveCount(0);
     assert.equal(sockets, 0, "No production WebSocket should be opened");
     assert.equal(errors.length, 0, errors.join("\n"));
     assert.ok([...requested].some(path => path.endsWith("/sql-wasm.wasm")), "Real SQLite WASM must load");
@@ -143,11 +174,11 @@ try {
         assert.ok([...requested].some(path => path.includes(`/${locale}/${resource}`)), `Missing ${locale}/${resource}`);
     await page.screenshot({ path: `${folder}/${name}.png`, fullPage: true });
     results.push({ name, viewport, fourLanguageResources: true, persistedAcrossVersionPaths: true,
-      ydkImportExport: true, separateToyStorage: true, wasmLoaded: true, onlineLoginSent: false });
+      ydkImportExport: true, replayImportPlaybackExport: true, replayVersionPersistence: true, separateToyStorage: true, wasmLoaded: true, onlineLoginSent: false });
     await context.close();
   }
   writeFileSync(`${folder}/results.json`, JSON.stringify({ root, results }, null, 2));
-  console.log("BiliToy upload UI passed: nested iframe paths, four languages, SQLite WASM, deck persistence, YDK import/export and Toy storage isolation.");
+  console.log("BiliToy upload UI passed: nested iframe paths, four languages, SQLite WASM, deck persistence, YDK import/export, replay import/playback/download and Toy storage isolation.");
 } finally {
   await browser?.close();
   await new Promise(resolve => server.close(resolve));

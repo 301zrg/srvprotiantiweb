@@ -16,10 +16,14 @@ export function initSocket(initInfo: {
   customOnConnected?: (conn: WebSocketStream) => void;
 }): WebSocketStream {
   const { ip, player, passWd, customOnConnected } = initInfo;
-  return new WebSocketStream(ip, (conn, _event) => {
-    handleSocketOpen(conn, ip, player, passWd);
-    customOnConnected && customOnConnected(conn);
-  });
+  return new WebSocketStream(
+    ip,
+    (conn, _event) => {
+      handleSocketOpen(conn, ip, player, passWd);
+      customOnConnected && customOnConnected(conn);
+    },
+    { room: passWd, nickname: player },
+  );
 }
 
 export function sendSocketData(conn: WebSocketStream, payload: Uint8Array) {

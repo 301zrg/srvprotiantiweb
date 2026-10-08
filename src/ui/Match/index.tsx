@@ -5,6 +5,7 @@ import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
 import { AudioActionType, changeScene } from "@/infra/audio";
+import { replayCaptureStatus } from "@/replay/capture";
 import { resetUniverse, RoomStage, roomStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
@@ -20,12 +21,12 @@ import {
 } from "@/variant/roomLink";
 
 import styles from "./index.module.scss";
-import { connectSrvpro, disconnectSrvpro } from "./util";
+import { connectSrvpro, disconnectSrvpro, finishSrvproReplays } from "./util";
 
 const joinFormDraft: { nickname?: string; roomName?: string } = {};
 
-export const loader = () => {
-  disconnectSrvpro();
+export const loader = async () => {
+  await finishSrvproReplays();
   resetUniverse();
   changeScene(AudioActionType.BGM_MENU);
   return null;
@@ -34,12 +35,44 @@ export const loader = () => {
 export const Component = () => {
   const { search } = useLocation();
   return (
-    <JoinRoomForm
-      key={search}
-      link={readRoomLink(new URLSearchParams(search))}
-    />
+    <>
+      <ReplayReceipt />
+      <JoinRoomForm
+        key={search}
+        link={readRoomLink(new URLSearchParams(search))}
+      />
+    </>
   );
 };
+
+function ReplayReceipt() {
+  const status = useSnapshot(replayCaptureStatus),
+    navigate = useNavigate();
+  if (status.state === "idle") return null;
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: 12,
+        left: 12,
+        right: 12,
+        zIndex: 20,
+        background: "#17212b",
+        color: "#fff",
+        padding: "8px 12px",
+        borderRadius: 8,
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+      role="status"
+    >
+      <span>{status.detail || "等待保存录像…"}</span>
+      <Button onClick={() => navigate("/replays")}>录像库</Button>
+    </div>
+  );
+}
 
 const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   const spectate = !!link?.spectate;

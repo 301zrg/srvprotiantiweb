@@ -4,6 +4,7 @@
 // 因此封装了一个`WebSocketStream`类，当每次Websocket连接中有消息到达时，往流中添加event，
 
 // 同时执行器会不断地从流中获取event进行处理。
+import { ReplayCapture } from "@/replay/capture";
 import { getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { siteMessages } from "@/variant/messages";
@@ -16,6 +17,7 @@ export class WebSocketStream {
   pendingMessages = 0;
   pendingPackets = 0;
   private cancellation = new AbortController();
+  public replayCapture: ReplayCapture;
 
   get signal() {
     return this.cancellation.signal;
@@ -28,7 +30,9 @@ export class WebSocketStream {
   constructor(
     ip: string,
     onWsOpen?: (conn: WebSocketStream, ev: Event) => any,
+    replayMeta?: { room: string; nickname: string },
   ) {
+    this.replayCapture = new ReplayCapture(replayMeta);
     connectionStore.state = "connecting";
     connectionStore.detail = "";
     connectionStore.pendingJoinMessage = "";
@@ -54,10 +58,15 @@ export class WebSocketStream {
       start(controller) {
         // 当Websocket有数据到达时，加入队列
         ws.onmessage = (event) => {
+          // Capture raw replay packets before slow UI animations consume the
+          // stream; this independent framer never changes the online packets.
+          if (event.data instanceof ArrayBuffer)
+            owner.replayCapture.receive(event.data);
           owner.pendingMessages++;
           controller.enqueue(event);
         };
         ws.onclose = (ev) => {
+          owner.replayCapture.stop();
           window.clearTimeout(timer);
           ws.onmessage = null;
           if (!manuallyClosed.has(owner)) {
@@ -105,6 +114,7 @@ export class WebSocketStream {
 
   // 关闭流
   close() {
+    this.replayCapture.stop();
     manuallyClosed.add(this);
     this.cancellation.abort();
     connectionStore.state = "idle";

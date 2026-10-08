@@ -1,0 +1,23 @@
+{
+  "source": {
+    "version": 1,
+    "coreCommit": "e04144d62499c17d0cfa8313f9742434ef99c3a7",
+    "luaVersion": "5.4.8",
+    "lzmaVersion": "5.8.3",
+    "emscriptenVersion": "4.0.23",
+    "emsdkCommit": "c0bb220cb6e6f4e0fabb6f6db9efd53390ef5e56"
+  },
+  "bridgeSha256": "5064caba0618e9712f33eb874fa0edbb77f8cdf24b634bc4add08bf429142714",
+  "memoryLimitBytes": 268435456,
+  "singleThreaded": true,
+  "files": {
+    "ocgcore.js": {
+      "sha256": "9c291b96611b22a18f971a005284e51b0a9b757c9945f63d1fc1e5a00f090e86",
+      "bytes": 21380
+    },
+    "ocgcore.wasm": {
+      "sha256": "61b29d631ff145c71ff7303311b49a61ed7985172cc226743756b809135c7dca",
+      "bytes": 1011601
+    }
+  }
+}

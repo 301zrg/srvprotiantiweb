@@ -37,6 +37,16 @@ export const Component = () => {
               <Button size="large" onClick={() => navigate("/build")}>
                 {text.edit}
               </Button>
+              <Button size="large" onClick={() => navigate("/replays")}>
+                {(
+                  {
+                    cn: "录像库",
+                    en: "Replays",
+                    ja: "リプレイ",
+                    ko: "리플레이",
+                  } as Record<string, string>
+                )[language] || "录像库"}
+              </Button>
             </div>
           </div>
 
