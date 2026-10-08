@@ -61,8 +61,8 @@
   max-width: 132px;
   box-sizing: border-box;
   transition:
-    left 300ms ease,
-    top 300ms ease;
+    left var(--replay-motion-ms, 300ms) ease,
+    top var(--replay-motion-ms, 300ms) ease;
   border-radius: 6px;
   z-index: 2;
   min-height: 146px;
@@ -120,10 +120,10 @@
   z-index: 4;
 }
 .replay-field-enter {
-  animation: replay-field-arrive 300ms ease;
+  animation: replay-field-arrive var(--replay-motion-ms, 300ms) ease;
 }
 .replay-field-leave {
-  animation: replay-field-depart 300ms ease forwards;
+  animation: replay-field-depart var(--replay-motion-ms, 300ms) ease forwards;
   pointer-events: none;
 }
 @keyframes replay-field-arrive {
@@ -202,6 +202,98 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
+}
+.replay-field-desktop .replay-field-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.replay-field-desktop .replay-field-heading .replay-field-player {
+  display: contents;
+}
+.replay-field-desktop .replay-field-heading strong {
+  order: 1;
+  max-width: 24%;
+  overflow-wrap: anywhere;
+}
+.replay-field-desktop .replay-field-heading .replay-field-player > span {
+  order: 3;
+  white-space: nowrap;
+}
+.replay-field-desktop .replay-field-toolbar {
+  order: 2;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.replay-field-desktop .replay-field-tools {
+  flex-shrink: 0;
+}
+.replay-field-desktop .replay-field-action {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.replay-field-desktop .replay-field-card,
+.replay-field-desktop .replay-field-pile {
+  min-height: 104px;
+  height: 104px;
+  padding: 3px;
+}
+.replay-field-desktop .replay-field-slot {
+  height: 104px;
+}
+.replay-field-desktop .replay-card-image {
+  height: 80px;
+}
+.replay-field-desktop .replay-card-image img {
+  width: 56px;
+  height: 80px;
+}
+.replay-field-desktop [data-location="2"] .replay-card-image,
+.replay-field-desktop [data-location="8"] .replay-card-image {
+  height: 92px;
+}
+.replay-field-desktop [data-location="2"] .replay-card-image img,
+.replay-field-desktop [data-location="8"] .replay-card-image img {
+  width: 64px;
+  height: 92px;
+}
+.replay-field-desktop .replay-field-card > small {
+  font-size: calc(11px / var(--field-scale));
+  line-height: 1.2;
+}
+.replay-field-desktop .replay-counter-count {
+  position: absolute;
+  right: 0;
+  top: 0;
+  max-width: 100%;
+  background: #285d49;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.replay-field-desktop .replay-field-pile img {
+  width: 52px;
+  height: 72px;
+}
+.replay-field-desktop .replay-field-pile span {
+  font-size: calc(12px / var(--field-scale));
+  line-height: 1.2;
+}
+@media (min-width: 1024px) and (min-height: 600px) {
+  .replay-player-field {
+    padding: 14px 20px;
+  }
+  .replay-player-field .replay-header {
+    margin-bottom: 10px;
+  }
+  .replay-player-field .replay-progress {
+    padding: 6px 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .replay-field-card {

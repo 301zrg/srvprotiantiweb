@@ -600,7 +600,14 @@ function Player({ id, text }: { id: string; text: string[] }) {
     );
   const selected = currentCard ? fetchCard(currentCard.code) : undefined;
   return (
-    <main className="replay-player">
+    <main
+      className={`replay-player ${fieldView ? "replay-player-field" : ""}`}
+      style={
+        {
+          "--replay-motion-ms": `${Math.min(300, 600 / rate)}ms`,
+        } as React.CSSProperties
+      }
+    >
       <header className="replay-header">
         <h1>{title || text[2]}</h1>
         <Button onClick={() => navigate("/replays")}>{text[12]}</Button>
@@ -645,10 +652,17 @@ function Player({ id, text }: { id: string; text: string[] }) {
         <Select
           aria-label="播放速度"
           value={rate}
-          options={[0.5, 1, 2, 4, 8].map((n) => ({ value: n, label: `${n}×` }))}
+          options={[0.5, 1, 2, 4, 8, 16].map((n) => ({
+            value: n,
+            label: `${n}×`,
+          }))}
           onChange={(n) => {
             speed.current = n;
             setRate(n);
+            if (!paused.current && !pending.current && !seek.current) {
+              clearTimeout(timer.current);
+              timer.current = window.setTimeout(() => request(), 600 / n);
+            }
           }}
         />
         <Button onClick={() => setView(1 - view)}>{text[11]}</Button>

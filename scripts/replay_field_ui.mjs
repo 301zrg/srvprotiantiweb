@@ -133,6 +133,71 @@ try {
       .setInputFiles("tests/fixtures/replay/native-deckout.yrp");
     await page.getByRole("button", { name: "播放", exact: true }).click();
     await expect(page.locator(".replay-field-board")).toBeVisible();
+    const checkFieldFit = async (minimumWidth = 0.55) => {
+      const size = await page
+        .locator(".replay-field-viewport")
+        .evaluate((el) => {
+          const board = el
+            .querySelector(".replay-field-canvas")
+            .getBoundingClientRect();
+          const player = el.closest(".replay-player");
+          return {
+            width: board.width,
+            height: board.height,
+            viewportWidth: innerWidth,
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+            bottom: el.getBoundingClientRect().bottom,
+            playerBottom: player.getBoundingClientRect().bottom,
+          };
+        });
+      assert.ok(
+        size.width >= size.viewportWidth * minimumWidth,
+        "Desktop field uses most of the available width instead of a small square",
+      );
+      assert.ok(
+        size.scrollHeight <= size.clientHeight + 1,
+        "Both sides fit inside the field at default zoom",
+      );
+      assert.ok(
+        size.bottom <= size.playerBottom - 30,
+        "The full field and own player label fit on screen",
+      );
+      console.log(
+        `Desktop field ${size.viewportWidth}px: ${Math.round(
+          size.width,
+        )} × ${Math.round(size.height)}px`,
+      );
+    };
+    if (name === "desktop") {
+      await expect(page.locator(".replay-field-desktop")).toBeVisible();
+      await checkFieldFit();
+      for (const size of [
+        { width: 1920, height: 1080 },
+        { width: 1024, height: 768 },
+      ]) {
+        await page.setViewportSize(size);
+        await page.waitForTimeout(150);
+        await checkFieldFit();
+      }
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(150);
+      await page
+        .getByRole("button", { name: "查看里侧卡片", exact: true })
+        .click();
+      await page.waitForTimeout(150);
+      await checkFieldFit(0.5);
+      await page
+        .getByRole("button", { name: "查看里侧卡片", exact: true })
+        .click();
+      await page.setViewportSize({ width: 1280, height: 600 });
+      await page.waitForTimeout(150);
+      await checkFieldFit(0.3);
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(150);
+    } else {
+      await expect(page.locator(".replay-field-desktop")).toHaveCount(0);
+    }
     assert.deepEqual(
       await page.locator(".replay-field-player strong").allTextContents(),
       ["FieldFixtureB", "FieldFixtureA"],
@@ -246,6 +311,51 @@ try {
       .locator(".ant-drawer-open")
       .getByRole("button", { name: "关闭", exact: true })
       .click();
+    await page.getByRole("button", { name: "重新开始", exact: true }).click();
+    await expect(page.locator(".replay-field-action")).toHaveAttribute(
+      "data-action",
+      "ready",
+    );
+    await page.locator('.ant-select[aria-label="播放速度"]').click();
+    await page
+      .locator(".ant-select-item-option")
+      .filter({ hasText: /^16×$/ })
+      .click();
+    const duration = await page
+      .locator(".replay-field-card")
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).transitionDuration));
+    assert.ok(
+      duration <= 0.04,
+      "16× shortens the move animation as well as playback delays",
+    );
+    await page.evaluate(() => {
+      window.replayActions = [];
+      const action = document.querySelector(".replay-field-action");
+      new MutationObserver(() =>
+        window.replayActions.push(action.dataset.action),
+      ).observe(action, { attributes: true, attributeFilter: ["data-action"] });
+    });
+    await page.getByRole("button", { name: "继续播放", exact: true }).click();
+    await expect(page.locator(".replay-progress")).toContainText("重演结束", {
+      timeout: 1800,
+    });
+    const actions = await page.evaluate(() => window.replayActions);
+    for (const kind of [
+      "move",
+      "position",
+      "chain",
+      "attack",
+      "counter",
+      "damage",
+      "chainEnd",
+    ])
+      assert.ok(actions.includes(kind), `16× must still display ${kind}`);
+    await expect(monster).toContainText("指示物 2");
+    await expect(page.locator(".replay-field-player").first()).toContainText(
+      "LP 7000",
+    );
+    await expect(page.locator(".replay-field-chain")).toHaveCount(0);
     await page.getByRole("button", { name: /放大场地/ }).click();
     assert.ok(
       await page
@@ -277,7 +387,7 @@ try {
     assert.equal(sockets, 0);
     await context.close();
     console.log(
-      `Field replay ${name}: ordered move/position/chain/attack/counter, card identity, perspective, zoom, pile and fallback passed`,
+      `Field replay ${name}: layout, ordered actions, 16× without skipping, card identity, perspective, zoom, pile and fallback passed`,
     );
   }
   assert.deepEqual(errors, []);

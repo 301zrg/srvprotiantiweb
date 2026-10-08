@@ -137,6 +137,7 @@ export function FieldBoard({
     viewport = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1000),
     [height, setHeight] = useState(540),
+    [desktop, setDesktop] = useState(false),
     [zoom, setZoom] = useState(1),
     [pile, setPile] = useState<Spot>();
   useEffect(() => {
@@ -144,18 +145,39 @@ export function FieldBoard({
     if (!el) return;
     const update = () => {
       setWidth(el.clientWidth);
-      setHeight(Math.max(320, window.innerHeight - 380));
+      const wide = window.innerWidth >= 1024 && window.innerHeight >= 600;
+      setDesktop(wide);
+      const top =
+        el.getBoundingClientRect().top +
+        (el.closest(".replay-player")?.scrollTop || 0);
+      setHeight(
+        wide
+          ? Math.max(240, window.innerHeight - top - 52)
+          : Math.max(320, window.innerHeight - 380),
+      );
     };
     const observer = new ResizeObserver(update);
     observer.observe(el);
+    el
+      .closest(".replay-player")
+      ?.querySelectorAll(
+        ".replay-header, .replay-controls, .replay-progress, .replay-field-heading",
+      )
+      .forEach((part) => observer.observe(part));
     update();
     window.addEventListener("resize", update);
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, []);
-  const scale = Math.min(1, (width - 2) / 1000, (height - 2) / 920) * zoom;
+  }, [language, reveal]);
+  const fieldHeight = desktop ? 640 : 920;
+  const scale =
+    Math.min(
+      desktop ? 1.25 : 1,
+      (width - 2) / 1000,
+      (height - 2) / fieldHeight,
+    ) * zoom;
   const label = (location: number) =>
     text[16 + locations.indexOf(location)] || "";
   const action = frame.action;
@@ -168,6 +190,19 @@ export function FieldBoard({
   const placed = frame.cards.filter((c) => [2, 4, 8].includes(c.location));
   const point = (place: Spot) => {
     const p = scenePoint(place, view);
+    if (desktop) {
+      const rows: Record<number, number> = {
+        30: 14,
+        75: 54,
+        225: 160,
+        385: 266,
+        535: 374,
+        695: 480,
+        845: 586,
+        890: 626,
+      };
+      p.y = rows[p.y] ?? p.y;
+    }
     if (place.location === 2) {
       const count = frame.cards.filter(
         (c) => c.player === place.player && c.location === 2,
@@ -189,24 +224,30 @@ export function FieldBoard({
       ? { from: point(action.from), to: point(action.to) }
       : undefined;
   return (
-    <section className="replay-field-board">
-      <div className="replay-field-tools">
-        <Button onClick={() => setZoom((z) => (z >= 2 ? 1 : z + 0.5))}>
-          {t.zoom} {zoom}×
-        </Button>
-        <Button onClick={() => setZoom(1)}>{t.reset}</Button>
-      </div>
-      <div
-        className="replay-field-action"
-        role="status"
-        data-action={action?.kind || "ready"}
-      >
-        {actionName || t.ready} {actionCode}{" "}
-        {action?.amount !== undefined ? `· ${action.amount}` : ""}
-      </div>
-      <div className="replay-field-player">
-        <strong>{frame.names[1 - view]}</strong>
-        <span>LP {frame.lp[1 - view]}</span>
+    <section
+      className={`replay-field-board ${desktop ? "replay-field-desktop" : ""}`}
+    >
+      <div className="replay-field-heading">
+        <div className="replay-field-toolbar">
+          <div className="replay-field-tools">
+            <Button onClick={() => setZoom((z) => (z >= 2 ? 1 : z + 0.5))}>
+              {t.zoom} {zoom}×
+            </Button>
+            <Button onClick={() => setZoom(1)}>{t.reset}</Button>
+          </div>
+          <div
+            className="replay-field-action"
+            role="status"
+            data-action={action?.kind || "ready"}
+          >
+            {actionName || t.ready} {actionCode}{" "}
+            {action?.amount !== undefined ? `· ${action.amount}` : ""}
+          </div>
+        </div>
+        <div className="replay-field-player">
+          <strong>{frame.names[1 - view]}</strong>
+          <span>LP {frame.lp[1 - view]}</span>
+        </div>
       </div>
       <div
         className="replay-field-viewport"
@@ -215,13 +256,14 @@ export function FieldBoard({
       >
         <div
           className="replay-field-canvas"
-          style={{ width: 1000 * scale, height: 920 * scale }}
+          style={{ width: 1000 * scale, height: fieldHeight * scale }}
         >
           <div
             className="replay-field-plane"
             style={
               {
                 transform: `scale(${scale})`,
+                height: fieldHeight,
                 "--field-scale": scale,
               } as React.CSSProperties
             }
@@ -232,10 +274,7 @@ export function FieldBoard({
                   Array.from(
                     { length: location === 4 ? 5 : 6 },
                     (_, sequence) => {
-                      const p = scenePoint(
-                        { player, location, sequence },
-                        view,
-                      );
+                      const p = point({ player, location, sequence });
                       return (
                         <div
                           key={`${location}:${sequence}`}
@@ -257,7 +296,7 @@ export function FieldBoard({
                     ),
                     count = cards.length,
                     top = cards.at(-1),
-                    p = scenePoint({ player, location, sequence: 0 }, view);
+                    p = point({ player, location, sequence: 0 });
                   return (
                     <button
                       key={location}
@@ -293,10 +332,7 @@ export function FieldBoard({
               const arriving = action?.arrivals?.includes(c.sceneId);
               const origin =
                 arriving && action?.kind === "draw"
-                  ? scenePoint(
-                      { player: c.player, location: 1, sequence: 0 },
-                      view,
-                    )
+                  ? point({ player: c.player, location: 1, sequence: 0 })
                   : arriving &&
                     action?.from &&
                     ![2, 4, 8].includes(action.from.location)
@@ -366,7 +402,7 @@ export function FieldBoard({
             {arrow && (
               <svg
                 className="replay-field-arrows"
-                viewBox="0 0 1000 920"
+                viewBox={`0 0 1000 ${fieldHeight}`}
                 aria-label={t.attack}
               >
                 <defs>
