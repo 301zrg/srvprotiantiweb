@@ -237,3 +237,28 @@
     }
   }
 }
+
+// Short landscape screens scroll the editor as a whole. The tools may move
+// above the viewport, so the cards are not confined to a tiny inner strip.
+@media (max-height: 600px) and (orientation: landscape) and (max-width: 1024px),
+  (max-height: 600px) and (orientation: landscape) and (pointer: coarse) {
+  .layout[data-mobile-tab="deck"] {
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: 60px;
+    .mobileTabs {
+      margin-bottom: 8px;
+    }
+    .content .deck,
+    .container {
+      height: auto;
+    }
+    .deck .scrollHost {
+      height: auto !important;
+      max-height: none !important;
+      flex: none;
+    }
+  }
+}

@@ -13,6 +13,7 @@ interface ChatItem {
   name: string;
   time: string;
   content: string;
+  isServer: boolean;
 }
 
 export const useChat = (isDuel: boolean = false) => {
@@ -67,6 +68,7 @@ export const useChat = (isDuel: boolean = false) => {
           name: name,
           time: formatTimeToHHMMSS(),
           content: chatStore.message,
+          isServer: sender === 8 || sender >= 10,
         },
       ]);
       scrollToBottom();

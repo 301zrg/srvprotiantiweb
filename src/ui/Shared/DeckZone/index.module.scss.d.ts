@@ -6,6 +6,7 @@ declare const classNames: {
   readonly "not-allow-to-drop": "not-allow-to-drop";
   readonly "card-continer": "card-continer";
   readonly "card-actions": "card-actions";
+  readonly "card-menu": "card-menu";
   readonly "editing-zone-name": "editing-zone-name";
 };
 export = classNames;

@@ -209,13 +209,85 @@ try {
     );
     const page = await context.newPage();
     page.on("pageerror", (error) => errors.push(`${name}: ${error.message}`));
-    await page.goto(origin, { waitUntil: "domcontentloaded" });
+    await page.goto(origin, { waitUntil: "domcontentloaded", timeout: 60000 });
     await expect(page.locator('main[data-ready="true"]')).toBeVisible({
       timeout: 60000,
     });
     await page.getByRole("button", { name: "编辑卡组", exact: true }).tap();
     await expect(page.getByTestId("deck-name")).toHaveValue("1103-sample");
     await bounds(page.getByTestId("deck-save"), viewport, 44, 44);
+    const density = await page
+      .getByTestId("deck-zone-main")
+      .evaluate((zone) => {
+        const card = zone.querySelector('[data-testid="deck-card"]');
+        const grid = card.parentElement.parentElement;
+        return {
+          columns: getComputedStyle(grid).gridTemplateColumns.split(" ").length,
+          cardWidth: card.getBoundingClientRect().width,
+        };
+      });
+    assert.ok(
+      density.columns >=
+        (name === "portrait" ? 6 : name === "landscape" ? 13 : 4),
+      "Mobile editor must show more cards per row",
+    );
+    assert.ok(density.cardWidth >= 44 && density.cardWidth <= 70);
+    if (name === "landscape") {
+      const scroller = page
+        .getByTestId("deck-editor-panel")
+        .locator("xpath=ancestor::*[@data-mobile-tab]");
+      const before = await scroller.evaluate((el) => ({
+        top: el.scrollTop,
+        room: el.scrollHeight - el.clientHeight,
+      }));
+      assert.ok(
+        before.room >= 120,
+        "Landscape must provide outer scrolling and bottom working space",
+      );
+      await scroller.evaluate((el) => {
+        el.scrollTop = 160;
+      });
+      assert.ok((await scroller.evaluate((el) => el.scrollTop)) >= 120);
+      await scroller.evaluate((el) => {
+        el.scrollTop = 0;
+      });
+      const cdp = await context.newCDPSession(page);
+      // Swipe over the card grid, not a test-only scrollbar or empty margin.
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ x: 420, y: 310 }],
+      });
+      for (let step = 1; step <= 8; step++) {
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ x: 420, y: 310 - step * 22 }],
+        });
+        await page.waitForTimeout(25);
+      }
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+      await expect
+        .poll(() => scroller.evaluate((el) => el.scrollTop))
+        .toBeGreaterThan(60);
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: `${folder}/${name}-deck-scrolled.png` });
+      await cdp.detach();
+      await page.getByTestId("deck-zone-side").scrollIntoViewIfNeeded();
+      await scroller.evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+      });
+      const end = await page.getByTestId("deck-zone-side").boundingBox();
+      assert.ok(
+        end.y + end.height <= viewport.height - 60,
+        "Bottom cards must have working room below them",
+      );
+      await page.screenshot({ path: `${folder}/${name}-deck-bottom.png` });
+      await scroller.evaluate((el) => {
+        el.scrollTop = 0;
+      });
+    }
     await waitForVisibleImages(page);
     await page.screenshot({ path: `${folder}/${name}-01-deck.png` });
     await page.getByTestId("deck-tab-manage").tap();
@@ -289,12 +361,23 @@ try {
         }
       }
     }
-    await main.getByRole("button", { name: /移动/ }).tap();
+    await main.getByTestId("deck-card-menu").tap();
+    await bounds(
+      page.getByRole("menuitem", { name: /移动/ }),
+      viewport,
+      44,
+      44,
+    );
+    await page.getByRole("menuitem", { name: /移动/ }).tap();
     await expect(main).toHaveAttribute("data-card-count", "0");
     await expect(side).toHaveAttribute("data-card-count", "2");
-    await side.getByRole("button", { name: /移动/ }).first().tap();
+    await expect(page.getByRole("menuitem")).toHaveCount(0);
+    await side.getByTestId("deck-card-menu").first().tap();
+    await page.getByRole("menuitem", { name: /移动/ }).tap();
     await expect(main).toHaveAttribute("data-card-count", "1");
-    await main.getByRole("button", { name: /删除/ }).tap();
+    await expect(page.getByRole("menuitem")).toHaveCount(0);
+    await main.getByTestId("deck-card-menu").tap();
+    await page.getByRole("menuitem", { name: /删除/ }).tap();
     await expect(main).toHaveAttribute("data-card-count", "0");
     await page.getByTestId("deck-save").tap();
     await page.getByTestId("deck-tab-manage").tap();
@@ -315,6 +398,46 @@ try {
     await page.locator(".ant-modal-close").tap();
     await expect(page.getByRole("dialog")).not.toBeVisible();
     await prepareDuel(page);
+    const notify = async (sender, content) =>
+      page.evaluate(
+        async ({ sender, content }) => {
+          const { default: handleChat } = await import(
+            "/src/service/room/chat.ts"
+          );
+          const { getUIContainer } = await import("/src/container/compat.ts");
+          handleChat(getUIContainer(), {
+            stoc_chat: { player: sender, msg: content },
+          });
+        },
+        { sender, content },
+      );
+    const popup = page.locator(".ant-notification-notice");
+    await notify(14, "服务器弹窗测试");
+    await expect(popup).toContainText("服务器弹窗测试");
+    await page.getByTestId("duel-settings").tap();
+    await page.getByRole("tab", { name: /消息/ }).tap();
+    const serverMessages = page.getByTestId("server-message-popups");
+    await expect(serverMessages).toBeChecked();
+    const serverMessageLabel = serverMessages.locator("xpath=ancestor::label");
+    await bounds(serverMessageLabel, viewport, 44, 44);
+    await serverMessageLabel.tap();
+    await page.getByTestId("settings-close").tap();
+    await expect(popup.filter({ hasText: "服务器弹窗测试" })).toHaveCount(0);
+    await notify(8, "已关闭的服务器提示");
+    await page.waitForTimeout(150);
+    await expect(popup.filter({ hasText: "已关闭的服务器提示" })).toHaveCount(
+      0,
+    );
+    await notify(1, "另一名玩家的聊天");
+    await expect(popup).toContainText("另一名玩家的聊天");
+    await page.getByTestId("duel-chat").tap();
+    await expect(page.getByTestId("duel-chat-panel")).toContainText(
+      "已关闭的服务器提示",
+    );
+    await expect(page.getByTestId("duel-chat-panel")).toContainText(
+      "另一名玩家的聊天",
+    );
+    await page.getByTestId("duel-chat-panel-close").tap();
     for (const id of [
       "duel-phase-select",
       "duel-chain-setting",
@@ -496,6 +619,12 @@ try {
     await page.getByTestId("duel-settings").tap();
     await page.getByTestId("settings-close").tap();
     await expect(page.getByTestId("duel-menu")).toBeVisible();
+    // A new page load must restore the preference, without changing audio settings.
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByTestId("open-settings").tap();
+    await page.getByRole("tab", { name: /消息/ }).tap();
+    await expect(page.getByTestId("server-message-popups")).not.toBeChecked();
+    await page.getByTestId("settings-close").tap();
     const layout = await page.evaluate(() => ({
       width: innerWidth,
       scrollWidth: document.documentElement.scrollWidth,
@@ -509,7 +638,8 @@ try {
       viewport,
       deckEditing:
         "add/move/remove/save/export passed; portrait also preserves unsaved edits on rotation and all four language switches",
-      settings: "touch close/X passed",
+      settings:
+        "touch close/X; server popup dismissal/suppression, normal chat retained, reload persistence passed",
       duel: "physical-size controls, touch summon packet, position/effect selection, minimization/restore, details/history touch scroll/chat/settings passed",
       productionServerConnected: false,
     });

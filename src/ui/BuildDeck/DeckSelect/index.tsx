@@ -3,6 +3,7 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   PlusOutlined,
+  ShareAltOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
 import { App, Button, Input, Modal } from "antd";
@@ -24,7 +25,8 @@ export const DeckSelect: React.FC<{
   onDelete: (deckName: string) => Promise<unknown>;
   onDownload: (deckName: string) => unknown;
   onCopy: (deckName: string) => Promise<unknown>;
-}> = ({ decks, selected, onSelect, onDelete, onDownload, onCopy }) => {
+  onShare: (deckName: string) => Promise<"shared" | "downloaded" | "cancelled">;
+}> = ({ decks, selected, onSelect, onDelete, onDownload, onCopy, onShare }) => {
   const { message } = App.useApp();
   const { language } = useI18N();
   const text = deckMessages(language);
@@ -131,6 +133,23 @@ export const DeckSelect: React.FC<{
               onClick={(event) => {
                 event.stopPropagation();
                 onDownload(deck.deckName);
+              }}
+            />
+            <Button
+              size="small"
+              type="text"
+              data-testid="deck-share"
+              title={text.share}
+              aria-label={`${text.share} ${deck.deckName}`}
+              icon={<ShareAltOutlined />}
+              onClick={async (event) => {
+                event.stopPropagation();
+                try {
+                  if ((await onShare(deck.deckName)) === "downloaded")
+                    message.info(text.shareFallback);
+                } catch {
+                  message.error(text.saveFailed);
+                }
               }}
             />
             <Button

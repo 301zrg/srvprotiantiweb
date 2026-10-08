@@ -42,6 +42,8 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 
 ## 已完成的本机测试
 
+2026-10-09 新增 `npm run test:room-languages`：使用同样的隔离 SRVPro 和四语客户端，检查每次收到 `STOC_JOIN_GAME` 后只发送一次相应语言聊天指令，服务器返回对应语言的切换确认，再退出并首次重入房复验。中文 `/zh`、英文 `/en`、日文 `/ja`、韩文 `/ko` 均已通过，两次入房仍保持未准备状态，无需输入语言命令。指令对应服务器 `config/tips.json` 及语言命令处理逻辑；本轮不修改服务器配置或源码。
+
 手动试玩：在 `srvprotiantiweb` 运行 `npm run play:local-wss`，等待构建完成后会自动打开带临时证书例外的独立 Edge 窗口，同时在终端打印网页地址和临时 WSS 地址。打开第二个标签页访问同一网页地址；两名玩家填写**不同昵称**、相同普通房名即可进入同一房。测试天梯时两名玩家分别填写 `昵称$密码`，房间名都填 `TT`。测试结束后回终端按 Ctrl+C。该命令保持本地隔离实例运行，不使用实际服务器私密配置，也无需手动改 `.env.local`。如果只运行 `npm run dev`，仍须先在 `.env.local` 配置已经可用且受浏览器信任的 `VITE_DUEL_WS_URL=wss://...`。
 
 在 `srvprotiantiweb` 运行 `npm run test:local-wss`。脚本仅从本地服务器项目读取默认配置、选定插件、Core 可执行文件和脚本，在网页项目 `.audit-tmp` 下创建临时实例；Core 的 `cards.cdb`、`strings.conf` 和禁表使用本项目生成的 1103 资源。实例使用随机 TCP/HTTP/HTTPS/WSS 端口、内存 SQL.js 数据库和临时自签名证书。测试结束会关闭进程并删除临时实例与证书。它不读取服务器私密 `config/config.json`、不连接生产数据库、不修改服务器项目，也不重启正式服。Playwright 对本机证书跳过信任检查，所以此测试不证明公网证书有效。
