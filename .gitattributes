@@ -3,3 +3,4 @@ resources-staging/1103/*.conf -text -whitespace
 resources-staging/1103/*/strings.conf -text -whitespace
 resources-staging/1103/*/cards.cdb -text
 resources-staging/1103/environment-v1.data -text
+protocol-source/** -text
