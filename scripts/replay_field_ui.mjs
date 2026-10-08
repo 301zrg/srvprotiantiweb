@@ -57,6 +57,7 @@ try {
           card(1, 4, 2, 1, { overlay: [89631139] }),
           card(0, 8, 0, 8, { code: 43711255, type: 2 }),
           card(0, 32, 0, 8),
+          card(1, 2, 0, 8),
         ],
       };
       const u32 = (n) => [
@@ -82,6 +83,7 @@ try {
           initial.cards[1],
           { ...initial.cards[2], position: 1 },
           initial.cards[3],
+          initial.cards[4],
         ],
         events: [
           move(46986414, [0, 2, 0, 8], [0, 4, 1, 1]),
@@ -134,6 +136,8 @@ try {
     await page.getByRole("button", { name: "播放", exact: true }).click();
     await expect(page.locator(".replay-field-board")).toBeVisible();
     const checkFieldFit = async () => {
+      // Let initial mobile-to-desktop positioning transitions finish.
+      await page.waitForTimeout(350);
       const size = await page
         .locator(".replay-field-viewport")
         .evaluate((el) => {
@@ -145,27 +149,61 @@ try {
             width: board.width,
             height: board.height,
             viewportWidth: innerWidth,
+            viewportHeight: innerHeight,
             availableWidth: el.clientWidth,
+            availableHeight: parseFloat(el.style.maxHeight),
+            scrollWidth: el.scrollWidth,
             scrollHeight: el.scrollHeight,
             clientHeight: el.clientHeight,
-            centered:
-              Math.abs(el.scrollTop - (el.scrollHeight - el.clientHeight) / 2) <
-              2,
+            scrollTop: el.scrollTop,
+            scrollLeft: el.scrollLeft,
             bottom: el.getBoundingClientRect().bottom,
             playerBottom: player.getBoundingClientRect().bottom,
+            footerBottom: el.nextElementSibling.getBoundingClientRect().bottom,
+            playerFits: player.scrollHeight <= player.clientHeight + 1,
+            outside: [
+              ...el.querySelectorAll(
+                ".replay-field-card, .replay-field-pile, .replay-field-slot",
+              ),
+            ].flatMap((card) => {
+              const r = card.getBoundingClientRect();
+              return r.left >= board.left - 1 &&
+                r.right <= board.right + 1 &&
+                r.top >= board.top - 1 &&
+                r.bottom <= board.bottom + 1
+                ? []
+                : [
+                    {
+                      card: card.outerHTML.slice(0, 240),
+                      left: r.left - board.left,
+                      right: r.right - board.right,
+                      top: r.top - board.top,
+                      bottom: r.bottom - board.bottom,
+                    },
+                  ];
+            }),
           };
         });
       assert.ok(
-        size.width >= size.availableWidth - 4,
-        "Default desktop field fills the available width",
+        size.scrollWidth <= size.availableWidth + 1 &&
+          size.scrollHeight <= size.clientHeight + 1 &&
+          size.scrollTop === 0 &&
+          size.scrollLeft === 0 &&
+          size.outside.length === 0,
+        `Both hands, every card, zone and pile fit without scrolling: ${JSON.stringify(
+          size,
+        )}`,
       );
       assert.ok(
-        size.centered,
-        "Default scroll centers both players' battle zones",
+        size.width >= size.availableWidth - 4 ||
+          size.height >= size.availableHeight - 4,
+        "The full field uses the maximum size allowed by width or remaining height",
       );
       assert.ok(
-        size.bottom <= size.playerBottom - 30,
-        "The field viewport and both player labels fit on screen",
+        size.playerFits &&
+          size.footerBottom <= size.playerBottom &&
+          size.footerBottom <= size.viewportHeight,
+        "The full field and both player labels fit on one screen",
       );
       console.log(
         `Desktop field ${size.viewportWidth}px: ${Math.round(
@@ -178,26 +216,16 @@ try {
       await checkFieldFit();
       assert.deepEqual(
         await page.locator(".replay-field-player > span").allTextContents(),
-        ["手牌 0 · LP 8000", "手牌 1 · LP 8000"],
+        ["手牌 1 · LP 8000", "手牌 1 · LP 8000"],
       );
-      await page.getByRole("button", { name: "完整场地", exact: true }).click();
-      assert.ok(
-        await page
-          .locator(".replay-field-viewport")
-          .evaluate((el) => el.scrollHeight <= el.clientHeight + 1),
-        "Whole-field mode shows both hands and all zones without scrolling",
-      );
-      await page.getByRole("button", { name: "铺满宽度", exact: true }).click();
-      await page.waitForTimeout(100);
-      await checkFieldFit();
-      await page.locator(".replay-field-viewport").evaluate((el) => {
-        el.scrollTop = 0;
-      });
+      await page.getByRole("button", { name: /放大场地/ }).click();
       await page.getByRole("button", { name: "恢复大小", exact: true }).click();
       await checkFieldFit();
       for (const size of [
         { width: 1920, height: 1080 },
         { width: 1024, height: 768 },
+        { width: 2560, height: 1440 },
+        { width: 1280, height: 1100 },
       ]) {
         await page.setViewportSize(size);
         await page.waitForTimeout(150);
@@ -401,6 +429,7 @@ try {
       "Zoom scrolls within field",
     );
     await page.getByRole("button", { name: "恢复大小", exact: true }).click();
+    if (name === "desktop") await checkFieldFit();
     assert.ok(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth + 1,

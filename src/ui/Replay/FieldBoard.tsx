@@ -16,8 +16,6 @@ export const fieldWords = {
     list: "列表视图",
     zoom: "放大场地",
     reset: "恢复大小",
-    fit: "完整场地",
-    fill: "铺满宽度",
     close: "关闭",
     ready: "当前局面",
     draw: "抽卡",
@@ -43,8 +41,6 @@ export const fieldWords = {
     list: "List view",
     zoom: "Zoom field",
     reset: "Reset zoom",
-    fit: "Fit whole field",
-    fill: "Fill width",
     close: "Close",
     ready: "Current position",
     draw: "Draw",
@@ -70,8 +66,6 @@ export const fieldWords = {
     list: "一覧表示",
     zoom: "拡大",
     reset: "表示を戻す",
-    fit: "全体を表示",
-    fill: "横幅に合わせる",
     close: "閉じる",
     ready: "現在の盤面",
     draw: "ドロー",
@@ -97,8 +91,6 @@ export const fieldWords = {
     list: "목록 보기",
     zoom: "필드 확대",
     reset: "확대 초기화",
-    fit: "전체 필드",
-    fill: "너비에 맞춤",
     close: "닫기",
     ready: "현재 필드",
     draw: "드로우",
@@ -151,7 +143,6 @@ export function FieldBoard({
   const [width, setWidth] = useState(1000),
     [height, setHeight] = useState(540),
     [desktop, setDesktop] = useState(false),
-    [fitWindow, setFitWindow] = useState(false),
     [zoom, setZoom] = useState(1),
     [pile, setPile] = useState<Spot>();
   useEffect(() => {
@@ -161,12 +152,20 @@ export function FieldBoard({
       setWidth(el.clientWidth);
       const wide = window.innerWidth >= 1024 && window.innerHeight >= 600;
       setDesktop(wide);
-      const top =
-        el.getBoundingClientRect().top +
-        (el.closest(".replay-player")?.scrollTop || 0);
+      const player = el.closest(".replay-player");
+      const top = el.getBoundingClientRect().top + (player?.scrollTop || 0);
+      const bottom = Math.min(
+        window.innerHeight,
+        player?.getBoundingClientRect().bottom ?? window.innerHeight,
+      );
+      const footerHeight =
+        el.nextElementSibling?.getBoundingClientRect().height ?? 36;
+      const bottomPadding = player
+        ? parseFloat(getComputedStyle(player).paddingBottom) || 0
+        : 0;
       setHeight(
         wide
-          ? Math.max(240, window.innerHeight - top - 52)
+          ? Math.max(1, bottom - top - footerHeight - bottomPadding - 2)
           : Math.max(320, window.innerHeight - 380),
       );
     };
@@ -178,6 +177,7 @@ export function FieldBoard({
         ".replay-header, .replay-controls, .replay-progress, .replay-field-heading",
       )
       .forEach((part) => observer.observe(part));
+    if (el.nextElementSibling) observer.observe(el.nextElementSibling);
     update();
     window.addEventListener("resize", update);
     return () => {
@@ -187,16 +187,14 @@ export function FieldBoard({
   }, [language, reveal]);
   const fieldHeight = desktop ? 618 : 920;
   const scale =
-    (desktop && !fitWindow
-      ? (width - 2) / 1000
-      : Math.min(
-          desktop ? 1.25 : 1,
-          (width - 2) / 1000,
-          (height - 2) / fieldHeight,
-        )) * zoom;
+    Math.min(
+      desktop ? Infinity : 1,
+      (width - 2) / 1000,
+      Math.max(1, height - 2) / fieldHeight,
+    ) * zoom;
   useEffect(() => {
     if (desktop) centerField(viewport.current);
-  }, [desktop, width, height, zoom, fitWindow]);
+  }, [desktop, width, height, zoom]);
   const label = (location: number) =>
     text[16 + locations.indexOf(location)] || "";
   const action = frame.action;
@@ -255,23 +253,11 @@ export function FieldBoard({
             <Button
               onClick={() => {
                 setZoom(1);
-                setFitWindow(false);
                 if (desktop) centerField(viewport.current);
               }}
             >
               {t.reset}
             </Button>
-            {desktop && (
-              <Button
-                aria-pressed={fitWindow}
-                onClick={() => {
-                  setFitWindow(!fitWindow);
-                  setZoom(1);
-                }}
-              >
-                {fitWindow ? t.fill : t.fit}
-              </Button>
-            )}
           </div>
           <div
             className="replay-field-action"

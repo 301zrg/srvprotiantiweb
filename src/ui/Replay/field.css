@@ -230,6 +230,7 @@
 }
 .replay-field-desktop .replay-field-tools {
   flex-shrink: 0;
+  margin: 4px 0;
 }
 .replay-field-desktop .replay-field-action {
   flex: 1;
@@ -285,15 +286,18 @@
   font-size: calc(12px / var(--field-scale));
   line-height: 1.2;
 }
+.replay-field-desktop > .replay-field-player {
+  padding: 4px 0;
+}
 @media (min-width: 1024px) and (min-height: 600px) {
   .replay-player-field {
-    padding: 14px 20px;
+    padding: 12px 20px;
   }
   .replay-player-field .replay-header {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
   .replay-player-field .replay-progress {
-    padding: 6px 0;
+    padding: 4px 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
