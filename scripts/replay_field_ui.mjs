@@ -133,7 +133,7 @@ try {
       .setInputFiles("tests/fixtures/replay/native-deckout.yrp");
     await page.getByRole("button", { name: "播放", exact: true }).click();
     await expect(page.locator(".replay-field-board")).toBeVisible();
-    const checkFieldFit = async (minimumWidth = 0.55) => {
+    const checkFieldFit = async () => {
       const size = await page
         .locator(".replay-field-viewport")
         .evaluate((el) => {
@@ -145,23 +145,27 @@ try {
             width: board.width,
             height: board.height,
             viewportWidth: innerWidth,
+            availableWidth: el.clientWidth,
             scrollHeight: el.scrollHeight,
             clientHeight: el.clientHeight,
+            centered:
+              Math.abs(el.scrollTop - (el.scrollHeight - el.clientHeight) / 2) <
+              2,
             bottom: el.getBoundingClientRect().bottom,
             playerBottom: player.getBoundingClientRect().bottom,
           };
         });
       assert.ok(
-        size.width >= size.viewportWidth * minimumWidth,
-        "Desktop field uses most of the available width instead of a small square",
+        size.width >= size.availableWidth - 4,
+        "Default desktop field fills the available width",
       );
       assert.ok(
-        size.scrollHeight <= size.clientHeight + 1,
-        "Both sides fit inside the field at default zoom",
+        size.centered,
+        "Default scroll centers both players' battle zones",
       );
       assert.ok(
         size.bottom <= size.playerBottom - 30,
-        "The full field and own player label fit on screen",
+        "The field viewport and both player labels fit on screen",
       );
       console.log(
         `Desktop field ${size.viewportWidth}px: ${Math.round(
@@ -171,6 +175,25 @@ try {
     };
     if (name === "desktop") {
       await expect(page.locator(".replay-field-desktop")).toBeVisible();
+      await checkFieldFit();
+      assert.deepEqual(
+        await page.locator(".replay-field-player > span").allTextContents(),
+        ["手牌 0 · LP 8000", "手牌 1 · LP 8000"],
+      );
+      await page.getByRole("button", { name: "完整场地", exact: true }).click();
+      assert.ok(
+        await page
+          .locator(".replay-field-viewport")
+          .evaluate((el) => el.scrollHeight <= el.clientHeight + 1),
+        "Whole-field mode shows both hands and all zones without scrolling",
+      );
+      await page.getByRole("button", { name: "铺满宽度", exact: true }).click();
+      await page.waitForTimeout(100);
+      await checkFieldFit();
+      await page.locator(".replay-field-viewport").evaluate((el) => {
+        el.scrollTop = 0;
+      });
+      await page.getByRole("button", { name: "恢复大小", exact: true }).click();
       await checkFieldFit();
       for (const size of [
         { width: 1920, height: 1080 },
@@ -186,13 +209,13 @@ try {
         .getByRole("button", { name: "查看里侧卡片", exact: true })
         .click();
       await page.waitForTimeout(150);
-      await checkFieldFit(0.5);
+      await checkFieldFit();
       await page
         .getByRole("button", { name: "查看里侧卡片", exact: true })
         .click();
       await page.setViewportSize({ width: 1280, height: 600 });
       await page.waitForTimeout(150);
-      await checkFieldFit(0.3);
+      await checkFieldFit();
       await page.setViewportSize(viewport);
       await page.waitForTimeout(150);
     } else {
@@ -277,9 +300,19 @@ try {
     await page.getByRole("button", { name: "切换视角", exact: true }).click();
     await until("counter");
     await expect(monster).toContainText("指示物 2");
+    await page.getByRole("button", { name: "继续播放", exact: true }).click();
     await monster.click();
     await expect(page.locator(".ant-drawer-open")).toContainText(
       "魔力指示物 × 2",
+    );
+    const inspectedAction = await page
+      .locator(".replay-field-action")
+      .getAttribute("data-action");
+    await page.waitForTimeout(850);
+    assert.equal(
+      await page.locator(".replay-field-action").getAttribute("data-action"),
+      inspectedAction,
+      "Inspecting a card automatically pauses the remaining visual actions",
     );
     await page
       .locator(".ant-drawer-open")

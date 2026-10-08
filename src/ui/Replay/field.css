@@ -240,12 +240,13 @@
 }
 .replay-field-desktop .replay-field-card,
 .replay-field-desktop .replay-field-pile {
-  min-height: 104px;
-  height: 104px;
+  min-height: 100px;
+  height: 100px;
   padding: 3px;
 }
 .replay-field-desktop .replay-field-slot {
-  height: 104px;
+  height: 100px;
+  font-size: calc(14px / var(--field-scale));
 }
 .replay-field-desktop .replay-card-image {
   height: 80px;

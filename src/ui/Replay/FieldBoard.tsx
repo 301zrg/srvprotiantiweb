@@ -16,6 +16,8 @@ export const fieldWords = {
     list: "列表视图",
     zoom: "放大场地",
     reset: "恢复大小",
+    fit: "完整场地",
+    fill: "铺满宽度",
     close: "关闭",
     ready: "当前局面",
     draw: "抽卡",
@@ -41,6 +43,8 @@ export const fieldWords = {
     list: "List view",
     zoom: "Zoom field",
     reset: "Reset zoom",
+    fit: "Fit whole field",
+    fill: "Fill width",
     close: "Close",
     ready: "Current position",
     draw: "Draw",
@@ -66,6 +70,8 @@ export const fieldWords = {
     list: "一覧表示",
     zoom: "拡大",
     reset: "表示を戻す",
+    fit: "全体を表示",
+    fill: "横幅に合わせる",
     close: "閉じる",
     ready: "現在の盤面",
     draw: "ドロー",
@@ -91,6 +97,8 @@ export const fieldWords = {
     list: "목록 보기",
     zoom: "필드 확대",
     reset: "확대 초기화",
+    fit: "전체 필드",
+    fill: "너비에 맞춤",
     close: "닫기",
     ready: "현재 필드",
     draw: "드로우",
@@ -116,6 +124,11 @@ export function replayFieldWords(language: string) {
   return fieldWords[language as keyof typeof fieldWords] || fieldWords.cn;
 }
 const locations = [2, 4, 8, 1, 64, 16, 32];
+function centerField(el: HTMLDivElement | null) {
+  if (!el) return;
+  el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2);
+  el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+}
 export function FieldBoard({
   frame,
   view,
@@ -138,6 +151,7 @@ export function FieldBoard({
   const [width, setWidth] = useState(1000),
     [height, setHeight] = useState(540),
     [desktop, setDesktop] = useState(false),
+    [fitWindow, setFitWindow] = useState(false),
     [zoom, setZoom] = useState(1),
     [pile, setPile] = useState<Spot>();
   useEffect(() => {
@@ -171,13 +185,18 @@ export function FieldBoard({
       window.removeEventListener("resize", update);
     };
   }, [language, reveal]);
-  const fieldHeight = desktop ? 640 : 920;
+  const fieldHeight = desktop ? 618 : 920;
   const scale =
-    Math.min(
-      desktop ? 1.25 : 1,
-      (width - 2) / 1000,
-      (height - 2) / fieldHeight,
-    ) * zoom;
+    (desktop && !fitWindow
+      ? (width - 2) / 1000
+      : Math.min(
+          desktop ? 1.25 : 1,
+          (width - 2) / 1000,
+          (height - 2) / fieldHeight,
+        )) * zoom;
+  useEffect(() => {
+    if (desktop) centerField(viewport.current);
+  }, [desktop, width, height, zoom, fitWindow]);
   const label = (location: number) =>
     text[16 + locations.indexOf(location)] || "";
   const action = frame.action;
@@ -194,12 +213,12 @@ export function FieldBoard({
       const rows: Record<number, number> = {
         30: 14,
         75: 54,
-        225: 160,
-        385: 266,
-        535: 374,
-        695: 480,
-        845: 586,
-        890: 626,
+        225: 156,
+        385: 258,
+        535: 360,
+        695: 462,
+        845: 564,
+        890: 604,
       };
       p.y = rows[p.y] ?? p.y;
     }
@@ -233,7 +252,26 @@ export function FieldBoard({
             <Button onClick={() => setZoom((z) => (z >= 2 ? 1 : z + 0.5))}>
               {t.zoom} {zoom}×
             </Button>
-            <Button onClick={() => setZoom(1)}>{t.reset}</Button>
+            <Button
+              onClick={() => {
+                setZoom(1);
+                setFitWindow(false);
+                if (desktop) centerField(viewport.current);
+              }}
+            >
+              {t.reset}
+            </Button>
+            {desktop && (
+              <Button
+                aria-pressed={fitWindow}
+                onClick={() => {
+                  setFitWindow(!fitWindow);
+                  setZoom(1);
+                }}
+              >
+                {fitWindow ? t.fill : t.fit}
+              </Button>
+            )}
           </div>
           <div
             className="replay-field-action"
@@ -246,7 +284,15 @@ export function FieldBoard({
         </div>
         <div className="replay-field-player">
           <strong>{frame.names[1 - view]}</strong>
-          <span>LP {frame.lp[1 - view]}</span>
+          <span>
+            {desktop &&
+              `${label(2)} ${
+                frame.cards.filter(
+                  (c) => c.player === 1 - view && c.location === 2,
+                ).length
+              } · `}
+            LP {frame.lp[1 - view]}
+          </span>
         </div>
       </div>
       <div
@@ -434,7 +480,14 @@ export function FieldBoard({
       </div>
       <div className="replay-field-player">
         <strong>{frame.names[view]}</strong>
-        <span>LP {frame.lp[view]}</span>
+        <span>
+          {desktop &&
+            `${label(2)} ${
+              frame.cards.filter((c) => c.player === view && c.location === 2)
+                .length
+            } · `}
+          LP {frame.lp[view]}
+        </span>
       </div>
       <Drawer
         rootClassName="replay-drawer"

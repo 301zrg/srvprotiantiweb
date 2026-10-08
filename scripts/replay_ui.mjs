@@ -57,7 +57,7 @@ try {
       readFileSync(await download.path()),
       readFileSync(fixture),
     );
-    await page.reload();
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
     await expect(page.locator(".replay-entry")).toHaveCount(1);
     await page.getByRole("button", { name: "播放", exact: true }).click();
     await expect(
