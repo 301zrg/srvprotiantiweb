@@ -153,7 +153,17 @@
 
 @media (max-width: 360px) {
   .navbar {
-    gap: 6px;
+    gap: 4px;
+    padding: 0 6px;
+    .link {
+      flex-shrink: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    :global(.ant-select) {
+      width: 94px !important;
+      flex-shrink: 0;
+    }
   }
 }
 

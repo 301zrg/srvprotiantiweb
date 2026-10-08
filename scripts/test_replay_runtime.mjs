@@ -44,7 +44,10 @@ try {
       const frame = engine.next();
       frames.push(frame);
       for (const e of frame.events) {
-        if ([40, 41, 5, 91, 92, 100, 60, 70].includes(e[0]))
+        if (
+          [40, 41, 5, 91, 92, 100, 60, 70].includes(e[0]) ||
+          (fixture.includes("confirm") && e[0] === 31)
+        )
           trace.push({ code: e[0], data: e.slice(1) });
         if (e[0] === 90) {
           const v = new DataView(new Uint8Array(e).buffer);
@@ -87,6 +90,21 @@ try {
     fingerprint(first.frames),
     "Destroy/recreate must reproduce every complete queried field",
   );
+  if (fixture.includes("confirm")) {
+    const confirmations = first.frames.flatMap((frame, i) =>
+      frame.events.some((e) => e[0] === 31) ? [i] : [],
+    );
+    assert.ok(
+      confirmations.length > 0,
+      "Native search must reveal the selected card",
+    );
+    for (const i of confirmations)
+      assert.equal(
+        first.frames[i + 1].consumed,
+        first.frames[i].consumed,
+        "A confirmation display must not consume the next recorded selection",
+      );
+  }
   if (fixture.includes("battle")) {
     assert.ok(
       first.frames.some((f) =>

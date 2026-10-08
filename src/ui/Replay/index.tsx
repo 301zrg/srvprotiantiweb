@@ -13,7 +13,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { fetchCard, getCardImgUrl } from "@/api";
+import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
 import type { ReplayFrame } from "@/replay/engine";
 import { MAX_REPLAY_BYTES } from "@/replay/format";
 import { sha256 } from "@/replay/hash";
@@ -32,6 +32,9 @@ import {
 import type { ReplayCard } from "@/replay/messages";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
+
+import { positionLabel, replayCardWords, replayCounters } from "./cardState";
+import { ReplayCardTile } from "./CardTile";
 
 const labels = {
   cn: [
@@ -389,6 +392,8 @@ function Library({ text }: { text: string[] }) {
 }
 
 function Player({ id, text }: { id: string; text: string[] }) {
+  const { language } = useI18N();
+  const stateText = replayCardWords(language);
   const navigate = useNavigate();
   const worker = useRef<Worker>();
   const timer = useRef<number>();
@@ -410,6 +415,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [history, setHistory] = useState<string[]>([]),
     [showHistory, setShowHistory] = useState(false),
     [title, setTitle] = useState("");
+  const [reveal, setReveal] = useState(false);
   const stop = () => {
     paused.current = true;
     setPlaying(false);
@@ -545,7 +551,16 @@ function Player({ id, text }: { id: string; text: string[] }) {
       message.error(String(e));
     }
   };
-  const selected = card ? fetchCard(card.code) : undefined;
+  const currentCard =
+    card &&
+    frame?.cards.find(
+      (c) =>
+        c.player === card.player &&
+        c.location === card.location &&
+        c.sequence === card.sequence &&
+        c.code === card.code,
+    );
+  const selected = currentCard ? fetchCard(currentCard.code) : undefined;
   return (
     <main className="replay-player">
       <header className="replay-header">
@@ -635,8 +650,12 @@ function Player({ id, text }: { id: string; text: string[] }) {
           </Button>
         )}
         <Button onClick={() => setShowHistory(true)}>{text[15]}</Button>
+        <Button aria-pressed={reveal} onClick={() => setReveal(!reveal)}>
+          {stateText.reveal}
+        </Button>
         <Button onClick={() => run(() => downloadReplay(id))}>{text[3]}</Button>
       </div>
+      {reveal && <p className="replay-note">{stateText.revealNote}</p>}
       {(status || seeking) && (
         <p className="replay-note" role="status">
           {seeking ? `正在重演至回合 ${seek.current}…` : status}
@@ -679,33 +698,18 @@ function Player({ id, text }: { id: string; text: string[] }) {
                       </h3>
                       <div>
                         {cards.map((c) => (
-                          <button
-                            className={`replay-card ${
-                              c.position & 10 ? "replay-facedown" : ""
-                            }`}
+                          <ReplayCardTile
                             key={c.sequence}
-                            onClick={() => setCard(c)}
-                            aria-label={`${
-                              fetchCard(c.code).text.name || c.code
-                            }，${text[16 + i]}`}
-                          >
-                            <img
-                              src={getCardImgUrl(c.code)}
-                              loading="lazy"
-                              alt={
-                                fetchCard(c.code).text.name || String(c.code)
-                              }
-                            />
-                            <span>{fetchCard(c.code).text.name || c.code}</span>
-                            {location === 4 && (
-                              <small>
-                                {c.attack}/{c.defense}
-                                {c.overlay.length
-                                  ? ` · 素材 ${c.overlay.length}`
-                                  : ""}
-                              </small>
-                            )}
-                          </button>
+                            card={c}
+                            language={language}
+                            reveal={reveal}
+                            zoneLabel={text[16 + i]}
+                            onInspect={(selectedCard) => {
+                              stop();
+                              clearTimeout(timer.current);
+                              setCard(selectedCard);
+                            }}
+                          />
                         ))}
                       </div>
                     </div>
@@ -718,42 +722,59 @@ function Player({ id, text }: { id: string; text: string[] }) {
       )}
       <Drawer
         rootClassName="replay-drawer"
-        title={selected?.text.name || card?.code}
-        open={!!card}
+        title={selected?.text.name || currentCard?.code}
+        open={!!currentCard}
         onClose={() => setCard(undefined)}
         width={400}
       >
         <Button onClick={() => setCard(undefined)}>{text[23]}</Button>
-        {card && (
+        {currentCard && (
           <>
             <img
               className="replay-detail-image"
-              src={getCardImgUrl(card.code)}
+              src={getCardImgUrl(currentCard.code)}
               alt=""
             />
-            <p>
-              {card.attack} / {card.defense} ·{" "}
-              {card.position & 10 ? "里侧" : "表侧"}
-            </p>
-            <p className="replay-description">{selected?.text.desc}</p>
-            {card.declared && (
+            <p>{positionLabel(currentCard, language)}</p>
+            {!!(currentCard.type & 1) && (
               <p>
-                宣言卡片：{fetchCard(card.declared).text.name || card.declared}
+                {stateText.atk} {currentCard.attack} / {stateText.def}{" "}
+                {currentCard.defense}
               </p>
             )}
-            {!!card.overlay.length && (
+            {!!((currentCard.status || 0) & 1) && <p>{stateText.disabled}</p>}
+            {!!((currentCard.status || 0) & 0x4000000) && (
+              <p>{stateText.forbidden}</p>
+            )}
+            <p className="replay-description">{selected?.text.desc}</p>
+            {currentCard.declared && (
               <p>
-                素材：
-                {card.overlay
+                {stateText.declared}：
+                {fetchCard(currentCard.declared).text.name ||
+                  currentCard.declared}
+              </p>
+            )}
+            {!!currentCard.overlay.length && (
+              <p>
+                {stateText.materials} {currentCard.overlay.length}：
+                {currentCard.overlay
                   .map((n) => fetchCard(n).text.name || n)
                   .join("、")}
               </p>
             )}
-            {!!card.counters.length && (
+            {!!replayCounters(currentCard).length && (
               <p>
-                指示物：
-                {card.counters
-                  .map((n) => `${n & 65535} × ${n >>> 16}`)
+                {stateText.counters}：
+                {replayCounters(currentCard)
+                  .map(({ type, count }) => {
+                    const name = fetchStrings(
+                      Region.Counter,
+                      `0x${type.toString(16)}`,
+                    );
+                    return `${
+                      name === "?" ? `0x${type.toString(16)}` : name
+                    } × ${count}`;
+                  })
                   .join("、")}
               </p>
             )}

@@ -28,6 +28,13 @@ interface Profile {
   cardCount: number;
   files: Record<string, { bytes: number; sha256: string }>;
 }
+// Locked native ReplayMode::ReplayAnalyze reads a replay response only for
+// selection/declaration messages. PROCESSOR_WAITING is also emitted for
+// reveal/confirmation displays (PROCESSOR_WAIT), which consume no response.
+const responseMessages = new Set([
+  10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 26, 132, 140, 141,
+  142, 143,
+]);
 export function unpackScripts(bytes: Uint8Array, expected: number): Uint8Array {
   if (expected > 64 * 1024 * 1024) throw new Error("脚本包预算异常");
   const parts: Uint8Array[] = [];
@@ -211,7 +218,7 @@ export class ReplayEngine {
         this.error();
         const size = result & 0xfffffff;
         if (size > 256 * 1024) throw new Error("Core 消息超过批次限制");
-        this.waiting = !!(result & 0x10000000);
+        this.waiting = false;
         let events: number[][] = [];
         if (size) {
           const p = this.core._malloc(size);
@@ -226,6 +233,7 @@ export class ReplayEngine {
           }
           if (events.some((e) => e[0] === 1))
             throw new Error("录像响应与当前旧裁定环境不一致（MSG_RETRY）");
+          this.waiting = events.some((e) => responseMessages.has(e[0]));
           for (const e of events) {
             if (e[0] === 160 && e[5] === 2)
               this.hints.set(
@@ -254,18 +262,6 @@ export class ReplayEngine {
               ? "complete"
               : "partial";
           return this.frame([]);
-        }
-        if (this.waiting) {
-          if (this.response === this.body.responses.length) {
-            this.ended = "partial";
-            return this.frame([]);
-          }
-          const buffer = new Uint8Array(256);
-          buffer.set(this.body.responses[this.response++]);
-          const p = this.alloc(buffer);
-          this.core._set_responseb(this.handle, p);
-          this.core._free(p);
-          this.waiting = false;
         }
       }
     } finally {
