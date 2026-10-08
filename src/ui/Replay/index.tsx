@@ -35,6 +35,8 @@ import { disconnectSrvpro } from "@/ui/Match/util";
 
 import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
+import { FieldBoard, replayFieldWords } from "./FieldBoard";
+import { type SceneFrame, sceneSteps, seedScene } from "./scene";
 
 const labels = {
   cn: [
@@ -402,7 +404,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
     paused = useRef(true),
     speed = useRef(1),
     seek = useRef(0);
-  const [frame, setFrame] = useState<ReplayFrame>(),
+  const scene = useRef<SceneFrame>();
+  const queue = useRef<SceneFrame[]>([]);
+  const requestedAuto = useRef(false);
+  const [fieldView, setFieldView] = useState(true);
+  const [frame, setFrame] = useState<SceneFrame>(),
     [working, setWorking] = useState(true),
     [status, setStatus] = useState("正在打开录像…"),
     [error, setError] = useState(""),
@@ -419,9 +425,30 @@ function Player({ id, text }: { id: string; text: string[] }) {
   const stop = () => {
     paused.current = true;
     setPlaying(false);
+    clearTimeout(timer.current);
+  };
+  const updateFrame = (next: SceneFrame) => {
+    scene.current = next;
+    setFrame(next);
+  };
+  const advance = () => {
+    const next = queue.current.shift();
+    if (!next) return;
+    updateFrame(next);
+    if (next.end) {
+      stop();
+      return;
+    }
+    if (!paused.current)
+      timer.current = window.setTimeout(() => request(), 600 / speed.current);
   };
   const request = (type = "next") => {
     if (pending.current || !worker.current) return;
+    if (type !== "next" || seek.current) queue.current = [];
+    if (type === "next" && queue.current.length) {
+      advance();
+      return;
+    }
     pending.current = true;
     setWorking(true);
     clearTimeout(timer.current);
@@ -433,6 +460,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
       stop();
     }, 10000);
     worker.current.postMessage({ type, turn: seek.current });
+    requestedAuto.current = !paused.current;
   };
   useEffect(() => {
     let disposed = false;
@@ -470,12 +498,20 @@ function Player({ id, text }: { id: string; text: string[] }) {
           }
           if (data.type !== "frame") return;
           const next = data.frame as ReplayFrame;
-          setFrame(next);
           setStatus("");
           setHistory((old) =>
             [...old, ...(data.history || [next]).flatMap(describeEvents)].slice(
               -1000,
             ),
+          );
+          if (!seek.current && next.step > 0 && scene.current) {
+            queue.current = sceneSteps(scene.current, next);
+            if (!requestedAuto.current || !paused.current) advance();
+            return;
+          }
+          queue.current = [];
+          updateFrame(
+            seedScene(next, next.step === 0 ? undefined : scene.current),
           );
           if (next.end) {
             stop();
@@ -541,6 +577,8 @@ function Player({ id, text }: { id: string; text: string[] }) {
       worker.current?.postMessage({ type: "close" });
       worker.current?.terminate();
       worker.current = undefined;
+      queue.current = [];
+      scene.current = undefined;
       document.removeEventListener("visibilitychange", background);
     };
   }, [id]);
@@ -650,6 +688,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
           </Button>
         )}
         <Button onClick={() => setShowHistory(true)}>{text[15]}</Button>
+        <Button onClick={() => setFieldView(!fieldView)}>
+          {fieldView
+            ? replayFieldWords(language).list
+            : replayFieldWords(language).field}
+        </Button>
         <Button aria-pressed={reveal} onClick={() => setReveal(!reveal)}>
           {stateText.reveal}
         </Button>
@@ -680,44 +723,59 @@ function Player({ id, text }: { id: string; text: string[] }) {
               </strong>
             )}
           </div>
-          <div className="replay-board">
-            {[1 - view, view].map((player) => (
-              <section className="replay-side" key={player}>
-                <header>
-                  <h2>{frame.names[player] || `Player ${player + 1}`}</h2>
-                  <strong>LP {frame.lp[player]}</strong>
-                </header>
-                {[2, 4, 8, 1, 64, 16, 32].map((location, i) => {
-                  const cards = frame.cards.filter(
-                    (c) => c.player === player && c.location === location,
-                  );
-                  return (
-                    <div className="replay-zone" key={location}>
-                      <h3>
-                        {text[16 + i]} <span>{cards.length}</span>
-                      </h3>
-                      <div>
-                        {cards.map((c) => (
-                          <ReplayCardTile
-                            key={c.sequence}
-                            card={c}
-                            language={language}
-                            reveal={reveal}
-                            zoneLabel={text[16 + i]}
-                            onInspect={(selectedCard) => {
-                              stop();
-                              clearTimeout(timer.current);
-                              setCard(selectedCard);
-                            }}
-                          />
-                        ))}
+          {fieldView ? (
+            <FieldBoard
+              frame={frame}
+              view={view}
+              reveal={reveal}
+              language={language}
+              text={text}
+              onPause={stop}
+              onInspect={(selectedCard) => {
+                stop();
+                setCard(selectedCard);
+              }}
+            />
+          ) : (
+            <div className="replay-board">
+              {[1 - view, view].map((player) => (
+                <section className="replay-side" key={player}>
+                  <header>
+                    <h2>{frame.names[player] || `Player ${player + 1}`}</h2>
+                    <strong>LP {frame.lp[player]}</strong>
+                  </header>
+                  {[2, 4, 8, 1, 64, 16, 32].map((location, i) => {
+                    const cards = frame.cards.filter(
+                      (c) => c.player === player && c.location === location,
+                    );
+                    return (
+                      <div className="replay-zone" key={location}>
+                        <h3>
+                          {text[16 + i]} <span>{cards.length}</span>
+                        </h3>
+                        <div>
+                          {cards.map((c) => (
+                            <ReplayCardTile
+                              key={c.sequence}
+                              card={c}
+                              language={language}
+                              reveal={reveal}
+                              zoneLabel={text[16 + i]}
+                              onInspect={(selectedCard) => {
+                                stop();
+                                clearTimeout(timer.current);
+                                setCard(selectedCard);
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </section>
-            ))}
-          </div>
+                    );
+                  })}
+                </section>
+              ))}
+            </div>
+          )}
         </>
       )}
       <Drawer

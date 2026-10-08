@@ -1,0 +1,211 @@
+.replay-field-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.replay-field-action {
+  min-height: 30px;
+  padding: 8px 12px;
+  background: #263247;
+  border-radius: 8px;
+  color: #ffe2a1;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.replay-field-player {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  color: #cbe8e7;
+}
+.replay-field-viewport {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid #43516b;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: #141f30;
+}
+.replay-field-canvas {
+  position: relative;
+  margin: auto;
+  overflow: hidden;
+}
+.replay-field-plane {
+  width: 1000px;
+  height: 920px;
+  position: absolute;
+  transform-origin: top left;
+  background: linear-gradient(#183849, #171e31 50%, #183849);
+}
+.replay-field-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 132px;
+  height: 142px;
+  box-sizing: border-box;
+  border: 2px solid #638d95;
+  border-radius: 9px;
+  color: #96adb7;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+}
+.replay-field-card {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 132px;
+  max-width: 132px;
+  box-sizing: border-box;
+  transition:
+    left 300ms ease,
+    top 300ms ease;
+  border-radius: 6px;
+  z-index: 2;
+  min-height: 146px;
+}
+.replay-field-card .replay-card-image {
+  height: 118px;
+}
+.replay-field-card .replay-card-image img {
+  width: 82px;
+  height: 118px;
+}
+.replay-field-far .replay-card-image img {
+  transform: rotate(180deg);
+}
+.replay-field-far.replay-defense .replay-card-image img {
+  transform: rotate(270deg);
+}
+.replay-field-card .replay-position {
+  display: none;
+}
+.replay-field-card > span:first-of-type {
+  display: none;
+}
+.replay-field-card > small {
+  font-size: clamp(11px, calc(9px / var(--field-scale)), 20px);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.replay-field-card .replay-negated {
+  position: absolute;
+  right: 0;
+  top: 0;
+  max-width: 100%;
+  background: #802d3a;
+}
+.replay-field-card:not([data-materials="0"])::after {
+  content: "×" attr(data-materials);
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 4px;
+  background: #294e92;
+  color: #fff;
+  padding: 2px 5px;
+  font-size: 22px;
+}
+.replay-field-card > small:first-of-type {
+  display: none;
+}
+.replay-field-focus {
+  box-shadow: 0 0 18px 7px #eccf70;
+  border-color: #ffd06c;
+  z-index: 4;
+}
+.replay-field-enter {
+  animation: replay-field-arrive 300ms ease;
+}
+.replay-field-leave {
+  animation: replay-field-depart 300ms ease forwards;
+  pointer-events: none;
+}
+@keyframes replay-field-arrive {
+  from {
+    left: var(--replay-origin-x);
+    top: var(--replay-origin-y);
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes replay-field-depart {
+  from {
+    left: var(--replay-origin-x);
+    top: var(--replay-origin-y);
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.replay-field-pile {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 132px;
+  height: 146px;
+  min-width: calc(44px / var(--field-scale));
+  min-height: calc(44px / var(--field-scale));
+  background: #263b52;
+  border: 1px solid #78a2b5;
+  border-radius: 6px;
+  color: #fff;
+  font-size: clamp(18px, calc(12px / var(--field-scale)), 28px);
+  z-index: 6;
+  cursor: pointer;
+}
+.replay-field-pile img {
+  width: 82px;
+  height: 110px;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+}
+.replay-field-pile span {
+  display: block;
+  white-space: nowrap;
+  font-size: clamp(18px, calc(12px / var(--field-scale)), 28px);
+}
+.replay-field-chain {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f2cf64;
+  color: #121c2b;
+  border: 3px solid #fff;
+  font-size: 24px;
+  z-index: 8;
+  pointer-events: none;
+}
+.replay-field-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9;
+  pointer-events: none;
+}
+.replay-field-pile-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .replay-field-card {
+    transition: none;
+    animation: none;
+  }
+}

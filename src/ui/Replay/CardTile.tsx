@@ -27,7 +27,7 @@ export function ReplayCardTile({
   zoneLabel: string;
   onInspect: (card: ReplayCard) => void;
   className?: string;
-  style?: CSSProperties;
+  style?: CSSProperties & Record<`--${string}`, string | number>;
 }) {
   const t = replayCardWords(language);
   const hidden = concealReplayCard(card, reveal);
@@ -45,6 +45,7 @@ export function ReplayCardTile({
       data-location={card.location}
       data-sequence={card.sequence}
       data-position={card.position}
+      data-materials={card.overlay.length}
       onClick={() => onInspect(card)}
       aria-label={`${name}，${zoneLabel}，${positionLabel(card, language)}`}
     >
