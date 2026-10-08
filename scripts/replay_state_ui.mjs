@@ -105,6 +105,8 @@ try {
       .locator('input[type="file"]')
       .setInputFiles("tests/fixtures/replay/native-deckout.yrp");
     await page.getByRole("button", { name: "播放", exact: true }).click();
+    await expect(page.locator(".replay-field-board")).toBeVisible();
+    await page.getByRole("button", { name: "列表视图", exact: true }).click();
     await expect(page.locator(".replay-board")).toBeVisible();
     const at = (location, sequence, player = 0) =>
       page.locator(

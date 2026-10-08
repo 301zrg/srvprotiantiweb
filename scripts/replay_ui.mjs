@@ -57,24 +57,28 @@ try {
       readFileSync(await download.path()),
       readFileSync(fixture),
     );
-    await page.reload();
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
     await expect(page.locator(".replay-entry")).toHaveCount(1);
     await page.getByRole("button", { name: "播放", exact: true }).click();
     await expect(
-      page.locator(".replay-board,.replay-error").first(),
+      page.locator(".replay-field-board,.replay-board,.replay-error").first(),
     ).toBeVisible({ timeout: 60000 });
     if (await page.locator(".replay-error").count())
       throw new Error(await page.locator(".replay-error").innerText());
     assert.equal(ws, 0, "Offline replay must not create a WebSocket");
-    assert.deepEqual(await page.locator(".replay-side h2").allTextContents(), [
-      "ReplayFixtureA",
-      "ReplayFixtureB",
-    ]);
+    assert.deepEqual(
+      await page
+        .locator(".replay-field-player strong,.replay-side h2")
+        .allTextContents(),
+      ["ReplayFixtureA", "ReplayFixtureB"],
+    );
     await page.getByRole("button", { name: "切换视角", exact: true }).click();
-    assert.deepEqual(await page.locator(".replay-side h2").allTextContents(), [
-      "ReplayFixtureB",
-      "ReplayFixtureA",
-    ]);
+    assert.deepEqual(
+      await page
+        .locator(".replay-field-player strong,.replay-side h2")
+        .allTextContents(),
+      ["ReplayFixtureB", "ReplayFixtureA"],
+    );
     await page.getByRole("button", { name: "单步", exact: true }).click();
     await expect(page.locator(".replay-progress")).toContainText("步骤 1");
     await page.locator(".replay-card").first().click();

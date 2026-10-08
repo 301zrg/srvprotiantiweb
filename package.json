@@ -50,6 +50,8 @@
     "test:replay-ui": "node scripts/replay_ui.mjs",
     "test:replay-state": "node scripts/test_replay_card_state.mjs",
     "test:replay-state-ui": "node scripts/replay_state_ui.mjs",
+    "test:replay-scene": "node scripts/test_replay_scene.mjs",
+    "test:replay-field-ui": "node scripts/replay_field_ui.mjs",
     "test:replay-wss": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --replays",
     "build:cloudflare": "node scripts/build_cloudflare.mjs",
     "deploy:cloudflare": "npx --yes wrangler@4.148.0 deploy",
