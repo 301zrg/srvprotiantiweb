@@ -3,6 +3,7 @@ import { useDrag } from "react-dnd";
 
 import { CardMeta, forbidden, forbidden_408, getCardImgUrl } from "@/api";
 import { useConfig } from "@/config";
+import { useMobileInterface } from "@/hook";
 
 import { Type } from "../DeckZone";
 import styles from "./index.module.scss";
@@ -25,8 +26,12 @@ export const DeckCard: React.FC<{
 }> = memo(
   ({ value, source, onMouseUp, onMouseEnter, onDoubleClick, is408 }) => {
     const ref = useRef<HTMLDivElement>(null);
+    const mobile = useMobileInterface();
     const [{ isDragging }, drag] = useDrag({
       type: "Card",
+      // Touch dragging consumes swipe gestures before the editor can scroll.
+      // Mobile already provides explicit add / move / remove controls.
+      canDrag: !mobile,
       item: { value, source },
       collect: (monitor) => ({
         isDragging: monitor.isDragging(),

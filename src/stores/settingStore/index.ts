@@ -12,25 +12,37 @@ import { AudioConfig, defaultAudioConfig } from "./audio";
 const NEO_SETTING_CONFIG = storageKey("__neo_setting_config__");
 
 /** 设置项 */
-type SettingStoreConfig = Pick<SettingStore, "audio" | "animation">;
+type SettingStoreConfig = Pick<
+  SettingStore,
+  "audio" | "animation" | "showServerMessages"
+>;
 
 /** 默认设置 */
 const defaultSettingConfig: SettingStoreConfig = {
   audio: defaultAudioConfig,
   animation: defaultAnimationConfig,
+  showServerMessages: true,
 };
 
 /** 获取默认设置 */
 function getDefaultSetting() {
   if (!isSSR()) {
     /** 获取默认设置 */
-    const setting = localStorage.getItem(NEO_SETTING_CONFIG);
-    if (setting) {
-      const config = JSON.parse(setting) as SettingStoreConfig;
-      if (config.audio === undefined) config.audio = defaultAudioConfig;
-      if (config.animation === undefined)
-        config.animation = defaultAnimationConfig;
-      return config;
+    try {
+      const setting = localStorage.getItem(NEO_SETTING_CONFIG);
+      if (setting) {
+        const config = JSON.parse(setting) as SettingStoreConfig;
+        return {
+          audio: config.audio ?? defaultAudioConfig,
+          animation: config.animation ?? defaultAnimationConfig,
+          showServerMessages:
+            typeof config.showServerMessages === "boolean"
+              ? config.showServerMessages
+              : true,
+        };
+      }
+    } catch {
+      // Settings remain usable when browser storage is unavailable or damaged.
     }
   }
   return defaultSettingConfig;
@@ -46,6 +58,9 @@ class SettingStore implements NeosStore {
   /** Animation Configuration */
   animation: AnimationConfig = defaultSetting.animation;
 
+  /** Only controls server chat popups, not required duel choices or errors. */
+  showServerMessages: boolean = defaultSetting.showServerMessages;
+
   /** 保存音频设置 */
   saveAudioConfig(config: Partial<AudioConfig>): void {
     Object.assign(this.audio, config);
@@ -60,6 +75,7 @@ class SettingStore implements NeosStore {
     const defaultSetting = getDefaultSetting();
     this.audio = defaultSetting.audio;
     this.animation = defaultSetting.animation;
+    this.showServerMessages = defaultSetting.showServerMessages;
   }
 }
 
@@ -69,9 +85,15 @@ export const settingStore = proxy(new SettingStore());
 /** 持久化设置项 */
 subscribe(settingStore, () => {
   if (!isSSR()) {
-    localStorage.setItem(
-      NEO_SETTING_CONFIG,
-      JSON.stringify(pick(settingStore, ["audio", "animation"])),
-    );
+    try {
+      localStorage.setItem(
+        NEO_SETTING_CONFIG,
+        JSON.stringify(
+          pick(settingStore, ["audio", "animation", "showServerMessages"]),
+        ),
+      );
+    } catch {
+      // Keep the current session's settings even if persistence is blocked.
+    }
   }
 });

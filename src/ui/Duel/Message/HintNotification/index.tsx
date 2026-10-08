@@ -7,14 +7,17 @@ import { fetchStrings, Region } from "@/api";
 import { Phase2StringCodeMap } from "@/common";
 import { useConfig } from "@/config";
 import { HandResult, matStore } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
 import { useChat } from "@/ui/Shared";
 
 import styles from "./index.module.scss";
 
 const NeosConfig = useConfig();
+const serverChatKey = "server-chat";
 
 let globalMsgApi: ReturnType<typeof message.useMessage>[0] | undefined;
 export const HintNotification = () => {
+  const { showServerMessages } = useSnapshot(settingStore);
   const matSnap = useSnapshot(matStore);
   const hintState = matSnap.hint;
   const toss = matSnap.tossResult;
@@ -77,14 +80,19 @@ export const HintNotification = () => {
 
   useEffect(() => {
     const latest = dialogs.at(-1);
-    if (latest) {
+    if (latest && (!latest.isServer || settingStore.showServerMessages)) {
       notiApi.open({
+        key: latest.isServer ? serverChatKey : undefined,
         message: latest.name,
         description: latest.content,
         icon: <MessageOutlined />,
       });
     }
   }, [dialogs]);
+
+  useEffect(() => {
+    if (!showServerMessages) notiApi.destroy(serverChatKey);
+  }, [showServerMessages]);
 
   return (
     <>

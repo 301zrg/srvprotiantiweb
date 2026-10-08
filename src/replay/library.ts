@@ -1,4 +1,10 @@
+import { downloadFile } from "@/infra/fileExport";
 import { storageKey } from "@/variant/deployment";
+export {
+  canShareFile as canShareReplayFile,
+  downloadFile as downloadReplayFile,
+  shareOrDownloadFile as shareReplayFile,
+} from "@/infra/fileExport";
 import type { HostInfo } from "@/variant/hostInfo";
 
 import { inspectReplay, type ReplayHeader, safeReplayName } from "./format";
@@ -256,44 +262,8 @@ export async function prepareReplayFile(id: string) {
     title: entry.title,
   };
 }
-export function downloadReplayFile(file: File) {
-  const url = URL.createObjectURL(file),
-    a = document.createElement("a");
-  a.href = url;
-  a.download = file.name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
-}
 export async function downloadReplay(id: string) {
-  downloadReplayFile((await prepareReplayFile(id)).file);
-}
-export function canShareReplayFile(file: File) {
-  try {
-    return (
-      typeof navigator.share === "function" &&
-      !!navigator.canShare?.({ files: [file] })
-    );
-  } catch {
-    return false;
-  }
-}
-/** Invoke directly from a fresh click after preparing the file. canShare is
- * only a capability check: Permissions Policy / OS can still reject share(). */
-export async function shareReplayFile(file: File, title: string) {
-  try {
-    if (canShareReplayFile(file)) {
-      await navigator.share({ files: [file], title });
-      return "shared" as const;
-    }
-  } catch (error) {
-    // User cancellation is neither an error nor permission to start a download.
-    if (error instanceof DOMException && error.name === "AbortError")
-      return "cancelled" as const;
-  }
-  downloadReplayFile(file);
-  return "downloaded" as const;
+  downloadFile((await prepareReplayFile(id)).file);
 }
 if (typeof window !== "undefined")
   window.addEventListener("beforeunload", (e) => {

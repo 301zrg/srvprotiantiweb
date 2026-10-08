@@ -44,6 +44,7 @@ import {
   downloadDeckAsYDK,
   editingDeckToIDeck,
   iDeckToEditingDeck,
+  shareDeckAsYDK,
 } from "./utils";
 
 export const loader: LoaderFunction = async () => {
@@ -202,6 +203,18 @@ export const Component: React.FC = () => {
                 const deck = deckStore.get(name);
                 if (deck) return await copyDeckToClipboard(deck);
                 else return false;
+              }}
+              onShare={(name) => {
+                const deck =
+                  !snapDecks.persistenceAvailable &&
+                  selectedDeck.deck.deckName === name
+                    ? editingDeckToIDeck(editDeckStore)
+                    : deckStore.get(name);
+                return deck
+                  ? shareDeckAsYDK(deck)
+                  : Promise.reject(
+                      new Error(deckMessages(language).saveFailed),
+                    );
               }}
             />
           </ScrollableArea>
@@ -391,6 +404,7 @@ export const DeckEditor: React.FC<{
         {(["main", "extra", "side"] as const).map((type) => (
           <DeckZone
             key={type}
+            compact
             type={type}
             cards={[...snapEditDeck[type]]}
             canAdd={editDeckStore.canAdd}

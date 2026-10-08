@@ -1,5 +1,6 @@
 import {
   AudioFilled,
+  MessageOutlined,
   PlayCircleOutlined,
   TranslationOutlined,
 } from "@ant-design/icons";
@@ -13,6 +14,7 @@ import { mobileMessages } from "@/variant/mobileMessages";
 import { I18NSelector, useI18N } from "../I18N";
 import { AnimationSetting } from "./Animation";
 import { AudioSetting } from "./Audio";
+import { MessageSetting } from "./Messages";
 
 /** 设置面板属性 */
 export interface SettingProps {
@@ -23,6 +25,8 @@ export interface SettingProps {
 export const Setting = (props: SettingProps) => {
   const { defaultKey = "audio" } = props;
   const { t: i18n } = useTranslation("SystemSettings");
+  const { language } = useI18N();
+  const text = mobileMessages(language);
 
   const items: TabsProps["items"] = [
     {
@@ -42,6 +46,15 @@ export const Setting = (props: SettingProps) => {
         </>
       ),
       children: <I18NSelector />,
+    },
+    {
+      key: "messages",
+      label: (
+        <>
+          {text.messageSettings} <MessageOutlined />
+        </>
+      ),
+      children: <MessageSetting />,
     },
     {
       key: "animation",

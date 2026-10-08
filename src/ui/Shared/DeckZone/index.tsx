@@ -1,4 +1,5 @@
-import { App, Button } from "antd";
+import { DeleteOutlined, MoreOutlined, SwapOutlined } from "@ant-design/icons";
+import { App, Button, Dropdown } from "antd";
 import classNames from "classnames";
 import React, { useState } from "react";
 import { useDrop } from "react-dnd";
@@ -31,6 +32,7 @@ export const DeckZone: React.FC<{
   onMoveCard?: (card: CardMeta, type: Type) => void;
   onRemoveCard?: (card: CardMeta, type: Type) => void;
   is408?: boolean;
+  compact?: boolean;
 }> = ({
   type,
   cards,
@@ -41,6 +43,7 @@ export const DeckZone: React.FC<{
   onMoveCard,
   onRemoveCard,
   is408,
+  compact = false,
 }) => {
   const { message } = App.useApp();
   const { language } = useI18N();
@@ -72,6 +75,7 @@ export const DeckZone: React.FC<{
     <div
       data-testid={`deck-zone-${type}`}
       data-card-count={cards.length}
+      data-compact-cards={compact}
       className={classNames(styles[type], {
         [styles.over]: isOver,
         [styles["not-allow-to-drop"]]: isOver && !allowToDrop,
@@ -89,26 +93,67 @@ export const DeckZone: React.FC<{
               is408={is408}
             />
             {(onMoveCard || onRemoveCard) && (
-              <div className={styles["card-actions"]}>
-                {onMoveCard && (
-                  <Button
-                    size="small"
-                    aria-label={`${text.move} ${card.text.name}`}
-                    onClick={() => onMoveCard(card, type)}
+              <>
+                <div className={styles["card-actions"]}>
+                  {onMoveCard && (
+                    <Button
+                      size="small"
+                      aria-label={`${text.move} ${card.text.name}`}
+                      onClick={() => onMoveCard(card, type)}
+                    >
+                      {text.moveShort}
+                    </Button>
+                  )}
+                  {onRemoveCard && (
+                    <Button
+                      size="small"
+                      aria-label={`${text.remove} ${card.text.name}`}
+                      onClick={() => onRemoveCard(card, type)}
+                    >
+                      {text.removeShort}
+                    </Button>
+                  )}
+                </div>
+                {compact && (
+                  <Dropdown
+                    trigger={["click"]}
+                    destroyPopupOnHide
+                    menu={{
+                      items: [
+                        ...(onMoveCard
+                          ? [
+                              {
+                                key: "move",
+                                label: text.move,
+                                icon: <SwapOutlined />,
+                                onClick: () => onMoveCard(card, type),
+                              },
+                            ]
+                          : []),
+                        ...(onRemoveCard
+                          ? [
+                              {
+                                key: "remove",
+                                label: text.remove,
+                                icon: <DeleteOutlined />,
+                                danger: true,
+                                onClick: () => onRemoveCard(card, type),
+                              },
+                            ]
+                          : []),
+                      ],
+                    }}
                   >
-                    {text.moveShort}
-                  </Button>
+                    <Button
+                      className={styles["card-menu"]}
+                      data-testid="deck-card-menu"
+                      aria-label={`${text.cardActions} ${card.text.name}`}
+                      icon={<MoreOutlined />}
+                      onClick={(event) => event.stopPropagation()}
+                    />
+                  </Dropdown>
                 )}
-                {onRemoveCard && (
-                  <Button
-                    size="small"
-                    aria-label={`${text.remove} ${card.text.name}`}
-                    onClick={() => onRemoveCard(card, type)}
-                  >
-                    {text.removeShort}
-                  </Button>
-                )}
-              </div>
+              </>
             )}
           </div>
         ))}

@@ -30,6 +30,7 @@ const manualCheck = process.argv.includes("--manual-check");
 const tunnelMode = process.argv.includes("--tunnel");
 const roomLinksMode = process.argv.includes("--room-links");
 const replayMode = process.argv.includes("--replays");
+const languageMode = process.argv.includes("--languages");
 const notes = [];
 let serverProcess;
 let previewServer;
@@ -326,6 +327,7 @@ try {
     const pageErrors = [];
     const pageTraces = new WeakMap();
     const capturedReplays = new WeakMap();
+    const languageCommands = new WeakMap();
     async function verifyReplays(pages, minimum) {
       if (!replayMode) return;
       const originals = new Map(
@@ -386,11 +388,12 @@ try {
         `Native WSS replay capture: ${originals.size} original files saved byte-for-byte`,
       );
     }
-    async function joinRoom(nickname, roomName, mode) {
+    async function joinRoom(nickname, roomName, mode, language = "cn") {
       const page = await browserContext.newPage();
       const clientTrace = [];
       pageTraces.set(page, clientTrace);
       capturedReplays.set(page, []);
+      languageCommands.set(page, []);
       page.on("pageerror", (error) =>
         pageErrors.push(`${nickname}: ${error.message}`),
       );
@@ -415,6 +418,14 @@ try {
             }
           });
         clientTrace.push(`websocket ${socket.url()}`);
+        socket.on("framesent", (frame) => {
+          if (typeof frame.payload === "string") return;
+          const packet = Buffer.from(frame.payload);
+          if (packet[2] === 0x16)
+            languageCommands.get(page).push(
+              packet.subarray(3).toString("utf16le").replace(/\0+$/, ""),
+            );
+        });
         socket.on("framesent", (frame) =>
           clientTrace.push(
             `sent ${Buffer.from(frame.payload)
@@ -434,12 +445,13 @@ try {
           clientTrace.push(`websocket error: ${error}`),
         );
       });
-      await page.addInitScript(() => localStorage.setItem("language", "cn"));
-      await page.goto(origin, { waitUntil: "domcontentloaded" });
-      await expect(page.locator('main[data-ready="true"]')).toBeVisible({
-        timeout: 45000,
-      });
-      await page.getByRole("button", { name: "进入联机" }).click();
+      await page.addInitScript((language) => localStorage.setItem("language", language), language);
+      await page.goto(origin + (languageMode ? "#/match" : ""), { waitUntil: "domcontentloaded" });
+      if (!languageMode) {
+        await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
+        await page.getByRole("button", { name: "进入联机" }).click();
+      }
+      await expect(page.locator("#player-nickname")).toBeVisible({ timeout: 45000 });
       await page.locator("#player-nickname").fill(nickname);
       await page.locator("#room-name").fill(roomName);
       await page.getByTestId("connect-submit").click();
@@ -589,128 +601,152 @@ try {
       );
       return page;
     }
-    const ordinaryA = await joinRoom("LocalWebA", "LOCAL-WSS-ROOM", "Single");
-    if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", false);
-    const ordinaryB = await joinRoom("LocalWebB", "LOCAL-WSS-ROOM", "Single");
-    console.log(
-      "Two browser clients joined the same ordinary room with 2011.3 banlist hash",
-    );
-    await startDuel(ordinaryA, ordinaryB, "Ordinary room");
-    if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", true);
-    await ordinaryA.getByTestId("duel-surrender").click();
-    await ordinaryA.getByTestId("duel-surrender-confirm").click();
-    for (const page of [ordinaryA, ordinaryB]) {
-      await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
-      await page.locator(".ant-modal-footer button").last().click();
-      await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/match/);
-    }
-    await expect(ordinaryA.locator("#player-nickname")).toHaveValue("LocalWebA");
-    await expect(ordinaryA.locator("#room-name")).toHaveValue("LOCAL-WSS-ROOM");
-    await verifyReplays([ordinaryA, ordinaryB], 1);
-    await ordinaryA.locator("#room-name").fill("LOCAL-REJOIN-ROOM");
-    await ordinaryA.getByTestId("connect-submit").click();
-    await expect(ordinaryA.getByTestId("room-host-info")).toBeVisible({ timeout: 25000 });
-    console.log("First reconnect after a completed ordinary duel joined a new room");
-    await ordinaryB.close();
-    await ordinaryA.close();
-    const ladderA = await joinRoom("TTWebA$pass123", "TT", "Match");
-    const ladderB = await joinRoom("TTWebB$pass456", "TT", "Match");
-    console.log(
-      "Two browser clients entered TT ladder matching with 2011.3 banlist hash",
-    );
-    await startDuel(ladderA, ladderB, "TT ladder");
-    let ladderRoomName, continuingSpectator;
-    if (roomLinksMode) {
-      const response = await fetch(`http://127.0.0.1:${httpPort}/api/getrooms`);
-      assert.ok(response.ok);
-      const { rooms } = await response.json();
-      const room = rooms.find((room) =>
-        room.roomname.startsWith("M#TT,RANDOM#"),
+    if (languageMode) {
+      for (const [language, command, confirmation] of [
+        ["cn", "/zh", "提示语言已切换"],
+        ["en", "/en", "Message language switched"],
+        ["ja", "/ja", "メッセージ言語を切り替えました"],
+        ["ko", "/ko", "메시지 언어가 변경되었습니다"],
+      ]) {
+        const page = await joinRoom(`Language-${language}`, `LANGUAGE-${language}`, "Single", language);
+        await expect(page.getByTestId("waitroom-chat-dialogs")).toContainText(confirmation, { timeout: 15000 });
+        assert.deepEqual(languageCommands.get(page), [command], "One language command after each acknowledged join");
+        await expect(page.getByTestId("waitroom-ready-toggle")).toHaveAttribute("aria-pressed", "false");
+        await page.getByTestId("waitroom-leave").click();
+        await expect(page.locator("#player-nickname")).toBeVisible({ timeout: 15000 });
+        await page.locator("#room-name").fill(`LANGUAGE-REJOIN-${language}`);
+        await page.getByTestId("connect-submit").click();
+        await expect(page.getByTestId("room-host-info")).toBeVisible({ timeout: 25000 });
+        await expect(page.getByTestId("waitroom-chat-dialogs")).toContainText(confirmation, { timeout: 15000 });
+        assert.deepEqual(languageCommands.get(page), [command, command]);
+        await expect(page.getByTestId("waitroom-ready-toggle")).toHaveAttribute("aria-pressed", "false");
+        console.log(`PASS ${language}: ${command}, localized server reply and first rejoin, manual ready retained`);
+        await page.close();
+      }
+    } else {
+      const ordinaryA = await joinRoom("LocalWebA", "LOCAL-WSS-ROOM", "Single");
+      if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", false);
+      const ordinaryB = await joinRoom("LocalWebB", "LOCAL-WSS-ROOM", "Single");
+      console.log(
+        "Two browser clients joined the same ordinary room with 2011.3 banlist hash",
       );
-      assert.ok(
-        room,
-        "Expected a concrete TT room in the local public room list",
-      );
-      ladderRoomName = room.roomname;
-      await joinSpectator(room.roomname, true);
-    }
-    // Split the first two wins so the same live match must reach G3.
-    async function surrender(page) {
-      await page.getByTestId("duel-surrender").click();
-      await page.getByTestId("duel-surrender-confirm").click();
-    }
-    async function sideAndStart(loser, other, label) {
-      for (const page of [loser, other]) {
+      await startDuel(ordinaryA, ordinaryB, "Ordinary room");
+      if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", true);
+      await ordinaryA.getByTestId("duel-surrender").click();
+      await ordinaryA.getByTestId("duel-surrender-confirm").click();
+      for (const page of [ordinaryA, ordinaryB]) {
         await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
         await page.locator(".ant-modal-footer button").last().click();
-        await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/side/);
+        await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/match/);
       }
-      const ownDeck = await loser.evaluate(() => sessionStorage.getItem("side_deck"));
-      const otherDeck = await other.evaluate(() => sessionStorage.getItem("side_deck"));
-      await loser.screenshot({ path: join(auditRoot, `tt-side-${label.replaceAll(" ", "-")}.png`) });
-      await loser.getByTestId("side-confirm").click();
-      await other.bringToFront();
-      assert.equal(await loser.evaluate(() => sessionStorage.getItem("side_deck")), ownDeck);
-      assert.equal(await other.evaluate(() => sessionStorage.getItem("side_deck")), otherDeck);
-      await other.getByTestId("side-confirm").click();
-      await loser.getByTestId("side-tp-first").click();
-      for (const page of [loser, other]) {
-        await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/duel/);
-        await expect(page.getByTestId("duel-player-life").first()).toBeVisible();
+      await expect(ordinaryA.locator("#player-nickname")).toHaveValue("LocalWebA");
+      await expect(ordinaryA.locator("#room-name")).toHaveValue("LOCAL-WSS-ROOM");
+      await verifyReplays([ordinaryA, ordinaryB], 1);
+      await ordinaryA.locator("#room-name").fill("LOCAL-REJOIN-ROOM");
+      await ordinaryA.getByTestId("connect-submit").click();
+      await expect(ordinaryA.getByTestId("room-host-info")).toBeVisible({ timeout: 25000 });
+      console.log("First reconnect after a completed ordinary duel joined a new room");
+      await ordinaryB.close();
+      await ordinaryA.close();
+      const ladderA = await joinRoom("TTWebA$pass123", "TT", "Match");
+      const ladderB = await joinRoom("TTWebB$pass456", "TT", "Match");
+      console.log(
+        "Two browser clients entered TT ladder matching with 2011.3 banlist hash",
+      );
+      await startDuel(ladderA, ladderB, "TT ladder");
+      let ladderRoomName, continuingSpectator;
+      if (roomLinksMode) {
+        const response = await fetch(`http://127.0.0.1:${httpPort}/api/getrooms`);
+        assert.ok(response.ok);
+        const { rooms } = await response.json();
+        const room = rooms.find((room) =>
+          room.roomname.startsWith("M#TT,RANDOM#"),
+        );
+        assert.ok(
+          room,
+          "Expected a concrete TT room in the local public room list",
+        );
+        ladderRoomName = room.roomname;
+        await joinSpectator(room.roomname, true);
       }
-      console.log(`${label}: side decks submitted and both clients entered the next game`);
+      // Split the first two wins so the same live match must reach G3.
+      async function surrender(page) {
+        await page.getByTestId("duel-surrender").click();
+        await page.getByTestId("duel-surrender-confirm").click();
+      }
+      async function sideAndStart(loser, other, label) {
+        for (const page of [loser, other]) {
+          await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
+          await page.locator(".ant-modal-footer button").last().click();
+          await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/side/);
+        }
+        const ownDeck = await loser.evaluate(() => sessionStorage.getItem("side_deck"));
+        const otherDeck = await other.evaluate(() => sessionStorage.getItem("side_deck"));
+        await loser.screenshot({ path: join(auditRoot, `tt-side-${label.replaceAll(" ", "-")}.png`) });
+        await loser.getByTestId("side-confirm").click();
+        await other.bringToFront();
+        assert.equal(await loser.evaluate(() => sessionStorage.getItem("side_deck")), ownDeck);
+        assert.equal(await other.evaluate(() => sessionStorage.getItem("side_deck")), otherDeck);
+        await other.getByTestId("side-confirm").click();
+        await loser.getByTestId("side-tp-first").click();
+        for (const page of [loser, other]) {
+          await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/duel/);
+          await expect(page.getByTestId("duel-player-life").first()).toBeVisible();
+        }
+        console.log(`${label}: side decks submitted and both clients entered the next game`);
+      }
+      await surrender(ladderA);
+      await sideAndStart(ladderA, ladderB, "TT G2");
+      if (roomLinksMode) {
+        continuingSpectator = await joinSpectator(ladderRoomName, true, {
+          keep: true,
+          mobile: true,
+          slow: true,
+        });
+        await expect(continuingSpectator.getByTestId("duel-end-modal")).toBeHidden();
+        console.log("Cold mobile spectator caught up through G1 history to live TT G2");
+        const handsBefore = await continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count();
+        await expect(ladderA.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 20000 });
+        await ladderA.getByTestId("duel-phase-select").click();
+        await ladderA.getByTestId("duel-phase-end").click();
+        await expect.poll(
+          () => continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(),
+          { timeout: 30000 },
+        ).toBeGreaterThan(handsBefore);
+        console.log("Mobile spectator received a new live turn and draw after history catch-up");
+      }
+      await surrender(ladderB);
+      if (continuingSpectator) {
+        await expect(continuingSpectator.getByTestId("duel-observer-wait")).toBeVisible({ timeout: 30000 });
+        await expect(continuingSpectator.getByTestId("duel-end-modal")).toBeHidden();
+      }
+      await sideAndStart(ladderB, ladderA, "TT G3");
+      if (continuingSpectator) {
+        await expect(continuingSpectator.getByTestId("duel-observer-wait")).toHaveCount(0);
+        await expect.poll(
+          () => continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(),
+          { timeout: 30000 },
+        ).toBeGreaterThanOrEqual(10);
+        for (const life of await continuingSpectator.getByTestId("duel-player-life").all())
+          await expect(life).toHaveAttribute("data-life", "8000");
+        console.log("Mobile spectator followed live win, side decking and TT G3 automatically");
+      }
+      await surrender(ladderA);
+      for (const page of [ladderA, ladderB]) {
+        await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
+        await page.locator(".ant-modal-footer button").last().click();
+        await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/match/);
+      }
+      await expect(ladderA.locator("#player-nickname")).toHaveValue("TTWebA$pass123");
+      await verifyReplays([ladderA, ladderB], 3);
+      if (continuingSpectator) {
+        await expect(continuingSpectator.locator("#player-nickname")).toBeVisible({ timeout: 30000 });
+        await continuingSpectator.context().close();
+      }
+      console.log("TT Match completed G1-G3, both side phases and exit with retained nickname/password");
+      await ladderB.close();
+      await ladderA.close();
     }
-    await surrender(ladderA);
-    await sideAndStart(ladderA, ladderB, "TT G2");
-    if (roomLinksMode) {
-      continuingSpectator = await joinSpectator(ladderRoomName, true, {
-        keep: true,
-        mobile: true,
-        slow: true,
-      });
-      await expect(continuingSpectator.getByTestId("duel-end-modal")).toBeHidden();
-      console.log("Cold mobile spectator caught up through G1 history to live TT G2");
-      const handsBefore = await continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count();
-      await expect(ladderA.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 20000 });
-      await ladderA.getByTestId("duel-phase-select").click();
-      await ladderA.getByTestId("duel-phase-end").click();
-      await expect.poll(
-        () => continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(),
-        { timeout: 30000 },
-      ).toBeGreaterThan(handsBefore);
-      console.log("Mobile spectator received a new live turn and draw after history catch-up");
-    }
-    await surrender(ladderB);
-    if (continuingSpectator) {
-      await expect(continuingSpectator.getByTestId("duel-observer-wait")).toBeVisible({ timeout: 30000 });
-      await expect(continuingSpectator.getByTestId("duel-end-modal")).toBeHidden();
-    }
-    await sideAndStart(ladderB, ladderA, "TT G3");
-    if (continuingSpectator) {
-      await expect(continuingSpectator.getByTestId("duel-observer-wait")).toHaveCount(0);
-      await expect.poll(
-        () => continuingSpectator.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(),
-        { timeout: 30000 },
-      ).toBeGreaterThanOrEqual(10);
-      for (const life of await continuingSpectator.getByTestId("duel-player-life").all())
-        await expect(life).toHaveAttribute("data-life", "8000");
-      console.log("Mobile spectator followed live win, side decking and TT G3 automatically");
-    }
-    await surrender(ladderA);
-    for (const page of [ladderA, ladderB]) {
-      await expect(page.getByTestId("duel-end-modal")).toBeVisible({ timeout: 30000 });
-      await page.locator(".ant-modal-footer button").last().click();
-      await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/match/);
-    }
-    await expect(ladderA.locator("#player-nickname")).toHaveValue("TTWebA$pass123");
-    await verifyReplays([ladderA, ladderB], 3);
-    if (continuingSpectator) {
-      await expect(continuingSpectator.locator("#player-nickname")).toBeVisible({ timeout: 30000 });
-      await continuingSpectator.context().close();
-    }
-    console.log("TT Match completed G1-G3, both side phases and exit with retained nickname/password");
-    await ladderB.close();
-    await ladderA.close();
     assert.equal(pageErrors.length, 0, pageErrors.join("; "));
     console.log(
       `Real local SRVPro WSS integration passed (TCP ${tcpPort}, WSS ${wssPort})`,
