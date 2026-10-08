@@ -1,8 +1,8 @@
 # 开发入口
 
-本工作树为独立 `codex/replay-field` 场地预览，基于列表状态版。动作队列只控制只读展示，每批末必须精确回到 Core 完整查询结果；不改变在线 store、响应、Core 或脚本。使用和验收边界见 [场地预览说明](docs/replay-field-preview.md)。保持草稿 PR，未验收前不自动合入 `deploy/cloudflare`。
+2026-10-09 用户确认场地式录像重演可以上线，授权将 `codex/replay-field` 合入 `deploy/cloudflare`。默认完整场地，桌面在一屏内尽可能放大，保留列表切换。动作队列只控制只读展示，每批末必须精确回到 Core 完整查询结果；不改变在线 store、响应、Core 或脚本。使用和验证边界见 [场地重演说明](docs/replay-field-preview.md)。本轮无需再次请求发布确认。
 
-2026-10-08 用户确认录像首版已合并，授权先保持区域列表并补齐卡片状态与顶部录像列表入口，再从该版单开 `codex/replay-field` 开发场地式重演。列表状态修复在 `codex/replay-card-state`，场地版仅做独立预览，测试与验收充分后再切换正式版。不要提前把场地模式合入发布分支。
+2026-10-08 用户确认录像首版已合并，先由 `codex/replay-card-state` 补齐卡片状态与顶部录像列表入口，再单开 `codex/replay-field` 开发和预览。2026-10-09 已获得正式切换授权；已完成的回归和仍待真机验证的内容分别记录，不把用户上线许可当作未执行测试的证据。
 
 本项目先读 [设计](YGOPro_706_Web_Client_Design.md) 和 [施工清单](IMPLEMENTATION_PLAN.md)，再看涉及的源码。文档中的待验证项不是已经完成的功能。第二期首版实际范围及证据见 [录像说明](docs/replay-usage.md)：R0–R3 的原生／本地 WSS／存储与触屏尺寸回归已通过，R4 真机和生产样本待验收；在 `codex/replay-phase2` 独立分支提交，未自动合入发布分支。用户随后明确授权继续修改官网 HTML，配套接收契约见 [录像接收](docs/replay-import.md)；官网改动独立交付，不上传正式服务器。
 
