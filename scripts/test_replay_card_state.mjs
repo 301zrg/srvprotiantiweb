@@ -25,13 +25,29 @@ try {
     (3 << 16) | 1,
     (2 << 16) | 0x1002,
     1,
-    1,
+    0,
   ];
   data[0] = data.length * 4;
   const [card] = parseQuery(new Uint8Array(new Uint32Array(data).buffer), 0, 4);
   assert.equal(card.sequence, 2);
   assert.equal(card.owner, 1);
-  assert.equal(card.status, 1);
+  assert.equal(card.status, 0);
+  // Native common.h: QUERY_OWNER (0x40000) precedes QUERY_STATUS (0x80000).
+  // Unequal values catch the swap that made every owner-1 card look disabled.
+  for (const owner of [0, 1])
+    for (const status of [0, 1, 0x4000000, 0x4000001]) {
+      const query = new Uint32Array([
+        20,
+        2 | 0x40000 | 0x80000,
+        0,
+        owner,
+        status,
+      ]);
+      const [queried] = parseQuery(new Uint8Array(query.buffer), 1 - owner, 4);
+      assert.equal(queried.owner, owner);
+      assert.equal(queried.status, status);
+      assert.equal(!!(queried.status & 1), !!(status & 1));
+    }
   assert.deepEqual(card.overlay, [89631139, 46986414]);
   assert.deepEqual(state.replayCounters(card), [
     { type: 1, count: 3 },

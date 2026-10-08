@@ -14,6 +14,8 @@ export interface SceneAction {
   from?: Spot;
   to?: Spot;
   amount?: number;
+  counterDelta?: number;
+  reason?: number;
   arrivals?: string[];
   moving?: SceneCard;
 }
@@ -158,6 +160,7 @@ export function sceneSteps(
       emit({
         kind: "move",
         code,
+        reason: packed(event, 13),
         from,
         to,
         arrivals: arriving ? [arriving.sceneId] : [],
@@ -263,7 +266,12 @@ export function sceneSteps(
         c.counters = c.counters.filter((n) => (n & 65535) !== type);
         if (count) c.counters.push((count << 16) | type);
       }
-      emit({ kind: "counter", to, amount });
+      emit({
+        kind: "counter",
+        to,
+        amount,
+        counterDelta: kind === 101 ? amount : -amount,
+      });
     } else if (kind === 40) {
       scene.turnPlayer = event[1];
       scene.turn++;

@@ -48,6 +48,8 @@
     "test:replay-confirm-ui": "node scripts/replay_confirmation_ui.mjs",
     "test:replay-storage": "node scripts/test_replay_storage.mjs",
     "test:replay-ui": "node scripts/replay_ui.mjs",
+    "test:replay-share-ui": "node scripts/replay_share_ui.mjs",
+    "test:replay-audio": "node scripts/test_replay_audio.mjs",
     "test:replay-state": "node scripts/test_replay_card_state.mjs",
     "test:replay-state-ui": "node scripts/replay_state_ui.mjs",
     "test:replay-scene": "node scripts/test_replay_scene.mjs",

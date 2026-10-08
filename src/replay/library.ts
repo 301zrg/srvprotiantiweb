@@ -245,25 +245,55 @@ export async function deleteReplay(id: string) {
   await completion;
   changed();
 }
-export async function downloadReplay(id: string, share = false) {
+export async function prepareReplayFile(id: string) {
   const { entry, blob } = await getReplay(id);
   const name = safeReplayName(
     entry.title.replace(/\.(yrp|yrp3d)$/i, "") +
       (entry.header.format === "YRP3D" ? ".yrp3d" : ".yrp"),
   );
-  const file = new File([blob], name, { type: "application/octet-stream" });
-  if (share && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: entry.title });
-    return;
-  }
-  const url = URL.createObjectURL(blob),
+  return {
+    file: new File([blob], name, { type: "application/octet-stream" }),
+    title: entry.title,
+  };
+}
+export function downloadReplayFile(file: File) {
+  const url = URL.createObjectURL(file),
     a = document.createElement("a");
   a.href = url;
-  a.download = name;
+  a.download = file.name;
   document.body.append(a);
   a.click();
   a.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+export async function downloadReplay(id: string) {
+  downloadReplayFile((await prepareReplayFile(id)).file);
+}
+export function canShareReplayFile(file: File) {
+  try {
+    return (
+      typeof navigator.share === "function" &&
+      !!navigator.canShare?.({ files: [file] })
+    );
+  } catch {
+    return false;
+  }
+}
+/** Invoke directly from a fresh click after preparing the file. canShare is
+ * only a capability check: Permissions Policy / OS can still reject share(). */
+export async function shareReplayFile(file: File, title: string) {
+  try {
+    if (canShareReplayFile(file)) {
+      await navigator.share({ files: [file], title });
+      return "shared" as const;
+    }
+  } catch (error) {
+    // User cancellation is neither an error nor permission to start a download.
+    if (error instanceof DOMException && error.name === "AbortError")
+      return "cancelled" as const;
+  }
+  downloadReplayFile(file);
+  return "downloaded" as const;
 }
 if (typeof window !== "undefined")
   window.addEventListener("beforeunload", (e) => {

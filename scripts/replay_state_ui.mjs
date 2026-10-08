@@ -66,7 +66,12 @@ try {
           }),
           card(32, 0, 8),
           card(32, 1, 1),
-          card(4, 0, 1, { player: 1, overlay: [46986414, 89631139] }),
+          card(4, 0, 1, {
+            player: 1,
+            owner: 1,
+            status: 0,
+            overlay: [46986414, 89631139],
+          }),
           card(2, 0, 8),
         ],
       };
@@ -106,6 +111,12 @@ try {
       .setInputFiles("tests/fixtures/replay/native-deckout.yrp");
     await page.getByRole("button", { name: "播放", exact: true }).click();
     await expect(page.locator(".replay-field-board")).toBeVisible();
+    await expect(
+      page.locator('.replay-card[data-player="1"] .replay-negated'),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('.replay-card[data-player="0"] .replay-negated'),
+    ).toHaveCount(1);
     await page.getByRole("button", { name: "列表视图", exact: true }).click();
     await expect(page.locator(".replay-board")).toBeVisible();
     const at = (location, sequence, player = 0) =>
@@ -140,6 +151,7 @@ try {
     await expect(at(8, 0)).toContainText("指示物 3");
     await expect(at(8, 0)).toContainText("效果无效");
     await expect(at(4, 0, 1)).toContainText("素材 2");
+    await expect(at(4, 0, 1).locator(".replay-negated")).toHaveCount(0);
     await at(8, 0).click();
     await expect(page.locator(".ant-drawer-open")).toContainText(
       "魔力指示物 × 3",

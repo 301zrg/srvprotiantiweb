@@ -12,31 +12,74 @@ import {
 } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
 import type { ReplayFrame } from "@/replay/engine";
 import { MAX_REPLAY_BYTES } from "@/replay/format";
 import { sha256 } from "@/replay/hash";
 import {
+  canShareReplayFile,
   deleteReplay,
   downloadReplay,
   getReplay,
   listReplayOccurrences,
   listReplays,
+  prepareReplayFile,
   renameReplay,
   type ReplayEntry,
   type ReplayOccurrence,
   saveReplay,
+  shareReplayFile,
   subscribeReplays,
 } from "@/replay/library";
 import type { ReplayCard } from "@/replay/messages";
+import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
 
+import { ReplayAudio } from "./audio";
 import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
 import { FieldBoard, replayFieldWords } from "./FieldBoard";
 import { type SceneFrame, sceneSteps, seedScene } from "./scene";
+
+const extraWords = {
+  cn: {
+    soundOn: "音效：开",
+    soundOff: "音效：关",
+    shareTitle: "录像已准备好",
+    share: "分享文件",
+    fallback: "浏览器未允许分享，已改用文件下载",
+    cancel: "取消",
+  },
+  en: {
+    soundOn: "Sound: on",
+    soundOff: "Sound: off",
+    shareTitle: "Replay ready",
+    share: "Share file",
+    fallback: "Sharing unavailable; downloading the file instead",
+    cancel: "Cancel",
+  },
+  ja: {
+    soundOn: "効果音：オン",
+    soundOff: "効果音：オフ",
+    shareTitle: "リプレイの準備完了",
+    share: "ファイルを共有",
+    fallback: "共有できないためファイルをダウンロードします",
+    cancel: "キャンセル",
+  },
+  ko: {
+    soundOn: "효과음: 켜짐",
+    soundOff: "효과음: 꺼짐",
+    shareTitle: "리플레이 준비 완료",
+    share: "파일 공유",
+    fallback: "공유할 수 없어 파일을 다운로드합니다",
+    cancel: "취소",
+  },
+};
+const replayExtraWords = (language: string) =>
+  extraWords[language as keyof typeof extraWords] || extraWords.cn;
 
 const labels = {
   cn: [
@@ -161,6 +204,7 @@ export function Component() {
   );
 }
 function Library({ text }: { text: string[] }) {
+  const { language } = useI18N();
   const [entries, setEntries] = useState<ReplayEntry[]>([]),
     [occurrences, setOccurrences] = useState<ReplayOccurrence[]>([]),
     [search, setSearch] = useState(""),
@@ -334,7 +378,29 @@ function Library({ text }: { text: string[] }) {
                   {text[3]}
                 </Button>
                 <Button
-                  onClick={() => run(() => downloadReplay(entry.id, true))}
+                  onClick={() =>
+                    run(async () => {
+                      const { file, title } = await prepareReplayFile(entry.id);
+                      const words = replayExtraWords(language);
+                      const share = async () => {
+                        if (
+                          (await shareReplayFile(file, title)) === "downloaded"
+                        )
+                          message.info(words.fallback);
+                      };
+                      // File retrieval is asynchronous. A fresh confirmation tap
+                      // preserves the user activation required by iOS / Web Share.
+                      if (canShareReplayFile(file)) {
+                        Modal.confirm({
+                          title: words.shareTitle,
+                          content: file.name,
+                          okText: words.share,
+                          cancelText: words.cancel,
+                          onOk: share,
+                        });
+                      } else await share();
+                    })
+                  }
                 >
                   {text[14]}
                 </Button>
@@ -396,6 +462,11 @@ function Library({ text }: { text: string[] }) {
 function Player({ id, text }: { id: string; text: string[] }) {
   const { language } = useI18N();
   const stateText = replayCardWords(language);
+  const words = replayExtraWords(language);
+  const settings = useSnapshot(settingStore);
+  const soundEnabled = settings.audio.enableReplaySoundEffects !== false;
+  const audio = useRef<ReplayAudio>();
+  if (!audio.current) audio.current = new ReplayAudio();
   const navigate = useNavigate();
   const worker = useRef<Worker>();
   const timer = useRef<number>();
@@ -426,6 +497,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
     paused.current = true;
     setPlaying(false);
     clearTimeout(timer.current);
+    audio.current?.stop();
   };
   const updateFrame = (next: SceneFrame) => {
     scene.current = next;
@@ -434,6 +506,9 @@ function Player({ id, text }: { id: string; text: string[] }) {
   const advance = () => {
     const next = queue.current.shift();
     if (!next) return;
+    const action =
+      next.action !== scene.current?.action ? next.action : undefined;
+    if (action && !seek.current) audio.current?.play(action, speed.current);
     updateFrame(next);
     if (next.end) {
       stop();
@@ -442,6 +517,12 @@ function Player({ id, text }: { id: string; text: string[] }) {
     if (!paused.current)
       timer.current = window.setTimeout(() => request(), 600 / speed.current);
   };
+  useEffect(() => {
+    audio.current?.configure(
+      soundEnabled,
+      settings.audio.soundEffectsVolume ?? 0.7,
+    );
+  }, [soundEnabled, settings.audio.soundEffectsVolume]);
   const request = (type = "next") => {
     if (pending.current || !worker.current) return;
     if (type !== "next" || seek.current) queue.current = [];
@@ -579,6 +660,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
       worker.current = undefined;
       queue.current = [];
       scene.current = undefined;
+      audio.current?.dispose();
       document.removeEventListener("visibilitychange", background);
     };
   }, [id]);
@@ -621,6 +703,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
               stop();
               clearTimeout(timer.current);
             } else {
+              audio.current?.unlock();
               paused.current = false;
               setPlaying(true);
               request();
@@ -633,7 +716,10 @@ function Player({ id, text }: { id: string; text: string[] }) {
           disabled={
             !frame || !!frame.end || playing || !!error || seeking || working
           }
-          onClick={() => request()}
+          onClick={() => {
+            audio.current?.unlock();
+            request();
+          }}
         >
           {text[9]}
         </Button>
@@ -666,6 +752,20 @@ function Player({ id, text }: { id: string; text: string[] }) {
           }}
         />
         <Button onClick={() => setView(1 - view)}>{text[11]}</Button>
+        <Button
+          aria-pressed={soundEnabled}
+          onClick={() => {
+            const enabled = !soundEnabled;
+            settingStore.saveAudioConfig({ enableReplaySoundEffects: enabled });
+            audio.current?.configure(
+              enabled,
+              settingStore.audio.soundEffectsVolume ?? 0.7,
+            );
+            if (enabled) audio.current?.unlock();
+          }}
+        >
+          {soundEnabled ? words.soundOn : words.soundOff}
+        </Button>
         <Input
           aria-label="目标回合"
           type="number"
