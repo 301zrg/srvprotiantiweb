@@ -47,6 +47,8 @@
     "test:replay-runtime": "node scripts/test_replay_runtime.mjs && node scripts/test_replay_runtime.mjs native-battle-equip && node scripts/test_replay_runtime.mjs native-monk-flip",
     "test:replay-storage": "node scripts/test_replay_storage.mjs",
     "test:replay-ui": "node scripts/replay_ui.mjs",
+    "test:replay-state": "node scripts/test_replay_card_state.mjs",
+    "test:replay-state-ui": "node scripts/replay_state_ui.mjs",
     "test:replay-wss": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --replays",
     "build:cloudflare": "node scripts/build_cloudflare.mjs",
     "deploy:cloudflare": "npx --yes wrangler@4.148.0 deploy",

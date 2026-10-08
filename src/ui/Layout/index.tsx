@@ -144,6 +144,9 @@ export const Component = () => {
           <NavLink to="/build" className={styles.link}>
             {text.decks}
           </NavLink>
+          <NavLink to="/replays" className={styles.link}>
+            {text.replays}
+          </NavLink>
           <span style={{ flexGrow: 1 }} />
           <I18NSelector />
           <Button

@@ -166,14 +166,24 @@
   min-height: 12px;
 }
 .replay-card {
-  flex: 0 0 72px;
-  width: 72px;
+  flex: 0 0 104px;
+  width: 104px;
   padding: 3px;
   background: #253148;
   border: 1px solid #4b5b75;
   border-radius: 5px;
   color: #fff;
   cursor: pointer;
+  align-self: stretch;
+}
+.replay-card-image {
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.replay-defense .replay-card-image img {
+  transform: rotate(90deg);
 }
 .replay-card img {
   width: 62px;
@@ -192,7 +202,21 @@
 }
 .replay-card small {
   font-size: 10px;
-  white-space: nowrap;
+  display: block;
+  line-height: 1.5;
+}
+.replay-card .replay-position {
+  white-space: normal;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #c8dcf2;
+  min-height: 30px;
+}
+.replay-counter-count {
+  color: #ffda85;
+}
+.replay-negated {
+  color: #ffb4b4;
 }
 .replay-facedown {
   border-style: dashed;
@@ -243,7 +267,7 @@
     min-height: 44px;
   }
   .replay-card {
-    flex-basis: 70px;
+    flex-basis: 104px;
   }
   .replay-header h1 {
     font-size: 21px;
@@ -274,8 +298,11 @@
     width: 50px;
   }
   .replay-card {
-    flex-basis: 62px;
-    width: 62px;
+    flex-basis: 90px;
+    width: 90px;
+  }
+  .replay-card-image {
+    height: 76px;
   }
   .replay-player .ant-btn {
     min-height: 44px;

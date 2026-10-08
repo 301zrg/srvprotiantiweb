@@ -185,6 +185,8 @@ export interface ReplayCard {
   rank: number;
   overlay: number[];
   counters: number[];
+  status?: number;
+  owner?: number;
 }
 export function parseQuery(
   bytes: Uint8Array,
@@ -247,6 +249,8 @@ export function parseQuery(
         if (bit === 32) card.rank = n;
         if (bit === 256) card.attack = n | 0;
         if (bit === 512) card.defense = n | 0;
+        if (bit === 0x40000) card.status = n;
+        if (bit === 0x80000) card.owner = n;
         if (bit === 0x800000) u32();
       }
     }
