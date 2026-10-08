@@ -1,0 +1,967 @@
+syntax = "proto3";
+package ygopro;
+
+option go_package = "DarkNeos/ygopropb";
+
+// ----- Basic -----
+
+// 猜拳类型
+enum HandType {
+  UNKNOWN = 0;
+  ROCK = 1;
+  SCISSORS = 2;
+  PAPER = 3;
+}
+
+// 卡牌的区域类型
+enum CardZone {
+  DECK = 0;    // 卡组
+  HAND = 1;    // 手牌
+  MZONE = 2;   // 怪兽区
+  SZONE = 3;   // 魔法陷阱区
+  GRAVE = 4;   // 墓地
+  REMOVED = 5; // 除外
+  EXTRA = 6;   // 额外卡组
+  ONFIELD = 7; // 场地
+  FZONE = 8;   // TODO
+  PZONE = 9;   // 灵摆区
+  TZONE = 10;  // 衍生物区
+  EMPTY = 11;  // 空位置
+}
+
+// 卡牌的表示方式类型
+enum CardPosition {
+  FACEUP_ATTACK = 0;
+  FACEDOWN_ATTACK = 1;
+  FACEUP_DEFENSE = 2;
+  FACEDOWN_DEFENSE = 3;
+  FACEUP = 4;
+  FACEDOWN = 5;
+  ATTACK = 6;
+  DEFENSE = 7;
+}
+
+message CardInfo {
+  int32 code = 1;
+  int32 controller = 2;
+  CardZone location = 3;
+  int32 sequence = 4;
+}
+
+// 超量素材的zone和sequence都是跟随超量怪兽的，同时它会有个单独的overlay_sequence
+message CardLocation {
+  int32 controller = 1;       // 控制者编号
+  CardZone zone = 2;          // 区域编号
+  int32 sequence = 3;         // 在某个区域的序号
+  CardPosition position = 4;  //  表示形式
+  bool is_overlay = 5;        // 是否在超量区
+  int32 overlay_sequence = 6; // 超量素材序号
+}
+
+// ----- Service -----
+
+// reference: https://github.com/mycard/srvpro/blob/master/data/structs.json
+
+message YgoCtosMsg {
+  oneof msg {
+    CtosPlayerInfo ctos_player_info = 1;
+    CtosJoinGame ctos_join_game = 2;
+    CtosUpdateDeck ctos_update_deck = 3;
+    CtosHsReady ctos_hs_ready = 4;
+    CtosHsStart ctos_hs_start = 5;
+    CtosHsNotReady ctos_hs_not_ready = 6;
+    CtosHandResult ctos_hand_result = 7;
+    CtosTpResult ctos_tp_result = 8;
+    CtosTimeConfirm ctos_time_confirm = 9;
+    CtosGameMsgResponse ctos_response = 10;
+    CtosChat ctos_chat = 11;
+    CtosSurrender ctos_surrender = 12;
+    CtosHsToObserver ctos_hs_to_observer = 13;
+    CtosHsToDuelList ctos_hs_to_duel_list = 14;
+  }
+}
+
+message YgoStocMsg {
+  oneof msg {
+    StocJoinGame stoc_join_game = 1;
+    StocChat stoc_chat = 2;
+    StocHsPlayerEnter stoc_hs_player_enter = 3;
+    StocTypeChange stoc_type_change = 4;
+    StocHsPlayerChange stoc_hs_player_change = 5;
+    StocHsWatchChange stoc_hs_watch_change = 6;
+    StocSelectHand stoc_select_hand = 7;
+    StocHandResult stoc_hand_result = 8;
+    StocSelectTp stoc_select_tp = 9;
+    StocDeckCount stoc_deck_count = 10;
+    StocDuelStart stoc_duel_start = 11;
+    StocGameMessage stoc_game_msg = 12;
+    StocTimeLimit stoc_time_limit = 13;
+    StocErrorMsg stoc_error_msg = 14;
+    StocChangeSide stoc_change_side = 15;
+    StocWaitingSide stoc_waiting_side = 16;
+    StocDuelEnd stoc_duel_end = 17;
+  }
+}
+
+// ----- CTOS -----
+
+// 玩家信息
+message CtosPlayerInfo {
+  string name = 1; // 玩家昵称
+}
+
+// 加入房间
+message CtosJoinGame {
+  int32 version = 1; // 客户端/前端版本号
+  int32 gameid = 2;  // 0
+  string passwd = 3; // 房间密码
+}
+
+// 更新卡组
+message CtosUpdateDeck {
+  repeated int32 main = 1;  // 主卡组
+  repeated int32 extra = 2; // 额外卡组
+  repeated int32 side = 3;  // 副卡组
+}
+
+// 准备完毕
+message CtosHsReady {}
+
+// 取消准备
+message CtosHsNotReady {}
+
+// 加入观战
+message CtosHsToObserver {}
+
+// 加入决斗者行列
+message CtosHsToDuelList {}
+
+// 选择开始游戏
+message CtosHsStart {}
+
+// 猜拳选择
+message CtosHandResult { HandType hand = 1; }
+
+// 先后攻选择
+message CtosTpResult {
+  enum TpType {
+    UNKNOWN = 0;
+    FIRST = 1;  // 先攻
+    SECOND = 2; // 后攻
+  }
+
+  TpType tp = 1;
+}
+
+// 确认计时
+message CtosTimeConfirm {}
+
+// 发送聊天消息
+message CtosChat { string message = 1; }
+
+// 投降
+message CtosSurrender {}
+
+// 决斗对局内协议
+message CtosGameMsgResponse {
+  message SelectIdleCmdResponse { int32 code = 1; }
+  message SelectPlaceResponse {
+    message Place {
+      int32 player = 1;
+      CardZone zone = 2;
+      int32 sequence = 3;
+    }
+
+    int32 player = 1;
+    CardZone zone = 2;
+    int32 sequence = 3;
+    repeated Place places = 4;
+  }
+  message SelectMultiResponse { repeated int32 selected_ptrs = 1; }
+  message SelectSingleResponse { int32 selected_ptr = 1; }
+  message SelectEffectYnResponse { bool selected = 1; }
+  message SelectPositionResponse { CardPosition position = 1; }
+  message SelectOptionResponse { int32 code = 1; }
+  message SelectBattleCmdResponse { int32 selected_cmd = 1; }
+
+  message SelectCounterResponse {
+    repeated int32 selected_count = 1; // 后端传给端上的每个Option都要返回选择值
+  }
+  message SortCardResponse {
+    repeated int32 sorted_index = 1; // 排序后的index
+  }
+
+  oneof gameMsgResponse {
+    SelectIdleCmdResponse select_idle_cmd = 1;
+    SelectPlaceResponse select_place = 2;
+    SelectMultiResponse select_multi = 3;
+    SelectSingleResponse select_single = 4;
+    SelectEffectYnResponse select_effect_yn = 5;
+    SelectPositionResponse select_position = 6;
+    SelectOptionResponse select_option = 7;
+    SelectBattleCmdResponse select_battle_cmd = 8;
+    SelectCounterResponse select_counter_response = 9;
+    SortCardResponse sort_card = 10;
+  }
+}
+
+// ----- STOC -----
+// 服务端告诉前端/客户端已成功加入房间，
+// 附带上对局的信息
+message StocJoinGame {
+  int32 lflist = 1;
+  int32 rule = 2;
+  int32 mode = 3;
+  int32 duel_rule = 4;
+  bool no_check_deck = 5;
+  bool no_shuffle_deck = 6;
+  int32 start_lp = 7;
+  int32 start_hand = 8;
+  int32 draw_count = 9;
+  int32 time_limit = 10;
+}
+
+// 聊天信息
+message StocChat {
+  int32 player = 1;
+  string msg = 2;
+}
+
+// 错误信息
+message StocErrorMsg {
+  enum ErrorType {
+    UNKNOWN = 0;
+    JOINERROR = 1;    // 加入房间错误
+    DECKERROR = 2;    // 卡组错误
+    SIDEERROR = 3;    // 副卡组错误
+    VERSIONERROR = 4; // 版本错误
+  }
+
+  ErrorType error_type = 1; // 错误类型
+  int32 error_code = 2;     // 错误码
+}
+
+// 有玩家进入房间
+message StocHsPlayerEnter {
+  string name = 1;
+  int32 pos = 2;
+}
+
+// 房间状态更新
+message StocTypeChange {
+  enum SelfType {
+    UNKNOWN = 0;
+    PLAYER1 = 1;
+    PLAYER2 = 2;
+    PLAYER3 = 3;
+    PLAYER4 = 4;
+    PLAYER5 = 5;
+    PLAYER6 = 6;
+    OBSERVER = 100;
+  }
+
+  SelfType self_type = 1;
+  bool is_host = 2;
+}
+
+// 玩家状态更新
+message StocHsPlayerChange {
+  enum State {
+    UNKNOWN = 0;
+    MOVE = 1;        // 位置移动
+    READY = 2;       // 准备完毕
+    NO_READY = 3;    // 取消准备
+    LEAVE = 4;       // 离开房间
+    TO_OBSERVER = 5; // 到观战席
+  }
+
+  State state = 1;
+  int32 pos = 2;
+  int32 moved_pos = 3;
+}
+
+// 观战者更新
+message StocHsWatchChange {
+  int32 count = 1; // 观战者数量
+}
+
+// 提示玩家进行猜拳选择
+message StocSelectHand {}
+
+// 双方的猜拳选择
+message StocHandResult {
+  HandType meResult = 1; // 当前玩家的猜拳选择
+  HandType opResult = 2; // 对手的猜拳选择
+}
+
+// 提示猜拳胜利的玩家进行先后攻选择
+message StocSelectTp {}
+
+// 双方的卡组数量
+message StocDeckCount {
+  int32 meMain = 1;  // 当前玩家的主卡组数量
+  int32 meExtra = 2; // 当前玩家的额外卡组数量
+  int32 meSide = 3;  // 当前玩家的副卡组数量
+
+  int32 opMain = 4;  // 对手的主卡组数量
+  int32 opExtra = 5; // 对手的额外卡组数量
+  int32 opSide = 6;  // 对手的副卡组数量
+}
+
+// 进入更换副卡组环节
+message StocChangeSide {}
+
+// 等待双方玩家更换副卡组
+message StocWaitingSide {}
+
+// 决斗开始！
+message StocDuelStart {}
+
+// 决斗结束
+message StocDuelEnd {}
+
+// 时间限制
+message StocTimeLimit {
+  int32 player = 1;
+  int32 left_time = 2; // 剩下的时间
+}
+
+// 决斗对局内协议
+message StocGameMessage {
+
+  // 对局开始
+  message MsgStart {
+    enum PlayerType {
+      UNKNOWN = 0;
+      FirstStrike = 1;  // 先攻
+      SecondStrike = 2; // 后攻
+      Observer = 3;     // 观战者
+    }
+
+    PlayerType playerType = 1; // 当前玩家的类型
+    // TODO: 增加大师规则对应的字段
+    int32 life1 = 2;      // 玩家一的初始生命值
+    int32 life2 = 3;      // 玩家二的初始生命值
+    int32 deckSize1 = 4;  // 玩家一的主卡组数量
+    int32 deckSize2 = 5;  // 玩家二的主卡组数量
+    int32 extraSize1 = 6; // 玩家一的额外卡组数量
+    int32 extraSize2 = 7; // 玩家二的额外卡组数量
+  }
+
+  // 玩家抽卡
+  message MsgDraw {
+    int32 player = 1;         // 玩家编号
+    int32 count = 2;          // 抽卡数量
+    repeated int32 cards = 3; // 抽卡结果
+  }
+
+  // 回合转换
+  message MsgNewTurn {
+    int32 player = 1; // 下一个操作的玩家编号
+  }
+
+  // 阶段转换
+  message MsgNewPhase {
+    enum PhaseType {
+      UNKNOWN = 0;
+      DRAW = 1; // 抽卡阶段
+      STANDBY = 2;
+      MAIN1 = 3;        // 第一主要阶段
+      BATTLE_START = 4; // 战斗开始
+      BATTLE_STEP = 5;
+      DAMAGE = 6;     // 伤害阶段
+      DAMAGE_GAL = 7; // 伤害计算阶段
+      BATTLE = 8;
+      MAIN2 = 9; // 第二主要阶段
+      END = 10;  // 回合结束
+    }
+
+    PhaseType phase_type = 1;
+  }
+
+  // 操作提示
+  message MsgHint {
+    enum HintType {
+      UNKNOWN = 0;
+      HINT_EVENT = 1;
+      HINT_MESSAGE = 2;    // TODO
+      HINT_SELECTMSG = 3;  // TODO
+      HINT_OPSELECTED = 4; // TODO
+      HINT_EFFECT = 5;     // 效果
+      HINT_RACE = 6;       // 种族
+      HINT_ATTRIB = 7;     // 属性
+      HINT_CODE = 8;       // TODO
+      HINT_NUMBER = 9;     // 数字
+      HINT_CARD = 10;      // TODO
+      HINT_ZONE = 11;      // 区域
+    }
+
+    HintType hint_type = 1; // 提示类型
+    int32 player = 2;       // 提示玩家
+    int32 hint_data = 3;    // 提示数据
+  }
+
+  // IDLE可操作指示
+  message MsgSelectIdleCmd {
+    message IdleCmd {
+      enum IdleType {
+        UNKNOWN = 0;
+        SUMMON = 1;     // 通常召唤
+        SPSUMMON = 2;   // 特殊召唤
+        POS_CHANGE = 3; // 表示形式改变
+        MSET = 4;       // 前场放置
+        SSET = 5;       // 后场放置
+        ACTIVATE = 6;   // 发动效果
+        TO_BP = 7;      // 进入战斗阶段
+        TO_EP = 8;      // 结束回合
+        SHUFFLE = 9;    // 切洗手牌
+      }
+
+      message IdleData {
+        CardInfo card_info = 1;
+        int32 effect_description =
+            2; // `IdleType`为`ACTIVATE`时才会设置这个字段
+        int32 response = 3; // 当用户选择该操作项时，把这个值回传给服务端
+      }
+
+      IdleType idle_type = 1;
+      repeated IdleData idle_datas = 2;
+    }
+
+    int32 player = 1;               // 玩家编号
+    repeated IdleCmd idle_cmds = 2; // 可操作的命令
+    bool enable_bp = 3;             // 是否可以进入BP阶段
+    bool enable_ep = 4;             // 是否可以结束回合
+    bool enable_shuffle = 5;        // 是否可以洗切手牌
+  }
+
+  // 位置选择操作提示
+  message MsgSelectPlace {
+    message SelectAblePlace {
+      int32 controller = 1;
+      CardZone zone = 2;
+      int32 sequence = 3;
+    }
+
+    int32 player = 1;
+    int32 count = 2;
+    repeated SelectAblePlace places = 3;
+  }
+
+  // 卡牌位置移动
+  message MsgMove {
+    int32 code = 1;        // 移动的卡牌code
+    CardLocation from = 2; // 移动前的位置信息
+    CardLocation to = 3;   // 移动后的位置信息
+    uint32 reason = 4;     // 移动的原因
+  }
+
+  // 卡牌选择操作提示
+  message MsgSelectCard {
+    message SelectAbleCard {
+      int32 code = 1;
+      CardLocation location = 2;
+      int32 response = 3;      // 玩家选择后需要传给服务端的值
+      int32 release_param = 4; // 意义不明的字段
+    }
+
+    int32 player = 1;                  // 玩家编号
+    bool cancelable = 2;               // 是否可以取消
+    int32 min = 3;                     // 最小选择数量
+    int32 max = 4;                     // 最大选择数量
+    repeated SelectAbleCard cards = 5; // 可以选择的卡牌
+  }
+
+  // 连锁提示
+  message MsgSelectChain {
+    enum ChainFlag {
+      COMMON = 0;
+      EDESC_OPERATION = 1;
+      EDESC_RESET = 2;
+    }
+
+    message Chain {
+      ChainFlag flag = 1;
+      int32 code = 2;
+      CardLocation location = 3;
+      int32 effect_description = 4;
+      int32 response = 5;
+    }
+
+    int32 player = 1;          // 玩家编号
+    int32 special_count = 2;   // 关键卡数量
+    bool forced = 3;           // 是否强制
+    int32 hint0 = 4;           // TODO
+    int32 hint1 = 5;           // TODO
+    repeated Chain chains = 6; // 可选的连锁项
+  }
+
+  // 是否发动效果
+  message MsgSelectEffectYn {
+    int32 player = 1;             // 玩家编号
+    int32 code = 2;               // 卡编号
+    CardLocation location = 3;    // 卡位置
+    int32 effect_description = 4; // 卡效果
+  }
+
+  // 表示形式选择
+  message MsgSelectPosition {
+    message SelectAblePosition { CardPosition position = 1; }
+
+    int32 player = 1;                          // 玩家编号
+    int32 code = 2;                            // 卡编号
+    repeated SelectAblePosition positions = 3; // 可选表示形式
+  }
+
+  // 选项选择
+  message MsgSelectOption {
+    message Option {
+      int32 code = 1;     // 一般是某张卡的效果
+      int32 response = 2; // 玩家选择后需要回传给服务端的值
+    }
+
+    int32 player = 1;            // 玩家编号
+    repeated Option options = 2; // 可选项集合
+  }
+
+  // 手牌/额外卡组切洗
+  //
+  // （因为手牌切洗和额外卡组切洗的处理逻辑一样，因此这里放在一个msg里面）
+  message MsgShuffleHandExtra {
+    int32 player = 1;         // 玩家编号
+    CardZone zone = 2;        // 洗切区域
+    repeated int32 cards = 3; // 切洗之后的手牌编号
+  }
+
+  // 盖卡切洗
+  message MsgShuffleSetCard {
+    CardZone zone = 1;                        // 区域编号
+    repeated CardLocation from_locations = 2; // 需要洗切的卡的location
+    repeated CardLocation overlay_locations =
+        3; // 如果切洗的卡有超量素材，则这是切洗后超量素材的location，和`from_locations`对应
+  }
+
+  // 战斗阶段可操作指示
+  message MsgSelectBattleCmd {
+    message BattleCmd {
+      enum BattleType {
+        UNKNOWN = 0;
+        ACTIVATE = 1; // 发动效果
+        ATTACK = 2;   // 攻击
+      }
+
+      message BattleData {
+        CardInfo card_info = 1;
+        int32 effect_description =
+            2; // `BattleType`为`ACTIVATE`时才会设置这个字段
+        bool direct_attackable = 3; // 是否可以直接攻击对手
+        int32 response = 4; // 用户选择该操作项时，把这个值回传给后端
+      }
+
+      BattleType battle_type = 1;
+      repeated BattleData battle_datas = 2;
+    }
+
+    int32 player = 1;                   // 玩家编号
+    repeated BattleCmd battle_cmds = 2; // 可操作的命令
+    bool enable_m2 = 3;                 // 是否可以进入M2阶段
+    bool enable_ep = 4;                 // 是否可以结束回合
+  }
+
+  // 表示形式变更
+  message MsgPosChange {
+    CardInfo card_info = 1;
+    CardPosition pre_position = 2; // 之前的表示形式
+    CardPosition cur_position = 3; // 当前的表示形式
+  }
+
+  message MsgSelectUnselectCard {
+    message Info {
+      int32 code = 1;
+      CardLocation location = 2;
+      int32 response = 3;
+    }
+
+    int32 player = 1;
+    bool finishable = 2;                // 是否可以完成选择
+    bool cancelable = 3;                // 是否可以取消
+    int32 min = 4;                      // 最小选择数量
+    int32 max = 5;                      // 最大选择数量
+    repeated Info selectable_cards = 6; // 可以选择的选项
+    repeated Info selected_cards = 7;   // 已经选择的选项
+  }
+
+  message MsgSelectTribute {
+    message Info {
+      int32 code = 1;
+      CardLocation location = 2;
+      int32 level = 3;
+      int32 response = 4;
+    }
+
+    int32 player = 1;
+    bool cancelable = 2;
+    int32 min = 3;
+    int32 max = 4;
+    repeated Info selectable_cards = 5;
+  }
+
+  message MsgSelectSum {
+    message Info {
+      int32 code = 1;
+      CardLocation location = 2;
+      int32 level1 = 3;
+      int32 level2 = 4;
+      int32 response = 5;
+    }
+
+    int32 overflow = 1;  // 是否允许溢出
+    int32 player = 2;    // 玩家编号
+    int32 level_sum = 3; // 总level
+    int32 min = 4;
+    int32 max = 5;
+    repeated Info must_select_cards = 6; // 必须选择的卡
+    repeated Info selectable_cards = 7;  // 可以选择的卡
+  }
+
+  message MsgSelectYesNo {
+    int32 player = 1;
+    int32 effect_description = 2;
+  }
+
+  message MsgUpdateHp {
+    enum ActionType {
+      UNKNOWN = 0;
+      DAMAGE = 1;
+      RECOVER = 2;
+    }
+
+    int32 player = 1;
+    ActionType type_ = 2;
+    int32 value = 3;
+  }
+
+  message MsgWin {
+    int32 win_player = 1; // 胜利的玩家编号
+    int32 reason = 2;     // 胜利的原因
+  }
+
+  // 等待对手操作
+  message MsgWait {}
+
+  // 未处理的Message
+  message MsgUnimplemented {
+    int32 command = 1; // 未处理的Message编号
+  }
+
+  // 更新元数据
+  message MsgUpdateData {
+    message Action {
+      int32 code = 1;            // 卡编号
+      CardLocation location = 2; // 卡位置
+      int32 alias = 3;
+      int32 type_ = 4;
+      int32 level = 5; // 等级
+      int32 rank = 6;
+      int32 attribute = 7;     // 属性
+      int32 race = 8;          // 种族
+      int32 attack = 9;        // 攻击力
+      int32 defense = 10;      // 防御力
+      int32 base_attack = 11;  // 基础攻击力
+      int32 base_defense = 12; // 基础防御力
+      int32 reason = 13;
+      int32 reason_card = 14;
+      CardLocation equip_card = 15; // 装备的卡
+      repeated CardLocation target_cards = 16;
+      repeated int32 overlay_cards = 17; // 超量素材的code
+      map<int32, int32> counters = 18; // 指示器, (counterType -> counterValue)
+      int32 owner = 19;
+      int32 status = 20;
+      int32 lscale = 21;
+      int32 rscale = 22;
+      int32 link = 23;
+    }
+
+    int32 player = 1;  // 玩家编号
+    CardZone zone = 2; // 卡牌区域
+    repeated Action actions = 3;
+  }
+
+  // 更新指示器
+  message MsgUpdateCounter {
+    enum ActionType {
+      UNKNOWN = 0;
+      ADD = 1;    // 添加
+      REMOVE = 2; // 删除
+    }
+    int32 counter_type = 1;    // 指示器类型
+    CardLocation location = 2; // 目标卡位置
+    ActionType action_type = 3;
+    int32 count = 4; // 改变的数量
+  }
+
+  // 选择指示器
+  message MsgSelectCounter {
+    message Info {
+      int32 code = 1;
+      CardLocation location = 2;
+      int32 counter_count = 3;
+    }
+
+    int32 player = 1;       // 玩家编号
+    int32 counter_type = 2; // 指示器类型
+    int32 min = 3;
+    repeated Info options = 4;
+  }
+
+  // 卡牌排序
+  message MsgSortCard {
+    message Info {
+      int32 code = 1;
+      CardLocation location = 2;
+      int32 response = 3;
+    }
+
+    int32 player = 1; // 玩家编号
+    repeated Info options = 2;
+  }
+
+  // 盖放卡片
+  message MsgSet {
+    int32 code = 1;
+    CardLocation location = 2;
+  }
+
+  // 控制权改变
+  message MsgSwap {
+    int32 code1 = 1;
+    CardLocation location1 = 2;
+    int32 code2 = 3;
+    CardLocation location2 = 4;
+  }
+
+  // 普通召唤宣言
+  message MsgSummoning {
+    int32 code = 1;
+    CardLocation location = 2;
+  }
+
+  // 普通召唤
+  message MsgSummoned {}
+
+  // 反转召唤宣言
+  message MsgFlipSummoning {
+    int32 code = 1;
+    CardLocation location = 2;
+  }
+
+  // 反转召唤
+  message MsgFlipSummoned {}
+
+  // 特殊转换宣言
+  message MsgSpSummoning {
+    int32 code = 1;
+    CardLocation location = 2;
+  }
+
+  // 特殊转换
+  message MsgSpSummoned {}
+
+  // 连锁中
+  message MsgChaining {
+    int32 code = 1;
+    CardLocation location = 2;
+  }
+
+  // 连锁处理完成
+  message MsgChainSolved { int32 solved_index = 1; }
+
+  // 连锁完毕
+  message MsgChainEnd {}
+
+  message MsgAttack {
+    bool direct_attack = 1;
+    CardLocation attacker_location = 2;
+    CardLocation target_location = 3;
+  }
+
+  message MsgAttackDisabled {}
+
+  // 宣言
+  message MsgAnnounce {
+    // 宣言类型
+    enum AnnounceType {
+      UNKNOWN = 0;
+      RACE = 1;      // 种族
+      Attribute = 2; // 属性
+      Card = 3;      // 卡片
+      Number = 4;    // 数字
+    }
+
+    message Option {
+      int32 code = 1;
+      int32 response = 2;
+    }
+
+    int32 player = 1; // 玩家编号
+    AnnounceType announce_type = 2;
+    int32 min = 3; // 最小宣言数量
+    repeated Option options = 4;
+  }
+
+  // 刷新生命值
+  message MsgLpUpdate {
+    int32 player = 1; // 玩家编号
+    int32 new_lp = 2; // 更新后的LP值
+  }
+
+  // 确认卡片
+  message MsgConfirmCards {
+    int32 player = 1;
+    repeated CardInfo cards = 2;
+  }
+
+  // 成为选择的对象
+  message MsgBecomeTarget {
+    repeated CardLocation locations = 1; // 被选择卡的位置
+  }
+
+  // 骰子/硬币
+  message MsgToss {
+    enum TossType {
+      UNKNOWN = 0;
+      COIN = 1; // 硬币正反
+      DICE = 2; // 骰子
+    }
+
+    int32 player = 1;       // 玩家编号
+    TossType toss_type = 2; // 类型
+    repeated int32 res = 3; // 结果
+  }
+
+  // 区域禁用
+  message MsgFieldDisabled {
+    message Action {
+      int32 controller = 1;
+      CardZone zone = 2;
+      int32 sequence = 3;
+      bool disabled = 4; // 是否被禁用
+    }
+
+    repeated Action actions = 1;
+  }
+
+  // 切洗卡组
+  message MsgShuffleDeck {
+    int32 player = 1; // 玩家编号
+  }
+
+  // 提示玩家选择石头剪刀布
+  message MsgRockPaperScissors {
+    int32 player = 1; // 玩家编号
+  }
+
+  // 玩家选择石头剪刀布的结果
+  message MsgHandResult {
+    int32 result1 = 1;
+    int32 result2 = 2;
+  }
+
+  // 交换墓地和卡组（现世与冥界的逆转）
+  message MsgSwapGraveDeck { int32 player = 1; }
+
+  // 用于Replay模式获取对战双方的昵称
+  message MsgSibylName {
+    // 这些变量名是从ygopro2源码里面抄过来的，搞不懂什么意思-_-
+    string name_0 = 1;
+    string name_0_tag = 2;
+    string name_0_c = 3;
+    string name_1 = 4;
+    string name_1_tag = 5;
+    string name_1_c = 6;
+  }
+
+  // 断线重连
+  message MsgReloadField {
+    message ZoneAction {
+      CardZone zone = 1;
+      int32 sequence = 2;
+      int32 position = 3;
+      int32 overlay_count = 4;
+    }
+    message ChainAction {
+      int32 chain_code = 1;
+      CardLocation location = 2;
+      int32 triggering_controller = 3;
+      int32 triggering_location = 4;
+      int32 triggering_sequence = 5;
+      int32 effect_description = 6;
+    }
+    message Action {
+      int32 player = 1; // 玩家编号
+      int32 lp = 2;     // 剩余LP值
+      repeated ZoneAction zone_actions = 3;
+      repeated ChainAction chain_actions = 4;
+    }
+
+    int32 duel_rule = 1; // 大师规则
+    repeated Action actions = 2;
+  }
+
+  oneof gameMsg {
+    MsgStart start = 1;
+    MsgDraw draw = 2;
+    MsgNewTurn new_turn = 3;
+    MsgNewPhase new_phase = 4;
+    MsgHint hint = 5;
+    MsgSelectIdleCmd select_idle_cmd = 6;
+    MsgSelectPlace select_place = 7;
+    MsgMove move = 8;
+    MsgSelectCard select_card = 9;
+    MsgSelectChain select_chain = 10;
+    MsgSelectEffectYn select_effect_yn = 11;
+    MsgSelectPosition select_position = 12;
+    MsgSelectOption select_option = 13;
+    MsgShuffleHandExtra shuffle_hand_extra = 14;
+    MsgSelectBattleCmd select_battle_cmd = 15;
+    MsgPosChange pos_change = 16;
+    MsgSelectUnselectCard select_unselect_card = 17;
+    MsgSelectYesNo select_yes_no = 18;
+    MsgUpdateHp update_hp = 19;
+    MsgWin win = 20;
+    MsgWait wait = 21;
+    MsgUnimplemented unimplemented = 22;
+    MsgUpdateData update_data = 23;
+    MsgReloadField reload_field = 24;
+    MsgSelectSum select_sum = 25;
+    MsgSelectTribute select_tribute = 26;
+    MsgUpdateCounter update_counter = 27;
+    MsgSelectCounter select_counter = 28;
+    MsgSortCard sort_card = 29;
+    MsgSet set = 30;
+    MsgSwap swap = 31;
+    MsgSummoning summoning = 32;
+    MsgSummoned summoned = 33;
+    MsgFlipSummoning flip_summoning = 34;
+    MsgFlipSummoned flip_summoned = 35;
+    MsgSpSummoning sp_summoning = 36;
+    MsgSpSummoned sp_summoned = 37;
+    MsgChaining chaining = 38;
+    MsgAttack attack = 39;
+    MsgAttackDisabled attack_disable = 40;
+    MsgChainSolved chain_solved = 41;
+    MsgChainEnd chain_end = 42;
+    MsgAnnounce announce = 43;
+    MsgLpUpdate lp_update = 44;
+    MsgConfirmCards confirm_cards = 45;
+    MsgBecomeTarget become_target = 46;
+    MsgToss toss = 47;
+    MsgShuffleSetCard shuffle_set_card = 48;
+    MsgFieldDisabled field_disabled = 49;
+    MsgShuffleDeck shuffle_deck = 50;
+    MsgRockPaperScissors rock_paper_scissors = 51;
+    MsgHandResult hand_res = 52;
+    MsgSwapGraveDeck swap_grave_deck = 53;
+    MsgSibylName sibyl_name = 54;
+  }
+}

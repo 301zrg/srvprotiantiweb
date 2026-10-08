@@ -37,6 +37,8 @@ npm run dev
 
 按照 [Windows 服务器 + Pages 上线步骤](docs/current-server-online-test.md) 部署本机 Nginx 网关与 Cloudflare Quick Tunnel。`npm run package:test` 生成可上传 Pages 的网页包和服务器工具包；未取得公网 WSS 时，包内明确禁用联机。取得真实 URL 后运行 `npm run package:test -- --wss-url wss://实际地址/neos --site-origin https://实际站点.pages.dev` 即可生成新部署，无需重复构建。`duel-config.js` 为站方公开配置，优先于构建入口；不能写入密码或 Token。玩家仍只填写昵称和房名。
 
+现有 Workers 站点可按 [GitHub 自动部署设置](docs/cloudflare-ci.md) 一次性连接 `deploy/cloudflare` 发布分支。仓库已提供 `wrangler.json`、`build:cloudflare` 与固定版本的 `deploy:cloudflare`；在 Cloudflare 的构建变量中设置实际 `VITE_DUEL_WS_URL` 后，更新发布分支即可自动构建并部署，无需再上传 ZIP。账号连接和首次线上构建仍需站点所有者完成。
+
 `npm run test:tunnel-gateway` 验证独立 Nginx 的 IP／Origin／二进制转发；准备官方 Nginx 和 cloudflared 后，网络允许时可运行 `npm run test:tunnel-wss`，让隔离 SRVPro 的两个浏览器经真实公网隧道完成回归。开发机自身未能建立中继连接；正式服务器创建的隧道已通过客户端公网握手，完整比赛继续待验收。Quick Tunnel 地址会变化且无可用性保证，适用于本轮测试，长期入口另行确定。
 
 四语原始 CDB、strings 和禁表在 `resources-staging/1103/`，生成器只写 `public/environment/`。发布时只上传构建后的 `dist/` 到外部静态托管，不上传原始暂存文件至天梯服务器。每次修改输入或生成规则需要提升环境资源修订号，避免静态缓存混用。
