@@ -18,6 +18,8 @@ try {
     ["portrait", { width: 390, height: 844 }, true],
     ["landscape", { width: 844, height: 390 }, true],
   ]) {
+    if (process.env.SMOKE_VIEWPORT && name !== process.env.SMOKE_VIEWPORT)
+      continue;
     const context = await browser.newContext({
       viewport,
       isMobile: mobile,
@@ -32,7 +34,7 @@ try {
     page.on("request", (r) => {
       if (r.url().includes("/replay/706-v1/")) resources.push(r.url());
     });
-    await page.goto(origin, { waitUntil: "domcontentloaded" });
+    await page.goto(origin, { waitUntil: "domcontentloaded", timeout: 60000 });
     await expect(page.locator('main[data-ready="true"]')).toBeVisible({
       timeout: 45000,
     });
@@ -85,6 +87,26 @@ try {
     await expect(
       page.locator(".replay-drawer .ant-drawer-content-wrapper").first(),
     ).toBeHidden();
+    await page.locator('.ant-select[aria-label="播放速度"]').click();
+    await page
+      .locator(".ant-select-item-option")
+      .filter({ hasText: /^16×$/ })
+      .click();
+    await page.getByRole("button", { name: "继续播放", exact: true }).click();
+    await expect
+      .poll(
+        async () => {
+          const progress = await page.locator(".replay-progress").innerText();
+          return Number(progress.match(/步骤 (\d+)/)?.[1] || 0);
+        },
+        { timeout: 2000, intervals: [50] },
+      )
+      .toBeGreaterThanOrEqual(12);
+    await page.getByRole("button", { name: "暂停", exact: true }).click();
+    await page.waitForTimeout(100);
+    const pausedProgress = await page.locator(".replay-progress").innerText();
+    await page.waitForTimeout(250);
+    await expect(page.locator(".replay-progress")).toHaveText(pausedProgress);
     await page.getByRole("button", { name: "重新开始", exact: true }).click();
     await expect(page.locator(".replay-progress")).toContainText("步骤 0");
     await page.getByLabel("目标回合").fill("4");

@@ -607,10 +607,17 @@ function Player({ id, text }: { id: string; text: string[] }) {
         <Select
           aria-label="播放速度"
           value={rate}
-          options={[0.5, 1, 2, 4, 8].map((n) => ({ value: n, label: `${n}×` }))}
+          options={[0.5, 1, 2, 4, 8, 16].map((n) => ({
+            value: n,
+            label: `${n}×`,
+          }))}
           onChange={(n) => {
             speed.current = n;
             setRate(n);
+            if (!paused.current && !pending.current && !seek.current) {
+              clearTimeout(timer.current);
+              timer.current = window.setTimeout(() => request(), 600 / n);
+            }
           }}
         />
         <Button onClick={() => setView(1 - view)}>{text[11]}</Button>
