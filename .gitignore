@@ -11,6 +11,8 @@ coverage/
 playwright-report/
 test-results/
 vendor-local/
+# Legacy optional protocol checkout; fixed IDL is tracked in protocol-source.
+/neos-protobuf/
 .env.local
 .env.*.local
 __pycache__/

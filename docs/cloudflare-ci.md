@@ -49,6 +49,8 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 
 ## 后续更新
 
+2026-10-08 子模块拉取修复：录像分支的构建 `6f50c5c0-75cc-4dc1-aef6-bb87befa0ea8` 在 `updating repository submodules` 阶段失败，尚未执行 npm。旧 `neos-protobuf` 指向额外的 MyCard 源码站。日常构建使用已提交的生成代码，因此将该固定提交的 IDL 和许可证按原字节收进 [protocol-source](../protocol-source/README.md)，移除 Git 子模块声明及 gitlink。生成协议代码未改，已有本地检出保留；新 CI 克隆不再访问该源码站。只维护协议时才使用现有 `sync_proto.sh`，现在读取仓库内固定源码，无需在 Cloudflare 新增变量或 Token。修复后的云端提交号需继续核对，不能把本地克隆成功当作远端构建已成功。
+
 代码在工作分支完成并通过相关验证后，由维护者把确认可发布的修改合入／推送至 `deploy/cloudflare`。Cloudflare 自动拉取仓库、安装锁定依赖、校验并还原卡库、构建并部署到原站点。仅创建 PR、仅本地保存或推送其他分支，不会更新这个生产站点；直接更新发布分支会触发上线。
 
 本项目构建与文件下载继续由外部 Cloudflare 承担。无需为前端自动部署重启 SRVPro、Nginx 或 PM2 隧道，也不需要改变现有网页 origin 白名单。Quick Tunnel 重启仍可能换 WSS 地址；到构建变量中更新 `VITE_DUEL_WS_URL` 后运行一次新构建，不需要手动上传文件。

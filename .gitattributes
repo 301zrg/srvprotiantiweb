@@ -6,3 +6,4 @@ resources-staging/1103/environment-v1.data -text
 third-party/replay/** -text -whitespace
 public/replay/706-v1/** -text -whitespace
 tests/fixtures/replay/*.yrp -text
+protocol-source/** -text
