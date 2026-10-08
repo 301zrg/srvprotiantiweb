@@ -156,6 +156,24 @@ try {
     queried.counters.some((n) => (n & 65535) === 0x1234 && n >>> 16 === 3),
     "Native query must preserve counter type and amount",
   );
+  evaluate(`local c=Debug.AddCard(89631139,1,0,LOCATION_MZONE,3,POS_FACEUP_ATTACK)
+    assert(c:GetOwner()==1 and not c:IsDisabled())`);
+  const opponentOwned = engine
+    .frame([])
+    .cards.find(
+      (c) => c.code === 89631139 && c.location === 4 && c.sequence === 3,
+    );
+  assert.ok(opponentOwned);
+  assert.equal(
+    opponentOwned.owner,
+    1,
+    "Native owner must remain separate from controller and status",
+  );
+  assert.equal(
+    (opponentOwned.status || 0) & 1,
+    0,
+    "An owner-1 card with no disable effect must not appear negated",
+  );
   if (fixture.includes("monk")) {
     assert.ok(
       first.trace.some(

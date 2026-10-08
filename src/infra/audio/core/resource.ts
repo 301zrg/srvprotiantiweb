@@ -16,6 +16,8 @@ const { assetsPath } = useConfig();
 async function loadFromNet(name: string) {
   const prefix = `${assetsPath}/sound/`;
   const response = await fetch(`${prefix}${name}`);
+  if (!response.ok)
+    throw new Error(`Audio resource ${name}: HTTP ${response.status}`);
   const fileBlob = await response.arrayBuffer();
   cacheResource(name, fileBlob);
   return fileBlob;
