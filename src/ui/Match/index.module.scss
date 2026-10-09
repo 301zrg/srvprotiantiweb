@@ -7,3 +7,19 @@
   max-height: calc(100dvh - var(--header-height) - 2rem);
   overflow-y: auto;
 }
+
+.roomRulesLink {
+  color: #91caff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: #c4e2ff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #91caff;
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+}
