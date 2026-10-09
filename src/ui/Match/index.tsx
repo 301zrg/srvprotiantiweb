@@ -1,3 +1,4 @@
+import { CopyOutlined } from "@ant-design/icons";
 import { App, Button, Input } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -108,6 +109,18 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   const { language } = useI18N();
   const text = siteMessages(language);
   const endpointError = validateDuelWebSocketUrl(language);
+
+  async function copyPublicValue(value: string) {
+    // Sharing the public identity must never include account or room passwords.
+    const publicValue = value.split("$")[0];
+    if (!publicValue.trim()) return;
+    try {
+      await navigator.clipboard.writeText(publicValue);
+      message.success({ content: text.copied, key: "join-form-copy" });
+    } catch {
+      message.error({ content: text.copyFailed, key: "join-form-copy" });
+    }
+  }
 
   useEffect(() => {
     // A one-click spectator identity is temporary. Leaving it clears the form.
@@ -222,7 +235,21 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           <p role="status">{text.spectatorLinkHint}</p>
         )}
         {spectate && !link?.autojoin && <p>{text.spectatorManualHint}</p>}
-        <label htmlFor="player-nickname">{text.nickname}</label>
+        <div className={styles.fieldHeading}>
+          <label htmlFor="player-nickname">{text.nickname}</label>
+          <Button
+            className={styles.copyButton}
+            size="small"
+            icon={<CopyOutlined />}
+            aria-label={text.copyNickname}
+            title={text.copyNickname}
+            data-testid="copy-nickname"
+            disabled={!nickname.split("$")[0].trim()}
+            onClick={() => void copyPublicValue(nickname)}
+          >
+            {text.copy}
+          </Button>
+        </div>
         <Input
           id="player-nickname"
           value={nickname}
@@ -237,7 +264,21 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
         <small>
           {spectate ? text.spectatorNicknameHint : text.nicknameHint}
         </small>
-        <label htmlFor="room-name">{text.room}</label>
+        <div className={styles.fieldHeading}>
+          <label htmlFor="room-name">{text.room}</label>
+          <Button
+            className={styles.copyButton}
+            size="small"
+            icon={<CopyOutlined />}
+            aria-label={text.copyRoom}
+            title={text.copyRoom}
+            data-testid="copy-room-name"
+            disabled={!roomName.split("$")[0].trim()}
+            onClick={() => void copyPublicValue(roomName)}
+          >
+            {text.copy}
+          </Button>
+        </div>
         <Input
           id="room-name"
           aria-describedby="room-hint"

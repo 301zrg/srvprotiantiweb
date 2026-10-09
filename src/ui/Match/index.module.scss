@@ -8,6 +8,24 @@
   overflow-y: auto;
 }
 
+.fieldHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.copyButton {
+  min-height: 32px;
+  min-width: 64px;
+}
+
+@media (pointer: coarse) {
+  .copyButton {
+    min-height: 44px;
+    min-width: 72px;
+  }
+}
+
 .roomRulesLink {
   color: #91caff;
   text-decoration: underline;
