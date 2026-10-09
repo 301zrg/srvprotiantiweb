@@ -19,6 +19,9 @@ const messages = {
     creditsTitle: "开源致谢",
     creditsIntro: "本项目基于开源网页版客户端 ",
     creditsThanks: " 修改，感谢 Neos 原作者与贡献者的开发和开源分享。",
+    copyrightTitle: "版权声明",
+    copyrightText:
+      "本网页项目为开源、非盈利的爱好者项目。游戏王相关名称、卡图等素材的版权归各自权利人所有。如相关权利人提出要求，本网页可能随时调整或下架，敬请理解。",
     updatesTitle: "天梯服与后续更新",
     website: "天梯服官网",
     updatesText: "录像播放、对战动画及 UI 优化等更多功能，将在后续逐步更新。",
@@ -76,6 +79,9 @@ const messages = {
     creditsIntro: "This project is adapted from the open-source web client ",
     creditsThanks:
       ". Thanks to the Neos authors and contributors for their work and for sharing it as open source.",
+    copyrightTitle: "Copyright notice",
+    copyrightText:
+      "This is an open-source, non-profit fan project. Yu-Gi-Oh! names, card artwork and other materials belong to their respective rights holders. This website may be changed or taken offline at any time at their request. Thank you for your understanding.",
     updatesTitle: "Ladder server & upcoming updates",
     website: "Ladder website",
     updatesText:
@@ -142,6 +148,9 @@ const messages = {
     creditsIntro: "本プロジェクトはオープンソースのウェブクライアント ",
     creditsThanks:
       " を基に改修しています。Neos の作者と貢献者の皆様に、開発とソースコードの公開を感謝します。",
+    copyrightTitle: "著作権について",
+    copyrightText:
+      "本サイトはオープンソース・非営利のファンプロジェクトです。遊戯王の名称、カード画像などの権利は各権利者に帰属します。権利者からの要請により、予告なく変更または公開を終了する場合があります。ご了承ください。",
     updatesTitle: "ランク戦サーバーと今後の更新",
     website: "ランク戦サーバー公式サイト",
     updatesText:
@@ -202,6 +211,9 @@ const messages = {
     creditsIntro: "이 프로젝트는 오픈 소스 웹 클라이언트 ",
     creditsThanks:
       "를 바탕으로 수정했습니다. 개발과 소스 공개에 힘써 주신 Neos 원작자와 기여자 여러분께 감사드립니다.",
+    copyrightTitle: "저작권 안내",
+    copyrightText:
+      "이 웹사이트는 오픈 소스 비영리 팬 프로젝트입니다. 유희왕 명칭, 카드 이미지 등 자료의 권리는 각 권리자에게 있습니다. 권리자의 요청에 따라 언제든지 사이트를 변경하거나 운영을 중단할 수 있으니 양해 부탁드립니다.",
     updatesTitle: "래더 서버 및 향후 업데이트",
     website: "래더 서버 공식 사이트",
     updatesText:
