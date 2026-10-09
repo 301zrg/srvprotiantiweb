@@ -6,6 +6,7 @@ import {
   NavLink,
   Outlet,
   useLocation,
+  useNavigate,
   useNavigation,
   useRouteError,
 } from "react-router-dom";
@@ -26,7 +27,7 @@ import { siteMessages } from "@/variant/messages";
 
 import { setCssProperties } from "../Duel/PlayMat/css";
 import { I18NSelector, useI18N } from "../I18N";
-import { disconnectSrvpro } from "../Match/util";
+import { disconnectSrvpro, reconnectSrvpro } from "../Match/util";
 import { openSettingPanel, SettingPanel } from "../Setting";
 import styles from "./index.module.scss";
 import { initDeck, initForbidden, initI18N, initSqlite } from "./utils";
@@ -112,6 +113,14 @@ export const Component = () => {
   const connection = useSnapshot(connectionStore);
   const { language } = useI18N();
   const text = siteMessages(language);
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (connection.resumeRoute) {
+      const route = connection.resumeRoute;
+      connectionStore.resumeRoute = undefined;
+      navigate(route, { replace: true });
+    }
+  }, [connection.resumeRoute, navigate]);
 
   return (
     <>
@@ -170,20 +179,42 @@ export const Component = () => {
         data-environment={environmentId}
         data-ready={initStore.sqlite.progress === 1}
       >
-        {connection.state === "disconnected" &&
+        {(connection.state === "disconnected" ||
+          connection.state === "recovering") &&
           pathname !== "/match" &&
           createPortal(
             <div
               role="alert"
               data-testid="connection-alert"
               className={styles.connectionAlert}
+              style={
+                connection.state === "recovering"
+                  ? {
+                      inset: 0,
+                      transform: "none",
+                      width: "100%",
+                      borderRadius: 0,
+                      justifyContent: "center",
+                      background: "#101827ee",
+                      flexDirection: "column",
+                    }
+                  : undefined
+              }
             >
               <span>{connection.detail}</span>
+              {connection.state === "disconnected" && (
+                <Button
+                  data-testid="resume-connection"
+                  onClick={() => void reconnectSrvpro()}
+                >
+                  {text.retry}
+                </Button>
+              )}
               <NavLink to="/match">{text.back}</NavLink>
             </div>,
             document.body,
           )}
-        <Outlet key={pathname} />
+        <Outlet key={`${pathname}:${connection.epoch}`} />
       </main>
     </>
   );

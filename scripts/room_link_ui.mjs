@@ -14,6 +14,7 @@ try {
     : await createServer({ server: { host: "127.0.0.1", port: 0 } });
   if (!built) await vite.listen();
   const origin = vite.resolvedUrls.local[0];
+  console.log(`Room/session UI server: ${origin}`);
   const edge =
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
   browser = await (safari ? webkit : chromium).launch({
@@ -43,7 +44,10 @@ try {
     );
     await context.addInitScript(() => {
       localStorage.setItem("language", "cn");
-      localStorage.setItem("playerNickname", "SavedPlayer");
+      if (!sessionStorage.getItem("room-test-initialized")) {
+        localStorage.setItem("playerNickname", "SavedPlayer");
+        sessionStorage.setItem("room-test-initialized", "1");
+      }
       const mock = (window.__roomLink = {
         urls: [],
         packets: [],
@@ -152,6 +156,8 @@ try {
                 }
               }
             }, 30);
+          } else if (packet[2] === 22 && !this.silent) {
+            this.emit(25, [8, 0, ...new TextEncoder().encode("OK"), 0, 0]);
           } else if (packet[2] === 33) {
             mock.earlyRole ||= !mock.ack;
             window.__confirmSpectator = () => {
@@ -196,6 +202,54 @@ try {
     }
     const room = "测试房 # + & ?";
     const query = new URLSearchParams({ room, spectate: "1" }).toString();
+    // Normal form and last edited deck survive route changes and a reload.
+    const normal = await open("");
+    console.log(`Testing ${mobile ? "touch" : "desktop"} form/deck persistence`);
+    await normal.locator("#player-nickname").fill("CacheUser$dummy");
+    await normal.locator("#room-name").fill("CacheRoom$dummy");
+    await normal.evaluate(() => { location.hash = "#/build"; });
+    await expect(normal.getByTestId("deck-name")).toBeVisible();
+    if (mobile) await normal.getByTestId("deck-tab-manage").click();
+    await normal.locator('input[type="file"][accept*=".ydk"]').setInputFiles({
+      name: "Preferred.ydk", mimeType: "text/plain",
+      buffer: Buffer.from("#main\n69247929\n43711255\n#extra\n44508094\n!side\n69247929\n"),
+    });
+    await expect(normal.getByTestId("deck-name")).toHaveValue("Preferred");
+    if (mobile) await normal.getByTestId("deck-tab-deck").click();
+    await normal.getByTestId("deck-name").fill("EditedPreferred");
+    await normal.getByTestId("deck-save").click();
+    await expect.poll(() => normal.evaluate(() => localStorage.getItem("selectedDeckName"))).toBe("EditedPreferred");
+    await normal.evaluate(() => { location.hash = "#/match"; });
+    await expect(normal.locator("#player-nickname")).toHaveValue("CacheUser$dummy");
+    await expect(normal.locator("#room-name")).toHaveValue("CacheRoom$dummy");
+    await normal.getByTestId("connect-submit").click();
+    await expect(normal.getByTestId("waitroom-deck-select")).toContainText("EditedPreferred");
+    await normal.getByTestId("waitroom-leave").click();
+    await expect(normal.locator("#room-name")).toHaveValue("CacheRoom$dummy");
+    await normal.reload();
+    await expect(normal.locator("#player-nickname")).toHaveValue("CacheUser", { timeout: 45000 });
+    await expect(normal.locator("#room-name")).toHaveValue("CacheRoom");
+    await normal.getByTestId("connect-submit").click();
+    await expect(normal.getByTestId("waitroom-deck-select")).toContainText("EditedPreferred");
+    // A transport close while backgrounded recovers only on returning.
+    await normal.evaluate(() => {
+      Object.defineProperty(document, "hidden", { configurable: true, value: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.__roomSocket.close();
+    });
+    assert.equal(await normal.evaluate(() => window.__roomLink.urls.length), 1);
+    await normal.evaluate(() => {
+      delete document.hidden;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await expect.poll(() => normal.evaluate(() => window.__roomLink.urls.length)).toBe(2);
+    await expect(normal.getByTestId("connection-alert")).toHaveCount(0);
+    await expect(normal.getByTestId("waitroom-deck-select")).toContainText("EditedPreferred");
+    await expect(normal.getByTestId("waitroom-ready-toggle")).toHaveAttribute("aria-pressed", "false");
+    await normal.getByTestId("waitroom-leave").click();
+    await expect(normal.locator("#player-nickname")).toHaveValue("CacheUser");
+    await normal.close();
+    console.log("PASS normal form/deck persistence and waiting-room recovery");
     const page = await open(query);
     await page.waitForFunction(
       () => window.__roomLink.ack && !window.__roomLink.confirmed,
@@ -239,10 +293,11 @@ try {
     );
     assert.equal(
       await page.evaluate(() => localStorage.getItem("playerNickname")),
-      "SavedPlayer",
+      null,
     );
     await page.getByRole("button", { name: "退出房间" }).click();
-    await expect(page.locator("#player-nickname")).toHaveValue("SavedPlayer");
+    await expect(page.locator("#player-nickname")).toHaveValue("");
+    await expect(page.locator("#room-name")).toHaveValue("");
     await page.waitForTimeout(200);
     assert.equal(
       await page.evaluate(() => window.__roomLink.urls.length),
@@ -286,11 +341,24 @@ try {
       "data-view-controller",
       "1",
     );
+    // Safari can keep a lost socket marked OPEN without firing onclose.
+    await running.evaluate(() => {
+      Object.defineProperty(document, "hidden", { configurable: true, value: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.__roomSocket.silent = true;
+      delete document.hidden;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await expect.poll(() => running.evaluate(() => window.__roomLink.urls.length), { timeout: 18000 }).toBe(2);
+    await expect(running.getByTestId("connection-alert")).toHaveCount(0);
+    await expect(running.getByTestId("duel-switch-view")).toBeVisible();
+    assert.ok(!(await running.evaluate(() => window.__roomLink.packets)).some(p => [2,34,37].includes(p[2])));
     await running.getByTestId("duel-leave-spectating").click();
     await expect(running.locator("#player-nickname")).toHaveValue(
-      "SavedPlayer",
+      "",
     );
     await running.close();
+    console.log("PASS spectator cleanup and stale OPEN recovery");
 
     // A cold phone can take longer than the old one-second start delay to
     // mount card components. History must PLAY before live updates, not snap.
@@ -454,7 +522,7 @@ try {
     assert.ok(!locked.url().includes("dummy"));
     assert.equal(
       await locked.evaluate(() => localStorage.getItem("playerNickname")),
-      "SavedPlayer",
+      null,
     );
     await locked.close();
 
@@ -479,9 +547,9 @@ try {
     );
     await prefill.getByRole("button", { name: "退出房间" }).click();
     await expect(prefill.locator("#player-nickname")).toHaveValue(
-      "DraftPlayer$dummy",
+      "",
     );
-    await expect(prefill.locator("#room-name")).toHaveValue("draft-room$dummy");
+    await expect(prefill.locator("#room-name")).toHaveValue("");
     await prefill.close();
 
     if (!mobile) {
@@ -500,7 +568,7 @@ try {
     }
 
     const failed = await open("room=CLOSED&spectate=1");
-    await expect(failed.locator("[role=alert]")).toContainText("WSS 连接失败");
+    await expect(failed.locator("[role=alert]")).toContainText("对战连接已断开");
     assert.equal(await failed.evaluate(() => window.__roomLink.urls.length), 1);
     await failed.locator("#room-name").fill("retry-room");
     assert.equal(
@@ -561,6 +629,31 @@ try {
         room: "inner?name",
         buildUnchanged: true,
       });
+      const resumes = await utility.evaluate(async () => {
+        const { prepareConnectionResume, checkConnectionResume, finishConnectionResume } = await import("/src/variant/connectionResume.ts");
+        const run = (notice, sender = 8, offer = true) => {
+          const sent = [], results = [];
+          const conn = { initialDeckPayload: Uint8Array.of(3,0,2,99), ws: { send: (bytes) => sent.push([...bytes]) } };
+          prepareConnectionResume(conn, "player", ok => results.push(ok));
+          if (offer) checkConnectionResume(conn, { msg: "stoc_chat", stoc_chat: { player: sender, msg: notice } });
+          checkConnectionResume(conn, { msg: "stoc_join_game" });
+          checkConnectionResume(conn, { msg: "stoc_join_game" });
+          checkConnectionResume(conn, { msg: "stoc_time_limit", stoc_time_limit: { player: 0 } });
+          const premature = results.length;
+          checkConnectionResume(conn, { msg: "stoc_game_msg", stoc_game_msg: { gameMsg: "reload_field" } });
+          checkConnectionResume(conn, { msg: "stoc_time_limit", stoc_time_limit: { player: 0 } });
+          checkConnectionResume(conn, { msg: "stoc_time_limit", stoc_time_limit: { player: 0 } });
+          const partial = results.length;
+          checkConnectionResume(conn, { msg: "stoc_time_limit", stoc_time_limit: { player: 1 } });
+          finishConnectionResume(conn, false);
+          return { sent, results, premature, partial };
+        };
+        const notice = "[Server]: You will be reconnected to your previous game. Please pick your previous deck.";
+        return { offered: run(notice), playerChat: run(notice, 0), expired: run(notice, 8, false) };
+      });
+      assert.deepEqual(resumes.offered, { sent: [[3,0,2,99]], results: [true], premature: 0, partial: 0 });
+      for (const test of [resumes.playerChat, resumes.expired])
+        assert.deepEqual(test, { sent: [], results: [false], premature: 0, partial: 0 });
       // A failed initialization must reset progress and allow a same-document
       // retry. Two concurrent callers must await one shared database load.
       let failedLoads = 0;
@@ -598,7 +691,11 @@ try {
       mobile,
       encodedRoom: true,
       roleConfirmed: true,
-      existingNicknamePreserved: true,
+      normalFormCached: true,
+      spectatorFormCleared: true,
+      editedDeckPreferred: true,
+      backgroundConnectionRecovery: true,
+      staleOpenSocketRecovery: true,
       runningRoom: true,
       coldSpectatorHistory: true,
       historyAnimationsPreserved: true,
@@ -610,6 +707,9 @@ try {
     await context.close();
   }
   console.log(JSON.stringify({ built, engine: safari ? "webkit" : "chromium", results }));
+} catch (error) {
+  console.error(error);
+  throw error;
 } finally {
   await browser?.close();
   if (built && vite)

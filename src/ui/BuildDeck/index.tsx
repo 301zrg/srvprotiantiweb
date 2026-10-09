@@ -20,6 +20,7 @@ import { type CardMeta, fetchCard } from "@/api";
 import { isExtraDeckCard } from "@/common";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { deckStore, emptyDeck, type IDeck, initStore } from "@/stores";
+import { activeDeck, selectActiveDeck } from "@/stores/deckSelection";
 import { useI18N } from "@/ui/I18N";
 import {
   Background,
@@ -70,8 +71,12 @@ export const loader: LoaderFunction = async () => {
   }
 
   // A direct /build visit can import this module before IndexedDB is ready.
-  if (!deckStore.get(selectedDeck.deck.deckName)) {
-    setSelectedDeck(storedEditingDeck() ?? deckStore.decks[0] ?? emptyDeck);
+  const preferred = activeDeck() ?? emptyDeck;
+  if (
+    !deckStore.get(selectedDeck.deck.deckName) ||
+    selectedDeck.deck.deckName !== preferred.deckName
+  ) {
+    setSelectedDeck(preferred);
   }
 
   // 更新场景
@@ -101,6 +106,7 @@ const selectedDeck = proxy<{ deck: IDeck }>({
 
 export const setSelectedDeck = (deck: IDeck) => {
   selectedDeck.deck = deck;
+  selectActiveDeck(deck.deckName);
   try {
     sessionStorage.setItem(storageKey("editingDeckName"), deck.deckName);
   } catch {}

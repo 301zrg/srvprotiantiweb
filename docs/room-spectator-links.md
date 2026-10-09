@@ -1,13 +1,13 @@
 # 房间列表跳转网页版观战
 
-更新：2026-10-07。网页版接收参数；本地 `srvprotianti` 房间列表 HTML 已增加已开局／换备房名的观战链接，桌面助手保持原生入口。
+更新：2026-10-09。网页版接收参数；本地 `srvprotianti` 房间列表 HTML 已增加已开局／换备房名的观战链接，桌面助手保持原生入口。普通联机缓存与后台恢复见 [会话说明](session-recovery.md)。
 
 ## 链接约定
 
 推荐链接：
 
 ```text
-https://black-surf-69e5.1627406938.workers.dev/#/match?room=M%23TT%2CRANDOM%2312345&spectate=1
+https://ocg1103nexus.com/#/match?room=M%23TT%2CRANDOM%2312345&spectate=1
 ```
 
 | 参数 | 含义 |
@@ -30,7 +30,7 @@ https://black-surf-69e5.1627406938.workers.dev/#/match?room=M%23TT%2CRANDOM%2312
 ```js
 // room 为 /api/public/rooms 返回的一项。
 function makeSpectatorLink(room) {
-  const client = new URL('https://black-surf-69e5.1627406938.workers.dev/');
+  const client = new URL(window.SrvproWeb.clientEntry());
   const params = new URLSearchParams({
     room: room.roomname,
     spectate: '1',
@@ -49,13 +49,13 @@ link.target = '_blank';
 link.rel = 'noopener noreferrer';
 ```
 
-如果之后改用另一静态站点，只改 `client` 的固定 URL。不要在链接里传游戏 IP、端口或 WSS；网页版仍使用站方 `duel-config.js` 中的固定对战入口。新静态站点的 Origin 是否被网关允许属于原有部署要求，增加查询参数本身不需要修改 Nginx、证书或重启游戏服务器。
+官网的固定入口集中在 `plugins/ladder-web/web/assets/web-client-config.js` 的 `SRVPRO_WEB_CLIENT_URL`，当前为 `https://ocg1103nexus.com/`；换站点只改该文件。不要在链接里传游戏 IP、端口或 WSS；网页版仍使用站方 `duel-config.js` 中的固定对战入口。新静态站点的 Origin 是否被网关允许属于原有部署要求，增加查询参数本身不需要修改 Nginx、证书或重启游戏服务器。
 
 本地列表已经给已开始对局／换备的房间提供观战链接，等待房保持原操作。`needpass` 为 `true` 的房间使用 `autojoin=0`，在观战页手动输入密码再连接；密码不进入公开链接。服务器仍决定最终观战权限。
 
 ## 身份和退出行为
 
-- 观战链接使用专门的临时昵称，既不替换持久保存的玩家昵称，也不覆盖当前标签页内的普通联机表单草稿。
+- 按 2026-10-09 用户要求，一键观战使用临时昵称和房名，不写入普通联机缓存；入房后或取消观战链接时清空普通昵称／房名草稿及缓存，返回联机页两项均为空。普通联机输入则持续保留。
 - 自动连接只执行一次；失败后保留房间和昵称，玩家可以手动重试。切换语言、编辑输入或返回联机页不会自动重试。
 - `PLAYER_INFO`、`JOIN_GAME` 的顺序保持不变；收到服务器 `STOC_JOIN_GAME` 后才发送一次 `HS_TOOBSERVER`，避免宿主异步查房时丢掉提前发送的申请。
 - 普通等待房在确认观战席位后显示观战等待页，不上传卡组、不准备、不启动对局。服务器确认失败时关闭本次连接并给出提示。
@@ -87,7 +87,7 @@ link.rel = 'noopener noreferrer';
 
 ## 验证
 
-`npm run test:room-links` 使用本地浏览器和原生协议模拟，检查桌面／390px 触屏的 Hash 与外层查询链接、特殊字符房名、默认／自定义昵称、等待观战确认、已开局观战、退出不重入、原昵称保留、参数错误与密码链接拒绝。密码房样本还验证 `autojoin=0` 不提前连接，手动补密码后仍申请观战，密码不回写 URL。`node scripts/room_link_ui.mjs --built` 验证实际 `dist` 构建。
+`npm run test:room-links` 使用本地浏览器和原生协议模拟，检查桌面／390px 触屏的 Hash 与外层查询链接、特殊字符房名、默认／自定义昵称、等待观战确认、已开局观战、退出不重入、普通输入缓存与观战后清空、参数错误与密码链接拒绝。密码房样本还验证 `autojoin=0` 不提前连接，手动补密码后仍申请观战，密码不回写 URL。`node scripts/room_link_ui.mjs --built` 验证实际 `dist` 构建。
 
 `npm run test:room-links:local` 已在隔离 SRVPro 和真实 Core 上通过普通等待房、普通已开局房、具体 TT 已开局房的链接观战、视角切换和主动退出；观战连接没有上传卡组、准备或启动对局。原有普通房重新入场及 TT G1–G3／两次换备也通过回归。隔离实例显式启用中途观战和公开列表，不读取正式部署配置；正式服及真机权限与中途观战配置仍需复测。
 

@@ -43,6 +43,7 @@ import {
   roomStore,
   sideStore,
 } from "@/stores";
+import { activeDeck, selectActiveDeck } from "@/stores/deckSelection";
 import { I18NSelector, useI18N } from "@/ui/I18N";
 import { requireSession } from "@/ui/requireSession";
 import { Background, IconFont, useChat } from "@/ui/Shared";
@@ -72,11 +73,10 @@ export const Component: React.FC = () => {
   const { user } = useSnapshot(accountStore);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
-  const [deck, setDeck] = useState<IDeck | undefined>(() =>
-    deckStore.decks[0]
-      ? JSON.parse(JSON.stringify(deckStore.decks[0]))
-      : undefined,
-  );
+  const [deck, setDeck] = useState<IDeck | undefined>(() => {
+    const selected = activeDeck();
+    return selected ? JSON.parse(JSON.stringify(selected)) : undefined;
+  });
   const [pendingState, setPendingState] = useState<PlayerState>();
   const room = useSnapshot(roomStore);
   const me = room.getMePlayer();
@@ -93,6 +93,7 @@ export const Component: React.FC = () => {
     // YGOPRO_SERVER_MODE automatically readies a player on UPDATE_DECK.
     // Selecting locally must not upload or implicitly confirm a deck.
     setDeck(JSON.parse(JSON.stringify(selected)));
+    selectActiveDeck(deckName);
   };
 
   const onReady = () => {

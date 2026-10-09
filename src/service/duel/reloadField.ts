@@ -2,14 +2,24 @@ import { v4 as v4uuid } from "uuid";
 
 import { ygopro } from "@/api";
 import { Container } from "@/container";
+import { isUIContainer } from "@/container/compat";
 import { closeCardListModal } from "@/ui/Duel/Message/CardListModal";
 import { closeCardModal } from "@/ui/Duel/Message/CardModal";
 
 import { genCard } from "../utils";
+import { prepareDuelPresentation } from "./presentation";
 type MsgReloadField = ygopro.StocGameMessage.MsgReloadField;
 
-export default (container: Container, field: MsgReloadField) => {
+export default async (container: Container, field: MsgReloadField) => {
   const context = container.context;
+  const presented = isUIContainer(container)
+    ? prepareDuelPresentation(container)
+    : undefined;
+  // MSG_START prepared the token reserve. A field snapshot replaces visible
+  // zones, but later token summons still need these unused card components.
+  const tokens = context.cardStore.inner
+    .filter((card) => card.location.zone === ygopro.CardZone.TZONE)
+    .map((card) => genCard({ ...card, uuid: v4uuid() }));
   // 重置
   context.cardStore.reset();
   closeCardModal();
@@ -52,4 +62,8 @@ export default (container: Container, field: MsgReloadField) => {
       .flat();
     context.cardStore.inner.push(...cards);
   });
+  context.cardStore.inner.push(...tokens);
+  // Query updates can move the newly created cards. Wait for their handlers,
+  // just as MSG_START does, instead of losing the first animation callback.
+  if (presented) await presented;
 };

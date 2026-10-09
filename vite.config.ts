@@ -36,7 +36,9 @@ export default defineConfig({
     svgr(),
     ydkLoader(),
     arraybuffer(),
-    tsconfigPaths(),
+    // Test runtimes contain copies of the server and Lua assets. Avoid scanning
+    // those trees for unrelated tsconfigs during every browser test/build.
+    tsconfigPaths({ projects: [path.resolve(__dirname, "tsconfig.json")] }),
     sassDts({
       enabledMode: ["development"],
       sourceDir: path.resolve(__dirname, "./src"),

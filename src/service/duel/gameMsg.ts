@@ -213,7 +213,7 @@ export default async function handleGameMsg(
       break;
     }
     case "reload_field": {
-      onMsgReloadField(container, msg.reload_field);
+      await onMsgReloadField(container, msg.reload_field);
 
       break;
     }
