@@ -2,6 +2,20 @@
 
 基于 [DarkNeos/neos-ts](https://github.com/DarkNeos/neos-ts) 的 1103 历史环境客户端。玩家可输入昵称和房间名：房间 `TT` 进入天梯，其他房间名沿用服务器的普通联机规则；对战地址由站点构建配置固定，玩家不填写 IP 或端口。网页和 CDB 等资源部署在天梯服务器之外的 HTTPS 静态站点。
 
+首次直接打开联机页、且没有保存房名时，房间名默认预填 `TT`，仍需手动点击连接。玩家修改或主动清空的房名继续缓存，链接指定的房名优先；一键观战退出后清空昵称和房名。
+
+## 版权声明 / Copyright notice
+
+**中文：** 本网页项目为开源、非盈利的爱好者项目。游戏王相关名称、卡图等素材的版权归各自权利人所有。如相关权利人提出要求，本网页可能随时调整或下架，敬请理解。
+
+**English:** This is an open-source, non-profit fan project. Yu-Gi-Oh! names, card artwork and other materials belong to their respective rights holders. This website may be changed or taken offline at any time at their request. Thank you for your understanding.
+
+**日本語：** 本サイトはオープンソース・非営利のファンプロジェクトです。遊戯王の名称、カード画像などの権利は各権利者に帰属します。権利者からの要請により、予告なく変更または公開を終了する場合があります。ご了承ください。
+
+**한국어:** 이 웹사이트는 오픈 소스 비영리 팬 프로젝트입니다. 유희왕 명칭, 카드 이미지 등 자료의 권리는 각 권리자에게 있습니다. 권리자의 요청에 따라 언제든지 사이트를 변경하거나 운영을 중단할 수 있으니 양해 부탁드립니다.
+
+源码许可证见 [LICENSE](LICENSE)。第三方代码及素材的权利和许可分别适用其原有声明，本说明不更改现有许可证。
+
 ## 当前进度
 
 本地首版已接入四语卡库生成器、2011.3.1 禁表、YDK 导入／导出、统一联机表单及固定 WSS 配置，移除了入口的 MyCard 登录依赖。`npm run build` 生成的 `dist/` 包含静态页、四语环境资源和 Neos WASM/界面资源。隔离的本地 SRVPro 已通过普通 Single 和 TT G1–G3 生命周期、两次换备提交及退出保留昵称／密码；弃权回归不代替全部卡片交互。正式入口 `wss://duel.ygomatch.xyz/neos` 在服务器本机握手通过，公网因未备案受阻。今年继续使用现有主机，采用无需改 DNS 的临时隧道与外部静态站点上线测试；已部署网页经公网 WSS 的普通房开局、弃权结束和首次再次入场通过。正式禁表 hash 差异已定位到两个错误卡号，修正版及 [替换步骤](docs/banlist-diagnosis.md) 已备妥；正式新房间规则一致性、TT 实战、真机和断线恢复仍待验收。

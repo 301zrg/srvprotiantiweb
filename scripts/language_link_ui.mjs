@@ -11,6 +11,7 @@ const words = {
   ja: { locale: "ja-JP", selector: "表示言語", connect: "接続", search: "リプレイ名を検索", empty: "データがありません" },
   ko: { locale: "ko-KR", selector: "표시 언어", connect: "온라인", search: "리플레이 제목 검색", empty: "데이터 없음" },
 };
+const copyrightTitles = { zh: "版权声明", en: "Copyright notice", ja: "著作権について", ko: "저작권 안내" };
 try {
   server = await preview({ preview: { host: "127.0.0.1", port: 0 } });
   const origin = server.resolvedUrls.local[0];
@@ -32,6 +33,10 @@ try {
       await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
       await expect(page.locator("html")).toHaveAttribute("lang", words[lang].locale);
       assert.ok(resources.some(url => url.includes(`/${words[lang].locale}/cards.cdb`)), lang + " must load its card database before rendering");
+      const copyright = page.locator('section[aria-labelledby="home-copyright"]');
+      await copyright.scrollIntoViewIfNeeded();
+      await expect(copyright.locator("h2")).toHaveText(copyrightTitles[lang]);
+      await expect(copyright.locator("p")).toBeInViewport();
       await page.locator('nav a[href="#/replays"]').click();
       await expect(page.getByPlaceholder(words[lang].search)).toBeVisible();
       // The library deliberately starts empty; the UI note must follow the chosen language.

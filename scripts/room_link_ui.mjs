@@ -205,6 +205,15 @@ try {
     // Normal form and last edited deck survive route changes and a reload.
     const normal = await open("");
     console.log(`Testing ${mobile ? "touch" : "desktop"} form/deck persistence`);
+    await expect(normal.locator("#room-name")).toHaveValue("TT");
+    assert.equal(await normal.evaluate(() => window.__roomLink.urls.length), 0, "Default TT must not auto-connect");
+    // An intentionally empty room remains empty after reloading; submitting it
+    // must not silently join TT.
+    await normal.locator("#room-name").fill("");
+    await normal.getByTestId("connect-submit").click();
+    assert.equal(await normal.evaluate(() => window.__roomLink.urls.length), 0);
+    await normal.reload();
+    await expect(normal.locator("#room-name")).toHaveValue("", { timeout: 45000 });
     await normal.locator("#player-nickname").fill("CacheUser$dummy");
     await normal.locator("#room-name").fill("CacheRoom$dummy");
     await normal.evaluate(() => { location.hash = "#/build"; });
@@ -304,6 +313,10 @@ try {
       1,
       "Exit must not auto-rejoin",
     );
+    await page.reload();
+    await expect(page.locator("#player-nickname")).toHaveValue("", { timeout: 45000 });
+    await expect(page.locator("#room-name")).toHaveValue("");
+    assert.equal(await page.evaluate(() => window.__roomLink.urls.length), 0, "Reload after spectating must not restore TT or reconnect");
     await page.close();
 
     const running = await open(

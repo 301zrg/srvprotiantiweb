@@ -8,16 +8,16 @@ let draft: JoinForm | undefined;
 
 function saved(key: string) {
   try {
-    return siteStorage.getItem(key) ?? "";
+    return siteStorage.getItem(key);
   } catch {
-    return "";
+    return null;
   }
 }
 
 export function readJoinForm(): JoinForm {
   return (draft ??= {
-    nickname: saved("playerNickname"),
-    roomName: saved("playerRoomName"),
+    nickname: saved("playerNickname") ?? "",
+    roomName: saved("playerRoomName") ?? "TT",
   });
 }
 
@@ -38,7 +38,9 @@ export function clearJoinForm() {
   draft = { nickname: "", roomName: "" };
   for (const key of ["playerNickname", "playerRoomName"]) {
     try {
-      siteStorage.removeItem(key);
+      // Remember an intentional reset so refreshing after spectating stays empty.
+      if (key === "playerRoomName") siteStorage.setItem(key, "");
+      else siteStorage.removeItem(key);
     } catch {}
   }
 }

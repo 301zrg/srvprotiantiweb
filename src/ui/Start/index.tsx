@@ -95,6 +95,10 @@ export const Component = () => {
               </a>
             </div>
           </section>
+          <section className={styles.notice} aria-labelledby="home-copyright">
+            <h2 id="home-copyright">{text.copyrightTitle}</h2>
+            <p>{text.copyrightText}</p>
+          </section>
         </div>
       </div>
     </>
