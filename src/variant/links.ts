@@ -1,3 +1,5 @@
+export const roomRulesUrl = "https://ygo233.com/usage";
+
 // Community invites from srvprotianti's public ladder website.
 export const communityLinks = {
   upstream: "https://github.com/DarkNeos/neos-ts",

@@ -18,6 +18,7 @@ import {
 } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { clearJoinForm, readJoinForm, saveJoinForm } from "@/variant/joinForm";
+import { roomRulesUrl } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
 import {
   isRoomCommand,
@@ -239,6 +240,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
         <label htmlFor="room-name">{text.room}</label>
         <Input
           id="room-name"
+          aria-describedby="room-hint"
           value={roomName}
           maxLength={19}
           onChange={(event) => {
@@ -248,7 +250,24 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           }}
           onPressEnter={connect}
         />
-        <p>{spectate ? text.spectatorRoomCommand : text.roomHint}</p>
+        <p id="room-hint">
+          {spectate ? (
+            text.spectatorRoomCommand
+          ) : (
+            <>
+              {text.roomHintBefore}
+              <a
+                className={styles.roomRulesLink}
+                href={roomRulesUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {text.roomRules}
+              </a>
+              {text.roomHintAfter}
+            </>
+          )}
+        </p>
         {invalidLink && <p role="alert">{text.invalidRoomLink}</p>}
         {endpointError && <p role="alert">{endpointError}</p>}
         {connection.state === "disconnected" && (
