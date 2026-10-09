@@ -39,7 +39,7 @@ export const CardDetail: React.FC<{
       extraCardTypes(card?.data.type ?? 0)
         .map((t) => fetchStrings(Region.System, Type2StringCodeMap.get(t) || 0))
         .join(" / "),
-    [card?.data.type],
+    [card?.data.type, language],
   );
   const desc = useMemo(
     () =>
@@ -110,7 +110,7 @@ export const CardDetail: React.FC<{
       }
     }
     return result;
-  }, [card]);
+  }, [card, i18n, language]);
 
   const descriptions = (
     <>

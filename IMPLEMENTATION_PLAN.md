@@ -84,7 +84,7 @@
 - [x] `scripts/build_environment_assets.py`：只读1103输入、统一中文ID/datas、英文27项alias文本补齐、精确移除desc末尾搜索标签、逐卡列表符修复、保真整数、输出副本VACUUM；原件不改。
 - [x] `check:environment`：四库均5,267行且ID/datas一致、78个Token、英文27项补齐、SHA、SQLite header、禁表条目及40张示例卡组；其余边界继续扩充。
 - [x] 输出不可变 revision 资源、manifest、来源锁与差异报告；线上回退流程待外部托管确定。
-- [x] 单 active DB；四语卡文／strings 与基础界面；事务式切语言，失败维持原库、旧请求不得覆盖新选择。上游其余韩语界面仍用英文回退。
+- [x] 单 active DB；四语卡文／strings 与界面词库（包括韩语）；事务式切语言，失败维持原库、旧请求不得覆盖新选择。URL `lang` 初始化、组件库内置文案与官网语言传递见 [语言入口](docs/language-links.md)。
 - [x] 去 MDPro／pre-release／408 启动初始化，固定目标环境和图片配置。
 - [ ] 卡组文件／文本导入、编辑、导出、IndexedDB；保留非法 ID 并解释问题。
 - [ ] 禁限跨 Main/Extra/Side，按 core 规则合并计数；Token 不可入组。

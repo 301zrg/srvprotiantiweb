@@ -2,6 +2,7 @@ import { CheckCard } from "@ant-design/pro-components";
 import { Button, Segmented } from "antd";
 import { chunk } from "lodash-es";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import {
@@ -32,6 +33,7 @@ const store = proxy(defaultStore);
 const MAX_NUM_PER_PAGE = 4;
 
 export const OptionModal = () => {
+  const { t } = useTranslation("ClientUI");
   const container = getUIContainer();
   const snap = useSnapshot(store);
   const { title, isOpen, min, options } = snap;
@@ -71,7 +73,7 @@ export const OptionModal = () => {
           disabled={selecteds.flat().length !== min}
           onClick={onSummit}
         >
-          确定
+          {t("Confirm")}
         </Button>
       }
     >

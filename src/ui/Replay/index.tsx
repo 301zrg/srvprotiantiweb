@@ -11,6 +11,7 @@ import {
   Select,
 } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
@@ -33,10 +34,12 @@ import {
   shareReplayFile,
   subscribeReplays,
 } from "@/replay/library";
+import { localizeReplayText } from "@/replay/localizedText";
 import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
+import { type Language, languageLocales } from "@/variant";
 
 import { ReplayAudio } from "./audio";
 import { positionLabel, replayCardWords, replayCounters } from "./cardState";
@@ -204,6 +207,7 @@ export function Component() {
   );
 }
 function Library({ text }: { text: string[] }) {
+  const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
   const [entries, setEntries] = useState<ReplayEntry[]>([]),
     [occurrences, setOccurrences] = useState<ReplayOccurrence[]>([]),
@@ -243,7 +247,12 @@ function Library({ text }: { text: string[] }) {
     try {
       await fn();
     } catch (e) {
-      message.error(String(e instanceof Error ? e.message : e));
+      message.error(
+        localizeReplayText(
+          String(e instanceof Error ? e.message : e),
+          language as Language,
+        ),
+      );
     }
   };
   return (
@@ -254,7 +263,7 @@ function Library({ text }: { text: string[] }) {
       </header>
       <div className="replay-tools">
         <label className="replay-import">
-          {busy ? "正在导入…" : text[1]}
+          {busy ? t("ReplayImporting") : text[1]}
           <input
             type="file"
             accept=".yrp,.yrp3d"
@@ -266,11 +275,10 @@ function Library({ text }: { text: string[] }) {
               setBusy(true);
               setError("");
               try {
-                if (files.length > 20)
-                  throw new Error("每次最多导入 20 份录像");
+                if (files.length > 20) throw new Error(t("ReplayImportLimit"));
                 for (const file of files) {
                   if (file.size > MAX_REPLAY_BYTES)
-                    throw new Error(`${file.name} 超过 8 MB`);
+                    throw new Error(t("ReplayFileLimit", { file: file.name }));
                   await saveReplay(
                     new Uint8Array(await file.arrayBuffer()),
                     file.name,
@@ -285,7 +293,7 @@ function Library({ text }: { text: string[] }) {
           />
         </label>
         <Input
-          placeholder="搜索录像标题"
+          placeholder={t("ReplaySearch")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -294,46 +302,43 @@ function Library({ text }: { text: string[] }) {
         />
       </div>
       <p className="replay-note">
-        本地导入、保存与播放，不上传录像。更换浏览器或网址前请下载备份。导入录像的脚本来源无法从文件头确认；使用固定
-        706 环境尝试重演。
+        {t("ReplayNote")}
         <a
           href={`${import.meta.env.BASE_URL}replay/NOTICE.md`}
           target="_blank"
           rel="noreferrer"
         >
           {" "}
-          资源来源与许可
+          {t("ReplayLicense")}
         </a>
       </p>
       <p className="replay-note">
-        {entries.length} 份 ·{" "}
-        {(entries.reduce((n, e) => n + e.bytes, 0) / 1048576).toFixed(2)} / 100
-        MB{" "}
+        {t("ReplayCapacity", {
+          count: entries.length,
+          size: (entries.reduce((n, e) => n + e.bytes, 0) / 1048576).toFixed(2),
+        })}{" "}
         <button
           className="replay-link"
           onClick={() =>
             run(async () => {
               message.info(
                 (await navigator.storage?.persist?.())
-                  ? "浏览器已允许保留本地存储"
-                  : "浏览器未授予持久存储，请定期下载备份",
+                  ? t("ReplayPersistent")
+                  : t("ReplayNotPersistent"),
               );
             })
           }
         >
-          请求保留本地存储
+          {t("ReplayRequestStorage")}
         </button>
       </p>
       {error && (
         <p className="replay-error" role="alert">
-          {error}
+          {localizeReplayText(error, language as Language)}
         </p>
       )}
       {!entries.length && (
-        <div className="replay-empty">
-          选择手机／电脑上的 .yrp 文件导入；在线对局收到的录像也会保存到这里。旧
-          .yrp3d 仅支持保存与下载。
-        </div>
+        <div className="replay-empty">{t("ReplayEmpty")}</div>
       )}
       <section className="replay-list">
         {matching
@@ -343,24 +348,36 @@ function Library({ text }: { text: string[] }) {
               <div>
                 <h2>{entry.title}</h2>
                 <p>
-                  {new Date(entry.createdAt).toLocaleString()} ·{" "}
-                  {(entry.bytes / 1024).toFixed(1)} KB · {entry.header.format} ·{" "}
-                  {entry.source === "duel" ? "对局接收" : "本地导入"}
+                  {new Date(entry.createdAt).toLocaleString(
+                    languageLocales[language as Language],
+                  )}{" "}
+                  · {(entry.bytes / 1024).toFixed(1)} KB · {entry.header.format}{" "}
+                  ·{" "}
+                  {entry.source === "duel"
+                    ? t("ReplayFromDuel")
+                    : t("ReplayLocalImport")}
                 </p>
-                {entry.temporary && (
-                  <strong>仅本次页面可用，请立即下载备份</strong>
+                {entry.temporary && <strong>{t("ReplayTemporary")}</strong>}
+                {entry.header.reason && (
+                  <p>
+                    {localizeReplayText(
+                      entry.header.reason,
+                      language as Language,
+                    )}
+                  </p>
                 )}
-                {entry.header.reason && <p>{entry.header.reason}</p>}
                 {!!occurrences.filter((o) => o.entry === entry.id).length && (
                   <p>
-                    对局关联：
+                    {t("ReplayAssociations")}
                     {occurrences
                       .filter((o) => o.entry === entry.id)
                       .map(
                         (o) =>
-                          `${o.room || "未记录房名"} · ${new Date(
+                          `${o.room || t("ReplayNoRoom")} · ${new Date(
                             o.receivedAt,
-                          ).toLocaleString()}`,
+                          ).toLocaleString(
+                            languageLocales[language as Language],
+                          )}`,
                       )
                       .join("；")}
                   </p>
@@ -417,7 +434,7 @@ function Library({ text }: { text: string[] }) {
                   onClick={() =>
                     Modal.confirm({
                       title: `${text[4]}：${entry.title}？`,
-                      content: "删除后无法从本地恢复。",
+                      content: t("ReplayDeleteWarning"),
                       onOk: () => run(() => deleteReplay(entry.id)),
                     })
                   }
@@ -460,6 +477,7 @@ function Library({ text }: { text: string[] }) {
 }
 
 function Player({ id, text }: { id: string; text: string[] }) {
+  const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
   const stateText = replayCardWords(language);
   const words = replayExtraWords(language);
@@ -481,7 +499,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
   const [fieldView, setFieldView] = useState(true);
   const [frame, setFrame] = useState<SceneFrame>(),
     [working, setWorking] = useState(true),
-    [status, setStatus] = useState("正在打开录像…"),
+    [status, setStatus] = useState(t("ReplayOpening")),
     [error, setError] = useState(""),
     [playing, setPlaying] = useState(false),
     [seeking, setSeeking] = useState(false),
@@ -489,7 +507,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [target, setTarget] = useState("1"),
     [rate, setRate] = useState(1),
     [card, setCard] = useState<ReplayCard>(),
-    [history, setHistory] = useState<string[]>([]),
+    [history, setHistory] = useState<ReplayHistoryFrame[]>([]),
     [showHistory, setShowHistory] = useState(false),
     [title, setTitle] = useState("");
   const [reveal, setReveal] = useState(false);
@@ -537,7 +555,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
       worker.current?.terminate();
       pending.current = false;
       setWorking(false);
-      setError("录像内核无响应，已停止。本地原件仍可下载。");
+      setError(t("ReplayUnresponsive"));
       stop();
     }, 10000);
     worker.current.postMessage({ type, turn: seek.current });
@@ -547,14 +565,14 @@ function Player({ id, text }: { id: string; text: string[] }) {
     let disposed = false;
     const loadingTimeout = window.setTimeout(() => {
       worker.current?.terminate();
-      setError("播放资源加载超时，请检查网络并重新打开。");
+      setError(t("ReplayLoadTimeout"));
     }, 120000);
     void getReplay(id)
       .then(async ({ entry, blob }) => {
         if (!entry.header.playable) throw new Error(entry.header.reason);
         const bytes = new Uint8Array(await blob.arrayBuffer());
         if ((await sha256(bytes)) !== entry.hash)
-          throw new Error("本地录像原件校验失败");
+          throw new Error(t("ReplayHashError"));
         if (disposed) return;
         setTitle(entry.title);
         const w = new Worker(
@@ -581,9 +599,20 @@ function Player({ id, text }: { id: string; text: string[] }) {
           const next = data.frame as ReplayFrame;
           setStatus("");
           setHistory((old) =>
-            [...old, ...(data.history || [next]).flatMap(describeEvents)].slice(
-              -1000,
-            ),
+            [
+              ...old,
+              ...(data.history || [next]).flatMap((f: ReplayHistoryFrame) =>
+                f.events
+                  .filter(
+                    (e) => describeEvents({ ...f, events: [e] }, t).length > 0,
+                  )
+                  .map((e) => ({
+                    turn: f.turn,
+                    names: f.names,
+                    events: [e],
+                  })),
+              ),
+            ].slice(-1000),
           );
           if (!seek.current && next.step > 0 && scene.current) {
             queue.current = sceneSteps(scene.current, next);
@@ -621,7 +650,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
           clearTimeout(watchdog.current);
           pending.current = false;
           setWorking(false);
-          setError("播放内核加载失败，请重新打开；原录像仍可下载。");
+          setError(t("ReplayWorkerError"));
           stop();
         };
         pending.current = true;
@@ -668,7 +697,12 @@ function Player({ id, text }: { id: string; text: string[] }) {
     try {
       await fn();
     } catch (e) {
-      message.error(String(e));
+      message.error(
+        localizeReplayText(
+          String(e instanceof Error ? e.message : e),
+          language as Language,
+        ),
+      );
     }
   };
   const currentCard =
@@ -736,7 +770,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
           {text[10]}
         </Button>
         <Select
-          aria-label="播放速度"
+          aria-label={t("ReplaySpeed")}
           value={rate}
           options={[0.5, 1, 2, 4, 8, 16].map((n) => ({
             value: n,
@@ -767,7 +801,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
           {soundEnabled ? words.soundOn : words.soundOff}
         </Button>
         <Input
-          aria-label="目标回合"
+          aria-label={t("ReplayTarget")}
           type="number"
           min={1}
           max={999}
@@ -815,25 +849,27 @@ function Player({ id, text }: { id: string; text: string[] }) {
       {reveal && <p className="replay-note">{stateText.revealNote}</p>}
       {(status || seeking) && (
         <p className="replay-note" role="status">
-          {seeking ? `正在重演至回合 ${seek.current}…` : status}
+          {seeking
+            ? t("ReplaySeeking", { turn: seek.current })
+            : localizeReplayText(status, language as Language)}
         </p>
       )}
       {error && (
         <p className="replay-error" role="alert">
-          {error}
+          {localizeReplayText(error, language as Language)}
         </p>
       )}
       {frame && (
         <>
           <div className="replay-progress">
-            回合 {frame.turn} · {phaseName(frame.phase)} ·{" "}
-            {frame.names[frame.turnPlayer]} · 步骤 {frame.step} · 响应{" "}
-            {frame.consumed}/{frame.total}
+            {t("ReplayTurn")} {frame.turn} · {phaseName(frame.phase, t)} ·{" "}
+            {frame.names[frame.turnPlayer]} · {t("ReplayStep")} {frame.step} ·{" "}
+            {t("ReplayResponse")} {frame.consumed}/{frame.total}
             {frame.end && (
               <strong>
                 {frame.end === "complete"
-                  ? " · 重演结束"
-                  : " · 记录到此结束（可能为弃权、超时或中途终止）"}
+                  ? ` · ${t("ReplayComplete")}`
+                  : ` · ${t("ReplayStopped")}`}
               </strong>
             )}
           </div>
@@ -962,56 +998,68 @@ function Player({ id, text }: { id: string; text: string[] }) {
       >
         <Button onClick={() => setShowHistory(false)}>{text[23]}</Button>
         <ol className="replay-history">
-          {history.map((line, i) => (
-            <li key={i}>{line}</li>
-          ))}
+          {history
+            .flatMap((f) => describeEvents(f, t))
+            .map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
         </ol>
       </Drawer>
     </main>
   );
 }
-const phaseName = (phase: number) =>
+type ReplayHistoryFrame = Pick<ReplayFrame, "turn" | "names" | "events">;
+const phaseName = (phase: number, t: (key: string) => string) =>
   ({
     1: "DP",
     2: "SP",
     4: "MP1",
-    8: "BP 开始",
+    8: t("BattleStart"),
     16: "BP",
-    32: "伤害",
-    64: "伤害计算",
-    128: "BP 结束",
+    32: t("DamageStep"),
+    64: t("DamageCalculation"),
+    128: t("BattleEnd"),
     256: "MP2",
     512: "EP",
   })[phase] || String(phase);
-function describeEvents(frame: Pick<ReplayFrame, "turn" | "names" | "events">) {
+function describeEvents(frame: ReplayHistoryFrame, t: (key: string) => string) {
   return frame.events.flatMap((e) => {
     const v = new DataView(new Uint8Array(e).buffer),
       code = (p: number) =>
         fetchCard(v.getUint32(p, true)).text.name ||
         String(v.getUint32(p, true)),
       prefix = `T${frame.turn} `;
-    if (e[0] === 40) return [`${prefix}${frame.names[e[1]]} 开始回合`];
-    if (e[0] === 41) return [`${prefix}${phaseName(v.getUint16(1, true))}`];
+    if (e[0] === 40)
+      return [`${prefix}${frame.names[e[1]]} ${t("TurnStarted")}`];
+    if (e[0] === 41) return [`${prefix}${phaseName(v.getUint16(1, true), t)}`];
     if ([60, 62, 64].includes(e[0]))
       return [
         `${prefix}${code(1)} ${
-          e[0] === 60 ? "召唤" : e[0] === 62 ? "特殊召唤" : "反转召唤"
+          e[0] === 60
+            ? t("Summon")
+            : e[0] === 62
+            ? t("SpecialSummon")
+            : t("FlipSummon")
         }`,
       ];
-    if (e[0] === 70) return [`${prefix}连锁：${code(1)}`];
-    if (e[0] === 50) return [`${prefix}${code(1)} 移动 ${e[6]} → ${e[10]}`];
+    if (e[0] === 70) return [`${prefix}${t("Chain")}: ${code(1)}`];
+    if (e[0] === 50)
+      return [`${prefix}${code(1)} ${t("Move")} ${e[6]} → ${e[10]}`];
     if (e[0] === 2 && [8, 10].includes(e[1]))
-      return [`${prefix}宣言／提示：${code(3)}`];
-    if (e[0] === 160 && e[5] === 2) return [`${prefix}宣言卡片：${code(6)}`];
+      return [`${prefix}${t("DeclareHint")}: ${code(3)}`];
+    if (e[0] === 160 && e[5] === 2)
+      return [`${prefix}${t("DeclareCard")}: ${code(6)}`];
     if ([91, 92, 100].includes(e[0]))
       return [
         `${prefix}${frame.names[e[1]]} ${
-          e[0] === 92 ? "回复" : "减少"
+          e[0] === 92 ? t("Recover") : t("Decrease")
         } LP ${v.getUint32(2, true)}`,
       ];
     if (e[0] === 5)
       return [
-        `${prefix}${e[1] < 2 ? frame.names[e[1]] : "平局"} · 终局原因 ${e[2]}`,
+        `${prefix}${e[1] < 2 ? frame.names[e[1]] : t("Draw")} · ${t(
+          "EndReason",
+        )} ${e[2]}`,
       ];
     return [];
   });

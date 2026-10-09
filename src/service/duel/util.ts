@@ -1,9 +1,9 @@
 import { ygopro } from "@/api";
 const { MZONE, SZONE, HAND } = ygopro.CardZone;
-import { fetchStrings } from "@/api";
-import { Region } from "@/api";
 import { fetchCard } from "@/api/cards";
 import { Context } from "@/container";
+import { getLanguage } from "@/variant";
+import { formatDuelHint } from "@/variant/duelHintText";
 
 export function isAllOnField(locations: ygopro.CardLocation[]): boolean {
   const isOnField = (location: ygopro.CardLocation) => {
@@ -69,29 +69,18 @@ export const fetchEsHintMeta = async ({
   location?: ygopro.CardLocation;
   cardID?: number;
 }) => {
-  const newOriginMsg =
-    typeof originMsg === "string"
-      ? originMsg
-      : fetchStrings(Region.System, originMsg);
-
   const cardMeta = cardID ? fetchCard(cardID) : undefined;
-
-  let esHint = newOriginMsg;
-
-  if (cardMeta?.text.name) {
-    esHint = esHint.replace("[?]", cardMeta.text.name);
-  }
-
-  if (location) {
-    const fieldMeta = context.cardStore.at(
-      location.zone,
-      location.controller,
-      location.sequence,
-    );
-    if (fieldMeta?.meta.text.name) {
-      esHint = esHint.replace("[?]", fieldMeta.meta.text.name);
-    }
-  }
-
-  context.matStore.hint.esHint = esHint;
+  const fieldMeta = location
+    ? context.cardStore.at(
+        location.zone,
+        location.controller,
+        location.sequence,
+      )
+    : undefined;
+  const source = {
+    originMsg,
+    cardID: cardMeta?.text.name ? cardID : fieldMeta?.meta.id,
+  };
+  context.matStore.hint.esHintSource = source;
+  context.matStore.hint.esHint = formatDuelHint(source, getLanguage());
 };

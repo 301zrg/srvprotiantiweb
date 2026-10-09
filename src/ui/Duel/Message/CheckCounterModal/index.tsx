@@ -2,6 +2,7 @@
 import { Omit } from "@react-spring/web";
 import { Button, InputNumber } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { fetchStrings, Region, sendSelectCounterResponse } from "@/api";
@@ -28,6 +29,7 @@ const defaultProps = {
 const localStore = proxy<CheckCounterModalProps>(defaultProps);
 
 export const CheckCounterModal = () => {
+  const { t } = useTranslation("ClientUI");
   const container = getUIContainer();
   const snapCheckCounterModal = useSnapshot(localStore);
 
@@ -54,11 +56,11 @@ export const CheckCounterModal = () => {
 
   return (
     <NeosModal
-      title={`请移除${min}个${counterName}`}
+      title={t("RemoveCounters", { count: min, counter: counterName })}
       open={isOpen}
       footer={
         <Button disabled={!finishable} onClick={onFinish}>
-          finish
+          {t("Confirm")}
         </Button>
       }
     >

@@ -101,6 +101,7 @@ export interface HintState {
   code: number;
   msg?: string;
   esHint?: string;
+  esHintSource?: { originMsg: string | number; cardID?: number };
   esSelectHint?: string;
 }
 

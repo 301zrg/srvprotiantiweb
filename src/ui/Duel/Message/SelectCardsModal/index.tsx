@@ -50,13 +50,14 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
   onCancel,
   onFinish,
 }) => {
+  const { t } = useTranslation("ClientUI");
   const grouped = groupBy(selectables, (option) => option.location?.zone!);
   const [result, setResult] = useState<[ygopro.CardZone, Option[]][]>([]);
   const [submitable, setSubmitable] = useState(false);
 
   const hint = useSnapshot(matStore.hint);
   const preHintMsg = hint.esHint || "";
-  const selectHintMsg = hint.esSelectHint || "请选择卡片";
+  const selectHintMsg = hint.esSelectHint || t("SelectCard");
 
   const minMaxText = min === max ? min : `${min}-${max}`;
 

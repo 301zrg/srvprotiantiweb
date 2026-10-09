@@ -1,5 +1,6 @@
 import { Button } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { sendSelectEffectYnResponse } from "@/api";
@@ -17,6 +18,7 @@ const defaultProps = { isOpen: false };
 const localStore = proxy<YesNoModalProps>(defaultProps);
 
 export const YesNoModal: React.FC = () => {
+  const { t } = useTranslation("ClientUI");
   const container = getUIContainer();
   const { isOpen, msg } = useSnapshot(localStore);
   const hint = useSnapshot(matStore.hint);
@@ -38,7 +40,7 @@ export const YesNoModal: React.FC = () => {
               rs();
             }}
           >
-            取消
+            {t("Cancel")}
           </Button>
           <Button
             data-testid="duel-yesno-yes"
@@ -48,7 +50,7 @@ export const YesNoModal: React.FC = () => {
               rs();
             }}
           >
-            确认
+            {t("Confirm")}
           </Button>
         </>
       }

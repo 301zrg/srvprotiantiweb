@@ -1,5 +1,6 @@
 import { App } from "antd";
 import React, { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { proxy, useSnapshot } from "valtio";
 
@@ -24,6 +25,7 @@ const defaultProps: EndProps = {
 const localStore = proxy(defaultProps);
 
 export const EndModal: React.FC = () => {
+  const { t } = useTranslation("ClientUI");
   const container = getUIContainer();
   const { message } = App.useApp();
   const { isOpen, isWin, reason } = useSnapshot(localStore);
@@ -34,7 +36,7 @@ export const EndModal: React.FC = () => {
     rs();
 
     if (container.conn.isClosed()) {
-      message.info("服务器关闭了连接，返回匹配页。");
+      message.info(t("ServerClosed"));
 
       navigate("/match");
     }
@@ -57,7 +59,7 @@ export const EndModal: React.FC = () => {
           data-testid="duel-end-result"
           style={{ "--text-color": isWin ? "blue" : "red" } as CSSProperties}
         >
-          {isWin ? "Win" : "Defeated"}
+          {t(isWin ? "Win" : "Defeat")}
         </p>
         <p className={styles.reason}>{reason}</p>
       </div>
