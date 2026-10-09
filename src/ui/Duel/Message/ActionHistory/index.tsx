@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
@@ -50,6 +51,7 @@ const HistoryItem: React.FC<History> = ({
   operation,
   target,
 }) => {
+  const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
   if (operation === HistoryOp.ANNOUNCE)
     return (
@@ -72,7 +74,7 @@ const HistoryItem: React.FC<History> = ({
         )}
       </div>
       <div className={styles["op-container"]}>
-        <div className={styles["op-text"]}>{Op2Text(operation)}</div>
+        <div className={styles["op-text"]}>{Op2Text(operation, t)}</div>
         {operation === HistoryOp.MOVE ? (
           <img src={`${assetsPath}/arrow.svg`} className={styles["op-icon"]} />
         ) : operation === HistoryOp.EFFECT ? (
@@ -104,17 +106,16 @@ function zone2Text(zone: ygopro.CardZone): string {
   return fetchStrings(Region.System, zone + 1000);
 }
 
-// TODO: I18N
-function Op2Text(op: HistoryOp): string {
+function Op2Text(op: HistoryOp, t: (key: string) => string): string {
   switch (op) {
     case HistoryOp.MOVE:
-      return "移动";
+      return t("Move");
     case HistoryOp.EFFECT:
       return fetchStrings(Region.System, 1150);
     case HistoryOp.TARGETED:
-      return "被取对象";
+      return t("Targeted");
     case HistoryOp.CONFIRMED:
-      return "展示";
+      return t("Reveal");
     case HistoryOp.ATTACK:
       return fetchStrings(Region.System, 1157);
     case HistoryOp.SUMMON:

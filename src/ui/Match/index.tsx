@@ -1,15 +1,21 @@
 import { App, Button, Input } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { replayCaptureStatus } from "@/replay/capture";
+import { localizeReplayText } from "@/replay/localizedText";
 import { resetUniverse, RoomStage, roomStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
-import { duelWebSocketUrl, validateDuelWebSocketUrl } from "@/variant";
+import {
+  duelWebSocketUrl,
+  type Language,
+  validateDuelWebSocketUrl,
+} from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { clearJoinForm, readJoinForm, saveJoinForm } from "@/variant/joinForm";
 import { siteMessages } from "@/variant/messages";
@@ -44,6 +50,8 @@ export const Component = () => {
 };
 
 function ReplayReceipt() {
+  const { t } = useTranslation("ClientUI");
+  const { language } = useI18N();
   const status = useSnapshot(replayCaptureStatus),
     navigate = useNavigate();
   if (status.state === "idle") return null;
@@ -66,8 +74,15 @@ function ReplayReceipt() {
       }}
       role="status"
     >
-      <span>{status.detail || "等待保存录像…"}</span>
-      <Button onClick={() => navigate("/replays")}>录像库</Button>
+      <span>
+        {t(`Replay${status.notice}`, {
+          count: status.saved,
+          detail: localizeReplayText(status.detail, language as Language),
+        })}
+      </span>
+      <Button onClick={() => navigate("/replays")}>
+        {siteMessages(language).replays}
+      </Button>
     </div>
   );
 }

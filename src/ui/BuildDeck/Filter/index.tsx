@@ -171,16 +171,19 @@ const CustomSelect: React.FC<{
 
 const Item: React.FC<
   React.PropsWithChildren<{ title: string; showTip?: boolean }>
-> = ({ title, children, showTip = false }) => (
-  <div className={styles.item}>
-    <div className={styles["item-name"]}>
-      {title}
-      {showTip && (
-        <Tooltip title="若要输入 ? 的攻击/守备，请输入 -2">
-          <InfoCircleFilled style={{ fontSize: "0.625rem" }} />
-        </Tooltip>
-      )}
+> = ({ title, children, showTip = false }) => {
+  const { t } = useTranslation("ClientUI");
+  return (
+    <div className={styles.item}>
+      <div className={styles["item-name"]}>
+        {title}
+        {showTip && (
+          <Tooltip title={t("UnknownStatHint")}>
+            <InfoCircleFilled style={{ fontSize: "0.625rem" }} />
+          </Tooltip>
+        )}
+      </div>
+      {children}
     </div>
-    {children}
-  </div>
-);
+  );
+};

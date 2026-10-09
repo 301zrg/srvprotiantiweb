@@ -1,6 +1,7 @@
 import { SearchOutlined } from "@ant-design/icons";
 import { Avatar, Button, Checkbox, Input, List } from "antd";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import {
@@ -32,6 +33,7 @@ const defaultProps = {
 const store = proxy<Props>(defaultProps);
 
 export const AnnounceModal: React.FC = () => {
+  const { t } = useTranslation("ClientUI");
   const { isOpen } = useSnapshot(store);
   const [searchWord, setSearchWord] = useState("");
   const [cardList, setCardList] = useState<CardMeta[]>([]);
@@ -62,7 +64,7 @@ export const AnnounceModal: React.FC = () => {
 
   return (
     <NeosModal
-      title="请输入关键字并选择宣言的卡"
+      title={t("AnnounceTitle")}
       open={isOpen}
       footer={
         <Button
@@ -70,7 +72,7 @@ export const AnnounceModal: React.FC = () => {
           disabled={selected === undefined}
           onClick={onSummit}
         >
-          确定
+          {t("Confirm")}
         </Button>
       }
     >
@@ -78,7 +80,7 @@ export const AnnounceModal: React.FC = () => {
         <Input
           className={styles.input}
           data-testid="duel-announce-search"
-          placeholder="请输入宣言卡名(或关键字)"
+          placeholder={t("AnnouncePlaceholder")}
           variant="borderless"
           value={searchWord}
           onChange={(e) => setSearchWord(e.target.value)}

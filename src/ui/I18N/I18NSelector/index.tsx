@@ -1,5 +1,6 @@
 import { App, Select } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useI18N } from "../I18NContext";
 
@@ -11,12 +12,13 @@ const options = [
 ];
 
 export const I18NSelector = () => {
+  const { t } = useTranslation("ClientUI");
   const { language, changeLanguage } = useI18N();
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   return (
     <Select
-      aria-label="界面语言"
+      aria-label={t("Language")}
       value={language}
       options={options}
       loading={loading}

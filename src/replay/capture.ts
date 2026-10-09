@@ -15,6 +15,7 @@ export const replayCaptureStatus = proxy({
     | "error",
   saved: 0,
   detail: "",
+  notice: "Waiting",
 });
 export class ReplayCapture {
   private static statusOwner = "";
@@ -38,7 +39,11 @@ export class ReplayCapture {
   }
   private publish(status: Partial<typeof replayCaptureStatus>) {
     if (ReplayCapture.statusOwner === this.session)
-      Object.assign(replayCaptureStatus, status);
+      Object.assign(
+        replayCaptureStatus,
+        { detail: "", notice: "Waiting" },
+        status,
+      );
   }
   receive(data: ArrayBuffer) {
     if (this.stopped) return;
@@ -62,7 +67,7 @@ export class ReplayCapture {
         }
         if (packet.proto === 0x16) {
           this.endedAt = Date.now();
-          this.publish({ state: "receiving", detail: "正在接收服务器录像…" });
+          this.publish({ state: "receiving", notice: "Receiving" });
         }
         if (packet.proto !== 0x17) continue;
         this.lastReplay = Date.now();
@@ -72,7 +77,7 @@ export class ReplayCapture {
         if (this.pending + bytes.length > 2 * 1024 * 1024) {
           this.publish({
             state: "error",
-            detail: "待保存录像超过 2 MB，未继续接收；请下载已保存的录像",
+            notice: "Overflow",
           });
           continue;
         }
@@ -100,13 +105,12 @@ export class ReplayCapture {
             this.publish({
               saved: this.seen.size,
               state: entry.temporary ? "temporary" : "saved",
-              detail: entry.temporary
-                ? "录像仅本次页面可用，请立即下载备份"
-                : `已保存 ${this.seen.size} 份录像`,
+              notice: entry.temporary ? "Temporary" : "Saved",
             });
           } catch (error) {
             this.publish({
               state: "error",
+              notice: "Error",
               detail: String(error instanceof Error ? error.message : error),
             });
           } finally {
@@ -117,7 +121,8 @@ export class ReplayCapture {
     } catch (error) {
       this.publish({
         state: "error",
-        detail: `录像接收失败：${String(error)}`,
+        notice: "Error",
+        detail: String(error),
       });
     }
   }
@@ -136,7 +141,7 @@ export class ReplayCapture {
     if (!this.seen.size && replayCaptureStatus.state !== "error") {
       this.publish({
         state: "missing",
-        detail: "本次未收到服务器录像，提前退出或服务器禁止下发时无法补录",
+        notice: "Missing",
       });
     }
   }
@@ -149,7 +154,7 @@ export class ReplayCapture {
     ) {
       this.publish({
         state: "missing",
-        detail: "已退出，本次尚未收到完整录像",
+        notice: "Left",
       });
     }
   }

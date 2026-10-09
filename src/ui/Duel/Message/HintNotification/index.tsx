@@ -1,6 +1,7 @@
 import { MessageOutlined } from "@ant-design/icons";
 import { message, notification } from "antd";
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 
 import { fetchStrings, Region } from "@/api";
@@ -17,6 +18,8 @@ const serverChatKey = "server-chat";
 
 let globalMsgApi: ReturnType<typeof message.useMessage>[0] | undefined;
 export const HintNotification = () => {
+  const { t } = useTranslation("ClientUI");
+  const { t: handText } = useTranslation("WaitRoom");
   const { showServerMessages } = useSnapshot(settingStore);
   const matSnap = useSnapshot(matStore);
   const hintState = matSnap.hint;
@@ -46,15 +49,15 @@ export const HintNotification = () => {
     }
   }, [toss]);
 
-  // TODO: I18n
   useEffect(() => {
     const meHand = handResults.me;
     const opHand = handResults.op;
     if (meHand !== HandResult.UNKNOWN && opHand !== HandResult.UNKNOWN) {
       msgApi.info(
-        `{我方出示${getHandResultText(meHand)}，对方出示${getHandResultText(
-          opHand,
-        )}}`,
+        t("HandResults", {
+          me: handText(getHandResultKey(meHand)),
+          op: handText(getHandResultKey(opHand)),
+        }),
       );
     }
   }, [handResults]);
@@ -130,16 +133,15 @@ export const showWaiting = (open: boolean) => {
   }
 };
 
-// TODO: I18n
-function getHandResultText(res: HandResult): string {
+function getHandResultKey(res: HandResult): string {
   switch (res) {
     case HandResult.UNKNOWN:
       return "[?]";
     case HandResult.ROCK:
-      return "拳头";
+      return "Rock";
     case HandResult.PAPER:
-      return "布";
+      return "Paper";
     case HandResult.SCISSOR:
-      return "剪刀";
+      return "Scissors";
   }
 }

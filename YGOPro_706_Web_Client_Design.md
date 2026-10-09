@@ -297,7 +297,7 @@ P0 至少证实普通房与 TT 的区别、TT Match 整场流程、禁表 hash�
 
 ## 7. 四语言与运行中切换
 
-支持 `zh-CN/en-US/ja-JP/ko-KR`；解析顺序为有效已存选择 → navigator.languages → en-US。映射常见 zh/en/ja/ko 子标签，忽略不支持的本地旧值。UI 使用现有 i18next／react-i18next；包括错误、等待、换备、确认、无图与资源失败文案。
+支持 `zh-CN/en-US/ja-JP/ko-KR`；解析顺序为有效 URL `lang` 参数 → 有效已存选择 → navigator.languages → en-US。URL 支持 `zh/en/ja/ko`，兼容 `cn` 及四个完整 locale，有效 hash 参数优先于网页查询参数；资源和路由初始化前捕获。映射常见 zh/en/ja/ko 浏览器子标签，忽略不支持的值。UI 使用现有 i18next／react-i18next；包括错误、等待、换备、确认、无图与资源失败文案。四语 UI 词库与组件库内置文案随选择切换；官网跳转带当前语言。契约与验收见 [语言入口](docs/language-links.md)。
 
 三个显示资源作为一次切换事务：UI messages、system strings、卡片 texts。保留一份 active DB，切换时允许暂存一份候选 DB：
 1. 记住请求序号／目标 locale，取消过期请求；

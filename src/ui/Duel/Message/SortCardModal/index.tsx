@@ -18,6 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Button, Card } from "antd";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { sendSortCardResponse } from "@/api";
@@ -42,6 +43,7 @@ const defaultProps = {
 const localStore = proxy<SortCardModalProps>(defaultProps);
 
 export const SortCardModal = () => {
+  const { t } = useTranslation("ClientUI");
   const container = getUIContainer();
   const { isOpen, options } = useSnapshot(localStore);
   const [items, setItems] = useState(options);
@@ -78,9 +80,9 @@ export const SortCardModal = () => {
 
   return (
     <NeosModal
-      title="请为下列卡牌排序"
+      title={t("SortCards")}
       open={isOpen}
-      footer={<Button onClick={onFinish}>finish</Button>}
+      footer={<Button onClick={onFinish}>{t("Confirm")}</Button>}
     >
       <DndContext
         sensors={sensors}

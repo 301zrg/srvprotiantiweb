@@ -1,5 +1,7 @@
 # 官网录像接收契约 v1
 
+入口可附加 `lang=zh|en|ja|ko`，用于界面、卡文和系统字符串；在接收参数清理前初始化，规则见 [语言入口](language-links.md)。
+
 更新：2026-10-08。用户追加授权官网 HTML 后实现本入口。仅用于公开 `.yrp` 原件；保存进本地库，兼容时自动进入播放页，不进房、不连 WSS、不上传录像。播放范围及旧裁定证据见 [使用说明](replay-usage.md)，官网部署见 [官网说明](../../srvprotianti/plugins/ladder-web/REPLAY_WEB_OPEN.md)。
 
 ## 小文件公开内容链接

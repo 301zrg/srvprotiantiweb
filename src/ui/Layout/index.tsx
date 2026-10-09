@@ -2,6 +2,7 @@ import { SettingOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import {
   NavLink,
   Outlet,
@@ -20,9 +21,8 @@ import {
 } from "@/infra/resource";
 import { replayCaptureStatus } from "@/replay/capture";
 import { initStore } from "@/stores";
-import { basePath, environmentId } from "@/variant";
+import { basePath, environmentId, getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
-import { siteStorage } from "@/variant/deployment";
 import { siteMessages } from "@/variant/messages";
 
 import { setCssProperties } from "../Duel/PlayMat/css";
@@ -47,7 +47,7 @@ export const loader = async () => {
 
 export const ErrorBoundary = () => {
   const error = useRouteError();
-  const text = siteMessages(siteStorage.getItem("language") ?? "en");
+  const text = siteMessages(getLanguage());
   useEffect(() => disconnectSrvpro(), []);
   const [retrying, setRetrying] = useState(false);
   const [recoveryError, setRecoveryError] = useState("");
@@ -99,6 +99,7 @@ export const ErrorBoundary = () => {
 };
 
 export const Component = () => {
+  const { t } = useTranslation("ClientUI");
   const { pathname } = useLocation();
   const navigation = useNavigation();
   const capture = useSnapshot(replayCaptureStatus);
@@ -130,16 +131,13 @@ export const Component = () => {
         capture.state === "receiving" &&
         createPortal(
           <div className={styles.replayTail} role="status">
-            <span>
-              正在接收录像，已保存 {capture.saved}{" "}
-              份。立即返回可能漏掉尚未下发的录像。
-            </span>
-            <Button onClick={disconnectSrvpro}>立即返回</Button>
+            <span>{t("ReplayTail", { count: capture.saved })}</span>
+            <Button onClick={disconnectSrvpro}>{t("ReturnNow")}</Button>
           </div>,
           document.body,
         )}
       {!hideHeader && (
-        <nav className={styles.navbar} aria-label="主导航">
+        <nav className={styles.navbar} aria-label={t("Navigation")}>
           <NavLink to="/" className={styles["logo-container"]}>
             <strong
               style={{ color: "white", fontSize: 16, whiteSpace: "nowrap" }}
