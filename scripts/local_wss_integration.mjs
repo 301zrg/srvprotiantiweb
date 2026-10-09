@@ -31,6 +31,8 @@ const tunnelMode = process.argv.includes("--tunnel");
 const roomLinksMode = process.argv.includes("--room-links");
 const replayMode = process.argv.includes("--replays");
 const languageMode = process.argv.includes("--languages");
+const resumeMode = process.argv.includes("--resume");
+const builtClient = process.argv.includes("--built");
 const notes = [];
 let serverProcess;
 let previewServer;
@@ -53,7 +55,7 @@ const freePort = () =>
     });
   });
 
-async function waitForTls(port, timeoutMs = 90000) {
+async function waitForTls(port, timeoutMs = 180000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (serverProcess?.exitCode != null)
@@ -294,9 +296,18 @@ try {
       });
     }
   } else {
-    console.log("Building browser client...");
     const outDir = join(runtime, "web-dist");
-    await build({ logLevel: "error", build: { outDir } });
+    if (builtClient) {
+      if (!existsSync(join(projectRoot, "dist", "index.html")))
+        throw new Error("--built requires an existing static build");
+      console.log("Using existing static browser build...");
+      copy(join(projectRoot, "dist"), outDir);
+      writeFileSync(join(outDir, "duel-config.js"),
+        `window.__SRVPRO_DUEL_CONFIG__=${JSON.stringify({ duelWebSocketUrl: process.env.VITE_DUEL_WS_URL })};\n`);
+    } else {
+      console.log("Building browser client...");
+      await build({ logLevel: "error", build: { outDir } });
+    }
     const assetsRoot = resolve(projectRoot, "neos-assets");
     cpSync(assetsRoot, join(outDir, "neos-assets"), {
       recursive: true,
@@ -324,6 +335,22 @@ try {
       args: tunnelMode ? [] : ["--ignore-certificate-errors"],
     });
     const browserContext = await browser.newContext({ ignoreHTTPSErrors: !tunnelMode });
+    const trackConnections = () => {
+      window.__duelSockets = [];
+      window.__networkSent = [];
+      const Native = window.WebSocket;
+      window.WebSocket = class extends Native {
+        constructor(...args) {
+          super(...args);
+          window.__duelSockets.push(this);
+        }
+        send(data) {
+          window.__networkSent.push([...new Uint8Array(data)]);
+          return super.send(data);
+        }
+      };
+    };
+    if (resumeMode) await browserContext.addInitScript(trackConnections);
     const pageErrors = [];
     const pageTraces = new WeakMap();
     const capturedReplays = new WeakMap();
@@ -529,6 +556,34 @@ try {
         throw error;
       }
     }
+    async function recoverPage(page, label, inDuel = true) {
+      const before = await page.evaluate(() => window.__duelSockets.length);
+      await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+        window.__duelSockets.at(-1).close();
+      });
+      await page.waitForTimeout(1200);
+      assert.equal(await page.evaluate(() => window.__duelSockets.length), before, "No background reconnect");
+      await page.evaluate(() => {
+        delete document.hidden;
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      try {
+        await expect.poll(() => page.evaluate(() => window.__duelSockets.length), { timeout: 15000 }).toBe(before + 1);
+        await expect(page.getByTestId("connection-alert")).toHaveCount(0, { timeout: 25000 });
+        if (inDuel) {
+          await expect(page.getByTestId("duel-player-life").first()).toBeVisible();
+          await expect.poll(() => page.locator('[data-testid="duel-card"][data-card-zone="HAND"]').count(), { timeout: 15000 }).toBeGreaterThanOrEqual(5);
+        }
+      } catch(error) {
+        console.error(label, (await page.locator("body").innerText()).slice(0, 1800));
+        console.error(pageTraces.get(page)?.slice(-50).join("\n"));
+        console.error("Page errors:", pageErrors.join("; "));
+        throw error;
+      }
+      console.log(`PASS ${label}: foreground recovered one connection`);
+    }
     async function joinSpectator(roomName, running, options = {}) {
       const spectatorContext = options.mobile
         ? await browser.newContext({
@@ -539,6 +594,7 @@ try {
           })
         : browserContext;
       const page = await spectatorContext.newPage();
+      if (resumeMode && options.mobile) await page.addInitScript(trackConnections);
       if (options.slow)
         await page.route(/\/assets\/Main-[^/]+\.js$/, async route => {
           await new Promise(resolve => setTimeout(resolve, 3000));
@@ -631,6 +687,20 @@ try {
         "Two browser clients joined the same ordinary room with 2011.3 banlist hash",
       );
       await startDuel(ordinaryA, ordinaryB, "Ordinary room");
+      if (resumeMode) {
+        const initial = await ordinaryA.evaluate(() => window.__networkSent.find(p => p[2] === 2));
+        await recoverPage(ordinaryA, "Single native field restore");
+        const uploads = await ordinaryA.evaluate(() => window.__networkSent.filter(p => p[2] === 2));
+        assert.deepEqual(uploads, [initial, initial]);
+        await expect(ordinaryA.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 15000 });
+        const observer = await joinSpectator("LOCAL-WSS-ROOM", true, { keep: true, mobile: true });
+        await recoverPage(observer, "Mobile observer history restore");
+        assert.ok(!(await observer.evaluate(() => window.__networkSent)).some(p => [2,34,37].includes(p[2])));
+        await observer.getByTestId("duel-leave-spectating").click();
+        await expect(observer.locator("#player-nickname")).toHaveValue("");
+        await expect(observer.locator("#room-name")).toHaveValue("");
+        await observer.context().close();
+      }
       if (roomLinksMode) await joinSpectator("LOCAL-WSS-ROOM", true);
       await ordinaryA.getByTestId("duel-surrender").click();
       await ordinaryA.getByTestId("duel-surrender-confirm").click();
@@ -680,6 +750,18 @@ try {
           await page.locator(".ant-modal-footer button").last().click();
           await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/side/);
         }
+        if (resumeMode && label === "TT G2") {
+          const initial = await loser.evaluate(() => window.__networkSent.find(p => p[2] === 2));
+          await loser.evaluate(() => {
+            const deck = JSON.parse(sessionStorage.getItem("side_deck"));
+            deck.main.reverse();
+            sessionStorage.setItem("side_deck", JSON.stringify(deck));
+          });
+          await recoverPage(loser, "TT siding restore uses original G1 deck", false);
+          await expect(loser.getByTestId("side-confirm")).toBeVisible();
+          const uploads = await loser.evaluate(() => window.__networkSent.filter(p => p[2] === 2));
+          assert.deepEqual(uploads, [initial, initial]);
+        }
         const ownDeck = await loser.evaluate(() => sessionStorage.getItem("side_deck"));
         const otherDeck = await other.evaluate(() => sessionStorage.getItem("side_deck"));
         await loser.screenshot({ path: join(auditRoot, `tt-side-${label.replaceAll(" ", "-")}.png`) });
@@ -697,6 +779,13 @@ try {
       }
       await surrender(ladderA);
       await sideAndStart(ladderA, ladderB, "TT G2");
+      if (resumeMode) {
+        const initial = await ladderA.evaluate(() => window.__networkSent.find(p => p[2] === 2));
+        await recoverPage(ladderA, "TT G2 native field restore");
+        const uploads = await ladderA.evaluate(() => window.__networkSent.filter(p => p[2] === 2));
+        assert.deepEqual(uploads.at(-1), initial, "G2 reconnect sends G1, not Side deck");
+        await expect(ladderA.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 15000 });
+      }
       if (roomLinksMode) {
         continuingSpectator = await joinSpectator(ladderRoomName, true, {
           keep: true,

@@ -28,13 +28,14 @@ const messages = {
     nickname: "玩家昵称",
     room: "房间名",
     nicknameHint:
-      "天梯已有账户可按原版输入 昵称$密码；当前标签页会保留输入，刷新后需重新填写。",
+      "天梯账号按「昵称$密码」输入；未注册的昵称会自动注册，账号密码设为首次输入的密码。昵称和房间名自动保留，密码仅留在当前标签页内存。",
     roomHint:
       "输入 TT 进入天梯匹配；其他房间名按原版 YGOPro 联机规则进入普通房间。",
     join: "连接",
     spectate: "进入观战",
     spectatorLinkHint: "正在通过房间链接连接，服务器确认观战身份后进入房间。",
-    spectatorNicknameHint: "这是网页观战昵称，不会覆盖你原先保存的联机昵称。",
+    spectatorNicknameHint:
+      "观战使用临时昵称；结束观战返回联机页后，昵称和房间名会清空。",
     spectatorManualHint:
       "此链接不会自动连接。密码房请把房间名补成「房间名$房间密码」，再点击进入观战。",
     spectatorRoomCommand:
@@ -50,6 +51,9 @@ const messages = {
     back: "返回联机页",
     connectionFailed: "WSS 连接失败，请检查网络或联系站点管理员。",
     connectionClosed: "对战连接已断开，请返回联机页重新入场。",
+    connectionRecovering: "连接已中断，正在恢复原房间，请稍候…",
+    connectionResumeFailed:
+      "未能恢复原房间，可能已超时或对局已结束。可重试或返回联机页。",
     packetFailed: "对战消息处理失败",
   },
   en: {
@@ -83,7 +87,7 @@ const messages = {
     nickname: "Nickname",
     room: "Room name",
     nicknameHint:
-      "For an existing ladder account, use nickname$password as in YGOPro. This tab keeps the entry until you reload it.",
+      "For ladder accounts, enter nickname$password. An unregistered nickname is registered automatically using the password you first enter. Nickname and room are remembered; passwords stay only in this tab's memory.",
     roomHint:
       "Enter TT for ladder matchmaking. Other names use normal YGOPro rooms.",
     join: "Connect",
@@ -91,7 +95,7 @@ const messages = {
     spectatorLinkHint:
       "Connecting from a room link. Waiting for the server to confirm spectator access.",
     spectatorNicknameHint:
-      "This spectator nickname does not replace your saved player nickname.",
+      "Spectator entries are temporary. Nickname and room are cleared when you return to Online.",
     spectatorManualHint:
       "This link waits for manual connection. For password rooms, enter roomName$roomPassword, then select Spectate.",
     spectatorRoomCommand:
@@ -112,6 +116,10 @@ const messages = {
       "WSS connection failed. Check your network or contact the site operator.",
     connectionClosed:
       "Duel connection closed. Return to the online page to join again.",
+    connectionRecovering:
+      "Connection interrupted. Restoring the original room…",
+    connectionResumeFailed:
+      "Could not restore the original room. The session may have expired or ended. Retry or return to Online.",
     packetFailed: "Failed to process duel message",
   },
   ja: {
@@ -145,7 +153,7 @@ const messages = {
     nickname: "プレイヤー名",
     room: "ルーム名",
     nicknameHint:
-      "既存のランク戦アカウントは YGOPro と同様に 名前$パスワード を入力します。このタブでは再読み込みまで入力内容を保持します。",
+      "ランク戦は 名前$パスワード を入力します。未登録の名前は自動登録され、最初に入力したパスワードが設定されます。名前とルーム名を保存し、パスワードはこのタブのメモリだけに保持します。",
     roomHint:
       "TT でランク戦に参加します。それ以外は通常の YGOPro ルームに入ります。",
     join: "接続",
@@ -153,7 +161,7 @@ const messages = {
     spectatorLinkHint:
       "ルームリンクから接続中です。サーバーの観戦確認を待っています。",
     spectatorNicknameHint:
-      "観戦用の名前は、保存済みのプレイヤー名を変更しません。",
+      "観戦用の入力は一時的です。接続画面へ戻ると名前とルーム名を消去します。",
     spectatorManualHint:
       "自動接続はしません。パスワード付きルームは ルーム名$パスワード を入力して「観戦する」を押してください。",
     spectatorRoomCommand:
@@ -170,6 +178,9 @@ const messages = {
     back: "接続画面へ",
     connectionFailed: "WSS 接続に失敗しました。通信状態を確認してください。",
     connectionClosed: "対戦接続が切れました。接続画面から入り直してください。",
+    connectionRecovering: "接続が切れました。元のルームに再接続しています…",
+    connectionResumeFailed:
+      "元のルームを復元できませんでした。時間切れまたは対戦終了の可能性があります。再試行するか接続画面へ戻ってください。",
     packetFailed: "対戦メッセージの処理に失敗しました",
   },
   ko: {
@@ -202,7 +213,7 @@ const messages = {
     nickname: "플레이어 이름",
     room: "방 이름",
     nicknameHint:
-      "기존 래더 계정은 YGOPro처럼 이름$비밀번호를 입력하세요. 이 탭에서는 새로고침 전까지 입력 내용이 유지됩니다.",
+      "래더 계정은 이름$비밀번호를 입력하세요. 미등록 이름은 자동 등록되며 처음 입력한 비밀번호가 계정 비밀번호로 설정됩니다. 이름과 방 이름은 저장하며 비밀번호는 현재 탭의 메모리에만 유지됩니다.",
     roomHint:
       "TT를 입력하면 래더 매칭에 참여합니다. 다른 이름은 일반 YGOPro 방으로 연결됩니다.",
     join: "연결",
@@ -210,7 +221,7 @@ const messages = {
     spectatorLinkHint:
       "방 링크로 접속 중입니다. 서버의 관전 승인을 기다립니다.",
     spectatorNicknameHint:
-      "이 관전 닉네임은 저장된 플레이어 닉네임을 변경하지 않습니다.",
+      "관전 입력은 임시로 사용됩니다. 온라인 화면으로 돌아가면 이름과 방 이름이 지워집니다.",
     spectatorManualHint:
       "자동으로 접속하지 않습니다. 비밀번호 방은 방이름$방비밀번호를 입력한 후 관전하기를 누르세요.",
     spectatorRoomCommand:
@@ -228,6 +239,9 @@ const messages = {
     connectionFailed: "WSS 연결에 실패했습니다. 네트워크를 확인해 주세요.",
     connectionClosed:
       "대전 연결이 끊겼습니다. 온라인 화면에서 다시 입장해 주세요.",
+    connectionRecovering: "연결이 끊겼습니다. 원래 방을 복구하는 중…",
+    connectionResumeFailed:
+      "원래 방을 복구하지 못했습니다. 시간이 초과되었거나 대전이 끝났을 수 있습니다. 재시도하거나 온라인 화면으로 돌아가세요.",
     packetFailed: "대전 메시지 처리에 실패했습니다",
   },
 };

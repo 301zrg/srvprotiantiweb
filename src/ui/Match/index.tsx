@@ -11,7 +11,7 @@ import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
 import { duelWebSocketUrl, validateDuelWebSocketUrl } from "@/variant";
 import { connectionStore } from "@/variant/connection";
-import { siteStorage } from "@/variant/deployment";
+import { clearJoinForm, readJoinForm, saveJoinForm } from "@/variant/joinForm";
 import { siteMessages } from "@/variant/messages";
 import {
   isRoomCommand,
@@ -22,8 +22,6 @@ import {
 
 import styles from "./index.module.scss";
 import { connectSrvpro, disconnectSrvpro, finishSrvproReplays } from "./util";
-
-const joinFormDraft: { nickname?: string; roomName?: string } = {};
 
 export const loader = async () => {
   await finishSrvproReplays();
@@ -81,14 +79,10 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   const [nickname, setNickname] = useState(
     () =>
       link?.nickname ??
-      (spectate
-        ? websiteObserverNickname
-        : joinFormDraft.nickname ??
-          siteStorage.getItem("playerNickname") ??
-          ""),
+      (spectate ? websiteObserverNickname : readJoinForm().nickname),
   );
   const [roomName, setRoomName] = useState(
-    () => link?.room ?? joinFormDraft.roomName ?? "",
+    () => link?.room ?? (spectate ? "" : readJoinForm().roomName),
   );
   const [connecting, setConnecting] = useState(false);
   const { joined, errorMsg, selfType, stage } = useSnapshot(roomStore);
@@ -98,6 +92,11 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   const { language } = useI18N();
   const text = siteMessages(language);
   const endpointError = validateDuelWebSocketUrl(language);
+
+  useEffect(() => {
+    // A one-click spectator identity is temporary. Leaving it clears the form.
+    if (spectate) return clearJoinForm;
+  }, [spectate]);
 
   useEffect(() => {
     if (
@@ -164,8 +163,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
     if (spectate && isRoomCommand(roomName))
       return message.error(text.spectatorRoomCommand);
     if (!spectate) {
-      if (nickname.includes("$")) siteStorage.removeItem("playerNickname");
-      else siteStorage.setItem("playerNickname", nickname);
+      saveJoinForm({ nickname, roomName });
     }
     setConnecting(true);
     try {
@@ -216,7 +214,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           onChange={(event) => {
             setNickname(event.target.value);
             setInvalidLink(false);
-            if (!spectate) joinFormDraft.nickname = event.target.value;
+            if (!spectate) saveJoinForm({ nickname: event.target.value });
           }}
           autoComplete="off"
         />
@@ -231,7 +229,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           onChange={(event) => {
             setRoomName(event.target.value);
             setInvalidLink(false);
-            if (!spectate) joinFormDraft.roomName = event.target.value;
+            if (!spectate) saveJoinForm({ roomName: event.target.value });
           }}
           onPressEnter={connect}
         />

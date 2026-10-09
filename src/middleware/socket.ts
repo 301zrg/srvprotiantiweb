@@ -27,6 +27,9 @@ export function initSocket(initInfo: {
 }
 
 export function sendSocketData(conn: WebSocketStream, payload: Uint8Array) {
+  // Freeze the last confirmed G1 upload; side-deck uploads must not replace it.
+  if (payload[2] === 2 && !conn.duelStarted)
+    conn.initialDeckPayload = payload.slice();
   conn.ws.send(payload);
 }
 

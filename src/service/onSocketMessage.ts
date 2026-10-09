@@ -5,6 +5,10 @@
 import { adaptStoc } from "@/api/ocgcore/ocgAdapter/adapter";
 import { YgoProPacketFramer } from "@/api/ocgcore/ocgAdapter/packet";
 import { Container } from "@/container";
+import {
+  checkConnectionResume,
+  finishFieldResume,
+} from "@/variant/connectionResume";
 
 import handleGameMsg from "./duel/gameMsg";
 import handleTimeLimit from "./duel/timeLimit";
@@ -64,10 +68,16 @@ async function _handle(
     if (container.conn.cancelled) return;
     container.conn.pendingPackets--;
     if (packet.proto === 0x17) continue; // Independently saved at network arrival.
+    if (packet.proto === 0x30) {
+      // Only a complete server field snapshot confirms an in-duel recovery.
+      finishFieldResume(container.conn);
+      continue;
+    }
     const pb = adaptStoc(packet);
 
     switch (pb.msg) {
       case "stoc_join_game": {
+        container.conn.joinedRoom = true;
         handleJoinGame(container, pb);
         break;
       }
@@ -108,6 +118,7 @@ async function _handle(
         break;
       }
       case "stoc_duel_start": {
+        container.conn.duelStarted = true;
         handleDuelStart(container, pb);
         break;
       }
@@ -142,5 +153,6 @@ async function _handle(
         break;
       }
     }
+    checkConnectionResume(container.conn, pb);
   }
 }
