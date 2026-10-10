@@ -1,8 +1,39 @@
 # 706 天梯 YGOPRO 网页客户端
 
-基于 [DarkNeos/neos-ts](https://github.com/DarkNeos/neos-ts) 的 1103 历史环境客户端。玩家可输入昵称和房间名：房间 `TT` 进入天梯，其他房间名沿用服务器的普通联机规则；对战地址由站点构建配置固定，玩家不填写 IP 或端口。网页和 CDB 等资源部署在天梯服务器之外的 HTTPS 静态站点。
+基于 [DarkNeos/neos-ts](https://github.com/DarkNeos/neos-ts) 的 1103 历史环境客户端，支持手机和桌面。玩家填写昵称与房间名：`TT` 进入天梯，其他房名沿用服务器规则。对战地址由站方固定；网页、卡库和录像资源放在外部 HTTPS 静态站点，在线裁定由 SRVPro 执行。
 
-首次直接打开联机页、且没有保存房名时，房间名默认预填 `TT`，仍需手动点击连接。玩家修改或主动清空的房名继续缓存，链接指定的房名优先；一键观战退出后清空昵称和房名。
+当前提供四语卡库与界面、卡组编辑和 YDK 导入／导出、Single／Match 联机与换备、房间链接观战、后台恢复、本地录像库和固定环境的只读录像重演，以及官网卡组／录像接收入口。录像播放仅支持已确认的格式与固定资源；完整双打、其他 Core 版本和云同步不属于已完成能力。具体范围和已测证据见 [当前状态](docs/PROJECT_STATUS.md)，模块与数据流见 [架构图](docs/ARCHITECTURE.md)。
+
+首次未保存房名时预填 `TT`，仍需手动连接。账号 `昵称$密码` 与 `房名$房间密码` 分开处理；完整输入保存在当前标签页 sessionStorage，公开部分保存在 localStorage。玩家主动清空的输入继续保持为空，一键观战结束后清空联机输入。详见 [输入与会话恢复](docs/session-recovery.md)。
+
+## 本地静态试用
+
+安装 Node.js 和 npm；这条路径使用仓库内固定资源，不需要 Python、Emscripten 或初始化 git submodule：
+
+```sh
+npm ci --include=dev
+npm run build:static
+npm run preview:static
+```
+
+打开命令输出的本机地址。没有对战配置时仍可组卡和使用录像库，联机页会提示未配置。需要联机时，将 [.env.example](.env.example) 复制为不入库的 `.env.local`，设置 `VITE_DUEL_WS_URL=wss://实际地址/neos`，再构建。公开的站方 `duel-config.js` 可以覆盖构建入口，不能包含密码或 Token；详见 [WSS 配置](docs/wss-integration.md)。
+
+服务器迁址时，自动构建与手工包可一同传入 WSS、官网地址及卡组／录像来源白名单；完整输入、原有缺省值和空白名单行为见 [公开发布配置](docs/public-deployment-config.md)。
+
+修改卡库生成规则或使用 Vite 开发服务器时，需要 Python 3，并执行 `npm run dev`；修改原生录像资源才需要额外的内核编译工具。两类资源的来源锁与维护路径见 [资源架构](docs/ARCHITECTURE.md#资源构建与发布)。日常构建不重新编译 Core 或 protobuf。
+
+## 文档与开发
+
+- [文档索引](docs/README.md)：按使用、架构、接口、资源、发布和验收查找专题。
+- [当前状态与验证边界](docs/PROJECT_STATUS.md)：唯一项目级现状入口。
+- [当前架构与数据流](docs/ARCHITECTURE.md)：实际目录、四张图、配置和存储归属。
+- [开发约束与任务入口](AGENTS.md)、[设计理由](YGOPro_706_Web_Client_Design.md)、[剩余工作](IMPLEMENTATION_PLAN.md)。
+- [录像使用](docs/replay-usage.md)、[卡组接收](docs/deck-import.md)、[录像接收](docs/replay-import.md)、[观战链接](docs/room-spectator-links.md)。
+- [外部静态站点自动发布](docs/cloudflare-ci.md)：`deploy/cloudflare` 是已配置的发布分支，更新它会触发上线；普通工作分支不会自动发布。
+
+按改动选检查：文档检查链接与事实；协议改动运行相应封包／会话回归；资源改动核对 SHA 与 revision；UI 改动运行对应浏览器脚本、类型检查、lint 和构建。浏览器模拟不代替 Android／iOS 真机。原始输入与私密配置保持不变，未授权卡组、录像和凭据不入库。
+
+上游介绍和原施工记录见 [历史归档](docs/archive/README.md)。原在线首版约 12.7 MB 的数字仅是录像资源加入前的历史测量，不能作为当前完整包体或首屏流量。
 
 ## 版权声明 / Copyright notice
 
@@ -15,71 +46,3 @@
 **한국어:** 이 웹사이트는 오픈 소스 비영리 팬 프로젝트입니다. 유희왕 명칭, 카드 이미지 등 자료의 권리는 각 권리자에게 있습니다. 권리자의 요청에 따라 언제든지 사이트를 변경하거나 운영을 중단할 수 있으니 양해 부탁드립니다.
 
 源码许可证见 [LICENSE](LICENSE)。第三方代码及素材的权利和许可分别适用其原有声明，本说明不更改现有许可证。
-
-## 当前进度
-
-本地首版已接入四语卡库生成器、2011.3.1 禁表、YDK 导入／导出、统一联机表单及固定 WSS 配置，移除了入口的 MyCard 登录依赖。`npm run build` 生成的 `dist/` 包含静态页、四语环境资源和 Neos WASM/界面资源。隔离的本地 SRVPro 已通过普通 Single 和 TT G1–G3 生命周期、两次换备提交及退出保留昵称／密码；弃权回归不代替全部卡片交互。正式入口 `wss://duel.ygomatch.xyz/neos` 在服务器本机握手通过，公网因未备案受阻。今年继续使用现有主机，采用无需改 DNS 的临时隧道与外部静态站点上线测试；已部署网页经公网 WSS 的普通房开局、弃权结束和首次再次入场通过。正式禁表 hash 差异已定位到两个错误卡号，修正版及 [替换步骤](docs/banlist-diagnosis.md) 已备妥；正式新房间规则一致性、TT 实战、真机和断线恢复仍待验收。
-
-## 本地运行
-
-需要 Node.js、npm 和 Python 3。Windows PowerShell 中执行：
-
-```powershell
-npm ci
-Copy-Item .env.example .env.local
-# 在 .env.local 中填写真实的 VITE_DUEL_WS_URL=wss://...
-npm run dev
-```
-
-未配置 WSS 也能打开页面、搜索与编辑卡组；联机页会显示明确的配置错误。`npm run build` 先校验暂存的原始资源并生成 `public/environment/1103-201103-v1/`，再运行 Vite 并复制 `neos-assets` 到 `dist/`。`VITE_BASE_PATH=/项目路径/` 可用于外部静态站点的子路径部署；路由使用 Hash，深链刷新不要求服务器重写。
-
-想亲自在本机浏览器试玩联机，可运行 `npm run play:local-wss`。它不使用或修改 `srvprotianti/config/config.json`，会创建隔离的临时 SRVPro、生成本机测试证书、构建网页并打开独立 Edge 窗口。使用不同昵称在两个标签页输入同一普通房名，或分别输入 `昵称$密码` 和房名 `TT` 测天梯；结束时回到命令行按 Ctrl+C 清理。此命令只供本机试玩，正式服仍需可信证书和生产 WSS 地址。详情见 [WSS 配置与本地联调](docs/wss-integration.md)。
-
-本地检查：`npm run check:environment`、`npm run test:packet`、`npx tsc --noEmit`、`npm run lint`、`npm run build`。要检查构建后的页面，先运行 `npm run preview:static`，另开终端运行 `npm run test:smoke`；脚本在 Windows 上优先使用已安装的 Edge，也可通过 `PLAYWRIGHT_BROWSER_EXECUTABLE` 指定 Chromium 可执行文件。`npm run test:mock-duel` 在浏览器内模拟 WSS，验证昵称／房名原始封包、TT／普通房 HostInfo、主动退出后换房和旧连接隔离。`npm run test:local-wss` 使用兄弟项目 `srvprotianti` 的源码和 Core 启动隔离的本地实例，自动验证真实 WSS、两人入房与开局。浏览器冒烟覆盖四语切换，以及桌面／手机视口的首页、联机表单和卡组入口；本机开局测试不替代完整比赛或手机真机验收。
-
-当前构建产物约 12.7 MB（未压缩、含四语 CDB 与 WASM）。首版保留提示音，关闭背景音乐；打包脚本不复制上游约 53 MB 背景音乐和约 11 MB 未使用的卡组封面。基础页面和新增组卡操作有四语文案，上游尚未翻译的韩语对局界面目前回退为英语。
-
-## 现有服务器上线测试
-
-2026-10-07 手机界面已调整组卡分页、触摸按钮、横竖屏详情与操作历史、设置关闭入口；本地复测与更新测试站点的方法见 [手机界面调整](docs/mobile-ui.md)。`npm run test:mobile-ui` 自行启动临时 Vite，检查三个触控视口及设置关闭；Android／iOS 真机验收仍待完成。
-
-决斗准备页进一步改为显式文字操作与底部蓝色准备按钮，入房及选择卡组保持未准备；Tag 等待页按四席全员准备判断，但完整双打对局仍需单独适配。`npm run test:waitroom-ui` 已通过手机横竖屏、小屏与桌面回归，细节见 [准备页与双打范围](docs/waitroom-ui.md)。
-
-对局反馈已补齐断线通知遮挡、恢复场面的实时攻守／素材／指示物、禁止令宣言卡及观战昵称映射；观战工具栏新增切换视角与退出入口，左右侧栏避开桌面生命值区域。`npm run test:duel-feedback` 使用本地合成原生封包检查三种视口及两种观战先后手顺序，详情和生产复测步骤见 [对局反馈修复](docs/duel-feedback-fixes.md)。
-
-当前外部静态网页已上传到 [Workers 测试站点](https://black-surf-69e5.1627406938.workers.dev/)，服务器允许的网页 origin 使用该地址去掉末尾斜杠。2026-10-07 正式服务器 Quick Tunnel 已启动，当前临时地址为 `wss://districts-studios-rear-representation.trycloudflare.com/neos`：受信任 TLS、Node 101、Edge 浏览器握手及错误 Origin 拒绝已通过。用户更新上传后，公网连接配置与候选包一致、`no-store` 生效；没有覆盖浏览器配置，两个临时昵称已完成独立普通 Single 房的准备、开局、弃权结束、双方昵称／房名保留与首次再次入场。该房间返回 MR2，但禁表 hash 为 `0x4250bce9`，客户端／本地 Core 验证基线为 `0x73ec4051`；用户提供的正式文件已复现差异，修正版恢复客户端基线，正式替换及新房间复验仍待执行。检查没有进入 TT 或使用正式玩家账号；正常完整比赛、生产结算与真机仍待验收。Workers Static Assets 和 Pages 均适用本项目静态包，隧道重启后必须更新地址。
-
-按照 [Windows 服务器 + Pages 上线步骤](docs/current-server-online-test.md) 部署本机 Nginx 网关与 Cloudflare Quick Tunnel。`npm run package:test` 生成可上传 Pages 的网页包和服务器工具包；未取得公网 WSS 时，包内明确禁用联机。取得真实 URL 后运行 `npm run package:test -- --wss-url wss://实际地址/neos --site-origin https://实际站点.pages.dev` 即可生成新部署，无需重复构建。`duel-config.js` 为站方公开配置，优先于构建入口；不能写入密码或 Token。玩家仍只填写昵称和房名。
-
-现有 Workers 站点已按 [GitHub 自动部署设置](docs/cloudflare-ci.md) 连接 `deploy/cloudflare` 发布分支，并成功自动发布 `17aa0c25`。仓库提供 `wrangler.json`、`build:cloudflare` 与固定版本的 `deploy:cloudflare`；更新发布分支即可自动构建并部署，无需再上传 ZIP。云构建使用已锁定资源快照，不依赖 Python 的 SQLite 模块，也不在 CI 编译录像内核。
-
-`npm run test:tunnel-gateway` 验证独立 Nginx 的 IP／Origin／二进制转发；准备官方 Nginx 和 cloudflared 后，网络允许时可运行 `npm run test:tunnel-wss`，让隔离 SRVPro 的两个浏览器经真实公网隧道完成回归。开发机自身未能建立中继连接；正式服务器创建的隧道已通过客户端公网握手，完整比赛继续待验收。Quick Tunnel 地址会变化且无可用性保证，适用于本轮测试，长期入口另行确定。
-
-四语原始 CDB、strings 和禁表在 `resources-staging/1103/`，生成器只写 `public/environment/`。发布时只上传构建后的 `dist/` 到外部静态托管，不上传原始暂存文件至天梯服务器。每次修改输入或生成规则需要提升环境资源修订号，避免静态缓存混用。
-
-## 项目文档
-
-已支持房间列表链接 `#/match?room=编码后的实际房名&spectate=1`：默认以 `observer from web` 自动观战，可选 `nickname`；仅传房名时预填表单。密码房增加 `autojoin=0`，由玩家补充密码后手动观战。观战入口保留原玩家昵称，等待服务器确认观战席位。本地 `srvprotianti` 已开局及换备房间的列表链接已接入，桌面助手保持原生入口。参数及服务端边界见 [房间链接观战](docs/room-spectator-links.md)。
-
-BiliToy 专用上传包通过 `npm run package:bilitoy -- --wss-url wss://实际地址/neos` 生成，无需手动改卡库或覆盖原 `dist/`。资源采用相对路径与平台允许的后缀，图标随包提供，字体使用系统回退；`npm run test:bilitoy-ui` 检查最新专用包。上传前仍须确认账号权限、外部服务域名与运营协议，见下方评估文档。
-
-- [设计与验收标准](YGOPro_706_Web_Client_Design.md)
-- [施工清单](IMPLEMENTATION_PLAN.md)
-- [1103 资源审计](docs/1103-resource-audit.json)
-- [服务器契约审计](docs/server-contract-audit.md)
-- [上游审计](docs/upstream-audit.md)
-- [WSS 配置与本地联调](docs/wss-integration.md)
-- [当前服务器上线测试](docs/current-server-online-test.md)
-- [PM2 后台运行 Windows 临时隧道](docs/pm2-quick-tunnel.md)
-- [手机界面调整与复测](docs/mobile-ui.md)
-- [决斗准备页与双打支持范围](docs/waitroom-ui.md)
-- [给服务器与域名维护者的 WSS 证书说明](docs/wss-certificate-handoff.md)
-- [BiliToy 托管评估与 Nginx 接入](docs/bilitoy-feasibility.md)
-
-## 协作
-
-源码发布在 [301zrg/srvprotiantiweb](https://github.com/301zrg/srvprotiantiweb)。建议通过分支和 Pull Request 提交改动；提交前运行上文列出的资源检查、类型检查、lint 与构建。`resources-staging/1103/` 中的原始资源按字节锁定，修改须同步更新资源审计与 revision。不要提交 `.env.local`、证书、真实玩家凭据、未授权卡组或录像。用户确认第一期已可使用，具体测试记录及历史待测项见施工清单。
-
-第二期录像已以 `deploy/cloudflare` 为发布分支：首页「录像库」支持本地导入／原件下载、对局结束自动保存、标准 YRP2／UNIFORM `0x1362` 在固定旧裁定环境内播放，以及暂停、单步、0.5–16 倍速、跳回合和切视角。2026-10-09 用户确认默认完整场地重演可以上线：一屏内尽可能放大双方手牌、卡位与牌堆，保留列表切换，点卡片或牌堆自动暂停。YRP1／双打／谜题／其他版本／旧 `.yrp3d` 暂仅保存与下载。原生录像、Single／TT 三局 WSS 捕获、存储失败和桌面／触屏尺寸回归通过；真实 Android／iOS 及更多实际交互仍待验证。普通静态试用执行 `npm ci --include=dev`、`npm run build:static`、`npm run preview:static`，无需 Python 或 Emscripten。[使用、资源锁与证据](docs/replay-usage.md)、[场地重演](docs/replay-field-preview.md)、[第二期设计](docs/replay-phase2-plan.md)。后续授权的官网配套已实现，见 [录像接收](docs/replay-import.md)；先发布网页版，再上传官网文件。
-
-网页版已单独实现卡组接收入口：公开内容链接支持 YDK、原生 deckbuffer、三分区 JSON，受限卡组支持指定来源的跨窗口交接；保存后进入编辑器，同名另存、同内容复用，存储失败可临时编辑并下载备份。参数、白名单、来源页消息格式与本地试用见 [卡组接收说明](docs/deck-import.md)。本次未修改天梯官网按钮；官网改造和录像入口的后续方案见 [官网一键打开调研](docs/website-replay-deck-handoff-research.md)。

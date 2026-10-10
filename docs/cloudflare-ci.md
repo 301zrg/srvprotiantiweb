@@ -1,12 +1,12 @@
 # 现有 Workers 站点的 GitHub 自动部署
 
-更新：2026-10-08。目标是现有 `black-surf-69e5` Worker，继续使用 `https://black-surf-69e5.1627406938.workers.dev/`。生产自动构建已成功发布 `17aa0c25` 和子模块修复版 `c7c259a6`；录像分支也已在云端完成资源校验与 Vite 构建，预览发布因缺少 `previews` 区块失败，本轮补齐该配置后核对新的云端结果。这里的自动部署仅负责 `srvprotiantiweb`，天梯服务器及 `srvprotianti` 官网页面仍由各自项目部署。
+原记录：2026-10-08；文档修订：2026-10-10。本文说明已配置的 `black-surf-69e5` Worker 自动构建，并保留 `17aa0c25`、协议源修复版 `c7c259a6` 的云端成功与预览故障记录；`previews` 配置已入源码，历史失败不表示当前仍缺该字段。Workers 原地址与后续自定义域名的当前配置以站方为准；本次没有探测实际部署版本。项目级实现与验收统一见 [当前状态](PROJECT_STATUS.md)。自动部署仅负责 `srvprotiantiweb`，天梯服务器及 `srvprotianti` 官网页面由各自项目部署。
 
 ## 仓库配置
 
 - [wrangler.json](../wrangler.json)：Worker 名称与现有站点一致，只上传 `dist/` 静态文件，不需要 Worker 运行时代码。包含 `previews: {}`，供非生产分支的 `wrangler preview` 使用；`assets` 和兼容日期仍在顶层，不放进 `previews`。修改 Worker 名称必须同时调整此文件；CI 要求名称一致。[名称要求与 Git 接入](https://developers.cloudflare.com/workers/ci-cd/builds/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#wrangler-configuration-file)
 - [package.json](../package.json)：`build:cloudflare` 通过 `build:static` 还原固定环境资源，再执行 Vite 构建及资源复制；`deploy:cloudflare` 使用固定的 Wrangler `4.148.0` 发布。
-- [build_cloudflare.mjs](../scripts/build_cloudflare.mjs)：要求显式传入公开 WSS 地址，固定根路径与正常资源格式；生成公开 `duel-config.js` 和带源码提交号的 `deployment-info.json`。缺少或无效 WSS、构建失败时返回非零退出码，不执行后续部署。普通 `npm run build` 仍可用于离线组卡开发。
+- [build_cloudflare.mjs](../scripts/build_cloudflare.mjs)：要求显式传入公开 WSS 地址，固定根路径与正常资源格式；生成公开 `duel-config.js` 和带源码提交号的 `deployment-info.json`。官网链接与卡组／录像消息白名单可通过公开构建变量一同发布，详见 [公开配置与迁址](public-deployment-config.md)。缺少或无效 WSS、白名单错误、构建失败时返回非零退出码，不执行后续部署。普通 `npm run build` 仍可用于离线组卡开发。
 - 当前发布分支为 **`deploy/cloudflare`**，从包含观战修复、卡组接收功能的最新交付版本建立。`main` 暂时较旧，不能直接改用它发布；以后所有改动合并到 `main` 后再调整生产分支。
 
 四语 CDB 与 strings 原件、禁表、界面素材和 SQLite WASM 已在 Git 中。云端只需 Node：`restore_environment_assets.mjs` 核对源文件、生成／校验规则和压缩归档的 SHA，然后还原与既有发布版本完全相同的 11 个资源文件。快照约 1.78 MB，存于 `resources-staging/1103/environment-v1.data`，不作为额外资源上传到站点。输入或规则变更会拦截构建，维护者需先按 [资源说明](../resources-staging/1103/README.md) 更新环境版本及快照，不会默用陈旧卡库。原 Python 生成与校验流程仍用于开发机，云端不调用 Python，也不依赖本机 `F:` 路径或生产服务器。生成的 protobuf TypeScript 已提交，日常构建无需生成协议或主动更新 `neos-protobuf` 子模块。
@@ -39,7 +39,7 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 | `NODE_VERSION` | `24` | 使用 Node 24 系列，满足固定 Wrangler 的 Node ≥22 要求 |
 | `VITE_DUEL_WS_URL` | `wss://districts-studios-rear-representation.trycloudflare.com/neos` | 2026-10-08 读取现有站点公开配置确认的临时对战入口；如隧道地址已改变，填实际新地址 |
 
-以上三个值均为公开构建参数，不需要勾选“加密”；WSS 会写入发布的网页配置，勾选加密也不会对玩家隐藏入口。之前设置的 `PYTHON_VERSION=3.13.3` 可以删除，保留也不影响本项目构建，因为现在不调用 Python。不要放玩家凭据、证书私钥、隧道 Token 或 GitHub Token。Cloudflare 的构建环境支持 Node 版本覆盖与跳过自动依赖安装。[构建镜像说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)、[构建缓存](https://developers.cloudflare.com/workers/ci-cd/builds/build-caching/)
+上述值均为公开构建参数，不需要勾选“加密”；WSS 会写入发布的网页配置，勾选加密也不会对玩家隐藏入口。官网迁址时还可设置 `VITE_DECK_IMPORT_ORIGINS`（精确 origin 的 JSON 数组，例如 `["https://ladder.example.com"]`；`[]` 禁用消息交接）和 `VITE_WEBSITE_BASE_URL`（首页官网链接，例如 `https://ladder.example.com/`）。未设置时沿用原有默认值；不是 WSS 网关的网页版 Origin 白名单。三项发布值使用同一校验器并一起写入产物，完整规则和手工包参数见 [公开配置](public-deployment-config.md)。之前设置的 `PYTHON_VERSION=3.13.3` 可以删除，保留也不影响本项目构建，因为现在不调用 Python。不要放玩家凭据、证书私钥、隧道 Token 或 GitHub Token。Cloudflare 的构建环境支持 Node 版本覆盖与跳过自动依赖安装。[构建镜像说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)、[构建缓存](https://developers.cloudflare.com/workers/ci-cd/builds/build-caching/)
 
 5. 保存仓库连接和构建设置。对于已有 Worker，官方接入步骤要求向连接的 Git 分支推送新提交来触发构建；连接之前已经存在的提交不能作为首次自动构建已启动的依据。由维护者向 `deploy/cloudflare` 推送一次提交，初次成功后不再需要手动上传 ZIP。[已有 Worker 的首次触发步骤](https://developers.cloudflare.com/workers/ci-cd/builds/)
 
@@ -70,6 +70,12 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 - `ModuleNotFoundError: No module named '_sqlite3'`：初版构建曾调用平台 Python。确认已拉取修正提交，构建仍用 `npm ci --include=dev && npm run build:cloudflare`；修正后的日志会执行 `build:static` 并打印 `no Python required`。无需到面板手动安装 SQLite 或更换 Python 版本。
 - `Your Wrangler configuration is missing a previews block`：这是预览发布配置问题，前面的 `Success: Build command completed` 表示代码已构建成功。确认新提交的 `wrangler.json` 包含顶层 `"previews": {}`；继续使用 `npx wrangler preview`，不需要新增构建变量或 Token。
 - `changed: rebuild, verify and repackage`／快照 SHA 不符：源文件或生成规则与固定快照不一致，按资源说明更新 revision／快照，不跳过校验。
+
+## 历史验证记录（按发生顺序）
+
+以下保留首次本机验证、修复与后续真实云端成功记录。前两段的“待首次确认”
+只描述当时阶段，已被 2026-10-08 云端成功证据取代；成功发布仍不等于正式完整比赛或真机通过。
+当前项目级状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，本次文档整理没有重查线上提交和 WSS 地址。
 
 本机验证记录：Node 24.15.0、Python 3.13.14。无 `.env.local`、未初始化上游子模块的干净检出已通过 `npm ci --include=dev`、`npm run build:cloudflare`、资源校验及 Wrangler 4.148.0 的 `--dry-run`；核对 99 个静态文件、四语卡库、WASM、公开 WSS 配置、no-store 响应头与源码提交号，最大单文件约 2.40 MB。缺少 WSS 时会在构建前失败。Cloudflare 账号连接、Ubuntu 构建镜像和正式部署仍需由站点所有者完成首次运行后确认；本机 dry-run 没有上传或修改现有线上站点。
 

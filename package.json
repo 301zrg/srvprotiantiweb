@@ -56,6 +56,7 @@
     "test:replay-field-ui": "node scripts/replay_field_ui.mjs",
     "test:replay-wss": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --replays",
     "build:cloudflare": "node scripts/build_cloudflare.mjs",
+    "test:public-config": "node --experimental-strip-types scripts/test_public_operator_config.mjs",
     "deploy:cloudflare": "npx --yes wrangler@4.148.0 deploy",
     "build:prod": "vite build --base=https://cdn02.moecube.com:444/neos/",
     "preview": "vite preview",

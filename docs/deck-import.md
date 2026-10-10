@@ -2,7 +2,7 @@
 
 入口可附加 `lang=zh|en|ja|ko`，用于界面、卡文和系统字符串；在接收参数清理前初始化，规则见 [语言入口](language-links.md)。
 
-实现日期：2026-10-08。网页版已支持接收 YDK、原生 `UPDATE_DECK` buffer 和 `{main, extra, side}` 结构，保存后直接进入卡组编辑器。此功能不连接对战 WSS，不上传卡组，不需要录像 Core。本次未修改 `srvprotianti` 的 HTML、下载接口或正式部署；官网按钮另行施工，录像仍按 [第二期计划](replay-phase2-plan.md) 等待开工。
+实现日期：2026-10-08；状态修订：2026-10-10。网页版已支持接收 YDK、原生 `UPDATE_DECK` buffer 和 `{main, extra, side}` 结构，保存后直接进入卡组编辑器。此功能不连接对战 WSS，不上传卡组，不需要录像 Core。后续已实现相邻 `srvprotianti` 的官网按钮配套，正式文件由维护者单独上传；源码存在不表示当前正式部署已核实。录像首版也已实现，见 [录像使用](replay-usage.md)；项目级状态统一见 [当前状态](PROJECT_STATUS.md)。官网契约见 [DECK_WEB_OPEN](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/DECK_WEB_OPEN.md)。
 
 ## 1. 公开卡组：内容链接
 
@@ -42,8 +42,11 @@
 window.__SRVPRO_DUEL_CONFIG__ = {
   duelWebSocketUrl: "wss://实际隧道域名/neos",
   deckImportOrigins: ["http://121.4.34.71:7922"],
+  websiteBaseUrl: "http://121.4.34.71:7922/",
 };
 ```
+
+自动构建和两种手工包会重新生成此公开文件。通过 `VITE_DECK_IMPORT_ORIGINS`／`--deck-import-origins` 明确传入 JSON 数组，可以在发布时保留新的白名单；`VITE_WEBSITE_BASE_URL`／`--website-base-url` 单独配置首页官网链接，不自动扩大交接权限。完整规则见 [公开配置与迁址](public-deployment-config.md)。
 
 所有消息的共同字段：
 
