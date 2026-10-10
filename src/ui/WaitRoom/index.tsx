@@ -48,6 +48,7 @@ import { I18NSelector, useI18N } from "@/ui/I18N";
 import { requireSession } from "@/ui/requireSession";
 import { Background, IconFont, useChat } from "@/ui/Shared";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { deckMessages } from "@/variant/deckMessages";
 import { roomMessages } from "@/variant/roomMessages";
 
 import { Chat } from "./Chat";
@@ -176,18 +177,19 @@ export const Component: React.FC = () => {
           <div className={styles.wrap}>
             {room.hostInfo && (
               <div data-testid="room-host-info" className={styles.hostInfo}>
-                <div className={styles.ruleValues}>
-                  <span>{`Mode: ${
-                    ["Single", "Match", "Tag"][room.hostInfo.mode] ??
-                    room.hostInfo.mode
-                  }`}</span>
-                  <span>{`MR: ${room.hostInfo.duelRule}`}</span>
-                  <span>{`LP: ${room.hostInfo.startLp}`}</span>
-                </div>
                 <details>
-                  <summary>{`LF: 0x${room.hostInfo.lflist
+                  <summary className={styles.ruleValues}>
+                    <span>{text.roomRules}</span>
+                    <span>{`Mode: ${
+                      ["Single", "Match", "Tag"][room.hostInfo.mode] ??
+                      room.hostInfo.mode
+                    }`}</span>
+                    <span>{`MR: ${room.hostInfo.duelRule}`}</span>
+                    <span>{`LP: ${room.hostInfo.startLp}`}</span>
+                  </summary>
+                  <div>{`LF: 0x${room.hostInfo.lflist
                     .toString(16)
-                    .padStart(8, "0")}`}</summary>
+                    .padStart(8, "0")}`}</div>
                   {`${room.hostInfo.timeLimit}s · Hand: ${room.hostInfo.startHand}`}
                 </details>
                 {(room.hostInfo.lflist !== 0x73ec4051 ||
@@ -363,7 +365,13 @@ const Controller: React.FC<{
           onChange={onDeckChange}
         />
         {selectedDeck && (
-          <small data-testid="waitroom-deck-counts">{`Main ${selectedDeck.main.length} · Extra ${selectedDeck.extra.length} · Side ${selectedDeck.side.length}`}</small>
+          <small data-testid="waitroom-deck-counts">{`${
+            deckMessages(language).mainShort
+          } ${selectedDeck.main.length} · ${
+            deckMessages(language).extraShort
+          } ${selectedDeck.extra.length} · ${
+            deckMessages(language).sideShort
+          } ${selectedDeck.side.length}`}</small>
         )}
       </div>
       <Button

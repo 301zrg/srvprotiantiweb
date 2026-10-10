@@ -31,6 +31,7 @@ export const DeckZone: React.FC<{
   onDoubleClick?: (card: CardMeta) => void;
   onMoveCard?: (card: CardMeta, type: Type) => void;
   getMoveLabel?: (card: CardMeta, type: Type) => string;
+  getMoveShortLabel?: (card: CardMeta, type: Type) => string;
   onRemoveCard?: (card: CardMeta, type: Type) => void;
   is408?: boolean;
   compact?: boolean;
@@ -43,6 +44,7 @@ export const DeckZone: React.FC<{
   onDoubleClick,
   onMoveCard,
   getMoveLabel,
+  getMoveShortLabel,
   onRemoveCard,
   is408,
   compact = false,
@@ -118,45 +120,62 @@ export const DeckZone: React.FC<{
                     </Button>
                   )}
                 </div>
-                {compact && (
-                  <Dropdown
-                    trigger={["click"]}
-                    destroyPopupOnHide
-                    menu={{
-                      items: [
-                        ...(onMoveCard
-                          ? [
-                              {
-                                key: "move",
-                                label: getMoveLabel?.(card, type) ?? text.move,
-                                icon: <SwapOutlined />,
-                                onClick: () => onMoveCard(card, type),
-                              },
-                            ]
-                          : []),
-                        ...(onRemoveCard
-                          ? [
-                              {
-                                key: "remove",
-                                label: text.remove,
-                                icon: <DeleteOutlined />,
-                                danger: true,
-                                onClick: () => onRemoveCard(card, type),
-                              },
-                            ]
-                          : []),
-                      ],
-                    }}
-                  >
+                {compact &&
+                  (onMoveCard && !onRemoveCard ? (
                     <Button
                       className={styles["card-menu"]}
-                      data-testid="deck-card-menu"
-                      aria-label={`${text.cardActions} ${card.text.name}`}
-                      icon={<MoreOutlined />}
-                      onClick={(event) => event.stopPropagation()}
-                    />
-                  </Dropdown>
-                )}
+                      data-testid="deck-card-move"
+                      aria-label={`${getMoveLabel?.(card, type) ?? text.move} ${
+                        card.text.name
+                      }`}
+                      icon={<SwapOutlined />}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onMoveCard(card, type);
+                      }}
+                    >
+                      {getMoveShortLabel?.(card, type) ?? text.moveShort}
+                    </Button>
+                  ) : (
+                    <Dropdown
+                      trigger={["click"]}
+                      destroyPopupOnHide
+                      menu={{
+                        items: [
+                          ...(onMoveCard
+                            ? [
+                                {
+                                  key: "move",
+                                  label:
+                                    getMoveLabel?.(card, type) ?? text.move,
+                                  icon: <SwapOutlined />,
+                                  onClick: () => onMoveCard(card, type),
+                                },
+                              ]
+                            : []),
+                          ...(onRemoveCard
+                            ? [
+                                {
+                                  key: "remove",
+                                  label: text.remove,
+                                  icon: <DeleteOutlined />,
+                                  danger: true,
+                                  onClick: () => onRemoveCard(card, type),
+                                },
+                              ]
+                            : []),
+                        ],
+                      }}
+                    >
+                      <Button
+                        className={styles["card-menu"]}
+                        data-testid="deck-card-menu"
+                        aria-label={`${text.cardActions} ${card.text.name}`}
+                        icon={<MoreOutlined />}
+                        onClick={(event) => event.stopPropagation()}
+                      />
+                    </Dropdown>
+                  ))}
               </>
             )}
           </div>

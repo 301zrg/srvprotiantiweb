@@ -141,16 +141,11 @@ try {
       const card = zone(source).locator(`[data-card-code="${id}"]`).last();
       const wrapper = card.locator("..");
       if (mobile) {
-        const control = wrapper.getByTestId("deck-card-menu");
+        const control = wrapper.getByTestId("deck-card-move");
         await control.scrollIntoViewIfNeeded();
         assert.ok((await control.boundingBox()).height >= 44);
+        await expect(control).toHaveAttribute("aria-label", new RegExp(label));
         await control.tap();
-        const menu = page.getByRole("menuitem").filter({ hasText: label });
-        await expect(menu).toBeVisible();
-        await expect
-          .poll(async () => (await menu.boundingBox())?.height ?? 0)
-          .toBeGreaterThanOrEqual(44);
-        await menu.tap();
       } else await wrapper.locator("button:visible").first().click();
       await expect(page.getByRole("menu")).not.toBeVisible();
     };
@@ -197,7 +192,7 @@ try {
           element.scrollTop = element.scrollHeight;
         });
         const last = mobile
-          ? zone("side").getByTestId("deck-card-menu").last()
+          ? zone("side").getByTestId("deck-card-move").last()
           : zone("side").getByTestId("deck-card").last();
         await expect(last).toBeInViewport({ ratio: 1 });
         const control = await last.boundingBox(),
@@ -215,6 +210,27 @@ try {
         );
       };
       await checkBottom();
+      if (mobile && lang === "zh") {
+        // Exercise the last column repeatedly: a tap must move exactly one card,
+        // with no auto-aligned popup appearing or competing with the touch target.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const right = zone("main")
+            .getByTestId("deck-card-move")
+            .nth(profile.columns - 1);
+          await right.scrollIntoViewIfNeeded();
+          const firstBounds = await right.boundingBox();
+          await page.waitForTimeout(200);
+          assert.deepEqual(await right.boundingBox(), firstBounds);
+          await right.tap();
+          await expect(zone("main")).toHaveAttribute("data-card-count", "59");
+          await expect(zone("side")).toHaveAttribute("data-card-count", "16");
+          await expect(page.getByRole("menu")).not.toBeVisible();
+          await expect(page.getByTestId("deck-card-panel")).not.toBeVisible();
+          assert.deepEqual(await page.evaluate(() => window.__sidePackets), []);
+          await page.getByTestId("side-reset").tap();
+          assert.deepEqual(await snapshot(), fixture);
+        }
+      }
       if (mobile && lang === "zh") {
         await page.screenshot({
           path: `${folder}/${profile.name}-editing.png`,

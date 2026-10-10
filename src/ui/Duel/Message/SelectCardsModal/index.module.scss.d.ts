@@ -7,5 +7,6 @@ declare const classNames: {
   readonly "check-card": "check-card";
   readonly opponent: "opponent";
   readonly card: "card";
+  readonly preview: "preview";
 };
 export = classNames;

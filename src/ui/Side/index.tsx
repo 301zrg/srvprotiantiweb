@@ -202,6 +202,13 @@ export const Component: React.FC = () => {
                         : text.moveToMain
                       : text.moveToSide
                   }
+                  getMoveShortLabel={(card, source) =>
+                    source === "side"
+                      ? isExtraDeckCard(card.data.type ?? 0)
+                        ? text.extraShort
+                        : text.mainShort
+                      : text.sideShort
+                  }
                   onMoveCard={(card, source) => {
                     const target =
                       source === "side"

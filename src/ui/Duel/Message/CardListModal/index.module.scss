@@ -1,0 +1,22 @@
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 80px));
+  gap: 8px;
+  button {
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    min-width: 44px;
+    overflow: hidden;
+    &:focus-visible {
+      outline: 2px solid #76b2ff;
+    }
+  }
+}
+@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .cards {
+    grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+  }
+}

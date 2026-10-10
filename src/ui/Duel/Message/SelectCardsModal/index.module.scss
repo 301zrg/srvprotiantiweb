@@ -64,9 +64,18 @@
 
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
   .check-group {
-    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px 6px;
   }
   .check-card {
     width: 100%;
+  }
+  .preview {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 2px;
+    font-size: 11px;
+    white-space: normal;
+    line-height: 1.2;
   }
 }

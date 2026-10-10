@@ -31,7 +31,7 @@ const messages = {
     moveToMain: "移回主卡组",
     moveToExtra: "移回额外卡组",
     moveToSide: "移入备牌",
-    sideHelp: "点卡图查看详情；点下方 ⋯ 将卡片移入备牌，或移回主／额外卡组。",
+    sideHelp: "点卡图查看详情；点卡图下方的目标区域按钮直接移动卡片。",
     noCards: "找不到相应卡片",
     saveFailed: "保存失败",
     unknownCards: "张卡不在 1103 卡池中；已保留原始 ID，出场前请更换。",
@@ -75,7 +75,7 @@ const messages = {
     moveToExtra: "Move to Extra",
     moveToSide: "Move to Side",
     sideHelp:
-      "Tap a card for details. Use ⋯ below it to move between Side and Main/Extra.",
+      "Tap a card for details. Tap its destination button below to move it.",
     noCards: "No matching cards",
     saveFailed: "Save failed",
     unknownCards:
@@ -120,7 +120,7 @@ const messages = {
     moveToExtra: "エクストラに戻す",
     moveToSide: "サイドへ移動",
     sideHelp:
-      "カードをタップして詳細を確認。下の ⋯ でサイドとメイン／エクストラの間を移動できます。",
+      "カードをタップして詳細を確認。下の移動先ボタンで直接移動できます。",
     noCards: "カードが見つかりません",
     saveFailed: "保存に失敗しました",
     unknownCards:
@@ -165,7 +165,7 @@ const messages = {
     moveToExtra: "엑스트라로 이동",
     moveToSide: "사이드로 이동",
     sideHelp:
-      "카드를 눌러 상세 정보를 확인하세요. 아래 ⋯ 메뉴로 사이드와 메인/엑스트라 사이에서 이동할 수 있습니다.",
+      "카드를 눌러 정보를 확인하세요. 아래 목적지 버튼을 누르면 바로 이동합니다.",
     noCards: "일치하는 카드가 없습니다",
     saveFailed: "저장 실패",
     unknownCards:
