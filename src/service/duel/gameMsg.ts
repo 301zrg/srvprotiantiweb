@@ -5,7 +5,9 @@ import { Container } from "@/container";
 import { isUIContainer } from "@/container/compat";
 import { replayStore } from "@/stores";
 import { showWaiting } from "@/ui/Duel/Message";
+import { markNextPrompt } from "@/variant/duelDiagnostics";
 
+import { beginActionRequest, invalidateActionRequest } from "./actionRequest";
 import onAnnounce from "./announce";
 import onMsgAttack from "./attack";
 import onMsgAttackDisable from "./attackDisable";
@@ -93,6 +95,17 @@ export default async function handleGameMsg(
     if (container.conn.cancelled) return;
   }
   const msg = pb.stoc_game_msg;
+  if (isUIContainer(container)) {
+    if (["select_idle_cmd", "select_battle_cmd"].includes(msg.gameMsg))
+      beginActionRequest(
+        container,
+        msg.gameMsg === "select_battle_cmd" ? "battle" : "idle",
+      );
+    else if (ActiveList.includes(msg.gameMsg))
+      invalidateActionRequest(container);
+    else if (["start", "reload_field", "new_turn", "win"].includes(msg.gameMsg))
+      invalidateActionRequest(container);
+  }
   if (msg instanceof CardHintGameMessage) {
     onMsgCardHint(container, msg.cardHint);
     return;
@@ -103,6 +116,7 @@ export default async function handleGameMsg(
   }
 
   if (ActiveList.includes(msg.gameMsg)) {
+    markNextPrompt(container.conn);
     showWaiting(false);
 
     if (replayStore.isReplay || isObserver(container)) return;
