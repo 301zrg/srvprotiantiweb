@@ -2,7 +2,7 @@
 
 入口可附加 `lang=zh|en|ja|ko`，用于界面、卡文和系统字符串；在接收参数清理前初始化，规则见 [语言入口](language-links.md)。
 
-更新：2026-10-08。用户追加授权官网 HTML 后实现本入口。仅用于公开 `.yrp` 原件；保存进本地库，兼容时自动进入播放页，不进房、不连 WSS、不上传录像。播放范围及旧裁定证据见 [使用说明](replay-usage.md)，官网部署见 [官网说明](../../srvprotianti/plugins/ladder-web/REPLAY_WEB_OPEN.md)。
+更新：2026-10-08。用户追加授权官网 HTML 后实现本入口。仅用于公开 `.yrp` 原件；保存进本地库，兼容时自动进入播放页，不进房、不连 WSS、不上传录像。播放范围及旧裁定证据见 [使用说明](replay-usage.md)，官网部署见 [官网说明](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-web/REPLAY_WEB_OPEN.md)。
 
 ## 小文件公开内容链接
 
@@ -24,6 +24,8 @@ result:  {channel, version:1, kind:'replay', request, type:'result', status}
 状态为 `received|saved|memory-only|failed|cancelled`；`received` 仅确认轻量接收器已持有校验后的文件，`saved` 才确认本地事务成功，都不代表播放成功。原件最多 8 MiB。接收器等待 45 秒，ready 每秒重试；合法文件到达后停止接收计时，资源/保存继续。官网读取等 45 秒，传递等 60 秒；文件已读取后的第二次点击才同步创建新页。
 
 双方匹配精确 origin、窗口引用、request、channel、版本和 kind，指定精确 targetOrigin。白名单复用运营配置 `deckImportOrigins`，默认 `http://121.4.34.71:7922`、`https://duel.ygomatch.xyz`；仅运营配置可调整，链接不可扩大。重复 ready/payload 不重复导入，原件 SHA 去重由本地库完成。结束后释放监听、计时器、opener 和输入缓冲区；离开接收页不会异步拉回播放器。
+
+自动／手工发布通过 `VITE_DECK_IMPORT_ORIGINS`／`--deck-import-origins` 一同写入明确配置的白名单，`[]` 禁用该消息交接；修改首页官网链接不会自动授权它。完整输入和迁址检查见 [公开配置](public-deployment-config.md)。
 
 较大文件仍可能受手机后台暂停、COOP 或平台窗口边界影响，失败保留下载/本地导入。本轮无需新增 Nginx 代理。以后若增加公开 HTTPS 文件入口，仍应用固定来源标识与 basename，不能开放任意 `url=` 抓取。
 

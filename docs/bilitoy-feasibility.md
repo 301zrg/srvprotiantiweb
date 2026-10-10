@@ -58,6 +58,8 @@ npm run test:bilitoy-ui
 
 上传 ZIP 本身，入口 `index.html` 在压缩包根目录。包内 `deployment-info.json` 记录来源提交、工作区状态、固定入口和资源映射。原 `web-pages.zip` 继续用于普通静态站点。专用包是本地构建候选，不代表已通过 Toy 审核；平台许可确认后按管理端流程上传与更新，不用远程加载现有网站来规避审核。
 
+官网迁址时可同时传入 `--deck-import-origins`（JSON 精确 origin 数组）和 `--website-base-url`，也可使用 `VITE_DECK_IMPORT_ORIGINS`、`VITE_WEBSITE_BASE_URL` 环境变量。普通包、Toy 包与 Cloudflare 共享输入校验，不会只生成 WSS 字段而丢掉明确配置的白名单；`[]` 禁用卡组及录像的消息交接。未配置 WSS 的离线包要求环境变量也未设置或用空字符串参数覆盖。详见 [公开配置与迁址](public-deployment-config.md)。
+
 2026-10-07 本地适配验收：5 项打包测试、类型检查、lint 和普通版模拟联机回归通过。专用 ZIP 约 5 MB，全部符合当前文件后缀白名单；13 个改名资源与原内容逐字节相同，完整许可证保留。独立 Edge 的桌面和 390×844 触控视口，在模拟 Toy 子目录及 iframe 沙箱下通过真实 SQLite WASM、四语 CDB/strings、卡片搜索、卡组保存、同一 slug 更新版本保留卡组、不同 slug 隔离、YDK 导入及下载检查；首次通过深链接进入卡组页的初始化顺序问题已修正。每次构建的实际文件数、资源映射、来源提交和 SHA256 以包内 `deployment-info.json` 与包外 `SHA256SUMS.json` 为准。测试替代了站外卡图响应，没有发送生产登录或对战封包；B 站审核、实际 iframe/CSP、外部卡图、App 真机及完整比赛仍待验证。
 
 ## 正式服务器的 Nginx 修改

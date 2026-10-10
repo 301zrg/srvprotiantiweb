@@ -56,6 +56,7 @@
     "test:replay-field-ui": "node scripts/replay_field_ui.mjs",
     "test:replay-wss": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --replays",
     "build:cloudflare": "node scripts/build_cloudflare.mjs",
+    "test:public-config": "node --experimental-strip-types scripts/test_public_operator_config.mjs",
     "deploy:cloudflare": "node scripts/release_cloudflare.mjs deploy",
     "preview:cloudflare": "node scripts/release_cloudflare.mjs preview",
     "test:cloudflare-release": "node scripts/test_cloudflare_release.mjs",
