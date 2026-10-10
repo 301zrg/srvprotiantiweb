@@ -2,7 +2,7 @@
 
 入口可附加 `lang=zh|en|ja|ko`，用于界面、卡文和系统字符串；在接收参数清理前初始化，规则见 [语言入口](language-links.md)。
 
-实现日期：2026-10-08；状态修订：2026-10-10。网页版已支持接收 YDK、原生 `UPDATE_DECK` buffer 和 `{main, extra, side}` 结构，保存后直接进入卡组编辑器。此功能不连接对战 WSS，不上传卡组，不需要录像 Core。后续已实现相邻 `srvprotianti` 的官网按钮配套，正式文件由维护者单独上传；源码存在不表示当前正式部署已核实。录像首版也已实现，见 [录像使用](replay-usage.md)；项目级状态统一见 [当前状态](PROJECT_STATUS.md)。官网契约见 [DECK_WEB_OPEN](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/DECK_WEB_OPEN.md)。
+实现日期：2026-10-08；状态修订：2026-10-10。网页版已支持接收 YDK、原生 `UPDATE_DECK` buffer 和 `{main, extra, side}` 结构，保存后直接进入卡组编辑器。此功能不连接对战 WSS，不上传卡组，不需要录像 Core。后续已实现相邻 `srvprotianti` 的官网按钮配套，正式文件由维护者单独上传；源码存在不表示当前正式部署已核实。录像首版也已实现，见 [录像使用](replay-usage.md)；项目级状态统一见 [当前状态](PROJECT_STATUS.md)。官网契约见 [DECK_WEB_OPEN](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-web/DECK_WEB_OPEN.md)。
 
 ## 1. 公开卡组：内容链接
 
