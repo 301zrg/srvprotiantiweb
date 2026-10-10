@@ -1,5 +1,6 @@
 import { ygopro } from "@/api";
 import { CardHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardHint";
+import { PlayerHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/playerHint";
 import { Container } from "@/container";
 import { isUIContainer } from "@/container/compat";
 import { replayStore } from "@/stores";
@@ -25,6 +26,7 @@ import onLpUpdate from "./lpUpdate";
 import onMsgMove from "./move";
 import onMsgNewPhase from "./newPhase";
 import onMsgNewTurn from "./newTurn";
+import onMsgPlayerHint from "./playerHint";
 import onMsgPosChange from "./posChange";
 import { waitForDuelForeground } from "./presentation";
 import onMsgReloadField from "./reloadField";
@@ -95,6 +97,10 @@ export default async function handleGameMsg(
     onMsgCardHint(container, msg.cardHint);
     return;
   }
+  if (msg instanceof PlayerHintGameMessage) {
+    onMsgPlayerHint(container, msg.playerHint);
+    return;
+  }
 
   if (ActiveList.includes(msg.gameMsg)) {
     showWaiting(false);
@@ -153,7 +159,7 @@ export default async function handleGameMsg(
       break;
     }
     case "select_effect_yn": {
-      await onMsgSelectEffectYn(msg.select_effect_yn);
+      await onMsgSelectEffectYn(container, msg.select_effect_yn);
 
       break;
     }
@@ -188,7 +194,7 @@ export default async function handleGameMsg(
       break;
     }
     case "select_yes_no": {
-      await onMsgSelectYesNo(msg.select_yes_no);
+      await onMsgSelectYesNo(container, msg.select_yes_no);
 
       break;
     }
@@ -307,7 +313,7 @@ export default async function handleGameMsg(
       break;
     }
     case "announce": {
-      await onAnnounce(msg.announce);
+      await onAnnounce(container, msg.announce);
 
       break;
     }

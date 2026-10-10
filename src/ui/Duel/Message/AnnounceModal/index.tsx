@@ -56,7 +56,7 @@ export const AnnounceModal: React.FC = () => {
   const onSummit = () => {
     if (selected !== undefined) {
       sendSelectOptionResponse(container.conn, selected);
-      rs();
+      rs(selected);
       setSearchWord("");
       setCardList([]);
     }
@@ -135,12 +135,13 @@ export const AnnounceModal: React.FC = () => {
   );
 };
 
-let rs: (v?: any) => void = () => {};
+let rs: (response: number) => void = () => {};
 
 export const displayAnnounceModal = async (opcodes: number[]) => {
   store.opcodes = opcodes;
   store.isOpen = true;
-  await new Promise((resolve) => (rs = resolve));
+  const response = await new Promise<number>((resolve) => (rs = resolve));
   store.isOpen = false;
   store.opcodes = [];
+  return response;
 };

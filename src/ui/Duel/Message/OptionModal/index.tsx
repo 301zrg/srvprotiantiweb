@@ -48,7 +48,7 @@ export const OptionModal = () => {
     if (responses.length > 0) {
       const response = responses.reduce((res, current) => res | current, 0); // 多个选择求或
       sendSelectOptionResponse(container.conn, response);
-      rs();
+      rs(response);
     }
   };
 
@@ -59,7 +59,7 @@ export const OptionModal = () => {
   const onQuickSelect = (response: number) => {
     if (store.min === 1) {
       sendSelectOptionResponse(container.conn, response);
-      rs();
+      rs(response);
     }
   };
 
@@ -137,7 +137,7 @@ const Selector: React.FC<{
     <></>
   );
 
-let rs: (v?: any) => void = () => {};
+let rs: (response: number) => void = () => {};
 export const displayOptionModal = async (
   title: string,
   options: Options,
@@ -147,8 +147,9 @@ export const displayOptionModal = async (
   store.options = options;
   store.min = min;
   store.isOpen = true;
-  await new Promise((resolve) => (rs = resolve));
+  const response = await new Promise<number>((resolve) => (rs = resolve));
   store.isOpen = false;
+  return response;
 };
 
 export const handleEffectActivation = async (

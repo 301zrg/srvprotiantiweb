@@ -72,6 +72,11 @@
   strong { display: block; color: #a8d4ff; margin-bottom: 4px; }
 }
 
+.resultText {
+  min-width: 0;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
   .container .timeline {
     margin-top: 0;

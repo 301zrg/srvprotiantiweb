@@ -48,7 +48,7 @@ import {
   move,
   type MoveOptions,
 } from "./springs";
-import type { SpringApiProps } from "./springs/types";
+import type { FocusOptions, SpringApiProps } from "./springs/types";
 
 const { HAND, GRAVE, REMOVED, EXTRA, MZONE, SZONE, TZONE } = ygopro.CardZone;
 
@@ -106,10 +106,14 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     const unregisterFocus = eventbus.register(
       Task.Focus,
       card.uuid,
-      async () => {
+      async (options?: FocusOptions) => {
         await addToAnimation(async () => {
           setClassFocus(true);
-          await focus({ card, api });
+          try {
+            await focus({ card, api, options });
+          } finally {
+            if (mounted.current) setClassFocus(false);
+          }
         });
       },
     );
@@ -496,5 +500,5 @@ const call =
     eventbus.call(task, uuid, options);
 
 export const callCardMove = call<MoveOptions>(Task.Move);
-export const callCardFocus = call(Task.Focus);
+export const callCardFocus = call<FocusOptions>(Task.Focus);
 export const callCardAttack = call<AttackOptions>(Task.Attack);

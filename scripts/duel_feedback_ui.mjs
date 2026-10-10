@@ -45,6 +45,9 @@ try {
       matStore.initInfo.me.life = 8000;
       matStore.initInfo.op.life = 8000;
       roomStore.players = [{ name: "反馈测试", isMe: true, state: 0 }, { name: "对手", isMe: false, state: 0 }];
+      // Field snapshots now await mounted card animation handlers. Enter the
+      // duel route before awaiting a snapshot, as the real room lifecycle does.
+      location.hash = "#/duel";
       function u32(value) { const b = new Uint8Array(4); new DataView(b.buffer).setInt32(0, value, true); return [...b]; }
       const send = async (type, bytes) => {
         const frame = Uint8Array.from([0, 0, 1, type, ...bytes]);

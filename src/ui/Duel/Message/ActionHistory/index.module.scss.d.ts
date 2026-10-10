@@ -10,5 +10,6 @@ declare const classNames: {
   readonly "op-icon": "op-icon";
   readonly target: "target";
   readonly announcement: "announcement";
+  readonly resultText: "resultText";
 };
 export = classNames;
