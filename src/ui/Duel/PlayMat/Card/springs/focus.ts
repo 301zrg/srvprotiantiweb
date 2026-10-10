@@ -1,12 +1,17 @@
 import { ygopro } from "@/api";
+import { waitForDuelDelay } from "@/service/duel/presentation";
 import { type CardType, matStore } from "@/stores";
 
-import type { SpringApi } from "./types";
+import type { FocusOptions, SpringApi } from "./types";
 import { asyncStart } from "./utils";
 
 /** 发动效果的动画 */
-export const focus = async (props: { card: CardType; api: SpringApi }) => {
-  const { card, api } = props;
+export const focus = async (props: {
+  card: CardType;
+  api: SpringApi;
+  options?: FocusOptions;
+}) => {
+  const { card, api, options } = props;
   if (
     card.location.zone === ygopro.CardZone.HAND ||
     card.location.zone === ygopro.CardZone.DECK ||
@@ -19,6 +24,7 @@ export const focus = async (props: { card: CardType; api: SpringApi }) => {
       // rz: 0,
       z: current.z + 50,
     });
+    if (options?.holdMs) await waitForDuelDelay(options.holdMs, options.signal);
     await asyncStart(api)(current);
   } else {
     await asyncStart(api)({

@@ -4,10 +4,11 @@ import { proxy, useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
 import { useConfig } from "@/config";
-import { History, HistoryOp, historyStore } from "@/stores";
+import { History, HistoryOp, historyStore, matStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { duelResultMessages, formatDuelResult } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import styles from "./index.module.scss";
@@ -50,15 +51,51 @@ const HistoryItem: React.FC<History> = ({
   currentLocation,
   operation,
   target,
+  player,
+  result,
 }) => {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
+  const { selfType } = useSnapshot(matStore);
+  const words = duelResultMessages(language);
+  const playerLabel =
+    player === undefined
+      ? ""
+      : selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
+      ? player === 0
+        ? words.first
+        : words.second
+      : matStore.isMe(player)
+      ? words.self
+      : words.opponent;
+  if (operation === HistoryOp.RESULT && result) {
+    const formatted = formatDuelResult(result, language);
+    return (
+      <div
+        className={styles.announcement}
+        data-testid="duel-history-result"
+        data-result-kind={result.kind}
+        data-player={player}
+      >
+        {card > 0 && <YgoCard code={card} width="3rem" />}
+        <div className={styles.resultText}>
+          <strong>
+            {playerLabel} · {formatted.title}
+          </strong>
+          {card > 0 && <div>{fetchCard(card).text.name ?? card}</div>}
+          <div data-testid="duel-history-result-value">{formatted.value}</div>
+        </div>
+      </div>
+    );
+  }
   if (operation === HistoryOp.ANNOUNCE)
     return (
       <div className={styles.announcement} data-testid="duel-history-announce">
         <YgoCard code={card} width="3rem" />
         <div>
-          <strong>{mobileMessages(language).declaredCard}</strong>
+          <strong>
+            {playerLabel} · {mobileMessages(language).declaredCard}
+          </strong>
           <div>{fetchCard(card).text.name ?? card}</div>
         </div>
       </div>
@@ -127,6 +164,7 @@ function Op2Text(op: HistoryOp, t: (key: string) => string): string {
     case HistoryOp.SET:
       return fetchStrings(Region.System, 1153);
     case HistoryOp.ANNOUNCE:
+    case HistoryOp.RESULT:
       return "";
   }
 }

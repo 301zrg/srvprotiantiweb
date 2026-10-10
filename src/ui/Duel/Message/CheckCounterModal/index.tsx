@@ -7,7 +7,9 @@ import { proxy, useSnapshot } from "valtio";
 
 import { fetchStrings, Region, sendSelectCounterResponse } from "@/api";
 import { getUIContainer } from "@/container/compat";
+import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
+import { duelInteractionMessages } from "@/variant/duelInteraction";
 
 import { NeosModal } from "../NeosModal";
 import styles from "./index.module.scss";
@@ -30,6 +32,7 @@ const localStore = proxy<CheckCounterModalProps>(defaultProps);
 
 export const CheckCounterModal = () => {
   const { t } = useTranslation("ClientUI");
+  const { language } = useI18N();
   const container = getUIContainer();
   const snapCheckCounterModal = useSnapshot(localStore);
 
@@ -41,12 +44,14 @@ export const CheckCounterModal = () => {
     `0x${snapCheckCounterModal.counterType?.toString(16)}`,
   );
 
-  const [selected, setSelected] = useState(new Array(options.length));
+  const [selected, setSelected] = useState<number[]>(
+    Array(options.length).fill(0),
+  );
   const sum = selected.reduce((sum, current) => sum + current, 0);
   const finishable = sum === min;
 
   useEffect(() => {
-    setSelected(new Array(options.length));
+    setSelected(Array(options.length).fill(0));
   }, [options]);
 
   const onFinish = () => {
@@ -58,10 +63,23 @@ export const CheckCounterModal = () => {
     <NeosModal
       title={t("RemoveCounters", { count: min, counter: counterName })}
       open={isOpen}
+      zIndex={1300}
       footer={
-        <Button disabled={!finishable} onClick={onFinish}>
-          {t("Confirm")}
-        </Button>
+        <>
+          <Button
+            data-testid="duel-counter-reset"
+            onClick={() => setSelected(Array(options.length).fill(0))}
+          >
+            {duelInteractionMessages(language).reset}
+          </Button>
+          <Button
+            data-testid="duel-counter-submit"
+            disabled={!finishable}
+            onClick={onFinish}
+          >
+            {t("Confirm")}
+          </Button>
+        </>
       }
     >
       <div className={styles.container}>
@@ -73,7 +91,8 @@ export const CheckCounterModal = () => {
                 className={styles["input-number"]}
                 min={0}
                 max={option.max}
-                defaultValue={0}
+                data-testid="duel-counter-value"
+                value={selected[idx] ?? 0}
                 onChange={(value) => {
                   setSelected((prevSelected) => {
                     let newSelected = [...prevSelected];

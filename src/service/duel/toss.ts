@@ -8,6 +8,19 @@ export default async (container: Container, toss: MsgToss) => {
   const context = container.context;
   const player = toss.player;
   const tossType = toss.toss_type;
+  if (
+    tossType === MsgToss.TossType.DICE ||
+    tossType === MsgToss.TossType.COIN
+  ) {
+    context.historyStore.putResult(
+      context,
+      {
+        kind: tossType === MsgToss.TossType.DICE ? "dice" : "coin",
+        values: [...toss.res],
+      },
+      player,
+    );
+  }
 
   const prefix = fetchStrings(
     Region.System,

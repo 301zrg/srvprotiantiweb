@@ -4,19 +4,8 @@ import classnames from "classnames";
 import React, { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
-import {
-  type CardMeta,
-  Region,
-  sendSelectBattleCmdResponse,
-  sendSelectMultiResponse,
-} from "@/api";
-import {
-  fetchStrings,
-  getCardStr,
-  sendSelectIdleCmdResponse,
-  ygopro,
-} from "@/api";
-import { Container } from "@/container";
+import { Region, sendSelectMultiResponse } from "@/api";
+import { fetchStrings, getCardStr, ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
 import { eventbus, Task } from "@/infra";
 import {
@@ -30,12 +19,12 @@ import { showCardModal as displayCardModal } from "@/ui/Duel/Message/CardModal";
 import { YgoCard } from "@/ui/Shared";
 
 import {
+  displayActiveOptionModal,
   displayCardListModal,
-  displayOptionModal,
   displaySimpleSelectCardsModal,
+  runActiveAction,
 } from "../../Message";
 import {
-  clearAllIdleInteractivities,
   clearSelectInfo,
   interactTypeToIcon,
   interactTypeToString,
@@ -48,7 +37,7 @@ import {
   move,
   type MoveOptions,
 } from "./springs";
-import type { SpringApiProps } from "./springs/types";
+import type { FocusOptions, SpringApiProps } from "./springs/types";
 
 const { HAND, GRAVE, REMOVED, EXTRA, MZONE, SZONE, TZONE } = ygopro.CardZone;
 
@@ -106,10 +95,14 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     const unregisterFocus = eventbus.register(
       Task.Focus,
       card.uuid,
-      async () => {
+      async (options?: FocusOptions) => {
         await addToAnimation(async () => {
           setClassFocus(true);
-          await focus({ card, api });
+          try {
+            await focus({ card, api, options });
+          } finally {
+            if (mounted.current) setClassFocus(false);
+          }
         });
       },
     );
@@ -177,13 +170,6 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     );
     const getNonEffectInteractivity = (action: InteractType, card: CardType) =>
       card.idleInteractivities.find((item) => item.interactType === action)!;
-    const sendInteractionResponse = (interactivity: Interactivity<number>) => {
-      if (interactivity.responseSource === "battle") {
-        sendSelectBattleCmdResponse(container.conn, interactivity.response);
-      } else {
-        sendSelectIdleCmdResponse(container.conn, interactivity.response);
-      }
-    };
     const nonEffectItem: DropdownItem[] = nonEffectActions.map(
       ([action, cards], key) => ({
         key,
@@ -200,30 +186,45 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
             : undefined,
         label: interactTypeToString(action),
         icon: interactTypeToIcon(action),
-        onClick: async () => {
-          if (!isField) {
-            // 单卡: 直接召唤/特殊召唤/...
-            const card = cards[0];
-            sendInteractionResponse(getNonEffectInteractivity(action, card));
-            clearAllIdleInteractivities();
-          } else {
-            // 场地: 选择卡片
-            // TODO: hint
-            const option = await displaySimpleSelectCardsModal({
-              selectables: cards.map((card) => ({
-                meta: card.meta,
-                location: card.location,
-                response: getNonEffectInteractivity(action, card).response,
+        onClick: (event) => {
+          // The menu is portaled; bubbling to the card would reopen its drawer.
+          event.domEvent.stopPropagation();
+          void runActiveAction(container, async (lease) => {
+            // Freeze the response before a candidate window or confirmation.
+            const candidates = cards
+              .filter((card) => getNonEffectInteractivity(action, card))
+              .map((card) => ({
                 card,
-              })),
-            });
-            if (option.length > 0) {
-              sendInteractionResponse(
-                getNonEffectInteractivity(action, option[0].card as CardType),
+                ...getNonEffectInteractivity(action, card),
+              }));
+            let selected = candidates[0];
+            if (!selected) return;
+            if (isField) {
+              const option = await displaySimpleSelectCardsModal(
+                {
+                  selectables: candidates.map(({ card }) => ({
+                    meta: card.meta,
+                    location: card.location,
+                    response: getNonEffectInteractivity(action, card).response,
+                    card,
+                  })),
+                },
+                lease.signal,
               );
-              clearAllIdleInteractivities();
+              if (!option.length) return;
+              selected = candidates.find(
+                (item) => item.card.uuid === option[0].card?.uuid,
+              )!;
             }
-          }
+            if (!selected) return;
+            return {
+              response: selected.response,
+              responseSource: selected.responseSource,
+              label: `${interactTypeToString(action)} · ${
+                selected.card.meta.text.name ?? selected.card.code
+              }`,
+            };
+          });
         },
       }),
     );
@@ -243,47 +244,65 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       "data-action-type": InteractType[InteractType.ACTIVATE],
       label: interactTypeToString(InteractType.ACTIVATE),
       icon: interactTypeToIcon(InteractType.ACTIVATE),
-      onClick: async () => {
-        let tmpCard: CardType;
-        if (!isField) {
-          // 单卡: 直接发动这个卡的效果
-          tmpCard = cards[0];
-        } else {
-          // 场地: 选择卡片
-          // TODO: hint
-          const option = await displaySimpleSelectCardsModal({
-            selectables: cards
-              // 过滤掉不能发效果的卡
-              .filter(
-                (card) =>
-                  card.idleInteractivities.find(
-                    ({ interactType }) =>
-                      interactType === InteractType.ACTIVATE,
-                  ) !== undefined,
-              )
-              .map((card) => ({
-                meta: card.meta,
-                location: card.location,
-                card,
-              })),
-          });
-          tmpCard = option[0].card! as any; // 一定会有的，有输入则定有输出
-        }
-        // 选择发动哪个效果
-        handleEffectActivation(
-          container,
-          tmpCard.idleInteractivities
-            .filter(
-              ({ interactType }) => interactType === InteractType.ACTIVATE,
-            )
-            .map((x) => ({
-              desc: interactTypeToString(x.interactType),
-              response: x.response,
-              responseSource: x.responseSource,
-              effectCode: x.activateIndex,
-            })),
-          tmpCard.meta,
-        );
+      onClick: (event) => {
+        event.domEvent.stopPropagation();
+        void runActiveAction(container, async (lease) => {
+          const candidates = cards
+            .map((card) => ({
+              card,
+              effects: card.idleInteractivities
+                .filter((item) => item.interactType === InteractType.ACTIVATE)
+                .map((item) => ({ ...item })),
+            }))
+            .filter((item) => item.effects.length > 0);
+          let selected = candidates[0];
+          if (isField) {
+            const option = await displaySimpleSelectCardsModal(
+              {
+                selectables: candidates.map(({ card }) => ({
+                  meta: card.meta,
+                  location: card.location,
+                  card,
+                })),
+              },
+              lease.signal,
+            );
+            if (!option.length) return;
+            selected = candidates.find(
+              (item) => item.card.uuid === option[0].card?.uuid,
+            )!;
+          }
+          if (!selected || !lease.valid()) return;
+          const { card, effects } = selected;
+          let effect = effects[0];
+          let effectLabel = "";
+          if (effects.length > 1) {
+            const options = effects.map((item) => ({
+              info:
+                item.activateIndex !== undefined
+                  ? getCardStr(card.meta, item.activateIndex & 0xf) ?? "[:?]"
+                  : "[:?]",
+              response: item.response,
+            }));
+            const response = await displayActiveOptionModal(
+              fetchStrings(Region.System, 556),
+              options,
+              lease.signal,
+            );
+            if (response === undefined) return;
+            effect = effects.find((item) => item.response === response)!;
+            effectLabel =
+              options.find((item) => item.response === response)?.info ?? "";
+          }
+          if (!effect) return;
+          return {
+            response: effect.response,
+            responseSource: effect.responseSource,
+            label: `${interactTypeToString(InteractType.ACTIVATE)} · ${
+              card.meta.text.name ?? card.code
+            }${effectLabel ? ` · ${effectLabel}` : ""}`,
+          };
+        });
       },
     };
     setDropdownMenu({
@@ -422,6 +441,7 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
         trigger={["click"]}
       >
         <div
+          data-testid="duel-card-trigger"
           className={classnames(styles["img-wrap"], {
             [styles.focusing]: classFocus,
           })}
@@ -440,52 +460,10 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
 });
 
 // >>> 下拉菜单：点击动作 >>>
-interface Interactivy {
-  desc: string;
-  response: number;
-  responseSource?: "idle" | "battle";
-  effectCode: number | undefined;
-}
-
 type DropdownItem = NonNullable<MenuProps["items"]>[number] & {
-  onClick: () => void;
+  onClick: NonNullable<MenuProps["onClick"]>;
   "data-testid"?: string;
   "data-action-type"?: string;
-};
-
-const handleEffectActivation = (
-  container: Container,
-  effectInteractivies: Interactivy[],
-  meta?: CardMeta,
-) => {
-  if (!effectInteractivies.length) return;
-  else if (effectInteractivies.length === 1) {
-    // 如果只有一个效果，点击直接触发
-    if (effectInteractivies[0].responseSource === "battle") {
-      sendSelectBattleCmdResponse(
-        container.conn,
-        effectInteractivies[0].response,
-      );
-    } else {
-      sendSelectIdleCmdResponse(
-        container.conn,
-        effectInteractivies[0].response,
-      );
-    }
-  } else {
-    // optionsModal
-    const options = effectInteractivies.map((effect) => {
-      const effectMsg =
-        meta && effect.effectCode
-          ? getCardStr(meta, effect.effectCode & 0xf) ?? "[:?]"
-          : "[:?]";
-      return {
-        info: effectMsg,
-        response: effect.response,
-      };
-    });
-    displayOptionModal(fetchStrings(Region.System, 556), options, 1); // 主动发动效果，所以不需要await，但是以后可能要留心
-  }
 };
 
 // <<< 下拉菜单 <<<
@@ -496,5 +474,5 @@ const call =
     eventbus.call(task, uuid, options);
 
 export const callCardMove = call<MoveOptions>(Task.Move);
-export const callCardFocus = call(Task.Focus);
+export const callCardFocus = call<FocusOptions>(Task.Focus);
 export const callCardAttack = call<AttackOptions>(Task.Attack);

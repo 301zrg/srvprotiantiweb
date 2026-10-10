@@ -1,5 +1,6 @@
 import {
   AudioFilled,
+  CheckCircleOutlined,
   MessageOutlined,
   PlayCircleOutlined,
   TranslationOutlined,
@@ -9,17 +10,25 @@ import React from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import { I18NSelector, useI18N } from "../I18N";
 import { AnimationSetting } from "./Animation";
 import { AudioSetting } from "./Audio";
 import { MessageSetting } from "./Messages";
+import { OperationSetting } from "./Operations";
 
 /** 设置面板属性 */
 export interface SettingProps {
   /** 默认设置页 */
-  defaultKey?: "audio" | "other";
+  defaultKey?:
+    | "audio"
+    | "language"
+    | "messages"
+    | "animation"
+    | "operations"
+    | "other";
 }
 
 export const Setting = (props: SettingProps) => {
@@ -27,8 +36,18 @@ export const Setting = (props: SettingProps) => {
   const { t: i18n } = useTranslation("SystemSettings");
   const { language } = useI18N();
   const text = mobileMessages(language);
+  const interactionText = duelInteractionMessages(language);
 
   const items: TabsProps["items"] = [
+    {
+      key: "operations",
+      label: (
+        <>
+          {interactionText.settings} <CheckCircleOutlined />
+        </>
+      ),
+      children: <OperationSetting />,
+    },
     {
       key: "audio",
       label: (

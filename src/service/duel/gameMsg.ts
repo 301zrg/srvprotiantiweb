@@ -1,10 +1,13 @@
 import { ygopro } from "@/api";
 import { CardHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardHint";
+import { PlayerHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/playerHint";
 import { Container } from "@/container";
 import { isUIContainer } from "@/container/compat";
 import { replayStore } from "@/stores";
 import { showWaiting } from "@/ui/Duel/Message";
+import { markNextPrompt } from "@/variant/duelDiagnostics";
 
+import { beginActionRequest, invalidateActionRequest } from "./actionRequest";
 import onAnnounce from "./announce";
 import onMsgAttack from "./attack";
 import onMsgAttackDisable from "./attackDisable";
@@ -25,6 +28,7 @@ import onLpUpdate from "./lpUpdate";
 import onMsgMove from "./move";
 import onMsgNewPhase from "./newPhase";
 import onMsgNewTurn from "./newTurn";
+import onMsgPlayerHint from "./playerHint";
 import onMsgPosChange from "./posChange";
 import { waitForDuelForeground } from "./presentation";
 import onMsgReloadField from "./reloadField";
@@ -91,12 +95,28 @@ export default async function handleGameMsg(
     if (container.conn.cancelled) return;
   }
   const msg = pb.stoc_game_msg;
+  if (isUIContainer(container)) {
+    if (["select_idle_cmd", "select_battle_cmd"].includes(msg.gameMsg))
+      beginActionRequest(
+        container,
+        msg.gameMsg === "select_battle_cmd" ? "battle" : "idle",
+      );
+    else if (ActiveList.includes(msg.gameMsg))
+      invalidateActionRequest(container);
+    else if (["start", "reload_field", "new_turn", "win"].includes(msg.gameMsg))
+      invalidateActionRequest(container);
+  }
   if (msg instanceof CardHintGameMessage) {
     onMsgCardHint(container, msg.cardHint);
     return;
   }
+  if (msg instanceof PlayerHintGameMessage) {
+    onMsgPlayerHint(container, msg.playerHint);
+    return;
+  }
 
   if (ActiveList.includes(msg.gameMsg)) {
+    markNextPrompt(container.conn);
     showWaiting(false);
 
     if (replayStore.isReplay || isObserver(container)) return;
@@ -153,7 +173,7 @@ export default async function handleGameMsg(
       break;
     }
     case "select_effect_yn": {
-      await onMsgSelectEffectYn(msg.select_effect_yn);
+      await onMsgSelectEffectYn(container, msg.select_effect_yn);
 
       break;
     }
@@ -188,7 +208,7 @@ export default async function handleGameMsg(
       break;
     }
     case "select_yes_no": {
-      await onMsgSelectYesNo(msg.select_yes_no);
+      await onMsgSelectYesNo(container, msg.select_yes_no);
 
       break;
     }
@@ -307,7 +327,7 @@ export default async function handleGameMsg(
       break;
     }
     case "announce": {
-      await onAnnounce(msg.announce);
+      await onAnnounce(container, msg.announce);
 
       break;
     }
