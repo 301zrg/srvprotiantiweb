@@ -236,10 +236,19 @@ try {
     await normal.getByTestId("waitroom-leave").click();
     await expect(normal.locator("#room-name")).toHaveValue("CacheRoom$dummy");
     await normal.reload();
-    await expect(normal.locator("#player-nickname")).toHaveValue("CacheUser", { timeout: 45000 });
-    await expect(normal.locator("#room-name")).toHaveValue("CacheRoom");
+    await expect(normal.locator("#player-nickname")).toHaveValue("CacheUser$dummy", { timeout: 45000 });
+    await expect(normal.locator("#room-name")).toHaveValue("CacheRoom$dummy");
+    assert.deepEqual(await normal.evaluate(() => JSON.parse(sessionStorage.getItem("joinFormDraft"))), {
+      nickname: "CacheUser$dummy", roomName: "CacheRoom$dummy",
+    });
+    assert.deepEqual(await normal.evaluate(() => [localStorage.getItem("playerNickname"), localStorage.getItem("playerRoomName")]), ["CacheUser", "CacheRoom"]);
     await normal.getByTestId("connect-submit").click();
     await expect(normal.getByTestId("waitroom-deck-select")).toContainText("EditedPreferred");
+    assert.deepEqual(await normal.evaluate(() => {
+      const decode = (bytes) => new TextDecoder("utf-16le").decode(Uint8Array.from(bytes)).split("\0")[0];
+      return window.__roomLink.packets.filter((packet) => [16, 18].includes(packet[2]))
+        .map((packet) => decode(packet.slice(packet[2] === 16 ? 3 : 11)));
+    }), ["CacheUser$dummy", "CacheRoom$dummy"], "Reloaded passwords are sent unchanged in their respective fields");
     // A transport close while backgrounded recovers only on returning.
     await normal.evaluate(() => {
       Object.defineProperty(document, "hidden", { configurable: true, value: true });
@@ -256,7 +265,7 @@ try {
     await expect(normal.getByTestId("waitroom-deck-select")).toContainText("EditedPreferred");
     await expect(normal.getByTestId("waitroom-ready-toggle")).toHaveAttribute("aria-pressed", "false");
     await normal.getByTestId("waitroom-leave").click();
-    await expect(normal.locator("#player-nickname")).toHaveValue("CacheUser");
+    await expect(normal.locator("#player-nickname")).toHaveValue("CacheUser$dummy");
     await normal.close();
     console.log("PASS normal form/deck persistence and waiting-room recovery");
     const page = await open(query);
