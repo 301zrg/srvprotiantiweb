@@ -5,6 +5,12 @@
   height: var(--card-height);
   aspect-ratio: var(--card-ratio);
   transform-style: preserve-3d;
+  // Visual overlays must let taps reach the dropdown trigger below them.
+  .shadow,
+  .focus,
+  .streamer {
+    pointer-events: none;
+  }
   .img-wrap {
     transform-style: preserve-3d;
     position: relative;

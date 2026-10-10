@@ -9,6 +9,7 @@ import { matStore, SideStage, sideStore } from "@/stores";
 import { requireSession } from "@/ui/requireSession";
 
 import {
+  ActionConfirm,
   ActionHistory,
   Alert,
   AnnounceModal,
@@ -83,6 +84,7 @@ export const Component: React.FC = () => {
       <YesNoModal />
       <PositionModal />
       <OptionModal />
+      <ActionConfirm />
       <CheckCounterModal />
       <SortCardModal />
       <SimpleSelectCardsModal />

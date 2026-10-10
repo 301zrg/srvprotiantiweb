@@ -11,6 +11,7 @@ import { useMobileInterface } from "@/hook";
 import { CardType, isMe, matStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { ScrollableArea, YgoCard } from "@/ui/Shared";
+import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import { groupBy } from "../../utils";
@@ -147,6 +148,15 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
       }}
       footer={
         <>
+          <Button
+            data-testid="duel-select-card-reset"
+            onClick={() => {
+              closeCardModal();
+              setResult(grouped.map(([zone]) => [zone, []]));
+            }}
+          >
+            {duelInteractionMessages(language).reset}
+          </Button>
           {cancelable && (
             <Button
               data-testid="duel-select-card-cancel"

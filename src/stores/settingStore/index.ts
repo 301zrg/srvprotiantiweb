@@ -14,7 +14,7 @@ const NEO_SETTING_CONFIG = storageKey("__neo_setting_config__");
 /** 设置项 */
 type SettingStoreConfig = Pick<
   SettingStore,
-  "audio" | "animation" | "showServerMessages"
+  "audio" | "animation" | "showServerMessages" | "confirmOperations"
 >;
 
 /** 默认设置 */
@@ -22,6 +22,7 @@ const defaultSettingConfig: SettingStoreConfig = {
   audio: defaultAudioConfig,
   animation: defaultAnimationConfig,
   showServerMessages: true,
+  confirmOperations: false,
 };
 
 /** 获取默认设置 */
@@ -33,6 +34,7 @@ function getDefaultSetting() {
       if (setting) {
         const config = JSON.parse(setting) as SettingStoreConfig;
         return {
+          confirmOperations: config.confirmOperations === true,
           audio: config.audio ?? defaultAudioConfig,
           animation: config.animation ?? defaultAnimationConfig,
           showServerMessages:
@@ -61,6 +63,8 @@ class SettingStore implements NeosStore {
   /** Only controls server chat popups, not required duel choices or errors. */
   showServerMessages: boolean = defaultSetting.showServerMessages;
 
+  confirmOperations: boolean = defaultSetting.confirmOperations;
+
   /** 保存音频设置 */
   saveAudioConfig(config: Partial<AudioConfig>): void {
     Object.assign(this.audio, config);
@@ -76,6 +80,7 @@ class SettingStore implements NeosStore {
     this.audio = defaultSetting.audio;
     this.animation = defaultSetting.animation;
     this.showServerMessages = defaultSetting.showServerMessages;
+    this.confirmOperations = defaultSetting.confirmOperations;
   }
 }
 
@@ -89,7 +94,12 @@ subscribe(settingStore, () => {
       localStorage.setItem(
         NEO_SETTING_CONFIG,
         JSON.stringify(
-          pick(settingStore, ["audio", "animation", "showServerMessages"]),
+          pick(settingStore, [
+            "audio",
+            "animation",
+            "showServerMessages",
+            "confirmOperations",
+          ]),
         ),
       );
     } catch {
