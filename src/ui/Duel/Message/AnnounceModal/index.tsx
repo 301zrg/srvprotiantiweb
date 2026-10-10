@@ -1,6 +1,6 @@
 import { SearchOutlined } from "@ant-design/icons";
 import { Avatar, Button, Checkbox, Input, List } from "antd";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
@@ -13,6 +13,8 @@ import {
 import { isDeclarable, isToken } from "@/common";
 import { getUIContainer } from "@/container/compat";
 import { emptySearchConditions } from "@/middleware/sqlite/fts";
+import { useI18N } from "@/ui/I18N";
+import { duelInteractionMessages } from "@/variant/duelInteraction";
 
 import { NeosModal } from "../NeosModal";
 import styles from "./index.module.scss";
@@ -34,11 +36,15 @@ const store = proxy<Props>(defaultProps);
 
 export const AnnounceModal: React.FC = () => {
   const { t } = useTranslation("ClientUI");
+  const { language } = useI18N();
   const { isOpen } = useSnapshot(store);
   const [searchWord, setSearchWord] = useState("");
   const [cardList, setCardList] = useState<CardMeta[]>([]);
   const [selected, setSelected] = useState<number | undefined>(undefined);
   const container = getUIContainer();
+  useEffect(() => {
+    if (isOpen) setSelected(undefined);
+  }, [isOpen]);
 
   const handleSearch = () => {
     const result = searchCards({
@@ -56,7 +62,7 @@ export const AnnounceModal: React.FC = () => {
   const onSummit = () => {
     if (selected !== undefined) {
       sendSelectOptionResponse(container.conn, selected);
-      rs();
+      rs(selected);
       setSearchWord("");
       setCardList([]);
     }
@@ -66,14 +72,23 @@ export const AnnounceModal: React.FC = () => {
     <NeosModal
       title={t("AnnounceTitle")}
       open={isOpen}
+      zIndex={1300}
       footer={
-        <Button
-          data-testid="duel-announce-submit"
-          disabled={selected === undefined}
-          onClick={onSummit}
-        >
-          {t("Confirm")}
-        </Button>
+        <>
+          <Button
+            data-testid="duel-announce-reset"
+            onClick={() => setSelected(undefined)}
+          >
+            {duelInteractionMessages(language).reset}
+          </Button>
+          <Button
+            data-testid="duel-announce-submit"
+            disabled={selected === undefined}
+            onClick={onSummit}
+          >
+            {t("Confirm")}
+          </Button>
+        </>
       }
     >
       <div className={styles.container} data-testid="duel-announce-modal">
@@ -135,12 +150,13 @@ export const AnnounceModal: React.FC = () => {
   );
 };
 
-let rs: (v?: any) => void = () => {};
+let rs: (response: number) => void = () => {};
 
 export const displayAnnounceModal = async (opcodes: number[]) => {
   store.opcodes = opcodes;
   store.isOpen = true;
-  await new Promise((resolve) => (rs = resolve));
+  const response = await new Promise<number>((resolve) => (rs = resolve));
   store.isOpen = false;
   store.opcodes = [];
+  return response;
 };

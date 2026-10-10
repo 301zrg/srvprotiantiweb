@@ -8,6 +8,7 @@ import { YgoProPacketFramer } from "@/api/ocgcore/ocgAdapter/packet";
 import { ReplayCapture } from "@/replay/capture";
 import { getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
+import { markMessageArrival } from "@/variant/duelDiagnostics";
 import { siteMessages } from "@/variant/messages";
 
 const manuallyClosed = new WeakSet<WebSocketStream>();
@@ -79,6 +80,7 @@ export class WebSocketStream {
         ws.onmessage = (event) => {
           if (owner.cancelled) return;
           owner.receivedMessages++;
+          markMessageArrival(owner, event);
           // Capture raw replay packets before slow UI animations consume the
           // stream; this independent framer never changes the online packets.
           if (event.data instanceof ArrayBuffer) {

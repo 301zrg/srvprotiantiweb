@@ -24,6 +24,8 @@ import { proxy, useSnapshot } from "valtio";
 import { sendSortCardResponse } from "@/api";
 import { CardMeta, getCardImgUrl } from "@/api/cards";
 import { getUIContainer } from "@/container/compat";
+import { useI18N } from "@/ui/I18N";
+import { duelInteractionMessages } from "@/variant/duelInteraction";
 
 import { NeosModal } from "../NeosModal";
 
@@ -41,9 +43,13 @@ const defaultProps = {
 };
 
 const localStore = proxy<SortCardModalProps>(defaultProps);
+// This dnd-kit version treats numeric id=0 as no active node. Keep wire indices
+// numeric, but give the drag UI a nonempty string id, including the first card.
+const sortId = (response: number) => `sort-${response}`;
 
 export const SortCardModal = () => {
   const { t } = useTranslation("ClientUI");
+  const { language } = useI18N();
   const container = getUIContainer();
   const { isOpen, options } = useSnapshot(localStore);
   const [items, setItems] = useState(options);
@@ -64,10 +70,15 @@ export const SortCardModal = () => {
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       setItems((items) => {
-        const oldIndex = items.findIndex((item) => item.response === active.id);
-        const newIndex = items.findIndex((item) => item.response === over?.id);
+        const oldIndex = items.findIndex(
+          (item) => sortId(item.response) === active.id,
+        );
+        const newIndex = items.findIndex(
+          (item) => sortId(item.response) === over.id,
+        );
+        if (oldIndex < 0 || newIndex < 0) return items;
         // @ts-ignore
         return arrayMove(items, oldIndex, newIndex);
       });
@@ -82,7 +93,20 @@ export const SortCardModal = () => {
     <NeosModal
       title={t("SortCards")}
       open={isOpen}
-      footer={<Button onClick={onFinish}>{t("Confirm")}</Button>}
+      zIndex={1300}
+      footer={
+        <>
+          <Button
+            data-testid="duel-sort-reset"
+            onClick={() => setItems(options)}
+          >
+            {duelInteractionMessages(language).sortReset}
+          </Button>
+          <Button data-testid="duel-sort-submit" onClick={onFinish}>
+            {t("Confirm")}
+          </Button>
+        </>
+      }
     >
       <DndContext
         sensors={sensors}
@@ -90,7 +114,7 @@ export const SortCardModal = () => {
         onDragEnd={onDragEnd}
       >
         <SortableContext
-          items={items.map((item) => item.response)}
+          items={items.map((item) => sortId(item.response))}
           strategy={verticalListSortingStrategy}
         >
           {items.map((item) => (
@@ -108,7 +132,7 @@ export const SortCardModal = () => {
 
 const SortableItem = (props: { id: number; meta: CardMeta }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: props.id });
+    useSortable({ id: sortId(props.id) });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -116,7 +140,14 @@ const SortableItem = (props: { id: number; meta: CardMeta }) => {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      data-testid="duel-sort-item"
+      data-sort-response={props.id}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
       <Card
         style={{ width: "6.25rem" }}
         cover={

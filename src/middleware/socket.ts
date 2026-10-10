@@ -5,6 +5,7 @@
  *
  * */
 import { WebSocketStream } from "@/infra";
+import { markActionSent } from "@/variant/duelDiagnostics";
 
 import handleSocketOpen from "../service/onSocketOpen";
 
@@ -31,6 +32,7 @@ export function sendSocketData(conn: WebSocketStream, payload: Uint8Array) {
   if (payload[2] === 2 && !conn.duelStarted)
     conn.initialDeckPayload = payload.slice();
   conn.ws.send(payload);
+  if (payload[2] === 1) markActionSent(conn);
 }
 
 export function closeSocket(conn: WebSocketStream) {

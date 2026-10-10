@@ -44,3 +44,32 @@ export function waitForDuelForeground(signal?: AbortSignal) {
     signal?.addEventListener("abort", finish, { once: true });
   });
 }
+
+/** Count visible time only; leaving the game releases the pending reveal. */
+export function waitForDuelDelay(duration: number, signal?: AbortSignal) {
+  if (duration <= 0 || signal?.aborted) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    let remaining = duration;
+    let started: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      signal?.removeEventListener("abort", finish);
+      resolve();
+    };
+    const onVisibility = () => {
+      clearTimeout(timer);
+      if (started !== undefined) remaining -= performance.now() - started;
+      started = undefined;
+      if (remaining <= 0 || signal?.aborted) finish();
+      else if (!document.hidden) {
+        started = performance.now();
+        timer = setTimeout(finish, remaining);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    signal?.addEventListener("abort", finish, { once: true });
+    onVisibility();
+  });
+}

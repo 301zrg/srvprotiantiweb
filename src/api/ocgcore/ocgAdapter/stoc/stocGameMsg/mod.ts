@@ -22,6 +22,7 @@ import MsgHintAdapter from "./hint";
 import MsgNewPhaseAdapter from "./newPhase";
 import MsgNewTurnAdapter from "./newTurn";
 import PENETRATE from "./penetrate";
+import MsgPlayerHintAdapter from "./playerHint";
 import MsgRecover from "./recover";
 import MsgReloadFieldAdapter from "./reloadField";
 import MsgRemoveCounter from "./removeCounter";
@@ -72,6 +73,11 @@ export default class GameMsgAdapter implements StocAdapter {
     if (func === GAME_MSG.MSG_CARD_HINT) {
       return new ygopro.YgoStocMsg({
         stoc_game_msg: MsgCardHintAdapter(gameData),
+      });
+    }
+    if (func === GAME_MSG.MSG_PLAYER_HINT) {
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: MsgPlayerHintAdapter(gameData),
       });
     }
     let gameMsg: any = new ygopro.StocGameMessage({}).toObject();

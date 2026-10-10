@@ -1,3 +1,4 @@
+import { CloseOutlined } from "@ant-design/icons";
 import { CheckCard } from "@ant-design/pro-components";
 import { Button, Segmented } from "antd";
 import { chunk } from "lodash-es";
@@ -5,16 +6,10 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
-import {
-  type CardMeta,
-  fetchStrings,
-  getCardStr,
-  Region,
-  sendSelectIdleCmdResponse,
-  sendSelectOptionResponse,
-} from "@/api";
-import { Container } from "@/container";
+import { sendSelectOptionResponse } from "@/api";
 import { getUIContainer } from "@/container/compat";
+import { useI18N } from "@/ui/I18N";
+import { duelInteractionMessages } from "@/variant/duelInteraction";
 
 import { NeosModal } from "../NeosModal";
 import styles from "./index.module.scss";
@@ -24,6 +19,7 @@ type Options = { info: string; response: number }[];
 const defaultStore = {
   title: "",
   isOpen: false,
+  active: false,
   min: 1,
   options: [] satisfies Options as Options,
 };
@@ -34,9 +30,10 @@ const MAX_NUM_PER_PAGE = 4;
 
 export const OptionModal = () => {
   const { t } = useTranslation("ClientUI");
-  const container = getUIContainer();
+  const { language } = useI18N();
+  const text = duelInteractionMessages(language);
   const snap = useSnapshot(store);
-  const { title, isOpen, min, options } = snap;
+  const { title, isOpen, min, options, active } = snap;
   // options可能太多，因此分页展示
   const [page, setPage] = useState(0);
   const maxPage = Math.ceil(options.length / MAX_NUM_PER_PAGE);
@@ -47,19 +44,18 @@ export const OptionModal = () => {
     const responses = selecteds.flat();
     if (responses.length > 0) {
       const response = responses.reduce((res, current) => res | current, 0); // 多个选择求或
-      sendSelectOptionResponse(container.conn, response);
-      rs();
+      submit(response);
     }
   };
 
   useEffect(() => {
+    setPage(0);
     setSelecteds(Array.from({ length: maxPage }).map((_) => []));
   }, [options]);
 
   const onQuickSelect = (response: number) => {
     if (store.min === 1) {
-      sendSelectOptionResponse(container.conn, response);
-      rs();
+      submit(response);
     }
   };
 
@@ -67,14 +63,36 @@ export const OptionModal = () => {
     <NeosModal
       title={title}
       open={isOpen}
+      zIndex={1300}
+      {...(active
+        ? { onCancel: () => rs(undefined), closeIcon: <CloseOutlined /> }
+        : {})}
       footer={
-        <Button
-          data-testid="duel-option-submit"
-          disabled={selecteds.flat().length !== min}
-          onClick={onSummit}
-        >
-          {t("Confirm")}
-        </Button>
+        <>
+          {active && (
+            <Button
+              data-testid="duel-active-option-cancel"
+              onClick={() => rs(undefined)}
+            >
+              {text.cancel}
+            </Button>
+          )}
+          <Button
+            data-testid="duel-option-reset"
+            onClick={() =>
+              setSelecteds(Array.from({ length: maxPage }, () => []))
+            }
+          >
+            {text.reset}
+          </Button>
+          <Button
+            data-testid="duel-option-submit"
+            disabled={selecteds.flat().length !== min}
+            onClick={onSummit}
+          >
+            {t("Confirm")}
+          </Button>
+        </>
       }
     >
       <div data-testid="duel-option-modal" data-option-min={min}>
@@ -137,47 +155,59 @@ const Selector: React.FC<{
     <></>
   );
 
-let rs: (v?: any) => void = () => {};
+let rs: (response: number | undefined) => void = () => {};
+let submit: (response: number) => void = () => {};
 export const displayOptionModal = async (
   title: string,
   options: Options,
   min: number,
 ) => {
+  store.active = false;
   store.title = title;
   store.options = options;
   store.min = min;
   store.isOpen = true;
-  await new Promise((resolve) => (rs = resolve));
+  const conn = getUIContainer().conn;
+  const response = await new Promise<number>((resolve) => {
+    rs = (value) => {
+      if (value !== undefined) {
+        submit = () => {};
+        resolve(value);
+      }
+    };
+    submit = (value) => {
+      sendSelectOptionResponse(conn, value);
+      rs(value);
+    };
+  });
   store.isOpen = false;
+  return response;
 };
 
-export const handleEffectActivation = async (
-  container: Container,
-  meta: CardMeta,
-  effectInteractivies: {
-    desc: string;
-    response: number;
-    effectCode: number | undefined;
-  }[],
+/** Choosing an active effect is a local draft, not SELECT_OPTION from Core. */
+export const displayActiveOptionModal = (
+  title: string,
+  options: Options,
+  signal: AbortSignal,
 ) => {
-  if (!effectInteractivies.length) {
-    return;
-  }
-  if (effectInteractivies.length === 1) {
-    // 如果只有一个效果，点击直接触发
-    sendSelectIdleCmdResponse(container.conn, effectInteractivies[0].response);
-  } else {
-    // optionsModal
-    const options = effectInteractivies.map((effect) => {
-      const effectMsg =
-        meta && effect.effectCode
-          ? getCardStr(meta, effect.effectCode & 0xf) ?? "[:?]"
-          : "[:?]";
-      return {
-        info: effectMsg,
-        response: effect.response,
-      };
-    });
-    await displayOptionModal(fetchStrings(Region.System, 556), options, 1); // 主动发动效果，所以不需要await，但是以后可能要留心
-  }
+  if (signal.aborted) return Promise.resolve(undefined);
+  store.title = title;
+  store.options = options;
+  store.min = 1;
+  store.active = true;
+  store.isOpen = true;
+  return new Promise<number | undefined>((resolve) => {
+    const abort = () => settle(undefined);
+    const settle = (value: number | undefined) => {
+      if (rs !== settle) return;
+      signal.removeEventListener("abort", abort);
+      rs = () => {};
+      submit = () => {};
+      store.isOpen = false;
+      resolve(value);
+    };
+    rs = settle;
+    submit = settle;
+    signal.addEventListener("abort", abort, { once: true });
+  });
 };

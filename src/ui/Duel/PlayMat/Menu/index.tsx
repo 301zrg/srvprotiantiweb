@@ -25,13 +25,7 @@ import { cloneElement, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
-import {
-  sendSelectBattleCmdResponse,
-  sendSelectIdleCmdResponse,
-  sendSelectSingleResponse,
-  sendSurrender,
-  ygopro,
-} from "@/api";
+import { sendSelectSingleResponse, sendSurrender, ygopro } from "@/api";
 import {
   ChainSetting,
   DEFAULT_REPLAY_ADVANCE_MASK,
@@ -52,8 +46,8 @@ import { useTranslation } from "react-i18next";
 import { getUIContainer } from "@/container/compat";
 import { useMobileInterface } from "@/hook";
 
-import { displayActionHistory } from "../../Message";
-import { clearAllIdleInteractivities, clearSelectInfo } from "../../utils";
+import { displayActionHistory, runActiveAction } from "../../Message";
+import { clearSelectInfo } from "../../utils";
 import { openChatBox } from "../ChatBox";
 
 const { useToken } = theme;
@@ -364,12 +358,13 @@ export const Menu = () => {
         label,
         disabled: disabled,
         onClick: () => {
-          if (isBattleCommandPhase(currentPhase)) {
-            sendSelectBattleCmdResponse(container.conn, response);
-          } else {
-            sendSelectIdleCmdResponse(container.conn, response);
-          }
-          clearAllIdleInteractivities();
+          void runActiveAction(container, () => ({
+            response,
+            responseSource: isBattleCommandPhase(currentPhase)
+              ? "battle"
+              : "idle",
+            label: label as string,
+          }));
         },
         "data-testid": `duel-phase-${phaseTestId(phase)}`,
         "data-phase": phaseTestId(phase),

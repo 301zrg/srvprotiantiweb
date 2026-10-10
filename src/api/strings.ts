@@ -44,7 +44,7 @@ export function getStrings(description: number): string {
   if (description < DESCRIPTION_LIMIT) {
     return fetchStrings(Region.System, description);
   }
-  const code = description >> 4;
+  const code = description >>> 4;
   const index = description & 0xf;
   return getCardStr(fetchCard(code), index) ?? "[?]";
 }
