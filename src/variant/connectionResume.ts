@@ -7,6 +7,7 @@ interface Resume {
   offered: boolean;
   joined: boolean;
   sent: boolean;
+  started: boolean;
   fieldExpected: boolean;
   fieldReceived: boolean;
   timers: Set<number>;
@@ -22,6 +23,15 @@ const offers = new Set([
   "이전 게임에 다시 연결됩니다. 이전 덱을 선택하십시오.",
   "これから先程のゲームに再接続します。 前回のデッキを選択して下さい。",
 ]);
+// The host broadcasts this only after its synchronous phase packets. For a
+// player who already submitted Side/rock-paper-scissors, no further selection
+// packet follows DUEL_START; this notice confirms that the wait is intentional.
+const completedNotices = [
+  "reconnected to the game",
+  "重新连接了",
+  "게임이 다시 연결되었습니다.",
+  "ゲームに再接続したよ",
+];
 
 export function prepareConnectionResume(
   conn: WebSocketStream,
@@ -35,6 +45,7 @@ export function prepareConnectionResume(
     offered: false,
     joined: false,
     sent: false,
+    started: false,
     fieldExpected,
     fieldReceived: false,
     timers: new Set(),
@@ -64,6 +75,14 @@ export function checkConnectionResume(
       .replace(/^\[Server\]:\s*/u, "")
       .replace(/\s+/gu, " ");
     if (offers.has(text)) resume.offered = true;
+    if (
+      resume.kind === "player" &&
+      resume.sent &&
+      resume.started &&
+      !resume.fieldExpected &&
+      completedNotices.some((suffix) => text.endsWith(` ${suffix}`))
+    )
+      finishConnectionResume(conn, true);
   }
   if (pb.msg === "stoc_join_game") resume.joined = true;
   if (
@@ -91,8 +110,9 @@ export function checkConnectionResume(
   )
     finishConnectionResume(conn, true);
   if (resume.kind === "player" && resume.sent) {
-    if (!resume.fieldExpected && pb.msg === "stoc_duel_start")
-      finishConnectionResume(conn, true);
+    // DUEL_START is also the prefix of a siding/pre-duel restoration. Wait
+    // until CHANGE_SIDE/SELECT_* is applied, or the host finishes the phase.
+    if (pb.msg === "stoc_duel_start") resume.started = true;
     if (
       pb.msg === "stoc_game_msg" &&
       pb.stoc_game_msg.gameMsg === "reload_field"

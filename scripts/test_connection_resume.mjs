@@ -70,7 +70,7 @@ for (const kind of ["player", "observer", "waiting"]) {
     assert.deepEqual(t.results, [false]);
   }
 }
-for (const phase of ["stoc_select_hand", "stoc_select_tp", "stoc_change_side", "stoc_duel_start"]) {
+for (const phase of ["stoc_select_hand", "stoc_select_tp", "stoc_change_side"]) {
   const t = fixture("player", false);
   t.packet("stoc_chat", { player: 8, msg: notices[0] });
   t.packet("stoc_join_game");
@@ -78,4 +78,24 @@ for (const phase of ["stoc_select_hand", "stoc_select_tp", "stoc_change_side", "
   assert.deepEqual(t.results, [true]);
   assert.equal(t.sent.length, 1);
 }
-console.log("PASS 14 recovery cases: four languages, frozen G1, complete field confirmation, role checks, expired rooms and pre-duel/Side phases");
+for (const suffix of ["reconnected to the game", "重新连接了", "ゲームに再接続したよ", "게임이 다시 연결되었습니다."]) {
+  const t = fixture("player", false);
+  t.packet("stoc_chat", { player: 8, msg: notices[0] });
+  t.packet("stoc_join_game");
+  t.packet("stoc_duel_start");
+  assert.deepEqual(t.results, [], "DUEL_START precedes CHANGE_SIDE and does not confirm the phase");
+  t.packet("stoc_chat", { player: 0, msg: `Tester ${suffix}` });
+  assert.deepEqual(t.results, [], "Player chat cannot complete a recovery");
+  t.packet("stoc_chat", { player: 14, msg: `[Server]: Tester ${suffix}\0` });
+  assert.deepEqual(t.results, [true], "A submitted/pre-duel wait completes at the host's post-phase notice");
+  assert.equal(t.sent.length, 1);
+}
+{
+  const t = fixture("player", false);
+  t.packet("stoc_chat", { player: 8, msg: notices[0] });
+  t.packet("stoc_join_game");
+  t.packet("stoc_duel_start");
+  t.packet("stoc_change_side");
+  assert.deepEqual(t.results, [true], "An unsubmitted Side restores as soon as CHANGE_SIDE is applied");
+}
+console.log("PASS 18 recovery cases: four languages, frozen G1, field confirmation, roles, expired rooms and ordered Side/pre-duel restoration");
