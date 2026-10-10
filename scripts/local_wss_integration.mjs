@@ -584,6 +584,67 @@ try {
       }
       console.log(`PASS ${label}: foreground recovered one connection`);
     }
+    async function nativeDeckReconnect(page) {
+      const packets = await page.evaluate(() => window.__networkSent);
+      const original = Buffer.from(packets.find((packet) => packet[2] === 2));
+      const bodySize = 8 + 4 * (original.readUInt32LE(3) + original.readUInt32LE(7));
+      const nativeDeck = Buffer.alloc(bodySize + 3);
+      nativeDeck.writeUInt16LE(bodySize + 1);
+      nativeDeck[2] = 2;
+      original.copy(nativeDeck, 3, 3, 3 + bodySize);
+      await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+        window.__duelSockets.at(-1).close();
+      });
+      await page.waitForTimeout(1200);
+      const native = net.connect({ host: "127.0.0.1", port: tcpPort });
+      try {
+        await new Promise((resolveRecovery, rejectRecovery) => {
+          let pending = Buffer.alloc(0), joined = false, field = false;
+          const timers = new Set();
+          const timer = setTimeout(() => rejectRecovery(new Error("Native-format TCP reconnect did not restore the field")), 15000);
+          const fail = (error) => { clearTimeout(timer); rejectRecovery(error); };
+          native.once("error", fail);
+          native.once("connect", () => {
+            // Synthetic test identity and join already acknowledged by the
+            // host. The reconnect deck itself uses the exact native format.
+            for (const opcode of [0x10, 0x12])
+              native.write(Buffer.from(packets.find((packet) => packet[2] === opcode)));
+          });
+          native.on("data", (data) => {
+            pending = Buffer.concat([pending, data]);
+            while (pending.length >= 3) {
+              const size = pending.readUInt16LE(0) + 2;
+              if (pending.length < size) break;
+              const packet = pending.subarray(0, size);
+              pending = pending.subarray(size);
+              if (packet[2] === 0x12 && !joined) {
+                joined = true;
+                native.write(nativeDeck);
+              }
+              if (packet[2] === 0x02) fail(new Error("Host rejected the native-format reconnect deck"));
+              if (packet[2] === 0x01 && packet[3] === 162) field = true;
+              if (field && packet[2] === 0x18) {
+                timers.add(packet[3]);
+                if (timers.size === 2) { clearTimeout(timer); resolveRecovery(); }
+              }
+            }
+          });
+        });
+        assert.deepEqual(original, nativeDeck, "G1 webpage upload matches native format byte-for-byte");
+      } finally {
+        native.destroy();
+      }
+      await page.waitForTimeout(1200);
+      await page.evaluate(() => {
+        delete document.hidden;
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      await expect(page.getByTestId("connection-alert")).toHaveCount(0, { timeout: 25000 });
+      await expect(page.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 15000 });
+      console.log("PASS Web -> native-format TCP -> Web reconnect: same frozen G1 deck, restored field and playable browser");
+    }
     async function joinSpectator(roomName, running, options = {}) {
       const spectatorContext = options.mobile
         ? await browser.newContext({
@@ -693,6 +754,7 @@ try {
         const uploads = await ordinaryA.evaluate(() => window.__networkSent.filter(p => p[2] === 2));
         assert.deepEqual(uploads, [initial, initial]);
         await expect(ordinaryA.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 15000 });
+        await nativeDeckReconnect(ordinaryA);
         const observer = await joinSpectator("LOCAL-WSS-ROOM", true, { keep: true, mobile: true });
         await recoverPage(observer, "Mobile observer history restore");
         assert.ok(!(await observer.evaluate(() => window.__networkSent)).some(p => [2,34,37].includes(p[2])));
@@ -759,13 +821,37 @@ try {
           });
           await recoverPage(loser, "TT siding restore uses original G1 deck", false);
           await expect(loser.getByTestId("side-confirm")).toBeVisible();
+          await expect(loser.getByTestId("side-confirm")).toBeEnabled();
           const uploads = await loser.evaluate(() => window.__networkSent.filter(p => p[2] === 2));
           assert.deepEqual(uploads, [initial, initial]);
+        }
+        if (resumeMode && label === "TT G3") {
+          // A fresh-page recovery has no saved SideStage. SRVPro reissues
+          // CHANGE_SIDE after the player manually authenticates with G1.
+          await loser.setViewportSize({ width: 390, height: 844 });
+          await loser.reload({ waitUntil: "domcontentloaded" });
+          await expect(loser.locator("#player-nickname")).toBeVisible({ timeout: 45000 });
+          await loser.locator("#player-nickname").fill("TTWebB$pass456");
+          await loser.locator("#room-name").fill("TT");
+          await loser.getByTestId("connect-submit").click();
+          await expect(loser.getByTestId("waitroom-ready-toggle")).toBeVisible({ timeout: 25000 });
+          await loser.getByTestId("waitroom-ready-toggle").click();
+          await expect(loser.getByTestId("side-page")).toBeVisible({ timeout: 15000 });
+          await expect(loser.getByTestId("side-confirm")).toBeEnabled();
+          console.log("PASS fresh-page TT siding reconnect opens an editable Side page");
         }
         const ownDeck = await loser.evaluate(() => sessionStorage.getItem("side_deck"));
         const otherDeck = await other.evaluate(() => sessionStorage.getItem("side_deck"));
         await loser.screenshot({ path: join(auditRoot, `tt-side-${label.replaceAll(" ", "-")}.png`) });
         await loser.getByTestId("side-confirm").click();
+        if (resumeMode && label === "TT G2") {
+          await expect(loser.getByTestId("side-confirm")).toBeDisabled();
+          await recoverPage(loser, "TT submitted Side reconnect waits without resubmitting", false);
+          await expect(loser.getByTestId("side-confirm")).toBeDisabled();
+          const uploads = await loser.evaluate(() => window.__networkSent.filter(p => p[2] === 2));
+          assert.equal(uploads.length, 4, "G1 + resume + manual Side + resume only");
+          assert.deepEqual(uploads.at(-1), uploads[0]);
+        }
         await other.bringToFront();
         assert.equal(await loser.evaluate(() => sessionStorage.getItem("side_deck")), ownDeck);
         assert.equal(await other.evaluate(() => sessionStorage.getItem("side_deck")), otherDeck);

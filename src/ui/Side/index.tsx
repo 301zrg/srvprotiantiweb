@@ -111,6 +111,11 @@ export const Component: React.FC = () => {
   };
 
   useEffect(() => {
+    if (stage === SideStage.SIDE_CHANGING) {
+      // Reconnect's DUEL_START prefix may temporarily set SIDE_CHANGED.
+      // CHANGE_SIDE is authoritative and reopens editing, including its hint.
+      setFeedback(undefined);
+    }
     if (stage === SideStage.SIDE_CHANGED) {
       setFeedback("sideChanged");
     }

@@ -41,6 +41,7 @@ import {
   resetUniverse,
   RoomStage,
   roomStore,
+  SideStage,
   sideStore,
 } from "@/stores";
 import { activeDeck, selectActiveDeck } from "@/stores/deckSelection";
@@ -80,6 +81,7 @@ export const Component: React.FC = () => {
   });
   const [pendingState, setPendingState] = useState<PlayerState>();
   const room = useSnapshot(roomStore);
+  const side = useSnapshot(sideStore);
   const me = room.getMePlayer();
   const ready = me?.state === PlayerState.READY;
   const observer = room.selfType === SelfType.OBSERVER;
@@ -122,8 +124,11 @@ export const Component: React.FC = () => {
     return () => window.clearTimeout(timeout);
   }, [pendingState, me?.state, room.errorMsg]);
   useEffect(() => {
-    if (room.stage === RoomStage.DUEL_START) navigate("/duel");
-  }, [room.stage, navigate]);
+    // A fresh-page/manual reconnect receives CHANGE_SIDE directly from the
+    // host; there is no previously mounted Duel page to navigate for us.
+    if (side.stage === SideStage.SIDE_CHANGING) navigate("/side");
+    else if (room.stage === RoomStage.DUEL_START) navigate("/duel");
+  }, [room.stage, side.stage, navigate]);
   useEffect(() => {
     if (room.errorMsg) {
       message.error(room.errorMsg);
