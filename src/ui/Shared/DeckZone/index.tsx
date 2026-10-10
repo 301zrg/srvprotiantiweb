@@ -30,6 +30,7 @@ export const DeckZone: React.FC<{
   onElementMouseUp: (event: DeckCardMouseUpEvent) => void;
   onDoubleClick?: (card: CardMeta) => void;
   onMoveCard?: (card: CardMeta, type: Type) => void;
+  getMoveLabel?: (card: CardMeta, type: Type) => string;
   onRemoveCard?: (card: CardMeta, type: Type) => void;
   is408?: boolean;
   compact?: boolean;
@@ -41,6 +42,7 @@ export const DeckZone: React.FC<{
   onElementMouseUp: onElementMouseUp,
   onDoubleClick,
   onMoveCard,
+  getMoveLabel,
   onRemoveCard,
   is408,
   compact = false,
@@ -98,7 +100,9 @@ export const DeckZone: React.FC<{
                   {onMoveCard && (
                     <Button
                       size="small"
-                      aria-label={`${text.move} ${card.text.name}`}
+                      aria-label={`${getMoveLabel?.(card, type) ?? text.move} ${
+                        card.text.name
+                      }`}
                       onClick={() => onMoveCard(card, type)}
                     >
                       {text.moveShort}
@@ -124,7 +128,7 @@ export const DeckZone: React.FC<{
                           ? [
                               {
                                 key: "move",
-                                label: text.move,
+                                label: getMoveLabel?.(card, type) ?? text.move,
                                 icon: <SwapOutlined />,
                                 onClick: () => onMoveCard(card, type),
                               },

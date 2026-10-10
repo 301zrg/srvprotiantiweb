@@ -4,8 +4,11 @@ declare const classNames: {
   readonly content: "content";
   readonly "deck-container": "deck-container";
   readonly title: "title";
+  readonly actions: "actions";
+  readonly help: "help";
+  readonly counts: "counts";
+  readonly feedback: "feedback";
   readonly "deck-zone": "deck-zone";
   readonly "detail-container": "detail-container";
-  readonly scrollHost: "scrollHost";
 };
 export = classNames;
