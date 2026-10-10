@@ -1,10 +1,30 @@
-import { siteStorage } from "./deployment";
+import { siteStorage, storageKey } from "./deployment";
 
 interface JoinForm {
   nickname: string;
   roomName: string;
 }
 let draft: JoinForm | undefined;
+const SESSION_KEY = storageKey("joinFormDraft");
+
+function savedDraft(): JoinForm | undefined {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null");
+    if (
+      value &&
+      typeof value.nickname === "string" &&
+      typeof value.roomName === "string"
+    )
+      return { nickname: value.nickname, roomName: value.roomName };
+  } catch {}
+}
+
+function saveDraft(value: JoinForm) {
+  try {
+    // Keep the exact form, including passwords, across reloads of this tab.
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(value));
+  } catch {}
+}
 
 function saved(key: string) {
   try {
@@ -15,7 +35,7 @@ function saved(key: string) {
 }
 
 export function readJoinForm(): JoinForm {
-  return (draft ??= {
+  return (draft ??= savedDraft() ?? {
     nickname: saved("playerNickname") ?? "",
     roomName: saved("playerRoomName") ?? "TT",
   });
@@ -23,7 +43,9 @@ export function readJoinForm(): JoinForm {
 
 export function saveJoinForm(change: Partial<JoinForm>) {
   draft = { ...readJoinForm(), ...change };
-  // Credentials stay in this tab's memory; cache only the public portions.
+  saveDraft(draft);
+  // The shared persistent cache keeps public portions; full inputs belong to
+  // this tab so another player's edits do not overwrite its credentials.
   for (const [field, key] of [
     ["nickname", "playerNickname"],
     ["roomName", "playerRoomName"],
@@ -36,6 +58,7 @@ export function saveJoinForm(change: Partial<JoinForm>) {
 
 export function clearJoinForm() {
   draft = { nickname: "", roomName: "" };
+  saveDraft(draft);
   for (const key of ["playerNickname", "playerRoomName"]) {
     try {
       // Remember an intentional reset so refreshing after spectating stays empty.

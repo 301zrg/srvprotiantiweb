@@ -90,6 +90,7 @@
     "test:session-resume": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --resume",
     "test:connection-resume": "node scripts/test_connection_resume.mjs",
     "test:update-deck-packet": "node scripts/test_update_deck_packet.mjs",
+    "test:join-form": "node scripts/test_join_form.mjs",
     "play:local-wss": "python scripts/build_environment_assets.py && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --manual",
     "check:environment": "python scripts/build_environment_assets.py && python scripts/check_environment_assets.py",
     "test:environment-snapshot": "node scripts/test_environment_snapshot.mjs",
