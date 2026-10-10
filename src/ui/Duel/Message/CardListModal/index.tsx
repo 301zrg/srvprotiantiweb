@@ -1,17 +1,13 @@
-import { Drawer, Space } from "antd";
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
-import { ygopro } from "@/api";
+import { fetchStrings, Region, ygopro } from "@/api";
 import { cardStore, CardType } from "@/stores";
 import { YgoCard } from "@/ui/Shared";
+import { DuelPanel } from "@/ui/Shared/DuelPanel";
 
 import { showCardModal } from "../CardModal";
-
-const CARD_WIDTH = "6.25rem";
-const DRAWER_WIDTH = "10rem";
-
-// TODO: 显示的位置还需要细细斟酌
+import styles from "./index.module.scss";
 
 const defaultStore = {
   zone: ygopro.CardZone.HAND,
@@ -44,29 +40,34 @@ export const CardListModal = () => {
   };
 
   return (
-    <Drawer
+    <DuelPanel
       open={isOpen}
       onClose={handleOkOrCancel}
-      // headerStyle={{ display: "none" }}
-      width={DRAWER_WIDTH}
-      style={{ maxHeight: "100%" }}
-      mask={false}
+      title={`${fetchStrings(Region.System, filterZone + 1000)} (${
+        cardList.length
+      })`}
+      testId="duel-card-list-panel"
+      compact
+      desktopWidth="160px"
     >
-      <div data-testid="duel-card-list" data-card-count={cardList.length}>
-        <Space direction="vertical">
-          {cardList.map((card) => (
-            <YgoCard
-              code={card.code}
-              // Card identity is server-owned, including recovered materials.
-              key={card.uuid}
-              targeted={card.targeted}
-              width={CARD_WIDTH}
-              onClick={() => showCardModal(card)}
-            />
-          ))}
-        </Space>
+      <div
+        className={styles.cards}
+        data-testid="duel-card-list"
+        data-card-count={cardList.length}
+      >
+        {cardList.map((card) => (
+          <button
+            type="button"
+            aria-label={card.meta.text.name || String(card.code)}
+            data-card-code={card.code}
+            key={card.uuid}
+            onClick={() => showCardModal(card)}
+          >
+            <YgoCard code={card.code} targeted={card.targeted} width="100%" />
+          </button>
+        ))}
       </div>
-    </Drawer>
+    </DuelPanel>
   );
 };
 

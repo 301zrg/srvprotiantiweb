@@ -547,7 +547,9 @@ try {
     await expect(cardOptions).toHaveCount(5);
     for (const card of await cardOptions.all())
       await bounds(card, viewport, 44, 44);
-    await cardOptions.last().tap();
+    await cardOptions.last().locator(".ant-pro-checkcard").tap();
+    await expect(page.getByTestId("duel-card-detail")).not.toBeVisible();
+    await cardOptions.last().getByTestId("duel-select-card-preview").tap();
     await bounds(page.getByTestId("duel-card-panel-close"), viewport, 44, 44);
     await page.getByTestId("duel-card-panel-close").tap();
     const selectionSubmit = page.locator(

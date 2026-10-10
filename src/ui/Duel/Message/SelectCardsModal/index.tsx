@@ -7,11 +7,14 @@ import { INTERNAL_Snapshot as Snapshot, useSnapshot } from "valtio";
 
 import { type CardMeta, Region, ygopro } from "@/api";
 import { fetchStrings } from "@/api";
+import { useMobileInterface } from "@/hook";
 import { CardType, isMe, matStore } from "@/stores";
+import { useI18N } from "@/ui/I18N";
 import { ScrollableArea, YgoCard } from "@/ui/Shared";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import { groupBy } from "../../utils";
-import { showCardModal } from "../CardModal";
+import { closeCardModal, showCardModal } from "../CardModal";
 import { NeosModal } from "../NeosModal";
 import styles from "./index.module.scss";
 
@@ -51,6 +54,8 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
   onFinish,
 }) => {
   const { t } = useTranslation("ClientUI");
+  const mobile = useMobileInterface();
+  const { language } = useI18N();
   const grouped = groupBy(selectables, (option) => option.location?.zone!);
   const [result, setResult] = useState<[ygopro.CardZone, Option[]][]>([]);
   const [submitable, setSubmitable] = useState(false);
@@ -112,6 +117,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
     if (max === 1 || single) {
       // if `max` is 1, it means that we can just select one,
       // so quick selection is possiable in this case.
+      closeCardModal();
       onSubmit([option]);
     }
   };
@@ -142,7 +148,13 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
       footer={
         <>
           {cancelable && (
-            <Button data-testid="duel-select-card-cancel" onClick={onCancel}>
+            <Button
+              data-testid="duel-select-card-cancel"
+              onClick={() => {
+                closeCardModal();
+                onCancel();
+              }}
+            >
               {cancelText}
             </Button>
           )}
@@ -150,7 +162,10 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
             <Button
               data-testid="duel-select-card-finish"
               type="primary"
-              onClick={onFinish}
+              onClick={() => {
+                closeCardModal();
+                onFinish();
+              }}
             >
               {finishText}
             </Button>
@@ -159,9 +174,10 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
             data-testid="duel-select-card-submit"
             type="primary"
             disabled={!submitable}
-            onClick={() =>
-              onSubmit([...mustSelects, ...result.map(([_, v]) => v).flat()])
-            }
+            onClick={() => {
+              closeCardModal();
+              onSubmit([...mustSelects, ...result.map(([_, v]) => v).flat()]);
+            }}
           >
             {submitText}
           </Button>
@@ -241,9 +257,25 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
                             })}
                             value={card}
                             onClick={() => {
-                              showCardModal(card);
+                              if (!mobile) showCardModal(card);
                             }}
                           />
+                          {mobile && (
+                            <Button
+                              className={styles.preview}
+                              data-testid="duel-select-card-preview"
+                              aria-label={`${
+                                mobileMessages(language).viewCard
+                              } ${card.meta.text.name}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                showCardModal(card);
+                              }}
+                              onDoubleClick={(event) => event.stopPropagation()}
+                            >
+                              {mobileMessages(language).viewCard}
+                            </Button>
+                          )}
                         </div>
                       </Tooltip>
                     ))}

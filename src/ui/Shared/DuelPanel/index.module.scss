@@ -35,6 +35,36 @@
 }
 
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+  .compact {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: calc(
+      var(--duel-menu-height, 60px) + 16px + env(safe-area-inset-bottom)
+    );
+    height: auto;
+    :global(.ant-drawer-content-wrapper) {
+      max-width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    :global(.ant-drawer-header) {
+      padding: 4px 8px;
+      gap: 8px;
+    }
+    :global(.ant-drawer-title) {
+      font-size: 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    :global(.ant-drawer-body) {
+      padding: 8px;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
   .panel {
     :global(.ant-drawer-header) {
       padding-top: max(8px, env(safe-area-inset-top));
@@ -56,11 +86,16 @@
     top: max(8px, env(safe-area-inset-top));
     left: calc(156px + env(safe-area-inset-left));
     right: max(8px, env(safe-area-inset-right));
-    bottom: calc(var(--duel-menu-height, 60px) + 16px + env(safe-area-inset-bottom));
+    bottom: calc(
+      var(--duel-menu-height, 60px) + 16px + env(safe-area-inset-bottom)
+    );
     height: auto;
     :global(.ant-drawer-content-wrapper) {
       max-width: 100%;
     }
+  }
+  .root.compact {
+    left: max(8px, env(safe-area-inset-left));
   }
   :global(body:has([data-testid="connection-alert"])) .root {
     top: 106px;

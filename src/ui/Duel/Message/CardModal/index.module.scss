@@ -56,6 +56,9 @@
   }
   .overview > :global(.ant-space-item):first-child {
     flex: none;
+    > div {
+      width: 72px !important;
+    }
   }
   .overview > :global(.ant-space-item):last-child {
     flex: 1;
@@ -79,6 +82,6 @@
 }
 @media (orientation: landscape) and (max-height: 600px) {
   .overview > :global(.ant-space-item):first-child > div {
-    width: 96px !important;
+    width: 64px !important;
   }
 }

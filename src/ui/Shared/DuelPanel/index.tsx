@@ -18,6 +18,8 @@ export function DuelPanel({
   zIndex,
   bodyClassName,
   placement = "right",
+  compact = false,
+  desktopWidth = "340px",
 }: {
   open: boolean;
   onClose: () => void;
@@ -27,6 +29,9 @@ export function DuelPanel({
   zIndex?: number;
   bodyClassName?: string;
   placement?: "left" | "right" | "bottom";
+  /** Nonblocking card inspector/list; leave the duel controls accessible. */
+  compact?: boolean;
+  desktopWidth?: string;
 }) {
   const mobile = useMobileInterface();
   const portrait = useMediaQuery("(orientation: portrait)");
@@ -38,18 +43,24 @@ export function DuelPanel({
       onClose={onClose}
       title={title}
       zIndex={zIndex}
-      placement={bottom ? "bottom" : placement}
+      placement={bottom ? "bottom" : mobile && compact ? "right" : placement}
       height={
         bottom
-          ? "min(calc(var(--neos-adaptive-height, 100dvh) * 0.65), 620px)"
+          ? compact && mobile
+            ? "min(calc(var(--neos-adaptive-height, 100dvh) * 0.34), 300px)"
+            : "min(calc(var(--neos-adaptive-height, 100dvh) * 0.65), 620px)"
           : undefined
       }
-      width={mobile ? "min(340px, 100vw)" : "340px"}
-      mask={mobile}
+      width={mobile ? `min(${compact ? 280 : 340}px, 100vw)` : desktopWidth}
+      mask={mobile && !compact}
       keyboard
       maskClosable
-      rootClassName={classNames(styles.root, { [styles.docked]: !mobile })}
+      rootClassName={classNames(styles.root, {
+        [styles.docked]: !mobile,
+        [styles.compact]: mobile && compact,
+      })}
       className={styles.panel}
+      closable={!compact}
       extra={
         <Button data-testid={`${testId}-close`} onClick={onClose}>
           {mobileMessages(language).close}
