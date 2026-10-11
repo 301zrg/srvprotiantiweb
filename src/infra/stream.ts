@@ -5,11 +5,17 @@
 
 // 同时执行器会不断地从流中获取event进行处理。
 import { YgoProPacketFramer } from "@/api/ocgcore/ocgAdapter/packet";
+import {
+  CTOS_TIME_CONFIRM,
+  STOC_DUEL_END,
+} from "@/api/ocgcore/ocgAdapter/protoDecl";
 import { ReplayCapture } from "@/replay/capture";
 import { getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { markMessageArrival } from "@/variant/duelDiagnostics";
 import { siteMessages } from "@/variant/messages";
+
+import { ConnectionControl } from "./connectionControl";
 
 const manuallyClosed = new WeakSet<WebSocketStream>();
 
@@ -30,6 +36,13 @@ export class WebSocketStream {
   resuming = false;
   onUnexpectedClose?: () => void;
   private opened = false;
+  private control = new ConnectionControl();
+  private createdAt = Date.now();
+  private lastReceivedAt = this.createdAt;
+
+  get confirmsTimeLimitsOnArrival() {
+    return this.control.confirmsTimeLimitsOnArrival;
+  }
 
   get signal() {
     return this.cancellation.signal;
@@ -81,6 +94,7 @@ export class WebSocketStream {
           if (owner.cancelled) return;
           owner.receivedMessages++;
           markMessageArrival(owner, event);
+          owner.lastReceivedAt = Date.now();
           // Capture raw replay packets before slow UI animations consume the
           // stream; this independent framer never changes the online packets.
           if (event.data instanceof ArrayBuffer) {
@@ -88,12 +102,14 @@ export class WebSocketStream {
             try {
               // The result dialog may block the UI queue. Record DUEL_END at
               // arrival so a normal finished match never starts a recovery.
-              if (
-                lifecycle
-                  .push(event.data)
-                  .some((packet) => packet.proto === 0x16)
-              )
-                owner.endedRoom = true;
+              for (const packet of lifecycle.push(event.data)) {
+                if (packet.proto === STOC_DUEL_END) owner.endedRoom = true;
+                if (
+                  owner.control.receive(packet) &&
+                  ws.readyState === WebSocket.OPEN
+                )
+                  ws.send(Uint8Array.of(1, 0, CTOS_TIME_CONFIRM));
+              }
             } catch {
               owner.protocolFailed = true;
             }
@@ -113,7 +129,21 @@ export class WebSocketStream {
             } (${ev.code})`;
           }
           // 后续可能根据断线原因做处理，先暴露出来
-          console.info("Websocket closed.", ev);
+          // Useful for correlating transport loss with a stalled presentation;
+          // never include identity, room/password, packet contents or close reason.
+          console.info("Websocket closed.", {
+            code: ev.code,
+            clean: ev.wasClean,
+            lifetimeMs: Date.now() - owner.createdAt,
+            quietForMs: Date.now() - owner.lastReceivedAt,
+            pendingMessages: owner.pendingMessages,
+            pendingPackets: owner.pendingPackets,
+            hidden: document.hidden,
+            online: navigator.onLine,
+            protocolFailed: owner.protocolFailed,
+            resuming: owner.resuming,
+            manual: owner.cancelled,
+          });
           // 下面这行注释掉，因为虽然websocket关掉了，但是已经收到的数据可能还在处理中
           controller.close();
           if (!owner.cancelled) owner.onUnexpectedClose?.();

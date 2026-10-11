@@ -7,7 +7,10 @@ export default function handleTimeLimit(
 ) {
   const context = container.context;
   context.matStore.timeLimits.set(timeLimit.player, timeLimit.left_time);
-  if (context.matStore.isMe(timeLimit.player)) {
+  if (
+    !container.conn.confirmsTimeLimitsOnArrival &&
+    context.matStore.isMe(timeLimit.player)
+  ) {
     sendTimeConfirm(container.conn);
   }
 }

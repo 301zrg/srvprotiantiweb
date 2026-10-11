@@ -38,13 +38,13 @@
 
 ## 当前计时与已有补偿
 
-计时裁定在服务端原生 YGOPro，不在浏览器。网页 [timeLimit.ts](../src/service/duel/timeLimit.ts) 收到己方 TIME_LIMIT 后按原协议发送 TIME_CONFIRM；不会报告一个自己想要的剩余时间。
+计时裁定在服务端原生 YGOPro，不在浏览器。2026-10-11 起，网页 [connectionControl.ts](../src/infra/connectionControl.ts) 在收到完整、合法的己方双人 TIME_LIMIT 时按原协议立即发送 TIME_CONFIRM；[timeLimit.ts](../src/service/duel/timeLimit.ts) 继续按队列更新显示，Tag 保留原路径。不会报告一个自己想要的剩余时间。修复与验收见 [掉线排查](connection-stability.md)。
 
 只读核对相邻项目 `srvprotianti/ygopro/gframe/single_duel.cpp`、`tag_duel.cpp`、`netserver.cpp` 与 `ygopro-server.coffee`：
 
 - 原生 TimerTick 在等待响应期间累计，TimeConfirm 对小于 10 秒且未超补偿预算的等候免扣；补偿预算由宿主时间初始化，后续按现有规则恢复。
 - 合格的响应会返还 1 秒，但有 `time_backed` 预算、宿主上限；重试、SELECT_UNSELECT_CARD、连锁不发动及部分阶段／洗牌操作不返还。不是每次点 UI 都可以加时。
-- 网页保序消费可能把 TIME_LIMIT 确认也放在此前动画后面；小于 10 秒的既有补偿可缓解一部分，但不能保证覆盖长时间后台或所有高延迟。
+- 2026-10-10 排查时，网页保序消费会把 TIME_LIMIT 确认放在此前动画后面；2026-10-11 的双人即时确认已绕过该等待，但无法在系统挂起 JavaScript 时发送，也不改变服务端补偿规则。
 - 源码存在补偿不等于正式服务器二进制必然是这一版。需要维护者核对部署来源，未读取私有配置或替换正式二进制。
 
 ## 如果线路仍慢，怎样补时

@@ -813,6 +813,14 @@ try {
           await expect.poll(() => page.url(), { timeout: 30000 }).toMatch(/#\/side/);
         }
         if (resumeMode && label === "TT G2") {
+          // This player is still editing while their opponent disconnects.
+          await other.getByTestId("deck-zone-main").locator("button:visible").first().click();
+          const peerDraft = () => other.locator('[data-testid^="deck-zone-"]').evaluateAll(
+            zones => zones.map(zone => Array.from(zone.querySelectorAll('[data-testid="deck-card"]'), card => card.dataset.cardCode)),
+          );
+          const draft = await peerDraft();
+          const editor = await other.getByTestId("side-scroll-area").boundingBox();
+          const peerUploads = await other.evaluate(() => window.__networkSent.filter(p => p[2] === 2).length);
           const initial = await loser.evaluate(() => window.__networkSent.find(p => p[2] === 2));
           await loser.evaluate(() => {
             const deck = JSON.parse(sessionStorage.getItem("side_deck"));
@@ -824,6 +832,12 @@ try {
           await expect(loser.getByTestId("side-confirm")).toBeEnabled();
           const uploads = await loser.evaluate(() => window.__networkSent.filter(p => p[2] === 2));
           assert.deepEqual(uploads, [initial, initial]);
+          await expect(other.getByTestId("side-confirm")).toBeEnabled();
+          assert.deepEqual(await peerDraft(), draft, "Opponent recovery preserves unsubmitted Side edits");
+          assert.deepEqual(await other.getByTestId("side-scroll-area").boundingBox(), editor, "Opponent recovery preserves editor dimensions");
+          assert.equal(await other.evaluate(() => window.__networkSent.filter(p => p[2] === 2).length), peerUploads, "Opponent recovery does not submit our Side");
+          await other.getByTestId("deck-zone-side").locator("button:visible").last().click();
+          console.log("PASS opponent Side disconnect/recovery preserves the other player's editor and draft");
         }
         if (resumeMode && label === "TT G3") {
           // A fresh-page recovery has no saved SideStage. SRVPro reissues
