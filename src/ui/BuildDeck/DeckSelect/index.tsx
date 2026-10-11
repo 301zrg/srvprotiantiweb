@@ -107,11 +107,7 @@ export const DeckSelect: React.FC<{
           onClick={() => onSelect(deck.deckName)}
         >
           {selected === deck.deckName && <div className={styles.selected} />}
-          <span
-            style={{ zIndex: 1, overflow: "hidden", textOverflow: "ellipsis" }}
-          >
-            {deck.deckName}
-          </span>
+          <span className={styles.deckName}>{deck.deckName}</span>
           <div className={styles.btns} style={{ opacity: 1, zIndex: 1 }}>
             <Button
               size="small"

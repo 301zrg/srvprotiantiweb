@@ -6,6 +6,7 @@ import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
 import { communityLinks } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
+import { localizedWebsiteUrl } from "@/variant/websiteLink";
 
 import styles from "./index.module.scss";
 
@@ -18,6 +19,7 @@ export const Component = () => {
   const navigate = useNavigate();
   const { language } = useI18N();
   const text = siteMessages(language);
+  const websiteUrl = localizedWebsiteUrl(communityLinks.website, language);
   return (
     <>
       <Background />
@@ -69,13 +71,18 @@ export const Component = () => {
             <h2 id="home-updates">{text.updatesTitle}</h2>
             <a
               className={styles.website}
-              href={communityLinks.website}
+              data-testid="ladder-website"
+              href={websiteUrl}
               target="_blank"
               rel="noopener noreferrer"
             >
               <span>{text.website}</span>
-              <span>{communityLinks.website}</span>
+              <span>{websiteUrl}</span>
             </a>
+            <p data-testid="website-features">{text.websiteFeatures}</p>
+            <p data-testid="website-client-advice">
+              {text.websiteClientAdvice}
+            </p>
             <p>{text.updatesText}</p>
             <p>{text.feedbackText}</p>
             <div className={styles.community}>

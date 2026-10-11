@@ -13,6 +13,7 @@ const folder = ".audit-tmp/mobile-ui/after";
 mkdirSync(folder, { recursive: true });
 const results = [];
 const errors = [];
+const deckOnly = process.argv.includes("--deck-only");
 
 async function bounds(locator, viewport, minWidth = 0, minHeight = 0) {
   await expect(locator).toBeVisible();
@@ -214,7 +215,9 @@ try {
       timeout: 60000,
     });
     await page.getByRole("button", { name: "编辑卡组", exact: true }).tap();
-    await expect(page.getByTestId("deck-name")).toHaveValue("1103-sample");
+    await expect(page.getByTestId("deck-name")).toHaveValue(
+      "1103-sample-Agents",
+    );
     await bounds(page.getByTestId("deck-save"), viewport, 44, 44);
     const density = await page
       .getByTestId("deck-zone-main")
@@ -388,6 +391,21 @@ try {
     const download = await downloadEvent;
     const exported = readFileSync(await download.path(), "utf8");
     assert.match(exported, /!side[\r\n]+69247929/);
+    if (deckOnly) {
+      results.push({
+        name,
+        viewport,
+        deckEditing:
+          "add/move/remove/save/export passed; portrait also preserves unsaved edits on rotation and all four language switches",
+        productionServerConnected: false,
+        scope: "deck-only",
+      });
+      console.log(
+        `PASS ${name}: touch deck editing, language/rotation preservation and YDK export`,
+      );
+      await context.close();
+      continue;
+    }
     await page.getByTestId("open-settings").tap();
     await expect(page.getByRole("dialog")).toBeVisible();
     await bounds(page.getByTestId("settings-close"), viewport, 44, 44);

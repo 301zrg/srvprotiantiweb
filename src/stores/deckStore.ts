@@ -1,4 +1,4 @@
-import { clear, createStore, del, values } from "idb-keyval";
+import { clear, createStore, del, get, set, values } from "idb-keyval";
 import { proxy } from "valtio";
 
 import { storageKey } from "@/variant/deployment";
@@ -9,6 +9,10 @@ const IDB_NAME = "decks";
 let deckIdb: ReturnType<typeof createStore> | undefined;
 const getDeckIdb = () =>
   (deckIdb ??= createStore(storageKey(IDB_NAME), IDB_NAME));
+let presetIdb: ReturnType<typeof createStore> | undefined;
+const getPresetIdb = () =>
+  (presetIdb ??= createStore(storageKey("deck-presets"), "meta"));
+const PRESET_VERSION = "tier1-20261012";
 
 export interface IDeck {
   deckName: string;
@@ -190,20 +194,41 @@ export const deckStore = proxy({
     } catch {
       deckStore.persistenceAvailable = false;
     }
-    if (!deckStore.decks.length) {
-      // 给玩家预设了几套卡组，一旦idb为空，就会给玩家添加这几套卡组
+    // Seed once for existing libraries too; later deletions stay deleted.
+    let seeded = false;
+    if (deckStore.persistenceAvailable) {
+      try {
+        seeded = !!(await get<boolean>(PRESET_VERSION, getPresetIdb()));
+      } catch {}
+    }
+    if (!seeded || !deckStore.decks.length) {
       const PRESET_DECKS: Record<string, { default: Omit<IDeck, "deckName"> }> =
-        import.meta.glob("/neos-assets/structure-decks/1103-sample.ydk", {
+        import.meta.glob("/neos-assets/structure-decks/1103-sample-*.ydk", {
           eager: true,
         });
       for (const key in PRESET_DECKS) {
         const deck = PRESET_DECKS[key].default;
         const deckName =
           key.split("/").pop()?.split(".").slice(0, -1).join(".") ??
-          "undefined"; // 从路径解析文件名
+          "undefined";
+        if (deckStore.get(deckName)) continue;
         const preset = { ...deck, deckName };
-        if (!deckStore.persistenceAvailable || !(await deckStore.add(preset)))
-          deckStore.decks.push(preset);
+        if (deckStore.persistenceAvailable && (await deckStore.add(preset)))
+          continue;
+        // A second tab may have inserted or edited this name while we loaded.
+        let existing: IDeck | undefined;
+        if (deckStore.persistenceAvailable) {
+          try {
+            existing = await get<IDeck>(deckName, getDeckIdb());
+          } catch {}
+        }
+        if (!existing) deckStore.persistenceAvailable = false;
+        deckStore.decks.push(existing ?? preset);
+      }
+      if (deckStore.persistenceAvailable) {
+        try {
+          await set(PRESET_VERSION, true, getPresetIdb());
+        } catch {}
       }
     }
   },

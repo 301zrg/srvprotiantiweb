@@ -13,11 +13,12 @@ declare const classNames: {
   readonly "search-cards-container": "search-cards-container";
   readonly "search-count": "search-count";
   readonly "editing-zone-name": "editing-zone-name";
-  readonly mobileTabs: "mobileTabs";
+  readonly mobileNavigation: "mobileNavigation";
   readonly scrollHost: "scrollHost";
   readonly detailHost: "detailHost";
   readonly deckName: "deckName";
   readonly editorActions: "editorActions";
+  readonly mobileTabs: "mobileTabs";
   readonly "ant-input-affix-wrapper": "ant-input-affix-wrapper";
 };
 export = classNames;

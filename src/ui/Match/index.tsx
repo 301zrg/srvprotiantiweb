@@ -12,6 +12,7 @@ import { localizeReplayText } from "@/replay/localizedText";
 import { resetUniverse, RoomStage, roomStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
+import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import {
   duelWebSocketUrl,
   type Language,
@@ -19,7 +20,7 @@ import {
 } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { clearJoinForm, readJoinForm, saveJoinForm } from "@/variant/joinForm";
-import { roomRulesUrl } from "@/variant/links";
+import { communityLinks, roomRulesUrl } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
 import {
   isRoomCommand,
@@ -27,6 +28,7 @@ import {
   type RoomLink,
   websiteObserverNickname,
 } from "@/variant/roomLink";
+import { localizedWebsiteUrl } from "@/variant/websiteLink";
 
 import styles from "./index.module.scss";
 import { connectSrvpro, disconnectSrvpro, finishSrvproReplays } from "./util";
@@ -109,6 +111,11 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   const { language } = useI18N();
   const text = siteMessages(language);
   const endpointError = validateDuelWebSocketUrl(language);
+  const roomListUrl = localizedWebsiteUrl(
+    communityLinks.website,
+    language,
+    "rooms.html",
+  );
 
   async function copyPublicValue(value: string) {
     // Sharing the public identity must never include account or room passwords.
@@ -230,7 +237,10 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           borderRadius: 12,
         }}
       >
-        <h1>{spectate ? text.spectate : text.connect}</h1>
+        <div className={styles.pageHeading}>
+          <h1>{spectate ? text.spectate : text.connect}</h1>
+          <MobileHomeLink />
+        </div>
         {spectate && connecting && (
           <p role="status">{text.spectatorLinkHint}</p>
         )}
@@ -314,6 +324,19 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
         {connection.state === "disconnected" && (
           <p role="alert">{connection.detail}</p>
         )}
+        <div className={styles.roomDirectory}>
+          <a
+            className={styles.roomRulesLink}
+            data-testid="room-list"
+            href={roomListUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span>{text.roomList}:</span>
+            <span>{roomListUrl}</span>
+          </a>
+          <p>{text.roomListHint}</p>
+        </div>
         <Button
           data-testid="connect-submit"
           type="primary"
