@@ -100,7 +100,7 @@
   user-select: none;
 }
 
-.mobileTabs {
+.mobileNavigation {
   display: none;
 }
 .scrollHost {
@@ -154,11 +154,18 @@
     padding: 0.5rem;
     gap: 0.5rem;
   }
+  .mobileNavigation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+  }
   .mobileTabs {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
-    flex: none;
+    flex: 1;
+    min-width: 0;
     button {
       height: 44px;
       padding: 0 4px;
@@ -248,7 +255,7 @@
     overscroll-behavior-y: contain;
     padding-bottom: calc(120px + env(safe-area-inset-bottom));
     scroll-padding-bottom: 60px;
-    .mobileTabs {
+    .mobileNavigation {
       margin-bottom: 8px;
     }
     .content .deck,

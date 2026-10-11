@@ -64,7 +64,7 @@ try {
     let downloads = 0;
     page.on("download", () => downloads++);
     await page.goto(origin + "/#/build", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("deck-name")).toHaveValue("1103-sample", {
+    await expect(page.getByTestId("deck-name")).toHaveValue("1103-sample-Agents", {
       timeout: 60000,
     });
     const manage = async () => {

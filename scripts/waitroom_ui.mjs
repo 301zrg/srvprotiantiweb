@@ -296,7 +296,7 @@ try {
     await click(
       page
         .locator(".ant-select-item-option")
-        .filter({ hasText: "1103-sample" }),
+        .filter({ hasText: "1103-sample-Agents" }),
     );
     await expect(ready).toHaveAttribute("data-player-ready", "false");
     assert.deepEqual(

@@ -71,7 +71,7 @@ try {
     await page.screenshot({ path: `.audit-tmp/${name}-match.png`, fullPage: true });
 
     await page.getByRole("button", { name: "编辑卡组" }).click();
-    await expect(page.getByTestId("deck-name")).toHaveValue("1103-sample", { timeout: 15000 });
+    await expect(page.getByTestId("deck-name")).toHaveValue("1103-sample-Agents", { timeout: 15000 });
     if (isMobile) await page.getByTestId("deck-tab-manage").click();
     await expect(page.getByTestId("deck-import-file")).toBeVisible();
     if (isMobile) await page.getByTestId("deck-tab-deck").click();

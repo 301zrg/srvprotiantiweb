@@ -30,6 +30,7 @@ import {
   ScrollableArea,
 } from "@/ui/Shared";
 import { Type } from "@/ui/Shared/DeckZone";
+import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { deckImportMessages } from "@/variant/deckImportMessages";
 import { deckMessages } from "@/variant/deckMessages";
 import { storageKey } from "@/variant/deployment";
@@ -157,29 +158,32 @@ export const Component: React.FC = () => {
         data-mobile-tab={mobileTab}
         style={{ width: "100%" }}
       >
-        <div
-          className={styles.mobileTabs}
-          role="tablist"
-          aria-label={mobileText.editDeck}
-        >
-          {(
-            [
-              ["manage", mobileText.manageDecks],
-              ["deck", mobileText.editDeck],
-              ["search", mobileText.searchCards],
-            ] as const
-          ).map(([tab, label]) => (
-            <Button
-              key={tab}
-              role="tab"
-              aria-selected={mobileTab === tab}
-              type={mobileTab === tab ? "primary" : "text"}
-              data-testid={`deck-tab-${tab}`}
-              onClick={() => setMobileTab(tab)}
-            >
-              {label}
-            </Button>
-          ))}
+        <div className={styles.mobileNavigation}>
+          <MobileHomeLink />
+          <div
+            className={styles.mobileTabs}
+            role="tablist"
+            aria-label={mobileText.editDeck}
+          >
+            {(
+              [
+                ["manage", mobileText.manageDecks],
+                ["deck", mobileText.editDeck],
+                ["search", mobileText.searchCards],
+              ] as const
+            ).map(([tab, label]) => (
+              <Button
+                key={tab}
+                role="tab"
+                aria-selected={mobileTab === tab}
+                type={mobileTab === tab ? "primary" : "text"}
+                data-testid={`deck-tab-${tab}`}
+                onClick={() => setMobileTab(tab)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
         </div>
         <div className={styles.sider} data-testid="deck-manage-panel">
           <ScrollableArea

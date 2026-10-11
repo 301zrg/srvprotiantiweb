@@ -24,6 +24,12 @@ const messages = {
       "本网页项目为开源、非盈利的爱好者项目。游戏王相关名称、卡图等素材的版权归各自权利人所有。如相关权利人提出要求，本网页可能随时调整或下架，敬请理解。",
     updatesTitle: "天梯服与后续更新",
     website: "天梯服官网",
+    websiteFeatures:
+      "你可以在这里看到当前全部决斗房间、查看天梯排名、搜索玩家对战记录、下载玩家对战录像及使用卡组、查看卡片及卡组使用率、查看主流卡组对战胜率",
+    websiteClientAdvice:
+      "如果你想要连接更加稳定，推荐使用更为专业的ygopro客户端并安装天梯助手，你可以在上述官网中找到下载链接",
+    roomList: "当前对战房间列表",
+    roomListHint: "你可以在这里查看其他玩家已经建立的房间",
     updatesText: "录像播放、对战动画及 UI 优化等更多功能，将在后续逐步更新。",
     feedbackText: "遇到问题或有建议？欢迎加入 Discord 或 QQ 群反馈交流。",
     discord: "Discord 群",
@@ -91,6 +97,12 @@ const messages = {
       "This is an open-source, non-profit fan project. Yu-Gi-Oh! names, card artwork and other materials belong to their respective rights holders. This website may be changed or taken offline at any time at their request. Thank you for your understanding.",
     updatesTitle: "Ladder server & upcoming updates",
     website: "Ladder website",
+    websiteFeatures:
+      "View all current duel rooms and ladder rankings, search player match records, download players' replays and decks, and check card and deck usage rates and matchup win rates for popular decks.",
+    websiteClientAdvice:
+      "For a more stable connection, we recommend using the dedicated YGOPRO client with the ladder assistant. Download links are available on the website above.",
+    roomList: "Current duel rooms",
+    roomListHint: "View rooms that other players have already created here.",
     updatesText:
       "Replay playback, duel animations, UI improvements, and more will be added in future updates.",
     feedbackText:
@@ -169,6 +181,12 @@ const messages = {
       "本サイトはオープンソース・非営利のファンプロジェクトです。遊戯王の名称、カード画像などの権利は各権利者に帰属します。権利者からの要請により、予告なく変更または公開を終了する場合があります。ご了承ください。",
     updatesTitle: "ランク戦サーバーと今後の更新",
     website: "ランク戦サーバー公式サイト",
+    websiteFeatures:
+      "現在のすべての対戦ルームやランキングの確認、プレイヤーの対戦記録の検索、リプレイと使用デッキのダウンロード、カード・デッキの使用率や主流デッキ間の対戦勝率の確認ができます。",
+    websiteClientAdvice:
+      "より安定した接続には、専用のYGOPROクライアントとランク戦アシスタントの利用をおすすめします。ダウンロードリンクは上記の公式サイトにあります。",
+    roomList: "現在の対戦ルーム一覧",
+    roomListHint: "他のプレイヤーが作成したルームをここで確認できます。",
     updatesText:
       "リプレイ再生、対戦アニメーション、UI の改善などは、今後の更新で順次追加予定です。",
     feedbackText:
@@ -240,6 +258,12 @@ const messages = {
       "이 웹사이트는 오픈 소스 비영리 팬 프로젝트입니다. 유희왕 명칭, 카드 이미지 등 자료의 권리는 각 권리자에게 있습니다. 권리자의 요청에 따라 언제든지 사이트를 변경하거나 운영을 중단할 수 있으니 양해 부탁드립니다.",
     updatesTitle: "래더 서버 및 향후 업데이트",
     website: "래더 서버 공식 사이트",
+    websiteFeatures:
+      "현재 모든 듀얼 방과 래더 순위를 확인하고, 플레이어 대전 기록을 검색하고, 리플레이와 사용 덱을 다운로드하고, 카드 및 덱 사용률과 주요 덱 간 대전 승률을 확인할 수 있습니다.",
+    websiteClientAdvice:
+      "더 안정적인 연결을 원한다면 전용 YGOPRO 클라이언트와 래더 도우미 사용을 권장합니다. 위 공식 사이트에서 다운로드 링크를 찾을 수 있습니다.",
+    roomList: "현재 대전 방 목록",
+    roomListHint: "다른 플레이어가 이미 만든 방을 여기에서 확인할 수 있습니다.",
     updatesText:
       "리플레이 재생, 대전 애니메이션, UI 개선 등의 기능은 향후 업데이트에서 순차적으로 추가할 예정입니다.",
     feedbackText:

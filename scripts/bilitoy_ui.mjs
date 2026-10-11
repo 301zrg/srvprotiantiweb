@@ -107,7 +107,7 @@ try {
     else await expect(frame.getByTestId("connect-submit")).toBeDisabled();
     // Never submit the online form or connect to the real server in this test.
     await frame.getByRole("button", { name: "编辑卡组" }).click();
-    await expect(frame.getByTestId("deck-name")).toHaveValue("1103-sample", { timeout: 15000 });
+    await expect(frame.getByTestId("deck-name")).toHaveValue("1103-sample-Agents", { timeout: 15000 });
     if (mobile) await frame.getByTestId("deck-tab-search").click();
     await frame.getByTestId("deck-search-input").fill("青眼白龙");
     await frame.getByTestId("deck-search-submit").click();
@@ -131,7 +131,7 @@ try {
     // An identical imported deck reuses the existing saved entry.
     await expect(frame.getByTestId("deck-name")).toHaveValue(savedName);
     await frame.goto(`${origin}/toy/square/456-v1/index.html#/build`, { waitUntil: "domcontentloaded" });
-    await expect(frame.getByTestId("deck-name")).toHaveValue("1103-sample", { timeout: 30000 });
+    await expect(frame.getByTestId("deck-name")).toHaveValue("1103-sample-Agents", { timeout: 30000 });
     assert.equal(await frame.evaluate(() => localStorage.getItem("language")), "en");
     const databases = await frame.evaluate(async () => (await indexedDB.databases()).map(db => db.name));
     assert.ok(databases.includes("decks") && databases.includes("srvprotiantiweb:bilitoy:square%2F123:decks") && databases.includes("srvprotiantiweb:bilitoy:square%2F456:decks"));
