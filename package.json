@@ -92,6 +92,7 @@
     "test:room-languages": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --languages",
     "test:session-resume": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --resume",
     "test:connection-resume": "node scripts/test_connection_resume.mjs",
+    "test:connection-health": "node scripts/test_connection_health.mjs",
     "test:update-deck-packet": "node scripts/test_update_deck_packet.mjs",
     "test:join-form": "node scripts/test_join_form.mjs",
     "test:duel-reveal-delay": "node scripts/test_duel_reveal_delay.mjs",

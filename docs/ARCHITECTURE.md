@@ -91,6 +91,9 @@ sequenceDiagram
 WSS 上传输 `uint16LE length + uint8 opcode + payload`，length 包含 opcode，
 没有额外 JSON、Base64 或 protobuf 封装。适配器处理粘包／半包和边界；protobuf 只作为内部类型。
 原始录像在网络到达时捕获，独立于可能等待动画的消费路径。
+双人 `TIME_LIMIT` 的合法完整包也在到达时按实际玩家身份与 controller 发送 `TIME_CONFIRM`，
+不等待动画、选择或结果弹窗；界面只按原队列更新时间。Tag 保留原确认路径。
+这不提前开放恢复操作，也不重发旧响应或换备提交，见 [掉线排查](connection-stability.md)。
 收尾时间有界，未收到的录像不能补录；具体等待和下载边界见 [录像使用](replay-usage.md)。
 
 昵称密码与房间密码分别发送到 `PLAYER_INFO.name`／`JOIN_GAME.pass`，房间字段保持原样。

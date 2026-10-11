@@ -65,15 +65,20 @@ try {
             return (
               code +
               `
-        import { initUIContainer as initSideFixture } from "@/container/compat";
-        import { sideStore as fixtureSideStore, SideStage as FixtureStage } from "@/stores";
+        import { initUIContainer as initSideFixture, getUIContainer as sideFixtureContainer } from "@/container/compat";
+        import handleSideFixtureMessage from "@/service/onSocketMessage";
+        import { roomStore as fixtureRoomStore, sideStore as fixtureSideStore, SideStage as FixtureStage } from "@/stores";
         window.__sideTest = {
           prepare(deck) {
             window.__sidePackets = [];
-            initSideFixture({ws:{readyState:1,send(packet){window.__sidePackets.push(Array.from(packet));}},cancelled:false,isClosed:false,duelStarted:true});
+            initSideFixture({ws:{readyState:1,send(packet){window.__sidePackets.push(Array.from(packet));}},cancelled:false,isClosed(){return false;},duelStarted:true});
             fixtureSideStore.setSideDeck(deck);
             fixtureSideStore.stage = FixtureStage.SIDE_CHANGING;
+            fixtureRoomStore.selfType = 1;
             location.hash = "#/side";
+          },
+          async receive(bytes) {
+            await handleSideFixtureMessage(sideFixtureContainer(), new MessageEvent("message", {data: Uint8Array.from(bytes).buffer}));
           },
           complete() { fixtureSideStore.stage = FixtureStage.SIDE_CHANGED; },
           selectTurn() { fixtureSideStore.stage = FixtureStage.TP_SELECTING; },
@@ -304,6 +309,33 @@ try {
         Object.values(changed).flat().sort(),
         Object.values(fixture).flat().sort(),
       );
+      // Reconnection/leave prefixes are not this player's Side submission.
+      // Keep the edited cards, scroll position, layout and enabled confirmation.
+      const beforeDisconnect = await page
+        .getByTestId("side-scroll-area")
+        .evaluate((element) => ({
+          top: element.scrollTop,
+          height: element.clientHeight,
+          width: element.clientWidth,
+        }));
+      for (const bytes of [
+        [1, 0, 21],
+        [1, 0, 8],
+        [1, 0, 21],
+      ]) {
+        await page.evaluate((bytes) => window.__sideTest.receive(bytes), bytes);
+        await expect(page.getByTestId("side-confirm")).toBeEnabled();
+        assert.deepEqual(await snapshot(), changed);
+        assert.deepEqual(
+          await page.getByTestId("side-scroll-area").evaluate((element) => ({
+            top: element.scrollTop,
+            height: element.clientHeight,
+            width: element.clientWidth,
+          })),
+          beforeDisconnect,
+        );
+        assert.deepEqual(await page.evaluate(() => window.__sidePackets), []);
+      }
       if (mobile && lang === "zh") {
         await page.setViewportSize({
           width: profile.height,
@@ -362,7 +394,6 @@ try {
         await page.evaluate(() => window.__sideTest.stored()),
         submitted,
       );
-      await page.evaluate(() => window.__sideTest.complete());
       await expect(page.getByTestId("side-confirm")).toBeDisabled();
       await expect(page.getByTestId("side-feedback")).toHaveAttribute(
         "role",
@@ -380,7 +411,34 @@ try {
         ...density,
         bottomReachable: true,
         exactPacket: true,
+        peerDisconnectPreservesEditor: true,
       });
+    }
+    if (profile.name === "desktop") {
+      // A rejection reopens the same draft; it never requires a remount/reset.
+      const submitted = await snapshot();
+      await page.evaluate(() =>
+        window.__sideTest.receive([9, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0]),
+      );
+      await expect(page.getByTestId("side-confirm")).toBeEnabled();
+      assert.deepEqual(await snapshot(), submitted);
+      await page.evaluate(() => window.__sideTest.receive([2, 0, 19, 7]));
+      await page.evaluate(() => window.__sideTest.receive([1, 0, 8]));
+      await expect(page.getByTestId("side-confirm")).toBeDisabled();
+      await page.evaluate((deck) => window.__sideTest.prepare(deck), fixture);
+      await page.evaluate(() => window.__sideTest.receive([2, 0, 19, 1]));
+      // Core may send DUEL_START + MSG_WIN + DUEL_END when the peer leaves
+      // permanently in Side. The result must be dismissible on this route.
+      await page.evaluate(() => {
+        void window.__sideTest.receive([1, 0, 21, 4, 0, 1, 5, 1, 4, 1, 0, 22]);
+      });
+      await expect(page.getByTestId("duel-end-modal")).toBeVisible();
+      await expect(page.getByTestId("duel-end-modal")).toHaveAttribute(
+        "data-duel-result",
+        "win",
+      );
+      await page.locator(".ant-modal-footer button").last().click();
+      await expect.poll(() => page.url()).toMatch(/#\/match/);
     }
     assert.equal(sockets, 0);
     assert.deepEqual(errors, []);

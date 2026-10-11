@@ -45,7 +45,7 @@ let session:
     }
   | undefined;
 let recovery: Promise<void> | undefined;
-let checking = false;
+let checking: WebSocketStream | undefined;
 let wasHidden = false;
 let installed = false;
 const delay = (ms: number) =>
@@ -195,28 +195,45 @@ function installForegroundRecovery() {
   if (installed) return;
   installed = true;
   const check = async () => {
-    if (document.hidden || checking || recovery || !session) return;
-    const conn = activeConnection;
-    if (!conn || (!session.resume && (conn.cancelled || !conn.joinedRoom)))
+    if (document.hidden || recovery || !session || navigator.onLine === false)
       return;
-    checking = true;
+    const conn = activeConnection;
+    if (
+      !conn ||
+      checking === conn ||
+      (!session.resume && (conn.cancelled || !conn.joinedRoom))
+    )
+      return;
+    checking = conn;
     try {
       if (conn.ws.readyState === WebSocket.OPEN) {
         // Safari can leave a dead socket reporting OPEN. A language command is
         // harmless and has a server acknowledgement, unlike replaying a move.
         const received = conn.receivedMessages;
-        try {
-          sendChat(conn, serverLanguageCommand(getLanguage()));
-        } catch {}
-        const until = Date.now() + 5000;
+        const probe = () => {
+          try {
+            sendChat(conn, serverLanguageCommand(getLanguage()));
+          } catch {}
+        };
+        probe();
+        // A five-second delayed reply is not proof of a dead cross-border
+        // connection. Probe once more before replacing the frozen session.
+        const retryAt = Date.now() + 5000;
+        const until = retryAt + 7000;
+        let retried = false;
         while (
           activeConnection === conn &&
           !document.hidden &&
           conn.ws.readyState === WebSocket.OPEN &&
           conn.receivedMessages === received &&
           Date.now() < until
-        )
+        ) {
+          if (!retried && Date.now() >= retryAt) {
+            retried = true;
+            probe();
+          }
           await delay(100);
+        }
         if (
           activeConnection !== conn ||
           document.hidden ||
@@ -226,7 +243,7 @@ function installForegroundRecovery() {
       }
       if (conn.ws.readyState !== WebSocket.CONNECTING) await reconnectSrvpro();
     } finally {
-      checking = false;
+      if (checking === conn) checking = undefined;
     }
   };
   document.addEventListener("visibilitychange", () => {

@@ -17,6 +17,7 @@
 | 手机布局与操作、等待与换备、对局反馈 | [手机界面](mobile-ui.md)、[准备页与双打范围](waitroom-ui.md)、[反馈修复](duel-feedback-fixes.md) |
 | 主动操作确认、必答草稿重置、宣言历史与手牌展示 | [对局取消与确认](duel-cancel-research.md)、[在线结果与手牌展示](duel-results.md) |
 | 网络等待、后台积压与被动延迟诊断 | [海外延迟与计时边界](overseas-latency.md) |
+| 反复掉线、计时确认与对手断线时的换备 | [连接稳定性排查与修复](connection-stability.md) |
 | 当前外部静态站点发布与 WSS 运维 | [公开配置与迁址](public-deployment-config.md)、[自动部署](cloudflare-ci.md)、[现有服务器上线测试](current-server-online-test.md)、[证书交接](wss-certificate-handoff.md)、[PM2 临时隧道](pm2-quick-tunnel.md) |
 | 其他托管平台的可行性 | [BiliToy](bilitoy-feasibility.md)、[微信](wechat-feasibility.md) |
 | 上游、早期审查与历史施工 | [上游审计](upstream-audit.md)、[官网交接调研](website-replay-deck-handoff-research.md)、[归档索引](archive/README.md) |

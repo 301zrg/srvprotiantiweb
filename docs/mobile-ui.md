@@ -69,4 +69,6 @@ npm run package:test -- --wss-url $env:VITE_DUEL_WS_URL --site-origin https://oc
 
 ## 手机上仍需亲自核验
 
+2026-10-11：修复断线相关前缀导致的提前换备完成，保持未提交草稿、编辑区尺寸、滚动和确认按钮状态；四语 × 四尺寸回归通过。服务器拒绝后可继续编辑，最终离场的 Side 结果可正常关闭。原因与完整验证边界见 [连接稳定性排查](connection-stability.md)。
+
 Edge 触控模拟已经能验证布局和操作事件，但不能证明 Android Chrome／iOS Safari 上的文件选择、下载、输入法、刘海手势区、后台恢复和音频行为。需在两类真机上横竖屏完成完整比赛及换备。正式服禁表 hash 差异已定位并准备修正版，正式替换与复验见 [禁表修正](banlist-diagnosis.md)；界面调整没有改变卡池或禁表。
