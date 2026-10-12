@@ -5,7 +5,7 @@ import { publicOperatorConfigFromEnvironment, writePublicOperatorConfig } from "
 // CI has no .env.local. A missing endpoint must fail before replacing the live site.
 let publicConfig;
 try {
-  publicConfig = publicOperatorConfigFromEnvironment(process.env, { requireWss: true });
+  publicConfig = publicOperatorConfigFromEnvironment(process.env, { requireWss: true, requireAll: true });
 } catch (error) {
   console.error(error.message);
   process.exit(1);
@@ -32,6 +32,8 @@ writeFileSync(
         encoding: "utf8",
       }).trim(),
       builtAt: new Date().toISOString(),
+      basePath: "/",
+      sourceDirty: Boolean(execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim()),
       ...publicConfig,
     },
     null,

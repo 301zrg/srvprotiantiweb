@@ -10,6 +10,11 @@
 | `VITE_DECK_IMPORT_ORIGINS` | `--deck-import-origins` | `deckImportOrigins` | 未设置则不写此字段，沿用原有 `http://121.4.34.71:7922`、`https://duel.ygomatch.xyz`；`[]` 显式禁用卡组及录像消息交接 |
 | `VITE_WEBSITE_BASE_URL` | `--website-base-url` | `websiteBaseUrl` | 未设置沿用首页官网链接 `http://121.4.34.71:7922/` |
 
+上述回退只适用于开发和既有手工测试入口。`build:cloudflare` 现在必须显式提供三项变量，
+缺少官网或来源白名单也会在构建前失败；`[]` 仍是主动禁用消息交接的有效选择。
+全新 HTTPS 服务器的正式包也须显式提供三项，并用服务端 `ops/scripts/deployment.py web-artifact`
+核对最终产物，不能靠测试包的旧 HTTP 回退完成迁址。
+
 Python 参数优先于同名环境变量。白名单输入为 JSON 数组字符串，每项必须是 `http://` 或 `https://` 的精确 origin，不能含路径、尾部 `/`、通配符、凭据、查询或 fragment。大小写、默认端口等必须已规范化为浏览器实际 `location.origin`；例如 `https://ladder.example.com`，不是 `https://LADDER.example.com:443/`。空字符串、`null`、对象和非字符串成员都会使发布失败，防止误写时默默恢复旧白名单。
 
 WSS 必须为完整 `wss://主机/neos` 一类地址，不允许凭据、查询、fragment、反斜杠或内部空白。官网链接允许 HTTP／HTTPS 路径，例如 `https://ladder.example.com/ladder/`，不允许凭据、查询或 fragment。官网链接与消息白名单独立：改变链接不会自动授权新官网来源。
