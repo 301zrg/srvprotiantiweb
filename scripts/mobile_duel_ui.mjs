@@ -1,12 +1,16 @@
 // Synthetic touch fixtures: no production socket, credentials, or player decks.
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+
 import { chromium, expect } from "@playwright/test";
 import { build, preview } from "vite";
 
 const before = process.argv.includes("--capture-before");
-const folder = `.audit-tmp/mobile-duel-ui/${before ? "before" : "after"}`;
+const cardCloseOnly = process.argv.includes("--card-close-only");
+const folder = `.audit-tmp/mobile-duel-ui/${
+  cardCloseOnly ? "card-close-only" : before ? "before" : "after"
+}`;
 const outDir = `${folder}/web-dist`;
 const fixtureCode = `
 import { initUIContainer as initFixture } from "@/container/compat";
@@ -16,6 +20,7 @@ import { showCardModal as fixtureDetail } from "@/ui/Duel/Message/CardModal";
 import { displayCardListModal as fixtureList } from "@/ui/Duel/Message/CardListModal";
 import { displaySimpleSelectCardsModal as fixtureSelect } from "@/ui/Duel/Message/SimpleSelectCardsModal";
 import { displaySelectActionsModal as fixtureMulti } from "@/ui/Duel/Message/SelectActionsModal";
+const makeCard = (zone,sequence,code,position=fixtureProtocol.CardPosition.FACEUP_ATTACK,controller=0) => ({uuid:"touch-"+zone+"-"+sequence,code,meta:fixtureCard(code),location:{controller,zone,sequence,position,is_overlay:false},idleInteractivities:zone===fixtureProtocol.CardZone.HAND?[{interactType:FixtureInteract.SUMMON,response:13}]:[],counters:{1:3},isToken:false,targeted:false,status:0,selectInfo:{selectable:false,selected:false}});
 window.__mobileTest = {
   lobby(mode = 0) {
     window.__mobilePackets = [];
@@ -39,9 +44,14 @@ window.__mobileTest = {
     matFixture.initInfo.me.life = 8000; matFixture.initInfo.op.life = 8000;
     matFixture.selfType = 1; matFixture.currentPlayer = 0;
     matFixture.phase.currentPhase = fixtureProtocol.StocGameMessage.MsgNewPhase.PhaseType.MAIN1;
-    const makeCard = (zone,sequence,code) => ({uuid:"touch-"+zone+"-"+sequence,code,meta:fixtureCard(code),location:{controller:0,zone,sequence,position:fixtureProtocol.CardPosition.FACEUP_ATTACK,is_overlay:false},idleInteractivities:zone===fixtureProtocol.CardZone.HAND?[{interactType:FixtureInteract.SUMMON,response:13}]:[],counters:{1:3},isToken:false,targeted:false,status:0,selectInfo:{selectable:false,selected:false}});
     cardFixture.inner = [...Array.from({length:5},(_,i)=>makeCard(fixtureProtocol.CardZone.HAND,i,69247929)),...Array.from({length:15},(_,i)=>makeCard(fixtureProtocol.CardZone.EXTRA,i,44508094))];
     location.hash = "#/duel";
+  },
+  spectatorDuel() {
+    this.duel();
+    matFixture.selfType = fixtureProtocol.StocTypeChange.SelfType.OBSERVER;
+    roomFixture.selfType = fixtureProtocol.StocTypeChange.SelfType.OBSERVER;
+    cardFixture.inner.push(makeCard(fixtureProtocol.CardZone.MZONE,0,44508094,fixtureProtocol.CardPosition.FACEDOWN_DEFENSE));
   },
   detail() { fixtureDetail(cardFixture.inner[0]); },
   list() { fixtureList({isZone:true,zone:fixtureProtocol.CardZone.EXTRA,controller:0}); },
@@ -61,6 +71,9 @@ const profiles = [
   { name: "small-landscape", width: 568, height: 320 },
   { name: "desktop", width: 1280, height: 800 },
 ];
+const activeProfiles = cardCloseOnly
+  ? profiles.filter((profile) => profile.name !== "desktop")
+  : profiles;
 let browser, server;
 const reports = [],
   errors = [];
@@ -98,7 +111,7 @@ try {
       process.env.PLAYWRIGHT_BROWSER_EXECUTABLE ||
       (existsSync(edge) ? edge : undefined),
   });
-  for (const profile of profiles) {
+  for (const profile of activeProfiles) {
     const mobile = profile.name !== "desktop";
     const context = await browser.newContext({
       viewport: { width: profile.width, height: profile.height },
@@ -116,7 +129,9 @@ try {
     });
     const page = await context.newPage();
     page.on("pageerror", (error) => errors.push(error.message));
-    for (const lang of before ? ["zh"] : ["zh", "en", "ja", "ko"]) {
+    for (const lang of cardCloseOnly || before
+      ? ["zh"]
+      : ["zh", "en", "ja", "ko"]) {
       console.log(`Mobile duel ${profile.name} / ${lang}`);
       await page.goto(`${origin}?lang=${lang}#/`, {
         waitUntil: "domcontentloaded",
@@ -172,6 +187,31 @@ try {
       }
       await page.evaluate(() => window.__mobileTest.duel());
       await expect(page.getByTestId("duel-menu")).toBeVisible();
+      if (cardCloseOnly) {
+        await page.evaluate(() => window.__mobileTest.spectatorDuel());
+        const facedownCard = page.locator(
+          '[data-testid="duel-card"][data-card-zone="MZONE"][data-card-position="FACEDOWN_DEFENSE"]',
+        );
+        await expect(facedownCard).toBeVisible();
+        await facedownCard.tap();
+        await expect(page.getByTestId("duel-card-detail")).toBeVisible();
+        const close = page.getByTestId("duel-card-panel-close");
+        await expect(close).toBeVisible();
+        await expect(close.locator("svg")).toBeVisible();
+        const closeBounds = await close.boundingBox();
+        assert.ok(closeBounds.width >= 44 && closeBounds.height >= 44);
+        await page.waitForTimeout(400);
+        await page.screenshot({
+          path: `${folder}/${profile.name}-spectator-facedown-card.png`,
+        });
+        await close.tap();
+        await expect(page.getByTestId("duel-card-panel")).not.toBeVisible();
+        reports.push({
+          profile: profile.name,
+          facedownCloseBounds: closeBounds,
+        });
+        break;
+      }
       if (!before && mobile) {
         const packetCount = await page.evaluate(
           () => window.__mobilePackets.length,
@@ -258,9 +298,14 @@ try {
           await expect(page.getByTestId("duel-card-panel")).not.toBeVisible();
           await options.first().getByTestId("duel-select-card-preview").tap();
           await expect(page.getByTestId("duel-card-panel")).toBeVisible();
-          assert.equal(await page.evaluate(() => window.__mobileSelected), null);
+          assert.equal(
+            await page.evaluate(() => window.__mobileSelected),
+            null,
+          );
           await page.getByTestId("duel-card-panel-close").tap();
-          await expect(options.first().locator(".ant-pro-checkcard")).toHaveClass(/ant-pro-checkcard-checked/);
+          await expect(
+            options.first().locator(".ant-pro-checkcard"),
+          ).toHaveClass(/ant-pro-checkcard-checked/);
         } else {
           await options.first().click();
           await page.getByTestId("duel-card-panel-close").click();

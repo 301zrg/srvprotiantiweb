@@ -71,6 +71,7 @@ export const CardModal = () => {
       testId="duel-card-panel"
       zIndex={1100}
       compact
+      closeControl="icon"
     >
       <div
         className={styles.container}
