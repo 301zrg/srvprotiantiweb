@@ -3,5 +3,6 @@ declare const classNames: {
   readonly cardname: "cardname";
   readonly cardcover: "cardcover";
   readonly cardlimit: "cardlimit";
+  readonly reorderHandle: "reorderHandle";
 };
 export = classNames;
