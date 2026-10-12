@@ -1,3 +1,4 @@
+import { CloseOutlined } from "@ant-design/icons";
 import { Button, Drawer } from "antd";
 import classNames from "classnames";
 import { type ReactNode } from "react";
@@ -19,6 +20,7 @@ export function DuelPanel({
   bodyClassName,
   placement = "right",
   compact = false,
+  closeControl = "button",
   desktopWidth = "340px",
 }: {
   open: boolean;
@@ -31,6 +33,7 @@ export function DuelPanel({
   placement?: "left" | "right" | "bottom";
   /** Nonblocking card inspector/list; leave the duel controls accessible. */
   compact?: boolean;
+  closeControl?: "button" | "icon";
   desktopWidth?: string;
 }) {
   const mobile = useMobileInterface();
@@ -60,11 +63,27 @@ export function DuelPanel({
         [styles.compact]: mobile && compact,
       })}
       className={styles.panel}
-      closable={!compact}
+      closable={
+        closeControl === "icon"
+          ? {
+              closeIcon: (
+                <span
+                  className={styles.iconClose}
+                  data-testid={`${testId}-close`}
+                >
+                  <CloseOutlined />
+                </span>
+              ),
+              "aria-label": mobileMessages(language).close,
+            }
+          : !compact
+      }
       extra={
-        <Button data-testid={`${testId}-close`} onClick={onClose}>
-          {mobileMessages(language).close}
-        </Button>
+        closeControl === "button" ? (
+          <Button data-testid={`${testId}-close`} onClick={onClose}>
+            {mobileMessages(language).close}
+          </Button>
+        ) : undefined
       }
     >
       <div
