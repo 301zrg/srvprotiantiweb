@@ -38,3 +38,22 @@ MSG_CONFIRM_CARDS 展示手牌时，翻开并移出手牌后增加短暂停留�
 - npm run test:duel-feedback：既有断线提示、禁止令、场上数据和观战视角回归。
 
 仅使用合成身份与消息，不连接正式 WSS。触控尺寸不是 iOS／Android 真机证据，具体本轮结果记入 PR。
+
+## 2026-10-12 滑槽修复发布证据
+
+[PR #29](https://github.com/301zrg/srvprotiantiweb/pull/29) 将修复提交 `76eeb8cf` 合入
+`deploy/cloudflare`，生产提交为 `3335910495079257475ce3cc4f55ad8be4c93457`。
+Cloudflare 预览构建 `c8b67e6a-d9b3-44b4-a57c-6e5d7acc0572` 与生产构建
+`cfd3622e-3f1b-4f5b-ac67-2287e8071d0b` 均为 success。
+
+修复前的合成原生封包复现四张已展示候选全部变成 0；修复后新增选卡回归和既有四语
+历史／真实展示动画回归均在桌面、手机竖屏和横屏 3/3 通过。类型检查、393 项手写源码 lint、
+展示停留时钟、5 项动画任务测试及完整 Cloudflare 构建通过。隔离工作树位于
+`.audit-tmp/dustshoot-release/`；所有浏览器注入只用于测试构建，正常产物没有测试入口。
+
+[正式部署信息](https://ocg1103nexus.com/deployment-info.json) 的来源提交已匹配上述生产提交，
+35 项 JS/CSS 的完整 SHA 与本地正常构建一致。未拦截正式 HTTP 响应或覆盖公开配置，
+四语 × 桌面／手机竖屏共 8 组首页、联机表单和示例卡组页面通过，无脚本错误。
+原 WSS 配置未改变，正式网页 Origin 的可信 TLS/WSS 101 握手通过，耗时 1377 ms。
+生产报告与截图位于该工作树 `.audit-tmp/revealed-hand/production/`。
+没有发送玩家登录或入房封包，没有运行真实滑槽对局，也未做 Android／iOS 真机验收。
