@@ -106,6 +106,11 @@ WSS 上传输 `uint16LE length + uint8 opcode + payload`，length 包含 opcode�
 用户于 2026-10-10 决定暂不实施 B，保留连续动画，接受长时间后台／慢消费的积压；
 本次没有改变队列、在线封包或动画。这个决定与只读录像展示队列是不同事项。
 
+在线手牌确认后的临时身份由 `CardType.confirmedHandCode` 持有，只有选卡元数据读取它；
+场地仍按服务器 `code`／`meta` 展示。洗手牌、移动、连锁结束与回合切换清理，场面重建
+丢弃旧卡片实例，不落入浏览器存储或 Replay 状态。消息顺序及 UI／service／store 关系
+沿用上图，具体选卡与隐藏边界见 [在线结果](duel-results.md)。
+
 ## 离线录像重演
 
 ```mermaid

@@ -37,6 +37,7 @@ export default async (
 
   await Promise.all(
     targetCards.map(async (card, index) => {
+      delete card.confirmedHandCode;
       const code = codes[index];
       if (code === undefined) {
         console.warn(

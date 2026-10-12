@@ -28,5 +28,6 @@ export default (
   // TODO: 这里每次都要全部遍历一遍，后续可以优化下
   for (const card of context.cardStore.inner) {
     card.targeted = false;
+    delete card.confirmedHandCode;
   }
 };
