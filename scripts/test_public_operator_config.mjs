@@ -18,6 +18,12 @@ const input = {
   websiteBaseUrl: "https://ladder.example.com/",
 };
 
+test("deployment rejects omitted inputs without changing legacy development defaults", () => {
+  assert.throws(() => resolvePublicOperatorConfig({duelWebSocketUrl: input.duelWebSocketUrl}, {requireWss: true, requireAll: true}));
+  assert.deepEqual(resolvePublicOperatorConfig({duelWebSocketUrl: input.duelWebSocketUrl}), {duelWebSocketUrl: input.duelWebSocketUrl});
+  assert.deepEqual(resolvePublicOperatorConfig(input, {requireWss: true, requireAll: true}), input);
+});
+
 test("missing origins preserve legacy defaults; an explicit empty array disables message import", () => {
   assert.deepEqual(resolvePublicOperatorConfig({}), { duelWebSocketUrl: "" });
   assert.deepEqual(resolvePublicOperatorConfig({ deckImportOrigins: "[]" }), {

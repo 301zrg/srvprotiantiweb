@@ -8,6 +8,16 @@
 
 ## 本地静态试用
 
+新维护者须明确取部署分支：默认 `main` 与 `deploy/cloudflare` 已分叉，不能照最新发布手册直接使用默认 clone。
+核对基线为 `6c76a2f694872f8f3140477da4b1510b562035be`；后续使用包含已审核整改的完整提交，并记录实际 SHA：
+
+```sh
+git clone --branch deploy/cloudflare https://github.com/301zrg/srvprotiantiweb.git
+cd srvprotiantiweb
+git checkout --detach REPLACE_WITH_REVIEWED_FULL_COMMIT_SHA
+git rev-parse HEAD
+```
+
 安装 Node.js 和 npm；这条路径使用仓库内固定资源，不需要 Python、Emscripten 或初始化 git submodule：
 
 ```sh
