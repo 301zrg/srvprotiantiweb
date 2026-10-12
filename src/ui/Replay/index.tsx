@@ -16,6 +16,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
+import { useMobileInterface } from "@/hook";
 import type { ReplayFrame } from "@/replay/engine";
 import { MAX_REPLAY_BYTES } from "@/replay/format";
 import { sha256 } from "@/replay/hash";
@@ -39,6 +40,7 @@ import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
+import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { type Language, languageLocales } from "@/variant";
 
 import { ReplayAudio } from "./audio";
@@ -209,6 +211,7 @@ export function Component() {
 function Library({ text }: { text: string[] }) {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<ReplayEntry[]>([]),
     [occurrences, setOccurrences] = useState<ReplayOccurrence[]>([]),
     [search, setSearch] = useState(""),
@@ -217,7 +220,6 @@ function Library({ text }: { text: string[] }) {
     [error, setError] = useState(""),
     [editing, setEditing] = useState<ReplayEntry>(),
     [title, setTitle] = useState("");
-  const navigate = useNavigate();
   const matching = entries.filter((e) =>
     e.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
   );
@@ -259,7 +261,7 @@ function Library({ text }: { text: string[] }) {
     <main className="replay-page">
       <header className="replay-header">
         <h1>{text[0]}</h1>
-        <Button onClick={() => navigate("/")}>{text[6]}</Button>
+        <MobileHomeLink />
       </header>
       <div className="replay-tools">
         <label className="replay-import">
@@ -479,6 +481,7 @@ function Library({ text }: { text: string[] }) {
 function Player({ id, text }: { id: string; text: string[] }) {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
+  const mobile = useMobileInterface();
   const stateText = replayCardWords(language);
   const words = replayExtraWords(language);
   const settings = useSnapshot(settingStore);
@@ -933,9 +936,23 @@ function Player({ id, text }: { id: string; text: string[] }) {
         title={selected?.text.name || currentCard?.code}
         open={!!currentCard}
         onClose={() => setCard(undefined)}
-        width={400}
+        width={mobile ? "min(400px, 100vw)" : 400}
+        closable={!mobile}
+        extra={
+          mobile ? (
+            <Button
+              data-testid="replay-card-detail-close"
+              style={{ minWidth: 44, minHeight: 44 }}
+              onClick={() => setCard(undefined)}
+            >
+              {text[23]}
+            </Button>
+          ) : undefined
+        }
       >
-        <Button onClick={() => setCard(undefined)}>{text[23]}</Button>
+        {!mobile && (
+          <Button onClick={() => setCard(undefined)}>{text[23]}</Button>
+        )}
         {currentCard && (
           <>
             <img
