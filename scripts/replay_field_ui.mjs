@@ -249,6 +249,22 @@ try {
     } else {
       await expect(page.locator(".replay-field-desktop")).toHaveCount(0);
     }
+    if (name !== "desktop") {
+      const facedownCard = page.locator(
+        '.replay-field-card[data-location="8"][data-position="8"]',
+      );
+      await expect(facedownCard).toBeVisible();
+      await facedownCard.tap();
+      const detailClose = page.getByTestId("replay-card-detail-close");
+      await expect(detailClose).toBeVisible();
+      const closeBounds = await detailClose.boundingBox();
+      assert.ok(
+        closeBounds.width >= 44 && closeBounds.height >= 44,
+        "Face-down card details keep a reachable touch close control",
+      );
+      await detailClose.tap();
+      await expect(detailClose).not.toBeVisible();
+    }
     assert.deepEqual(
       await page.locator(".replay-field-player strong").allTextContents(),
       ["FieldFixtureB", "FieldFixtureA"],

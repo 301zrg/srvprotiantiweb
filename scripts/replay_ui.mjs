@@ -92,6 +92,17 @@ try {
     });
     await page.getByRole("button", { name: "录像库", exact: true }).click();
     await expect(page.locator(".replay-page")).toBeVisible();
+    const homeLink = page.getByTestId("mobile-home");
+    if (mobile) {
+      await expect(homeLink).toBeVisible();
+      const homeBounds = await homeLink.boundingBox();
+      assert.ok(
+        homeBounds.width >= 44 && homeBounds.height >= 44,
+        "Replay uses the same reachable mobile home link as Match and Decks",
+      );
+    } else {
+      await expect(homeLink).toBeHidden();
+    }
     assert.equal(
       resources.length,
       0,
