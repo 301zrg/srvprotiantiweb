@@ -2,6 +2,8 @@
 
 2026-10-13 手机录像卡片详情关闭与首页入口统一已通过 [PR #32](https://github.com/301zrg/srvprotiantiweb/pull/32) 发布。生产 `deployment-info.json` 的 `sourceCommit` 为 `54353d604df95edcc4c0278c3441796e7b64f561`；线上录像页桌面、竖屏、横屏浏览器检查通过，未连接 WSS。详情关闭在本地手机视口回归通过；未做 Android/iOS 真机验证。测试细节见 [手机界面](mobile-ui.md) 与 [录像使用](replay-usage.md)。
 
+2026-10-13 联机观战点场上里侧卡后，详情标题栏显式显示叉号关闭控件，触摸区域至少 44 × 44 px。[PR #34](https://github.com/301zrg/srvprotiantiweb/pull/34) 附本地合成观战回归、完整 Cloudflare 构建及验证边界；生产提交号以实时 `deployment-info.json` 核对，未做真实 WSS 对局或 Android／iOS 真机验证。
+
 2026-10-12 卡组编辑改动基于线上提交 `3092ab3a`：名称整行自动换行、当前区域添加副本、
 桌面拖动排序及用户确认的手机独立手柄模式。五种视口的新增回归通过，覆盖禁限／同名 alias／
 三区容量、真实鼠标与触摸拖动、卡图滚动、重复卡片定位及保存／实际 YDK 下载／刷新顺序。
