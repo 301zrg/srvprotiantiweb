@@ -99,6 +99,7 @@
     "test:duel-reveal-delay": "node scripts/test_duel_reveal_delay.mjs",
     "test:duel-result-core": "node scripts/test_duel_result_core.mjs",
     "test:duel-results-ui": "node scripts/restore_environment_assets.mjs && node scripts/duel_results_ui.mjs",
+    "test:duel-revealed-hand-ui": "node scripts/restore_environment_assets.mjs && node scripts/duel_revealed_hand_ui.mjs",
     "test:duel-cancel-ui": "node scripts/restore_environment_assets.mjs && node scripts/duel_cancel_ui.mjs",
     "test:duel-diagnostics": "node scripts/test_duel_diagnostics.mjs",
     "test:duel-action-request": "node scripts/test_duel_action_request.mjs",

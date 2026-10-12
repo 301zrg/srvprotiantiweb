@@ -15,6 +15,7 @@ export interface CardType {
   uuid: string; // 一张卡的唯一标识
   code: number; // 卡号
   meta: CardMeta; // 卡片元数据
+  confirmedHandCode?: number; // 本次结算已展示的手牌，仅用于选卡。
   location: ygopro.CardLocation;
   idleInteractivities: Interactivity<number>[]; // IDLE状态下的互动信息
   counters: { [type: number]: number }; // 指示器

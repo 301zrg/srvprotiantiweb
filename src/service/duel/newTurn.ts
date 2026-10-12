@@ -8,6 +8,9 @@ export default (
 ) => {
   playEffect(AudioActionType.SOUND_NEXT_TURN);
   const context = container.context;
+  for (const card of context.cardStore.inner) {
+    delete card.confirmedHandCode;
+  }
   const player = newTurn.player;
   context.matStore.currentPlayer = player;
   context.matStore.turnCount = context.matStore.turnCount + 1;

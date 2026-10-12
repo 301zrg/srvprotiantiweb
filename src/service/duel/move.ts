@@ -192,6 +192,7 @@ export default async (container: Container, move: MsgMove) => {
   }
 
   // 更新信息
+  delete target.confirmedHandCode;
   target.code = code;
   target.location = to;
   if (fromEmpty) {

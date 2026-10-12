@@ -46,6 +46,9 @@ export default async (
 
       const zone = target.location.zone;
       const position = target.location.position;
+      if (!isDeckTop && zone === HAND && card.code !== 0) {
+        target.confirmedHandCode = card.code;
+      }
 
       context.historyStore.putConfirmed(context, meta.id, target.location);
       try {
