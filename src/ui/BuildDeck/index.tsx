@@ -2,6 +2,7 @@ import {
   CheckOutlined,
   DeleteOutlined,
   EditOutlined,
+  HolderOutlined,
   QuestionCircleOutlined,
   RetweetOutlined,
   SwapOutlined,
@@ -18,6 +19,7 @@ import { subscribeKey } from "valtio/utils";
 
 import { type CardMeta, fetchCard } from "@/api";
 import { isExtraDeckCard } from "@/common";
+import { useMobileInterface } from "@/hook";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { deckStore, emptyDeck, type IDeck, initStore } from "@/stores";
 import { activeDeck, selectActiveDeck } from "@/stores/deckSelection";
@@ -284,10 +286,14 @@ export const DeckEditor: React.FC<{
   const snapEditDeck = useSnapshot(editDeckStore);
   const { language } = useI18N();
   const [deckName, setDeckName] = useState(editDeckStore.deckName);
+  const mobile = useMobileInterface();
+  const [reorderMode, setReorderMode] = useState(false);
+  const text = deckMessages(language);
 
   useEffect(() => {
     iDeckToEditingDeck(deck).then(editDeckStore.set);
     setDeckName(deck.deckName);
+    setReorderMode(false);
   }, [deck]);
   useEffect(() => {
     editDeckStore.deckName = deckName;
@@ -302,7 +308,7 @@ export const DeckEditor: React.FC<{
     }
   }, [language]);
 
-  const handleSwitchCard = (type: Type, card: CardMeta) => {
+  const handleSwitchCard = (type: Type, card: CardMeta, index?: number) => {
     const cardType = card.data.type ?? 0;
     const isSide = type === "side";
     const targetType = isSide
@@ -312,11 +318,17 @@ export const DeckEditor: React.FC<{
       : "side";
     const { result, reason } = editDeckStore.canAdd(card, targetType, type);
     if (result) {
-      editDeckStore.remove(type, card);
+      editDeckStore.remove(type, card, index);
       editDeckStore.add(targetType, card);
     } else {
       message.error(reason);
     }
+  };
+
+  const handleAddCard = (card: CardMeta, type: Type) => {
+    const { result, reason } = editDeckStore.canAdd(card, type, "search");
+    if (result) editDeckStore.add(type, card);
+    else message.error(reason);
   };
 
   const showSelectedCard = (card: CardMeta) => {
@@ -328,7 +340,7 @@ export const DeckEditor: React.FC<{
     type: "main" | "extra" | "side",
     payload: DeckCardMouseUpEvent,
   ) => {
-    const { event, card } = payload;
+    const { event, card, index } = payload;
     switch (event.button) {
       // 左键
       case 0:
@@ -336,11 +348,11 @@ export const DeckEditor: React.FC<{
         break;
       // 中键
       case 1:
-        handleSwitchCard(type, card);
+        handleSwitchCard(type, card, index);
         break;
       // 右键
       case 2:
-        editDeckStore.remove(type, card);
+        editDeckStore.remove(type, card, index);
         break;
       default:
         break;
@@ -351,16 +363,32 @@ export const DeckEditor: React.FC<{
   return (
     <div className={styles.container}>
       <div className={styles.title}>
-        <Input
-          placeholder={i18n("EnterTheDeckName")}
-          variant="borderless"
-          prefix={<EditOutlined />}
-          className={styles.deckName}
-          data-testid="deck-name"
-          onChange={(e) => setDeckName(e.target.value)}
-          value={deckName}
-        />
+        <div className={styles.deckNameRow}>
+          <EditOutlined aria-hidden />
+          <Input.TextArea
+            autoSize={{ minRows: 1 }}
+            placeholder={i18n("EnterTheDeckName")}
+            variant="borderless"
+            className={styles.deckName}
+            data-testid="deck-name"
+            aria-label={i18n("EnterTheDeckName")}
+            onChange={(e) => setDeckName(e.target.value)}
+            value={deckName}
+          />
+        </div>
         <div className={styles.editorActions}>
+          {mobile && (
+            <Button
+              data-testid="deck-reorder-toggle"
+              aria-pressed={reorderMode}
+              type={reorderMode ? "primary" : "text"}
+              size="small"
+              icon={<HolderOutlined />}
+              onClick={() => setReorderMode(!reorderMode)}
+            >
+              {reorderMode ? text.finishOrder : text.manualOrder}
+            </Button>
+          )}
           <Button
             type="text"
             size="small"
@@ -375,7 +403,7 @@ export const DeckEditor: React.FC<{
             icon={<RetweetOutlined />}
             onClick={onSort}
           >
-            {i18n("Sort")}
+            {text.autoSort}
           </Button>
           <Button
             type="text"
@@ -407,6 +435,9 @@ export const DeckEditor: React.FC<{
           </Tooltip>
         </div>
       </div>
+      {mobile && reorderMode && (
+        <p className={styles.orderHelp}>{text.orderHelp}</p>
+      )}
       <ScrollableArea
         className={styles["deck-zone"]}
         hostClassName={styles.scrollHost}
@@ -418,20 +449,23 @@ export const DeckEditor: React.FC<{
             type={type}
             cards={[...snapEditDeck[type]]}
             canAdd={editDeckStore.canAdd}
-            onChange={(card, source, destination) => {
+            onChange={(card, source, destination, index) => {
               editDeckStore.add(destination, card);
               if (source !== "search") {
-                editDeckStore.remove(source, card);
+                editDeckStore.remove(source, card, index);
               }
             }}
             onElementMouseUp={(event) => handleMouseUp(type, event)}
-            onDoubleClick={(card) => {
-              if (editDeckStore.canAdd(card, type, "search").result) {
-                editDeckStore.add(type, card);
-              }
-            }}
-            onMoveCard={(card, source) => handleSwitchCard(source, card)}
-            onRemoveCard={(card, source) => editDeckStore.remove(source, card)}
+            onDoubleClick={(card) => handleAddCard(card, type)}
+            onAddCard={handleAddCard}
+            onMoveCard={(card, source, index) =>
+              handleSwitchCard(source, card, index)
+            }
+            onRemoveCard={(card, source, index) =>
+              editDeckStore.remove(source, card, index)
+            }
+            onReorder={(from, to) => editDeckStore.reorder(type, from, to)}
+            reorderMode={mobile && reorderMode}
           />
         ))}
       </ScrollableArea>

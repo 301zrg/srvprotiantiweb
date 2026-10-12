@@ -17,6 +17,8 @@ declare const classNames: {
   readonly scrollHost: "scrollHost";
   readonly detailHost: "detailHost";
   readonly deckName: "deckName";
+  readonly deckNameRow: "deckNameRow";
+  readonly orderHelp: "orderHelp";
   readonly editorActions: "editorActions";
   readonly mobileTabs: "mobileTabs";
   readonly "ant-input-affix-wrapper": "ant-input-affix-wrapper";

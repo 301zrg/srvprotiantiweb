@@ -78,6 +78,8 @@
     "test:deck-import": "node --experimental-strip-types scripts/test_deck_import.mjs",
     "test:deck-import-ui": "python scripts/build_environment_assets.py && node scripts/deck_import_ui.mjs",
     "test:deck-share-ui": "node scripts/deck_share_ui.mjs",
+    "test:deck-editor-ui": "node scripts/restore_environment_assets.mjs && node scripts/deck_editor_ui.mjs",
+    "test:deck-editor-release-ui": "node scripts/deck_editor_release_ui.mjs",
     "test:smoke": "node scripts/smoke_ui.mjs",
     "test:mobile-ui": "python scripts/build_environment_assets.py && node scripts/mobile_ui.mjs",
     "test:mobile-duel-ui": "node scripts/mobile_duel_ui.mjs",
