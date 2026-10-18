@@ -36,3 +36,22 @@ npm run lint
 4. 各自使用不同昵称与不同 LP 开局，第三人观战；分别测试座位甲先攻和座位乙先攻。来回切视角、发生 LP 变化和进入下一局后核对昵称、场面、生命值和计时；观战者不能操作双方对局。
 
 静态发布包与 BiliToy 专用包分别按 [上线测试手册](current-server-online-test.md) 和 [BiliToy 上传说明](bilitoy-feasibility.md) 使用。BiliToy 平台账号许可与实际上传尚需协作者完成。
+
+## 双倍祭品的上级召唤
+
+2026-10-18：双生天使（`11662742`）单独在场、用于上级召唤主宰者许珀里翁（`55794644`）时，
+原选择窗口要求选满两张卡，导致无法确认。`MSG_SELECT_TRIBUTE` 的 `Info.level` 实际是服务器计算的
+祭品值（`release_param`），不是怪兽星级；`min` 限制祭品值总和，`max` 限制实际选择张数。
+协议依据见仓库内 `third-party/replay/ocgcore/playerop.cpp` 的 `field::select_tribute`。
+
+`selectTribute.ts` 将祭品值映射到现有选卡窗口的 `level1` 合计校验，允许总值达到 `min`、张数不超过 `max` 的组合，
+并保留服务器的取消标志。响应仍按实际选择的卡片数量及原始索引发送，一张双生天使只回传一次。
+是否可当两体祭品由服务器决定，网页不按卡号或卡文推断，不修改在线 Core／Lua。
+
+回归入口为 `npm run test:tribute-ui`，报告及截图保存在忽略目录 `.audit-tmp/tribute-selection/`。
+使用原生合成封包重建场面，覆盖桌面、手机竖屏和横屏的双生天使单卡、普通两卡、服务器仅赋一体祭品值、
+非零响应索引、祭品值溢出、最大选卡数、单祭品、取消与普通 `SELECT_CARD`。
+2026-10-18：原工作树上述 9 个场景 × 3 种屏幕尺寸共 27 项通过；`tsc --noEmit`、`npm run lint` 和 `npm run build:static` 通过。
+发布候选在生产基线 `632ddbda` 的隔离工作树再次通过 27 项交互、类型检查与完整 `build:cloudflare`。
+工作树位于 `.audit-tmp`，常规 lint 被父目录忽略规则排除，改用相同配置的 ESLint API 显式检查全部 438 份手写源码／声明，结果通过。
+这些检查针对客户端协议和交互；真实手机／完整对局需另行验收。

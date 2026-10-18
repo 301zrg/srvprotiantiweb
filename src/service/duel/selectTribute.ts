@@ -11,13 +11,21 @@ export default async (
 ) => {
   const { selecteds, mustSelects, selectables } = await fetchCheckCardMeta(
     container.context,
-    selectTribute.selectable_cards,
+    selectTribute.selectable_cards.map(
+      ({ code, location, level, response }) => ({
+        code,
+        location,
+        level1: level,
+        response,
+      }),
+    ),
   );
-  // TODO: 当玩家选择卡数大于`max`时，是否也合法？
+  // min 限制祭品值总和（level = release_param），max 限制实际选择张数。
   await displaySelectActionsModal({
+    cancelable: selectTribute.cancelable,
     overflow: true,
-    totalLevels: 0,
-    min: selectTribute.min,
+    totalLevels: selectTribute.min,
+    min: Math.min(selectTribute.min, 1),
     max: selectTribute.max,
     selecteds,
     mustSelects,

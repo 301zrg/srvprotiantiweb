@@ -1,5 +1,7 @@
 # 当前实现与验收状态
 
+2026-10-18：修复双生天使（11662742）单卡抵两体祭品时无法确认上级召唤的问题，按服务器祭品值校验，保留实际卡数上限、取消及响应索引。发布候选基于已核对的生产提交 `632ddbda`，桌面／手机横竖屏 27 项合成协议交互、类型检查、438 份手写源码／声明的 ESLint 和完整 Cloudflare 构建通过；对战入口沿用线上公开配置。协议依据与回归入口见 [双倍祭品修复](duel-feedback-fixes.md#双倍祭品的上级召唤)，上线版本以正式站点 `deployment-info.json` 为准。真实手机／正式完整对局尚未验证。
+
 2026-10-13 手机录像卡片详情关闭与首页入口统一已通过 [PR #32](https://github.com/301zrg/srvprotiantiweb/pull/32) 发布。生产 `deployment-info.json` 的 `sourceCommit` 为 `54353d604df95edcc4c0278c3441796e7b64f561`；线上录像页桌面、竖屏、横屏浏览器检查通过，未连接 WSS。详情关闭在本地手机视口回归通过；未做 Android/iOS 真机验证。测试细节见 [手机界面](mobile-ui.md) 与 [录像使用](replay-usage.md)。
 
 2026-10-13 联机观战点场上里侧卡后，详情标题栏显式显示叉号关闭控件，触摸区域至少 44 × 44 px。[PR #34](https://github.com/301zrg/srvprotiantiweb/pull/34) 附本地合成观战回归、完整 Cloudflare 构建及验证边界；生产提交号以实时 `deployment-info.json` 核对，未做真实 WSS 对局或 Android／iOS 真机验证。
