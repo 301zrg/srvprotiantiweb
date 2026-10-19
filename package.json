@@ -60,6 +60,7 @@
     "deploy:cloudflare": "node scripts/release_cloudflare.mjs deploy",
     "preview:cloudflare": "node scripts/release_cloudflare.mjs preview",
     "test:cloudflare-release": "node scripts/test_cloudflare_release.mjs",
+    "test:preview-config": "node scripts/test_preview_config.mjs",
     "build:prod": "vite build --base=https://cdn02.moecube.com:444/neos/",
     "preview": "vite preview",
     "preview:static": "node scripts/serve_dist.mjs",
