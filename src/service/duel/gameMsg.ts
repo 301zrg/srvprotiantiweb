@@ -103,7 +103,11 @@ export default async function handleGameMsg(
       );
     else if (ActiveList.includes(msg.gameMsg))
       invalidateActionRequest(container);
-    else if (["start", "reload_field", "new_turn", "win"].includes(msg.gameMsg))
+    else if (
+      ["start", "reload_field", "new_turn", "new_phase", "win"].includes(
+        msg.gameMsg,
+      )
+    )
       invalidateActionRequest(container);
   }
   if (msg instanceof CardHintGameMessage) {

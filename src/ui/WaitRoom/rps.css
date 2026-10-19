@@ -1,0 +1,6 @@
+.room-rps-title { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.room-rps-title .ant-btn { min-height:44px; }
+.room-rps-panel { display:grid; gap:16px; min-width:0; width:100%; padding-top:8px; }
+.room-rps-hands { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+.room-rps-hands .ant-btn { display:flex; flex-direction:column; justify-content:center; align-items:center; white-space:normal; height:auto; overflow-wrap:anywhere; }
+.room-rps-panel > div:last-child .ant-btn { flex:1; }

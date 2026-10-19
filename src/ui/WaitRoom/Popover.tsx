@@ -1,4 +1,6 @@
-import { Button, Popover, Space } from "antd";
+import "./rps.css";
+
+import { Button, Modal, Popover, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -12,6 +14,7 @@ import { connectionStore } from "@/variant/connection";
 
 import { IconFont } from "../Shared";
 import { RandomRpsControls } from "./RandomRpsControls";
+import { RoomSettingsButton } from "./RoomSettingsButton";
 
 export enum Mora {
   Rock = "rock",
@@ -93,9 +96,10 @@ export const MoraPopover: React.FC<
         settingStore.randomRpsMode,
       )
     )
-      return;
+      return false;
     onSelect?.(result);
     setOpen(false);
+    return true;
   };
 
   const { t: i18n } = useTranslation("WaitRoom");
@@ -107,20 +111,34 @@ export const MoraPopover: React.FC<
   };
 
   return (
-    <Popover
-      overlayStyle={{ backdropFilter: "blur(10px)" }}
-      content={
-        <Space
-          direction="vertical"
-          style={{ maxWidth: "min(420px, calc(100vw - 48px))" }}
-        >
-          <Space wrap>
+    <>
+      {children}
+      <Modal
+        open={open}
+        centered
+        width={420}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+        keyboard={false}
+        zIndex={1200}
+        style={{ maxWidth: "calc(100vw - 24px)" }}
+        bodyStyle={{ maxHeight: "calc(100dvh - 160px)", overflowY: "auto" }}
+        title={
+          <div className="room-rps-title">
+            <span>{i18n("PlsRockPaperScissors")}</span>
+            <RoomSettingsButton testId="rps-settings" />
+          </div>
+        }
+      >
+        <div className="room-rps-panel" data-testid="room-rps-panel">
+          <div className="room-rps-hands">
             {[Mora.Rock, Mora.Scissors, Mora.Paper].map((mora) => (
               <Button
                 key={mora}
                 data-testid={`waitroom-mora-${mora}`}
                 size="large"
-                style={{ minHeight: 44, minWidth: 80 }}
+                style={{ minHeight: 64, minWidth: 0, padding: 4 }}
                 type="text"
                 icon={<IconFont type={`icon-hand-${mora}`} size={16} />}
                 onClick={() => onClick(mora)}
@@ -128,7 +146,7 @@ export const MoraPopover: React.FC<
                 {map[mora]}
               </Button>
             ))}
-          </Space>
+          </div>
           <RandomRpsControls
             request={request}
             requestId={requestId}
@@ -139,13 +157,9 @@ export const MoraPopover: React.FC<
               onClick([Mora.Rock, Mora.Scissors, Mora.Paper][hand - 1])
             }
           />
-        </Space>
-      }
-      open={open}
-      placement="bottom"
-    >
-      {children}
-    </Popover>
+        </div>
+      </Modal>
+    </>
   );
 };
 

@@ -74,6 +74,7 @@ try {
   );
   await page.getByTestId("deck-practice").click();
   await expect(page.getByTestId("practice-page")).toBeVisible();
+  await page.getByTestId("practice-setup").click();
   await expect(
     page.locator('.ant-select[aria-label="A 方卡组"]'),
   ).toContainText("Unsaved practice draft");
@@ -81,9 +82,10 @@ try {
     page.locator('.ant-select[aria-label="B 方卡组"]'),
   ).toContainText("Unsaved practice draft");
   await page.getByTestId("practice-start").click();
-  await expect(page.getByTestId("practice-choices")).toBeVisible({
+  await expect(page.getByTestId("practice-board")).toBeVisible({
     timeout: 120000,
   });
+  await page.waitForFunction(() => window.__practiceEditorFrame?.pending, { timeout: 120000 });
   const actual = await page.evaluate(() => window.__practiceEditorFrame);
   assert.equal(actual.cards.filter((c) => c.player === 0).length, 39);
   assert.equal(actual.cards.filter((c) => c.player === 1).length, 39);

@@ -14,6 +14,7 @@ flowchart TB
   subgraph Browser["浏览器：srvprotiantiweb"]
     Router["HashRouter + 页面懒加载"] --> UI["React / Ant Design UI"]
     UI --> Join["Match 会话<br/>冻结身份 / 房间 / G1 卡组"]
+    UI --> SharedDisplay["共享纯展示<br/>PhaseBar / 卡图 / 响应式几何"]
     Join --> Transport["WebSocketStream<br/>连接生命周期 / 保序队列"]
     Transport --> Adapter["YGOPro 帧解析 / 适配器<br/>内部 protobuf 对象"]
     Adapter --> Services["service 房间 / 对局 / 换备"]
@@ -32,6 +33,7 @@ flowchart TB
     Library --> Extract["录像开局主卡 / 额外提取<br/>仅解包，不启动对局"]
     Extract --> Decks
     Decks --> Practice["双边本地练习 UI<br/>卡组副本 / MR2 / 忽略胜负"]
+    Practice --> SharedDisplay
     Practice <--> PracticeWorker["Practice Worker<br/>双方选择 / 请求序号隔离"]
     Profile --> PracticeWorker
   end
@@ -45,6 +47,8 @@ flowchart TB
 网页是外部托管的静态应用，不增加账号或结算后端。SQLite WASM 读取卡片资料；
 Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二者不能按“WASM”合并判断。
 官网交接与对战 WSS 是两条独立路径，导入卡组／录像不会自动入房。
+
+阶段栏与原菜单共用 `variant/duelPhases.ts`，依据当前请求来源、回合归属与 Core 标志禁用不可进入的阶段。`PhaseState.command` 仅在 idle／battle 请求期间有效，提交、失效、新阶段或其他选择会清除；响应继续经过操作所有权及确认机制。区域内部数量角标由“画面与消息”的持久化 `showZoneCounts` 控制，不影响区域列表与主卡组保密。练习共享卡图、响应式几何与 `PhaseBar` 展示，保留独立 Worker、请求及状态，不复用在线 handler 或连接。
 
 测试部署显式使用固定预览名称，保留同一 Origin 与浏览器存储。仅测试构建从正式站公开元数据读取当前 WSS；生产构建继续要求自己的显式环境变量。构建读取失败即中止，不写入陈旧地址。构建来源、共享入口覆盖关系与网关变更边界见 [自动部署](cloudflare-ci.md#固定测试入口与-wss)。
 

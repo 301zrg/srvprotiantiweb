@@ -81,6 +81,8 @@
 
 ## Execution ledger
 
+Second review: user authorized five corrections on the same preview and explicitly confirmed fixed A-bottom/B-top, both hands/facedown visible, responding player follows Core without flipping view. Four-language text in `client-preview-revision-copy.md` was confirmed. Practice directly starts from the draft/local deck; card menus, field targets/positions, six-phase controls and confirmation drive the real Core. Targeted RED/GREEN covers count preference migration, formerly clickable first-turn phase items, absent direct-entry interactive board, and the original reversed Rock/Scissors effect codes. Both RPS paths follow 706 scissors=1, rock=2, paper=3. Browser entrypoints are `client_revision_ui.mjs`, `practice_duel_ui.mjs` (also through `practice_ui.mjs`) and updated `practice_editor_roundtrip_ui.mjs`. Exact final checks belong to the draft PR; production remains excluded.
+
 - 2026-10-19: Production remote ref verified read-only. Created an isolated candidate from `7b636941`; no changes to original worktree or production branch.
 
 - Local verification: TypeScript; 59 changed-source ESLint files; Cloudflare static build with immutable resource checks; normal-build desktop/mobile smoke.

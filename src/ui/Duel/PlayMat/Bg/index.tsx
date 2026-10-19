@@ -12,6 +12,7 @@ import {
   placeStore,
   roomStore,
 } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
 import { BgChain, type ChainMarker, type ChainProps } from "@/ui/Shared";
 
 import { displayCardListModal } from "../../Message/CardListModal";
@@ -149,6 +150,7 @@ const BgRow: React.FC<{
 };
 
 const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
+  const { showZoneCounts } = useSnapshot(settingStore);
   useSnapshot(cardStore);
   const container = getUIContainer();
   const controller = getController(op);
@@ -169,7 +171,17 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
   const pileProps = (zone: ygopro.CardZone) => ({
     role: "button",
     tabIndex: 0,
-    "aria-label": `${fetchStrings(Region.System, zone + 1000)} (${getN(zone)})`,
+    "aria-label": `${fetchStrings(
+      Region.System,
+      (
+        {
+          [DECK]: 1000,
+          [EXTRA]: 1006,
+          [GRAVE]: 1004,
+          [REMOVED]: 1005,
+        } as Record<number, number>
+      )[zone],
+    )} (${getN(zone)})`,
     "data-card-count": getN(zone),
     onClick: () => displayCardListModal({ isZone: true, zone, controller }),
     onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -178,7 +190,11 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
         displayCardListModal({ isZone: true, zone, controller });
       }
     },
-    children: <span className={styles.count}>{getN(zone)}</span>,
+    children: showZoneCounts ? (
+      <span data-testid="zone-count-badge" className={styles.count}>
+        {getN(zone)}
+      </span>
+    ) : undefined,
   });
 
   const genChains = (states: Snapshot<BlockState[]>, zone: ygopro.CardZone) => {

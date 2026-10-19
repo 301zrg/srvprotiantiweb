@@ -23,6 +23,7 @@ const load = async (config) => {
 };
 try {
   const fresh = await load();
+  assert.equal(fresh.showZoneCounts, true, "Zone counts are visible by default");
   assert.equal(fresh.serverMessageMode, "auto", "A fresh user needs adaptive message display");
   assert.equal(fresh.randomRpsMode, "suggest", "Random suggestions must never submit by default");
   assert.equal(fresh.chainSetting, 2, "A fresh user keeps smart chain timing");
@@ -40,11 +41,13 @@ try {
   configured.saveAudioConfig({ enableSoundEffects: false });
   configured.chainSetting = 1;
   configured.serverMessageMode = "record";
+  configured.showZoneCounts = false;
   await new Promise(resolve => setTimeout(resolve, 0));
   const reopened = await load(JSON.parse(saved));
   assert.equal(reopened.audio.enableSoundEffects, false, "Main mute must survive reopening the browser");
   assert.equal(reopened.chainSetting, 1, "Chain shortcut changes must survive reopening");
   assert.equal(reopened.serverMessageMode, "record");
+  assert.equal(reopened.showZoneCounts, false, "Hiding zone badges persists after reopening");
 
   const damaged = await load({ chainSetting: 99, randomRpsMode: "auto-send", serverMessageMode: "bad", audio: { enableSoundEffects: "true", soundEffectsVolume: 90 } });
   assert.equal(damaged.chainSetting, 2);

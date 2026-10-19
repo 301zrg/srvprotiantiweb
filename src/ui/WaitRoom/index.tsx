@@ -55,6 +55,7 @@ import { roomMessages } from "@/variant/roomMessages";
 import { Chat } from "./Chat";
 import styles from "./index.module.scss";
 import { Mora, MoraPopover, Tp, TpPopover } from "./Popover";
+import { RoomSettingsButton } from "./RoomSettingsButton";
 
 const NeosConfig = useConfig();
 
@@ -411,6 +412,7 @@ const SideButtons: React.FC<{
   const expanded = mobile ? chatOpen : !collapsed;
   return (
     <div className={styles.sideButtons}>
+      <RoomSettingsButton />
       <Button
         data-testid="waitroom-chat-toggle"
         aria-expanded={expanded}

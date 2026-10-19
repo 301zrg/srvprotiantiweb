@@ -1,5 +1,5 @@
 import { Button, Input, InputNumber } from "antd";
-import { useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -46,17 +46,23 @@ export function PracticeChoices({
   language,
   disabled,
   onAnswer,
+  selected: controlledSelected,
+  onSelectedChange,
 }: {
   request: PracticeRequest;
   language: string;
   disabled: boolean;
   onAnswer: (request: PracticeRequest, answer: PracticeAnswer) => void;
+  selected?: number[];
+  onSelectedChange?: Dispatch<SetStateAction<number[]>>;
 }) {
   const { t } = useTranslation("ClientUI");
   const words = previewMessages(language),
     actions = replayFieldWords(language),
     cardWords = replayCardWords(language);
-  const [selected, setSelected] = useState<number[]>([]);
+  const [localSelected, setLocalSelected] = useState<number[]>([]);
+  const selected = controlledSelected ?? localSelected;
+  const setSelected = onSelectedChange ?? setLocalSelected;
   const [counts, setCounts] = useState<number[]>(request.choices.map(() => 0));
   const [query, setQuery] = useState("");
   const [declared, setDeclared] = useState<PracticeChoice[]>([]);
@@ -114,7 +120,7 @@ export function PracticeChoices({
     if (request.kind === "bits")
       action = system((request.message === 140 ? 1020 : 1010) + c.index);
     if (request.message === 143) action = String(c.action);
-    if (request.message === 132) action = ["", "✊", "✌", "✋"][c.value!];
+    if (request.message === 132) action = ["", "✌", "✊", "✋"][c.value!];
     const place = c.location
       ? `${c.player === 0 ? "A" : "B"} · ${zone(c.location)} · ${
           c.sequence! + 1

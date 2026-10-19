@@ -106,6 +106,7 @@ export interface HintState {
 }
 
 export interface PhaseState {
+  command?: "idle" | "battle";
   currentPhase: ygopro.StocGameMessage.MsgNewPhase.PhaseType;
   enableBp: boolean; // 允许进入战斗阶段
   enableM2: boolean; // 允许进入M2阶段
@@ -114,8 +115,8 @@ export interface PhaseState {
 
 export enum HandResult {
   UNKNOWN = 0,
-  ROCK = 1,
-  SCISSOR = 2,
+  ROCK = 2,
+  SCISSOR = 1,
   PAPER = 3,
 }
 

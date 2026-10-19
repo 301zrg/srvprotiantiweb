@@ -54,7 +54,17 @@ export const OptionModal = () => {
   const grouped = chunk(options, MAX_NUM_PER_PAGE);
   const submitCurrent = (response: number) => {
     // eslint-disable-next-line valtio/state-snapshot-rule -- Reject a click retained from an older render.
-    if (store.requestId === requestId) submit(response);
+    if (store.requestId !== requestId) return false;
+    if (
+      store.randomRps &&
+      (!requestConn ||
+        getUIContainer().conn !== requestConn ||
+        requestConn.ws.readyState !== 1 ||
+        connectionStore.epoch !== requestEpoch)
+    )
+      return false;
+    submit(response);
+    return true;
   };
 
   const onSummit = () => {
@@ -139,7 +149,9 @@ export const OptionModal = () => {
             owner={requestConn}
             epoch={epoch}
             testPrefix="effect"
-            onSelect={submitCurrent}
+            onSelect={(hand) =>
+              submitCurrent(hand === 1 ? 2 : hand === 2 ? 1 : 3)
+            }
           />
         )}
         <Selector page={page} maxPage={maxPage} onChange={setPage as any} />

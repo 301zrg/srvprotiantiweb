@@ -12,6 +12,7 @@ export interface SettingConfig {
   chainSetting: ChainSetting;
   randomRpsMode: RandomRpsMode;
   serverMessageMode: ServerMessageMode;
+  showZoneCounts: boolean;
 }
 
 /** Normalize old browser settings without letting the old replay flag unmute. */
@@ -37,6 +38,7 @@ export function normalizeSetting(value: unknown): SettingConfig {
     },
     animation: { ...defaultAnimationConfig, ...config.animation },
     confirmOperations: config.confirmOperations === true,
+    showZoneCounts: config.showZoneCounts !== false,
     chainSetting: [
       ChainSetting.CHAIN_ALL,
       ChainSetting.CHAIN_IGNORE,

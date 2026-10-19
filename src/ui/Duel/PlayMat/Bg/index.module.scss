@@ -86,20 +86,26 @@
 
 .count {
   position: absolute;
-  bottom: -24px;
-  left: 50%;
-  transform: translateX(-50%) translateZ(100px);
-  padding: 0 8px;
-  min-width: 30px;
-  border-radius: 10px;
+  bottom: 4px;
+  right: 4px;
+  transform: translateZ(4px);
+  z-index: 12;
+  padding: 0 5px;
+  min-width: 24px;
+  border: 1px solid #8cbfe8;
+  border-radius: 6px;
   background: #101925e6;
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 24px;
   text-align: center;
   pointer-events: none;
 }
-.op .count { transform: translateX(-50%) rotate(180deg) translateZ(100px); }
+.op .count { transform: rotate(180deg) translateZ(4px); }
+.deck .count { transform: rotate(var(--deck-rotate-z)) translateZ(4px); }
+.deck.extra-deck .count { transform: rotate(calc(-1 * var(--deck-rotate-z))) translateZ(4px); }
+.op .deck .count { transform: rotate(calc(180deg + var(--deck-rotate-z))) translateZ(4px); }
+.op .deck.extra-deck .count { transform: rotate(calc(180deg - var(--deck-rotate-z))) translateZ(4px); }
 .block[role="button"] { cursor: pointer; }
 .block[role="button"]:focus-visible { outline: 3px solid #40a9ff; }
 
