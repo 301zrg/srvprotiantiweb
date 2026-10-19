@@ -19,7 +19,10 @@ function publicUrl(value, protocols, label) {
   return url;
 }
 
-export function resolvePublicOperatorConfig(input, { requireWss = false } = {}) {
+export function resolvePublicOperatorConfig(input, { requireWss = false, requireAll = false } = {}) {
+  if (requireAll && (input.deckImportOrigins === undefined || input.websiteBaseUrl === undefined)) {
+    throw new Error("A deployment must explicitly set WSS, import origins and website URL.");
+  }
   const config = {};
   const endpoint = input.duelWebSocketUrl?.trim() || "";
   if (requireWss && !endpoint) throw new Error("Set VITE_DUEL_WS_URL to the public wss:// endpoint.");
