@@ -5,20 +5,17 @@ import { matConfig } from "../../css";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
-const {
-  BLOCK_WIDTH,
-  BLOCK_HEIGHT_M,
-  COL_GAP,
-  ROW_GAP,
-  DECK_OFFSET_X,
-  DECK_OFFSET_Y,
-  DECK_ROTATE_Z,
-  DECK_CARD_HEIGHT,
-} = matConfig;
-
 const { DECK, EXTRA } = ygopro.CardZone;
 
 export const moveToDeck: MoveFunc = async (props) => {
+  const {
+    BLOCK_WIDTH,
+    COL_GAP,
+    DECK_OFFSET_X,
+    DECK_ROW_Y,
+    DECK_ROTATE_Z,
+    DECK_CARD_HEIGHT,
+  } = matConfig;
   const { card, api } = props;
   // report
   const { location } = card;
@@ -26,7 +23,7 @@ export const moveToDeck: MoveFunc = async (props) => {
 
   const rightX = DECK_OFFSET_X + 2 * (BLOCK_WIDTH + COL_GAP);
   const leftX = -rightX;
-  const bottomY = DECK_OFFSET_Y + 2 * BLOCK_HEIGHT_M + 2 * ROW_GAP;
+  const bottomY = DECK_ROW_Y;
   const topY = -bottomY;
   let x = isMe(controller) ? rightX : leftX;
   let y = isMe(controller) ? bottomY : topY;

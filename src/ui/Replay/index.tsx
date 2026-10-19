@@ -42,10 +42,12 @@ import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
 import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { type Language, languageLocales } from "@/variant";
+import { previewMessages } from "@/variant/previewMessages";
 
 import { ReplayAudio } from "./audio";
 import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
+import { DeckExtract } from "./DeckExtract";
 import { FieldBoard, replayFieldWords } from "./FieldBoard";
 import { type SceneFrame, sceneSteps, seedScene } from "./scene";
 
@@ -211,6 +213,8 @@ export function Component() {
 function Library({ text }: { text: string[] }) {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
+  const preview = previewMessages(language);
+  const [extracting, setExtracting] = useState<string>();
   const navigate = useNavigate();
   const [entries, setEntries] = useState<ReplayEntry[]>([]),
     [occurrences, setOccurrences] = useState<ReplayOccurrence[]>([]),
@@ -386,6 +390,9 @@ function Library({ text }: { text: string[] }) {
                 )}
               </div>
               <div className="replay-actions">
+                <Button onClick={() => setExtracting(entry.id)}>
+                  {preview.extractDecks}
+                </Button>
                 <Button
                   type="primary"
                   disabled={!entry.header.playable}
@@ -474,6 +481,14 @@ function Library({ text }: { text: string[] }) {
           maxLength={120}
         />
       </Modal>
+      {extracting && (
+        <DeckExtract
+          key={extracting}
+          replayId={extracting}
+          closeLabel={text[23]}
+          onClose={() => setExtracting(undefined)}
+        />
+      )}
     </main>
   );
 }
@@ -484,8 +499,10 @@ function Player({ id, text }: { id: string; text: string[] }) {
   const mobile = useMobileInterface();
   const stateText = replayCardWords(language);
   const words = replayExtraWords(language);
+  const preview = previewMessages(language);
+  const [extracting, setExtracting] = useState(false);
   const settings = useSnapshot(settingStore);
-  const soundEnabled = settings.audio.enableReplaySoundEffects !== false;
+  const soundEnabled = settings.audio.enableSoundEffects === true;
   const audio = useRef<ReplayAudio>();
   if (!audio.current) audio.current = new ReplayAudio();
   const navigate = useNavigate();
@@ -793,7 +810,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
           aria-pressed={soundEnabled}
           onClick={() => {
             const enabled = !soundEnabled;
-            settingStore.saveAudioConfig({ enableReplaySoundEffects: enabled });
+            settingStore.saveAudioConfig({ enableSoundEffects: enabled });
             audio.current?.configure(
               enabled,
               settingStore.audio.soundEffectsVolume ?? 0.7,
@@ -848,7 +865,22 @@ function Player({ id, text }: { id: string; text: string[] }) {
           {stateText.reveal}
         </Button>
         <Button onClick={() => run(() => downloadReplay(id))}>{text[3]}</Button>
+        <Button
+          onClick={() => {
+            stop();
+            setExtracting(true);
+          }}
+        >
+          {preview.extractDecks}
+        </Button>
       </div>
+      {extracting && (
+        <DeckExtract
+          replayId={id}
+          closeLabel={text[23]}
+          onClose={() => setExtracting(false)}
+        />
+      )}
       {reveal && <p className="replay-note">{stateText.revealNote}</p>}
       {(status || seeking) && (
         <p className="replay-note" role="status">

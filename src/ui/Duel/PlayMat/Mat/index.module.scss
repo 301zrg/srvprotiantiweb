@@ -6,10 +6,10 @@ body {
 
 section.mat {
   position: absolute;
-  width: 1000px;
+  width: var(--board-width, 1000px);
   left: 50%;
   top: 50%;
-  height: 920px;
+  height: var(--board-height, 920px);
   transform: translate(-50%, -50%) scale(var(--duel-board-scale, 1));
   transform-origin: center;
   .camera {
@@ -41,17 +41,19 @@ section.mat {
 
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
   .viewport {
-    top: calc(80px + env(safe-area-inset-top));
+    top: calc(124px + env(safe-area-inset-top));
     bottom: calc(
       var(--duel-menu-height, 60px) + 16px + env(safe-area-inset-bottom)
     );
   }
-  @media (orientation: landscape) {
-    .viewport {
-      top: max(8px, env(safe-area-inset-top));
-      left: calc(156px + env(safe-area-inset-left));
-      right: env(safe-area-inset-right);
-    }
+}
+
+@media (orientation: landscape) and (min-width: 480px) {
+  .viewport {
+    top: max(8px, env(safe-area-inset-top));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(8px, env(safe-area-inset-left));
+    right: calc(var(--duel-sidebar-width, 280px) + 12px + env(safe-area-inset-right));
   }
 }
 

@@ -5,49 +5,29 @@ import { proxy, subscribe } from "valtio";
 import { storageKey } from "@/variant/deployment";
 
 import { type NeosStore } from "../shared";
-import { AnimationConfig, defaultAnimationConfig } from "./animation";
-import { AudioConfig, defaultAudioConfig } from "./audio";
+import { AnimationConfig } from "./animation";
+import { AudioConfig } from "./audio";
+import { normalizeSetting, SettingConfig } from "./config";
+
+export type { RandomRpsMode, ServerMessageMode } from "./config";
 
 /** 将设置保存到本地 */
 const NEO_SETTING_CONFIG = storageKey("__neo_setting_config__");
 
-/** 设置项 */
-type SettingStoreConfig = Pick<
-  SettingStore,
-  "audio" | "animation" | "showServerMessages" | "confirmOperations"
->;
-
-/** 默认设置 */
-const defaultSettingConfig: SettingStoreConfig = {
-  audio: defaultAudioConfig,
-  animation: defaultAnimationConfig,
-  showServerMessages: true,
-  confirmOperations: false,
-};
-
 /** 获取默认设置 */
-function getDefaultSetting() {
+function getDefaultSetting(): SettingConfig {
   if (!isSSR()) {
     /** 获取默认设置 */
     try {
       const setting = localStorage.getItem(NEO_SETTING_CONFIG);
       if (setting) {
-        const config = JSON.parse(setting) as SettingStoreConfig;
-        return {
-          confirmOperations: config.confirmOperations === true,
-          audio: config.audio ?? defaultAudioConfig,
-          animation: config.animation ?? defaultAnimationConfig,
-          showServerMessages:
-            typeof config.showServerMessages === "boolean"
-              ? config.showServerMessages
-              : true,
-        };
+        return normalizeSetting(JSON.parse(setting));
       }
     } catch {
       // Settings remain usable when browser storage is unavailable or damaged.
     }
   }
-  return defaultSettingConfig;
+  return normalizeSetting(undefined);
 }
 
 const defaultSetting = getDefaultSetting();
@@ -60,14 +40,25 @@ class SettingStore implements NeosStore {
   /** Animation Configuration */
   animation: AnimationConfig = defaultSetting.animation;
 
-  /** Only controls server chat popups, not required duel choices or errors. */
-  showServerMessages: boolean = defaultSetting.showServerMessages;
+  chainSetting = defaultSetting.chainSetting;
+  randomRpsMode = defaultSetting.randomRpsMode;
+  serverMessageMode = defaultSetting.serverMessageMode;
+
+  /** Compatibility for older callers; persistence uses serverMessageMode only. */
+  get showServerMessages() {
+    return this.serverMessageMode !== "record";
+  }
+  set showServerMessages(show: boolean) {
+    this.serverMessageMode = show ? "popup" : "record";
+  }
 
   confirmOperations: boolean = defaultSetting.confirmOperations;
 
   /** 保存音频设置 */
   saveAudioConfig(config: Partial<AudioConfig>): void {
-    Object.assign(this.audio, config);
+    this.audio = normalizeSetting({
+      audio: { ...this.audio, ...config },
+    }).audio;
   }
 
   /** save Animation Configuration */
@@ -79,7 +70,9 @@ class SettingStore implements NeosStore {
     const defaultSetting = getDefaultSetting();
     this.audio = defaultSetting.audio;
     this.animation = defaultSetting.animation;
-    this.showServerMessages = defaultSetting.showServerMessages;
+    this.chainSetting = defaultSetting.chainSetting;
+    this.randomRpsMode = defaultSetting.randomRpsMode;
+    this.serverMessageMode = defaultSetting.serverMessageMode;
     this.confirmOperations = defaultSetting.confirmOperations;
   }
 }
@@ -97,7 +90,9 @@ subscribe(settingStore, () => {
           pick(settingStore, [
             "audio",
             "animation",
-            "showServerMessages",
+            "chainSetting",
+            "randomRpsMode",
+            "serverMessageMode",
             "confirmOperations",
           ]),
         ),

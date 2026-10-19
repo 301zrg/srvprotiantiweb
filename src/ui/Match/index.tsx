@@ -19,9 +19,10 @@ import {
   validateDuelWebSocketUrl,
 } from "@/variant";
 import { connectionStore } from "@/variant/connection";
-import { clearJoinForm, readJoinForm, saveJoinForm } from "@/variant/joinForm";
+import { readJoinForm, saveJoinForm } from "@/variant/joinForm";
 import { communityLinks, roomRulesUrl } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
+import { previewMessages } from "@/variant/previewMessages";
 import {
   isRoomCommand,
   readRoomLink,
@@ -128,11 +129,6 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
       message.error({ content: text.copyFailed, key: "join-form-copy" });
     }
   }
-
-  useEffect(() => {
-    // A one-click spectator identity is temporary. Leaving it clears the form.
-    if (spectate) return clearJoinForm;
-  }, [spectate]);
 
   useEffect(() => {
     if (
@@ -320,6 +316,11 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           )}
         </p>
         {invalidLink && <p role="alert">{text.invalidRoomLink}</p>}
+        <p data-testid="join-cache-help">
+          {spectate
+            ? previewMessages(language).spectatorRestore
+            : previewMessages(language).joinPersistence}
+        </p>
         {endpointError && <p role="alert">{endpointError}</p>}
         {connection.state === "disconnected" && (
           <p role="alert">{connection.detail}</p>

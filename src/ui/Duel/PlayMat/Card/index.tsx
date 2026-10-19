@@ -39,7 +39,8 @@ import {
 } from "./springs";
 import type { FocusOptions, SpringApiProps } from "./springs/types";
 
-const { HAND, GRAVE, REMOVED, EXTRA, MZONE, SZONE, TZONE } = ygopro.CardZone;
+const { HAND, DECK, GRAVE, REMOVED, EXTRA, MZONE, SZONE, TZONE } =
+  ygopro.CardZone;
 
 export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
   const container = getUIContainer();
@@ -116,7 +117,12 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     );
     // State may already contain catch-up messages received before this mount.
     void addToAnimation(() => move({ card, api }));
+    const relayout = () => {
+      void addToAnimation(() => move({ card, api }));
+    };
+    window.addEventListener("neos:duel-layout", relayout);
     return () => {
+      window.removeEventListener("neos:duel-layout", relayout);
       mounted.current = false;
       unregisterMove();
       unregisterFocus();
@@ -354,7 +360,7 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
 
     if ([MZONE, SZONE, HAND].includes(card.location.zone)) {
       onCardClick(card);
-    } else if ([EXTRA, GRAVE, REMOVED].includes(card.location.zone)) {
+    } else if ([DECK, EXTRA, GRAVE, REMOVED].includes(card.location.zone)) {
       onFieldClick(card);
     }
   };

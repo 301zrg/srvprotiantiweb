@@ -1,13 +1,20 @@
 import { CloseOutlined } from "@ant-design/icons";
 import { Button, Drawer } from "antd";
 import classNames from "classnames";
-import { type ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 
 import { useMediaQuery, useMobileInterface } from "@/hook";
 import { useI18N } from "@/ui/I18N";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import styles from "./index.module.scss";
+
+export const DuelSidebarContext = createContext(false);
+export const duelSidebarQuery =
+  "(orientation: landscape) and (min-width: 480px)";
+
+export const hasDuelSidebar = () =>
+  !!document.querySelector('[data-duel-sidebar="true"]');
 
 /** Responsive auxiliary panel: native-size controls outside the scaled board. */
 export function DuelPanel({
@@ -37,16 +44,28 @@ export function DuelPanel({
   desktopWidth?: string;
 }) {
   const mobile = useMobileInterface();
+  const sidebar = useContext(DuelSidebarContext);
+  const shortSidebar = useMediaQuery(
+    "(orientation: landscape) and (max-height: 600px)",
+  );
   const portrait = useMediaQuery("(orientation: portrait)");
   const { language } = useI18N();
-  const bottom = placement === "bottom" || (mobile && portrait);
+  const bottom = !sidebar && (placement === "bottom" || (mobile && portrait));
   return (
     <Drawer
       open={open}
       onClose={onClose}
       title={title}
       zIndex={zIndex}
-      placement={bottom ? "bottom" : mobile && compact ? "right" : placement}
+      placement={
+        sidebar
+          ? "right"
+          : bottom
+          ? "bottom"
+          : mobile && compact
+          ? "right"
+          : placement
+      }
       height={
         bottom
           ? compact && mobile
@@ -54,13 +73,36 @@ export function DuelPanel({
             : "min(calc(var(--neos-adaptive-height, 100dvh) * 0.65), 620px)"
           : undefined
       }
-      width={mobile ? `min(${compact ? 280 : 340}px, 100vw)` : desktopWidth}
-      mask={mobile && !compact}
+      width={
+        sidebar
+          ? "var(--duel-sidebar-width, 280px)"
+          : mobile
+          ? `min(${compact ? 280 : 340}px, 100vw)`
+          : desktopWidth
+      }
+      mask={!sidebar && mobile && !compact}
+      rootStyle={
+        sidebar
+          ? {
+              top: shortSidebar
+                ? "max(8px, env(safe-area-inset-top))"
+                : "var(--duel-sidebar-content-top, 180px)",
+              bottom: shortSidebar
+                ? "max(8px, env(safe-area-inset-bottom))"
+                : 0,
+              left: "auto",
+              right: 0,
+              width: "var(--duel-sidebar-width, 280px)",
+              height: "auto",
+            }
+          : undefined
+      }
       keyboard
       maskClosable
       rootClassName={classNames(styles.root, {
-        [styles.docked]: !mobile,
-        [styles.compact]: mobile && compact,
+        [styles.docked]: !mobile && !sidebar,
+        [styles.compact]: mobile && compact && !sidebar,
+        [styles.sidebar]: sidebar,
       })}
       className={styles.panel}
       closable={

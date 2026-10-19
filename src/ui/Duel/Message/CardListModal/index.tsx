@@ -3,8 +3,10 @@ import { proxy, useSnapshot } from "valtio";
 
 import { fetchStrings, Region, ygopro } from "@/api";
 import { cardStore, CardType } from "@/stores";
+import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import { showCardModal } from "../CardModal";
 import styles from "./index.module.scss";
@@ -20,6 +22,8 @@ const defaultStore = {
 const store = proxy(defaultStore);
 
 export const CardListModal = () => {
+  const { language } = useI18N();
+  const text = previewMessages(language);
   const { zone, monster, isOpen, isZone, controller } = useSnapshot(store);
   const { inner } = useSnapshot(cardStore);
   const filterZone = isZone ? zone : monster.location.zone;
@@ -55,17 +59,22 @@ export const CardListModal = () => {
         data-testid="duel-card-list"
         data-card-count={cardList.length}
       >
-        {cardList.map((card) => (
-          <button
-            type="button"
-            aria-label={card.meta.text.name || String(card.code)}
-            data-card-code={card.code}
-            key={card.uuid}
-            onClick={() => showCardModal(card)}
-          >
-            <YgoCard code={card.code} targeted={card.targeted} width="100%" />
-          </button>
-        ))}
+        {cardList.length === 0 && <p>{text.emptyZone}</p>}
+        {filterZone === ygopro.CardZone.DECK && cardList.length > 0 && (
+          <p>{previewFormat(text.remaining, { count: cardList.length })}</p>
+        )}
+        {filterZone !== ygopro.CardZone.DECK &&
+          cardList.map((card) => (
+            <button
+              type="button"
+              aria-label={card.meta.text.name || String(card.code)}
+              data-card-code={card.code}
+              key={card.uuid}
+              onClick={() => showCardModal(card)}
+            >
+              <YgoCard code={card.code} targeted={card.targeted} width="100%" />
+            </button>
+          ))}
       </div>
     </DuelPanel>
   );
@@ -84,6 +93,6 @@ export const displayCardListModal = ({
   store.isOpen = true;
   store.isZone = isZone ?? false;
   monster && (store.monster = monster);
-  zone && (store.zone = zone);
+  zone !== undefined && (store.zone = zone);
   controller !== undefined && (store.controller = controller);
 };

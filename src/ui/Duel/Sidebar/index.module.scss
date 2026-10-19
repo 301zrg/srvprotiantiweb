@@ -1,0 +1,38 @@
+:global(:root) { --duel-sidebar-width: 280px; }
+@media (max-width: 1024px) { :global(:root) { --duel-sidebar-width: 208px; } }
+@media (max-width: 640px) { :global(:root) { --duel-sidebar-width: 164px; } }
+
+.shell { display: contents; }
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--duel-sidebar-width);
+  height: var(--neos-adaptive-height, 100dvh);
+  z-index: 950;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: max(6px, env(safe-area-inset-top)) 8px max(6px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  border-left: 1px solid #4c5564;
+  color: #eee;
+  background: #1d2330f5;
+  overflow: hidden;
+}
+.controls {
+  flex: 0 1 auto;
+  max-height: 70%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+.status { margin: 6px 0; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+.status strong { display: block; color: #a8d4ff; font-weight: 500; }
+.tabs { display: flex; gap: 4px; flex: 0 0 auto; }
+.tabs button { flex: 1; min-width: 0; min-height: 44px; height: auto; padding: 4px; white-space: normal; font-size: 12px; }
+.content { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
+@media (max-height: 400px) { .status { margin: 4px 0; font-size: 11px; } }

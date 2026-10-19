@@ -38,6 +38,7 @@ import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
 import { IconFont } from "@/ui/Shared";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { previewMessages } from "@/variant/previewMessages";
 
 import styles from "./index.module.scss";
 import PhaseType = ygopro.StocGameMessage.MsgNewPhase.PhaseType;
@@ -272,11 +273,15 @@ const initialPhaseBind = (
   ];
 };
 
-export const Menu = () => {
+export const duelPhaseLabel = (language: string, phase: PhaseType) =>
+  initialPhaseBind(language).find(([key]) => key === phase)?.[1] ?? "";
+
+export const Menu = ({ docked = false }: { docked?: boolean }) => {
   const mobile = useMobileInterface();
   const { language } = useI18N();
   const navigate = useNavigate();
   const text = mobileMessages(language);
+  const preview = previewMessages(language);
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = menu.current;
@@ -375,11 +380,10 @@ export const Menu = () => {
     setPhaseSwitchItems(newPhaseSwitchItems);
   }, [container.conn, currentPhase, phaseBind]);
 
-  const languageTexts = messages[language as Language] ?? messages.en;
   const chainSettingTexts = [
-    [ChainSetting.CHAIN_ALL, languageTexts.allChain ?? "All Chain"],
-    [ChainSetting.CHAIN_IGNORE, languageTexts.ignoreChain ?? "Ignore Chain"],
-    [ChainSetting.CHAIN_SMART, languageTexts.smartChain ?? "Smart Chain"],
+    [ChainSetting.CHAIN_ALL, preview.chainAll],
+    [ChainSetting.CHAIN_IGNORE, preview.chainIgnore],
+    [ChainSetting.CHAIN_SMART, preview.chainSmart],
   ] as const;
   const chainSettingTestIds = {
     [ChainSetting.CHAIN_ALL]: "all",
@@ -418,63 +422,78 @@ export const Menu = () => {
 
   return (
     <div
-      className={styles["menu-container"]}
+      className={classNames(styles["menu-container"], {
+        [styles.sidebar]: docked,
+      })}
       ref={menu}
       data-testid="duel-menu"
       role="toolbar"
       aria-label={text.settings}
     >
-      {!observing && <SelectManager />}
-      <ReplayControl />
-      <DropdownWithTitle
-        title={i18n("SelectPhase")}
-        menu={{ items: phaseSwitchItems }}
-        disabled={globalDisable}
-      >
-        <Button
-          data-testid="duel-phase-select"
-          data-current-phase={phaseTestId(currentPhase)}
-          icon={<StepForwardFilled style={{ transform: "scale(1.5)" }} />}
-          type="text"
+      <div className={docked ? styles.primary : styles.contents}>
+        {!observing && <SelectManager />}
+        <ReplayControl />
+        <DropdownWithTitle
+          title={i18n("SelectPhase")}
+          menu={{ items: phaseSwitchItems }}
           disabled={globalDisable}
         >
-          {phaseBind.find(([key]) => key === currentPhase)?.[1]}
-        </Button>
-      </DropdownWithTitle>
-      <DropdownWithTitle
-        menu={{
-          items: chainSettingItems,
-        }}
-      >
-        <Button
-          data-testid="duel-chain-setting"
-          disabled={observing}
-          aria-label={
-            chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
-          }
-          data-chain-setting={chainSettingTestIds[chainSetting]}
-          icon={<ChainIcon chainSetting={chainSetting} />}
-          type="text"
-        ></Button>
-      </DropdownWithTitle>
-      <Tooltip title={i18n("History")} open={mobile ? false : undefined}>
-        <Button
-          data-testid="duel-history"
-          aria-label={text.history}
-          icon={<FileSearchOutlined />}
-          onClick={displayActionHistory}
-          type="text"
-        />
-      </Tooltip>
-      <Tooltip title={i18n("ChatRoom")} open={mobile ? false : undefined}>
-        <Button
-          data-testid="duel-chat"
-          aria-label={text.chat}
-          icon={<MessageFilled />}
-          onClick={openChatBox}
-          type="text"
-        ></Button>
-      </Tooltip>
+          <Button
+            data-testid="duel-phase-select"
+            data-current-phase={phaseTestId(currentPhase)}
+            icon={<StepForwardFilled style={{ transform: "scale(1.5)" }} />}
+            type="text"
+            disabled={globalDisable}
+          >
+            {phaseBind.find(([key]) => key === currentPhase)?.[1]}
+          </Button>
+        </DropdownWithTitle>
+        <DropdownWithTitle
+          menu={{
+            items: chainSettingItems,
+          }}
+        >
+          <Button
+            data-testid="duel-chain-setting"
+            disabled={observing}
+            aria-label={
+              chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
+            }
+            data-chain-setting={chainSettingTestIds[chainSetting]}
+            icon={<ChainIcon chainSetting={chainSetting} />}
+            type="text"
+          >
+            {docked &&
+              chainSettingTexts.find(([key]) => key === chainSetting)?.[1]}
+          </Button>
+        </DropdownWithTitle>
+      </div>
+      {!docked && (
+        <>
+          <Tooltip title={i18n("History")} open={mobile ? false : undefined}>
+            <Button
+              data-testid="duel-history"
+              aria-label={text.history}
+              icon={<FileSearchOutlined />}
+              onClick={displayActionHistory}
+              type="text"
+            >
+              {docked && preview.history}
+            </Button>
+          </Tooltip>
+          <Tooltip title={i18n("ChatRoom")} open={mobile ? false : undefined}>
+            <Button
+              data-testid="duel-chat"
+              aria-label={text.chat}
+              icon={<MessageFilled />}
+              onClick={openChatBox}
+              type="text"
+            >
+              {docked && preview.chat}
+            </Button>
+          </Tooltip>
+        </>
+      )}
       {observing ? (
         <>
           {sideStage === SideStage.WAITING && (
@@ -504,7 +523,9 @@ export const Menu = () => {
             icon={<CloseCircleFilled />}
             type="text"
             onClick={() => navigate("/match")}
-          />
+          >
+            {docked && text.leaveSpectating}
+          </Button>
         </>
       ) : (
         <DropdownWithTitle
@@ -516,7 +537,9 @@ export const Menu = () => {
             data-testid="duel-surrender"
             icon={<CloseCircleFilled />}
             type="text"
-          ></Button>
+          >
+            {docked && i18n("DoYouSurrunder")}
+          </Button>
         </DropdownWithTitle>
       )}
       <Button
@@ -525,7 +548,9 @@ export const Menu = () => {
         icon={<SettingOutlined />}
         type="text"
         onClick={() => openSettingPanel({})}
-      />
+      >
+        {docked && text.settings}
+      </Button>
     </div>
   );
 };

@@ -11,7 +11,7 @@ import styles from "./index.module.scss";
 
 const LIFE_ANIMATION_DURATION = 500;
 
-function spectatorName(
+export function spectatorName(
   players: readonly (Readonly<Player> | undefined)[],
   tag: boolean,
   controller: number,
@@ -27,7 +27,7 @@ function spectatorName(
   return players[seat]?.name ?? "?";
 }
 
-export const LifeBar: React.FC = () => {
+export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
   const snapInitInfo = useSnapshot(matStore.initInfo);
   const snapPlayer = useSnapshot(roomStore);
   const { currentPlayer, selfType, observerView, observerSwapped } =
@@ -78,7 +78,7 @@ export const LifeBar: React.FC = () => {
   }, [currentPlayer]);
 
   return (
-    <div className={styles.container}>
+    <div className={classNames(styles.container, { [styles.sidebar]: docked })}>
       <LifeBarItem
         active={
           observing

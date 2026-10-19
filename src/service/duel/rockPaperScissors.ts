@@ -15,5 +15,6 @@ export default async (mora: ygopro.StocGameMessage.MsgRockPaperScissors) => {
       { info: i18next.t("WaitRoom:Paper"), response: 3 },
     ],
     1,
+    { randomRps: true },
   );
 };

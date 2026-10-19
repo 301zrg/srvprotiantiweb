@@ -7,20 +7,20 @@ import { matConfig } from "../../css";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
-const {
-  BLOCK_WIDTH,
-  BLOCK_HEIGHT_M,
-  BLOCK_HEIGHT_S,
-  CARD_RATIO,
-  COL_GAP,
-  ROW_GAP,
-  BLOCK_OUTSIDE_OFFSET_X,
-  CARD_HEIGHT_O,
-} = matConfig;
-
 const { MZONE, SZONE, TZONE } = ygopro.CardZone;
 
 export const moveToGround: MoveFunc = async (props) => {
+  const {
+    BLOCK_WIDTH,
+    BLOCK_HEIGHT_M,
+    BLOCK_HEIGHT_S,
+    MONSTER_ROW_Y,
+    SPELL_ROW_Y,
+    CARD_RATIO,
+    COL_GAP,
+    BLOCK_OUTSIDE_OFFSET_X,
+    CARD_HEIGHT_O,
+  } = matConfig;
   const { card, api, options } = props;
 
   const { location } = card;
@@ -43,12 +43,10 @@ export const moveToGround: MoveFunc = async (props) => {
           BLOCK_OUTSIDE_OFFSET_X +
           CARD_HEIGHT_O * CARD_RATIO * 0.5
         );
-        y = ROW_GAP + BLOCK_HEIGHT_M + (BLOCK_HEIGHT_M - CARD_HEIGHT_O) / 2;
+        y = SPELL_ROW_Y;
       } else {
         x = (sequence - 2) * (BLOCK_WIDTH + COL_GAP);
-        y =
-          2 * (BLOCK_HEIGHT_M + ROW_GAP) -
-          (BLOCK_HEIGHT_M - BLOCK_HEIGHT_S) / 2;
+        y = SPELL_ROW_Y;
       }
       break;
     }
@@ -59,7 +57,7 @@ export const moveToGround: MoveFunc = async (props) => {
         y = 0;
       } else {
         x = (sequence - 2) * (BLOCK_WIDTH + COL_GAP);
-        y = BLOCK_HEIGHT_M + ROW_GAP;
+        y = MONSTER_ROW_Y;
       }
       break;
     }

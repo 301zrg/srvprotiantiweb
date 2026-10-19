@@ -4,7 +4,7 @@ export interface AudioConfig {
   enableMusic?: boolean;
   /** 是否开启音效 */
   enableSoundEffects?: boolean;
-  /** 录像音效独立开关；旧设置中未指定时默认开启 */
+  /** @deprecated Ignored during migration; all playback uses enableSoundEffects. */
   enableReplaySoundEffects?: boolean;
   /** 音乐音量大小 */
   musicVolume?: number;
@@ -17,7 +17,6 @@ export interface AudioConfig {
 export const defaultAudioConfig: AudioConfig = {
   enableMusic: false,
   enableSoundEffects: false,
-  enableReplaySoundEffects: true,
   musicVolume: 0.7,
   soundEffectsVolume: 0.7,
   enableMusicSwitchByEnv: false,

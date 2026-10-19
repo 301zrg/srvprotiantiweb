@@ -3,10 +3,11 @@ import { LoaderFunction, useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
-import { useEnv } from "@/hook";
+import { useEnv, useMediaQuery } from "@/hook";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { matStore, SideStage, sideStore } from "@/stores";
 import { requireSession } from "@/ui/requireSession";
+import { DuelSidebarContext, duelSidebarQuery } from "@/ui/Shared/DuelPanel";
 
 import {
   ActionConfirm,
@@ -25,7 +26,8 @@ import {
   SortCardModal,
   YesNoModal,
 } from "./Message";
-import { ChatBox, HandChain, LifeBar, Mat, Menu, Underlying } from "./PlayMat";
+import { HandChain, Mat, Underlying } from "./PlayMat";
+import { DuelSidebar } from "./Sidebar";
 
 export const loader: LoaderFunction = async () => {
   const redirected = requireSession();
@@ -39,6 +41,7 @@ export const Component: React.FC = () => {
   const { stage } = useSnapshot(sideStore);
   const { duelEnd } = useSnapshot(matStore);
   const navigate = useNavigate();
+  const wide = useMediaQuery(duelSidebarQuery);
 
   // 如果处于开发时的本地文件回放模式，则重新跳回Match且保持record参数，从而开始下一轮播放
   const [searchParams] = useSearchParams();
@@ -71,12 +74,11 @@ export const Component: React.FC = () => {
   }, [duelEnd]);
 
   return (
-    <>
+    <DuelSidebarContext.Provider value={wide}>
       <Underlying />
       <SelectActionsModal />
       <Alert />
-      <Menu />
-      <LifeBar />
+      <DuelSidebar wide={wide} />
       <Mat />
       <CardModal />
       <CardListModal />
@@ -90,10 +92,9 @@ export const Component: React.FC = () => {
       <SimpleSelectCardsModal />
       <AnnounceModal />
       <EndModal />
-      <ChatBox />
       <HandChain />
       <ActionHistory />
-    </>
+    </DuelSidebarContext.Provider>
   );
 };
 Component.displayName = "NeosDuel";

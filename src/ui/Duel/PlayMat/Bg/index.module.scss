@@ -48,10 +48,7 @@
     var(--col-gap) * 2 + var(--block-width) * 2.5 +
       var(--block-outside-offset-x) + var(--width) / 2
   );
-  --top: calc(
-    var(--row-gap) + var(--block-height-m) +
-      (var(--block-height-m) - var(--height)) / 2
-  );
+  --top: var(--spell-row-y);
 
   .banish,
   .field,
@@ -76,9 +73,7 @@
       var(--deck-offset-x) + 2 * (var(--block-width) + var(--col-gap))
     );
     left: var(--left);
-    top: calc(
-      var(--deck-offset-y) + 2 * var(--block-height-m) + 2 * var(--row-gap)
-    );
+    top: var(--deck-row-y);
     transform: translate(-50%, -50%) rotate(calc(-1 * var(--deck-rotate-z)));
     height: var(--deck-card-height);
     width: calc(var(--deck-card-height) * var(--card-ratio));
@@ -88,6 +83,25 @@
     }
   }
 }
+
+.count {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%) translateZ(100px);
+  padding: 0 8px;
+  min-width: 30px;
+  border-radius: 10px;
+  background: #101925e6;
+  color: #fff;
+  font-size: 18px;
+  line-height: 24px;
+  text-align: center;
+  pointer-events: none;
+}
+.op .count { transform: translateX(-50%) rotate(180deg) translateZ(100px); }
+.block[role="button"] { cursor: pointer; }
+.block[role="button"]:focus-visible { outline: 3px solid #40a9ff; }
 
 // 被禁用的样式
 .disabled-cross {

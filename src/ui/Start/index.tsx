@@ -65,6 +65,15 @@ export const Component = () => {
               </a>
               {text.creditsThanks}
             </p>
+            <p>
+              <a
+                href={communityLinks.source}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                srvprotiantiweb
+              </a>
+            </p>
           </section>
 
           <section className={styles.notice} aria-labelledby="home-updates">

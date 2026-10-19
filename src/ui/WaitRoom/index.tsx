@@ -279,7 +279,7 @@ export const Component: React.FC = () => {
             )}
             <ActionButton
               onMoraSelect={(mora) => {
-                sendHandResult(container.conn, mora);
+                sendHandResult(getUIContainer().conn, mora);
                 roomStore.stage = RoomStage.HAND_SELECTED;
               }}
               onTpSelect={(tp) => {

@@ -1,10 +1,12 @@
 /* eslint valtio/avoid-this-in-proxy: 0 */
 import { proxy } from "valtio";
+import { subscribeKey } from "valtio/utils";
 
 import { ygopro } from "@/api";
 
+import { settingStore } from "../settingStore";
 import { type NeosStore } from "../shared";
-import { ChainSetting, InitInfo, MatState } from "./types";
+import { InitInfo, MatState } from "./types";
 
 /**
  * 根据controller判断是自己还是对方。
@@ -92,7 +94,7 @@ const initialState: Omit<MatState, "reset"> = {
     selectableList: [],
     selectedList: [],
   },
-  chainSetting: ChainSetting.CHAIN_SMART,
+  chainSetting: settingStore.chainSetting,
   duelEnd: false,
   // methods
   isMe,
@@ -159,6 +161,24 @@ export class MatStore implements MatState, NeosStore {
  * 具体介绍可以点进`MatState`去看
  */
 export const matStore = proxy<MatStore>(new MatStore());
+
+// Change future prompts only. An already displayed prompt keeps its response.
+subscribeKey(
+  settingStore,
+  "chainSetting",
+  (mode) => {
+    if (matStore.chainSetting !== mode) matStore.chainSetting = mode;
+  },
+  true,
+);
+subscribeKey(
+  matStore,
+  "chainSetting",
+  (mode) => {
+    if (settingStore.chainSetting !== mode) settingStore.chainSetting = mode;
+  },
+  true,
+);
 
 // @ts-ignore 挂到全局，便于调试
 window.matStore = matStore;

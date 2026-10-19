@@ -55,6 +55,10 @@ const router = createHashRouter([
         lazy: () => loadPage("decks", () => import("./BuildDeck")),
       },
       {
+        path: "/practice",
+        lazy: () => loadPage("practice", () => import("./Practice")),
+      },
+      {
         path: "/import",
         lazy: () => loadPage("deck import", () => import("./ImportDeck")),
       },

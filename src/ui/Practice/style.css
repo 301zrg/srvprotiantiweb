@@ -1,0 +1,173 @@
+.practice-page {
+  height: calc(100dvh - var(--header-height, 48px));
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: auto;
+  padding: 16px;
+  color: #e9edf5;
+  background: #111a29;
+}
+.practice-page p {
+  line-height: 1.5;
+  margin: 8px 0;
+}
+.practice-header,
+.practice-toolbar,
+.practice-setup,
+.practice-choice-footer {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.practice-header {
+  justify-content: space-between;
+}
+.practice-header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+.practice-setup {
+  padding: 12px;
+  border: 1px solid #41516c;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.practice-setup label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.practice-setup .ant-select {
+  min-width: 200px;
+  max-width: 320px;
+}
+.practice-toolbar {
+  margin: 12px 0;
+}
+.practice-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+.practice-choices {
+  padding: 12px;
+  margin: 12px 0;
+  background: #1c2b40;
+  border: 1px solid #6c92c4;
+  border-radius: 8px;
+}
+.practice-choices h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.practice-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+  max-height: 40vh;
+  overflow: auto;
+}
+.practice-choice-list .practice-choice {
+  height: auto;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  gap: 8px;
+  max-width: 100%;
+  text-align: left;
+}
+.practice-choice span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.practice-choice img {
+  height: 58px;
+  width: 40px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.practice-counter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+}
+.practice-choice-footer .ant-btn {
+  min-height: 44px;
+}
+.practice-page .replay-field-viewport {
+  min-height: 400px;
+}
+.practice-state {
+  font-weight: 600;
+}
+.practice-game {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.practice-board {
+  min-width: 0;
+}
+@media (min-width: 1024px) and (min-height: 600px) {
+  .practice-game {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+  .practice-game .practice-choices {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+  .practice-board {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .practice-game .practice-choice {
+    width: 100%;
+  }
+  .practice-game .practice-choice-list {
+    max-height: 40vh;
+  }
+}
+.practice-detail-image {
+  display: block;
+  max-width: 100%;
+  max-height: 50vh;
+  margin: auto;
+}
+.practice-description {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+@media (max-width: 600px) {
+  .practice-page {
+    padding: 10px;
+  }
+  .practice-setup {
+    align-items: stretch;
+  }
+  .practice-setup label {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .practice-setup .ant-select {
+    flex: 1;
+    min-width: 0;
+    max-width: 70%;
+  }
+  .practice-header h1 {
+    font-size: 20px;
+  }
+  .practice-choice-list {
+    max-height: 45vh;
+  }
+  .practice-choice-list .practice-choice {
+    width: 100%;
+  }
+}

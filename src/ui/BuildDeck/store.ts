@@ -93,6 +93,7 @@ export const editDeckStore = proxy({
 
   // 标脏
   edited: false,
+  ignoreBanlist: false,
 
   // 方法
   add(type: Type, card: CardMeta) {
@@ -193,7 +194,9 @@ export const editDeckStore = proxy({
       result = false;
       reason = cardTypeNotMatch;
     }
-    const max = Math.min(3, forbidden.get(card) ?? 3);
+    const max = editDeckStore.ignoreBanlist
+      ? 3
+      : Math.min(3, forbidden.get(card) ?? 3);
     const canonicalId = (value: CardMeta) => value.data.alias || value.id;
     const numOfSameCards =
       editDeckStore

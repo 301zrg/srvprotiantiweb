@@ -1,29 +1,36 @@
-import { Checkbox, Typography } from "antd";
+import { Radio, Typography } from "antd";
 import { useSnapshot } from "valtio";
 
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
-import { mobileMessages } from "@/variant/mobileMessages";
+import { previewMessages } from "@/variant/previewMessages";
 
 export const MessageSetting = () => {
-  const { showServerMessages } = useSnapshot(settingStore);
+  const { serverMessageMode } = useSnapshot(settingStore);
   const { language } = useI18N();
-  const text = mobileMessages(language);
+  const text = previewMessages(language);
   return (
-    <>
-      <Checkbox
-        data-testid="server-message-popups"
-        style={{ minHeight: 44, display: "inline-flex", alignItems: "center" }}
-        checked={showServerMessages}
+    <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+      <legend style={{ fontSize: 14 }}>{text.messageMode}</legend>
+      <Radio.Group
+        value={serverMessageMode}
         onChange={(event) => {
-          settingStore.showServerMessages = event.target.checked;
+          settingStore.serverMessageMode = event.target.value;
         }}
       >
-        {text.serverMessagePopups}
-      </Checkbox>
+        <Radio data-testid="setting-message-auto" value="auto">
+          {text.automatic}
+        </Radio>
+        <Radio data-testid="setting-message-popup" value="popup">
+          {text.popup}
+        </Radio>
+        <Radio data-testid="setting-message-record" value="record">
+          {text.recordOnly}
+        </Radio>
+      </Radio.Group>
       <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
-        {text.serverMessagePopupsHelp}
+        {text.messageHelp}
       </Typography.Paragraph>
-    </>
+    </fieldset>
   );
 };

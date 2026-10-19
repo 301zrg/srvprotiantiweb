@@ -1,27 +1,18 @@
-import {
-  AudioFilled,
-  CheckCircleOutlined,
-  MessageOutlined,
-  PlayCircleOutlined,
-  TranslationOutlined,
-} from "@ant-design/icons";
-import { Button, Modal, Tabs, TabsProps } from "antd";
-import React from "react";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Button, Modal } from "antd";
+import React, { useState } from "react";
 
-import { duelInteractionMessages } from "@/variant/duelInteraction";
+import { useMediaQuery } from "@/hook";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { previewMessages } from "@/variant/previewMessages";
 
 import { I18NSelector, useI18N } from "../I18N";
 import { AnimationSetting } from "./Animation";
 import { AudioSetting } from "./Audio";
+import styles from "./index.module.scss";
 import { MessageSetting } from "./Messages";
 import { OperationSetting } from "./Operations";
 
-/** 设置面板属性 */
 export interface SettingProps {
-  /** 默认设置页 */
   defaultKey?:
     | "audio"
     | "language"
@@ -31,67 +22,74 @@ export interface SettingProps {
     | "other";
 }
 
-export const Setting = (props: SettingProps) => {
-  const { defaultKey = "audio" } = props;
-  const { t: i18n } = useTranslation("SystemSettings");
+export const Setting = ({ defaultKey = "audio" }: SettingProps) => {
   const { language } = useI18N();
-  const text = mobileMessages(language);
-  const interactionText = duelInteractionMessages(language);
-
-  const items: TabsProps["items"] = [
+  const text = previewMessages(language);
+  const vertical = useMediaQuery("(max-width: 600px)");
+  const [active, setActive] = useState(
+    defaultKey === "messages" || defaultKey === "animation"
+      ? "display"
+      : defaultKey === "other"
+      ? "operations"
+      : defaultKey,
+  );
+  const groups = [
     {
       key: "operations",
-      label: (
-        <>
-          {interactionText.settings} <CheckCircleOutlined />
-        </>
-      ),
-      children: <OperationSetting />,
+      label: text.operations,
+      content: <OperationSetting />,
     },
+    { key: "audio", label: text.sounds, content: <AudioSetting /> },
     {
-      key: "audio",
-      label: (
+      key: "display",
+      label: text.displayMessages,
+      content: (
         <>
-          {i18n("AudioSettings")} <AudioFilled />
+          <AnimationSetting />
+          <MessageSetting />
         </>
       ),
-      children: <AudioSetting />,
     },
-    {
-      key: "language",
-      label: (
-        <>
-          {i18n("LanguageSettings")} <TranslationOutlined />
-        </>
-      ),
-      children: <I18NSelector />,
-    },
-    {
-      key: "messages",
-      label: (
-        <>
-          {text.messageSettings} <MessageOutlined />
-        </>
-      ),
-      children: <MessageSetting />,
-    },
-    {
-      key: "animation",
-      label: (
-        <>
-          {i18n("AnimationSettings")} <PlayCircleOutlined />
-        </>
-      ),
-      children: <AnimationSetting />,
-    },
+    { key: "language", label: text.language, content: <I18NSelector /> },
   ];
-
-  return <Tabs defaultActiveKey={defaultKey} items={items} />;
+  return (
+    <div className={styles.layout}>
+      {!vertical && (
+        <nav
+          data-testid="settings-navigation"
+          className={styles.navigation}
+          aria-label={mobileMessages(language).settings}
+        >
+          {groups.map((group) => (
+            <Button
+              key={group.key}
+              type={active === group.key ? "primary" : "text"}
+              aria-pressed={active === group.key}
+              onClick={() => setActive(group.key)}
+            >
+              {group.label}
+            </Button>
+          ))}
+        </nav>
+      )}
+      <div className={styles.groups}>
+        {groups
+          .filter((group) => vertical || active === group.key)
+          .map((group) => (
+            <section
+              key={group.key}
+              data-testid={`settings-section-${group.key}`}
+              className={styles.section}
+            >
+              <h3>{group.label}</h3>
+              {group.content}
+            </section>
+          ))}
+      </div>
+    </div>
+  );
 };
 
-/**
- * 打开设置面板，允许在非组件内通过此 API 打开设置面板
- */
 export function openSettingPanel(props: SettingProps) {
   window.dispatchEvent(
     new CustomEvent("neos:open-settings", { detail: props }),
@@ -104,9 +102,8 @@ export const SettingPanel = () => {
   const { language } = useI18N();
   const text = mobileMessages(language);
   React.useEffect(() => {
-    const open = (event: Event) => {
+    const open = (event: Event) =>
       setProps((event as CustomEvent<SettingProps>).detail ?? {});
-    };
     window.addEventListener("neos:open-settings", open);
     return () => window.removeEventListener("neos:open-settings", open);
   }, []);
@@ -116,11 +113,13 @@ export const SettingPanel = () => {
       open={props !== undefined}
       centered
       title={text.settings}
-      width={460}
+      width={760}
+      zIndex={1400}
       onCancel={close}
       maskClosable
       keyboard
       destroyOnClose
+      className={styles.modal}
       footer={
         <Button data-testid="settings-close" onClick={close}>
           {text.close}

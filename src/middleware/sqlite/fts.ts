@@ -9,6 +9,7 @@ const TYPE_MONSTER = 0x1;
 
 /** 过滤条件 */
 export interface FtsConditions {
+  banStatuses?: number[]; // Empty selects every status; applied using the environment banlist.
   levels: number[]; // 星阶/link值
   lscales: number[]; // 左刻度
   types: number[]; // 卡片类型
@@ -19,6 +20,7 @@ export interface FtsConditions {
 }
 
 export const emptySearchConditions: FtsConditions = {
+  banStatuses: [],
   atk: { min: null, max: null },
   def: { min: null, max: null },
   levels: [],

@@ -1,13 +1,19 @@
+import classNames from "classnames";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
 import { useConfig } from "@/config";
+import { useMediaQuery } from "@/hook";
 import { History, HistoryOp, historyStore, matStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
-import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import {
+  DuelPanel,
+  duelSidebarQuery,
+  hasDuelSidebar,
+} from "@/ui/Shared/DuelPanel";
 import { duelResultMessages, formatDuelResult } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
 
@@ -25,7 +31,8 @@ export const ActionHistory: React.FC = () => {
   const { language } = useI18N();
   const text = mobileMessages(language);
   const { isOpen } = useSnapshot(store);
-  const { historys } = useSnapshot(historyStore);
+  const wide = useMediaQuery(duelSidebarQuery);
+  if (wide) return null;
   return (
     <DuelPanel
       open={isOpen}
@@ -34,15 +41,31 @@ export const ActionHistory: React.FC = () => {
       title={text.history}
       testId="duel-history-panel"
     >
-      <div className={styles.container}>
-        {!historys.length && <p>{text.emptyHistory}</p>}
-        <div className={styles.timeline}>
-          {historys.map((history, idx) => (
-            <HistoryItem key={idx} {...(history as History)} />
-          ))}
-        </div>
-      </div>
+      <ActionHistoryContent />
     </DuelPanel>
+  );
+};
+
+export const ActionHistoryContent = ({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) => {
+  const { language } = useI18N();
+  const text = mobileMessages(language);
+  const { historys } = useSnapshot(historyStore);
+  return (
+    <div
+      className={classNames(styles.container, { [styles.embedded]: embedded })}
+      data-testid="duel-history-content"
+    >
+      {!historys.length && <p>{text.emptyHistory}</p>}
+      <div className={styles.timeline}>
+        {historys.map((history, idx) => (
+          <HistoryItem key={idx} {...(history as History)} />
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -169,4 +192,8 @@ function Op2Text(op: HistoryOp, t: (key: string) => string): string {
   }
 }
 
-export const displayActionHistory = () => (store.isOpen = true);
+export const displayActionHistory = () => {
+  if (hasDuelSidebar())
+    window.dispatchEvent(new CustomEvent("neos:open-duel-history"));
+  else store.isOpen = true;
+};

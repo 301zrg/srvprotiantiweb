@@ -1,10 +1,17 @@
 import { Button, Popover, Space } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 
+import { getUIContainer } from "@/container/compat";
 import { eventbus, Task } from "@/infra";
+import { RpsHand, RpsRequest } from "@/service/mora/request";
+import { RoomStage, roomStore } from "@/stores/roomStore";
+import { settingStore } from "@/stores/settingStore";
+import { connectionStore } from "@/variant/connection";
 
 import { IconFont } from "../Shared";
+import { RandomRpsControls } from "./RandomRpsControls";
 
 export enum Mora {
   Rock = "rock",
@@ -21,19 +28,72 @@ export const MoraPopover: React.FC<
   React.PropsWithChildren<{ onSelect?: (result: Mora) => void }>
 > = ({ children, onSelect }) => {
   const [open, setOpen] = useState(false);
+  const [requestId, setRequestId] = useState(0);
+  const request = useRef(new RpsRequest()).current;
+  const owner = useRef(getUIContainer().conn);
+  const { randomRpsMode } = useSnapshot(settingStore);
+  const { epoch, state } = useSnapshot(connectionStore);
+  const { stage } = useSnapshot(roomStore);
 
   // 需要在mora的service之中，emit一个事件，让这个组件监听到，然后打开popover
   useEffect(() => {
     // 这里不能用`once`，因为如果双方猜拳结果一样的话会重新猜拳
-    const show = () => setOpen(true);
+    const show = () => {
+      owner.current = getUIContainer().conn;
+      setRequestId(
+        request.begin(
+          owner.current,
+          connectionStore.epoch,
+          settingStore.randomRpsMode,
+        ),
+      );
+      setOpen(true);
+    };
     eventbus.on(Task.Mora, show);
     return () => {
       eventbus.off(Task.Mora, show);
+      request.invalidate();
     };
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    setRequestId(
+      request.begin(owner.current, connectionStore.epoch, randomRpsMode),
+    );
+  }, [randomRpsMode]);
+
+  useEffect(() => {
+    request.invalidate();
+    setOpen(false);
+  }, [epoch]);
+
+  useEffect(() => {
+    if (
+      state === "disconnected" ||
+      state === "connecting" ||
+      stage !== RoomStage.HAND_SELECTING
+    ) {
+      request.invalidate();
+      setOpen(false);
+    }
+  }, [state, stage]);
+
   const onClick = (result: Mora) => {
-    result; // 这里send猜拳的结果给服务器
+    if (
+      roomStore.stage !== RoomStage.HAND_SELECTING ||
+      getUIContainer().conn !== owner.current ||
+      owner.current.ws?.readyState !== 1 ||
+      connectionStore.state === "disconnected" ||
+      connectionStore.state === "connecting" ||
+      !request.consume(
+        requestId,
+        owner.current,
+        connectionStore.epoch,
+        settingStore.randomRpsMode,
+      )
+    )
+      return;
     onSelect?.(result);
     setOpen(false);
   };
@@ -50,20 +110,35 @@ export const MoraPopover: React.FC<
     <Popover
       overlayStyle={{ backdropFilter: "blur(10px)" }}
       content={
-        <Space wrap style={{ maxWidth: "min(420px, calc(100vw - 48px))" }}>
-          {[Mora.Rock, Mora.Scissors, Mora.Paper].map((mora) => (
-            <Button
-              key={mora}
-              data-testid={`waitroom-mora-${mora}`}
-              size="large"
-              style={{ minHeight: 44, minWidth: 80 }}
-              type="text"
-              icon={<IconFont type={`icon-hand-${mora}`} size={16} />}
-              onClick={() => onClick(mora)}
-            >
-              {map[mora]}
-            </Button>
-          ))}
+        <Space
+          direction="vertical"
+          style={{ maxWidth: "min(420px, calc(100vw - 48px))" }}
+        >
+          <Space wrap>
+            {[Mora.Rock, Mora.Scissors, Mora.Paper].map((mora) => (
+              <Button
+                key={mora}
+                data-testid={`waitroom-mora-${mora}`}
+                size="large"
+                style={{ minHeight: 44, minWidth: 80 }}
+                type="text"
+                icon={<IconFont type={`icon-hand-${mora}`} size={16} />}
+                onClick={() => onClick(mora)}
+              >
+                {map[mora]}
+              </Button>
+            ))}
+          </Space>
+          <RandomRpsControls
+            request={request}
+            requestId={requestId}
+            owner={owner.current}
+            epoch={epoch}
+            testPrefix="waitroom"
+            onSelect={(hand: RpsHand) =>
+              onClick([Mora.Rock, Mora.Scissors, Mora.Paper][hand - 1])
+            }
+          />
         </Space>
       }
       open={open}

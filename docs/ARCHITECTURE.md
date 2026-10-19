@@ -1,6 +1,6 @@
 # 当前架构与数据流
 
-更新：2026-10-10。按 HEAD `6e0085d8c58a6054921a475693c36b6b2d751011` 的实装核对。
+更新：2026-10-19。本轮候选以生产提交 `7b636941` 为基线，新增本地练习和录像卡组提取；仅测试预览。
 本文描述源码边界，不断言正式站点今天的部署版本。功能和测试状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，
 设计理由见 [设计文档](../YGOPro_706_Web_Client_Design.md)。
 
@@ -29,6 +29,11 @@ flowchart TB
     Player -->|"播放 / 单步 / 跳回合"| Worker["Replay Worker<br/>固定 Core WASM / Lua / cards.data"]
     Worker -->|"事件 + 完整场地查询"| Player
     Profile["固定 profile / SHA 校验<br/>可选 Cache Storage"] --> Worker
+    Library --> Extract["录像开局主卡 / 额外提取<br/>仅解包，不启动对局"]
+    Extract --> Decks
+    Decks --> Practice["双边本地练习 UI<br/>卡组副本 / MR2 / 忽略胜负"]
+    Practice <--> PracticeWorker["Practice Worker<br/>双方选择 / 请求序号隔离"]
+    Profile --> PracticeWorker
   end
   Transport <-->|"WSS：原生 YGOPro 二进制"| Gateway["TLS / WSS 接入"]
   Gateway <--> Server["SRVPro Neos WS<br/>认证 / 房间 / 天梯 / 服务端 Core与Lua"]
@@ -38,7 +43,7 @@ flowchart TB
 
 线上规则、账号、房间、计分、数据库与服务器录像目录属于 SRVPro。
 网页是外部托管的静态应用，不增加账号或结算后端。SQLite WASM 读取卡片资料；
-Replay Core WASM 仅在用户播放时运行，二者不能按“WASM”合并判断。
+Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二者不能按“WASM”合并判断。
 官网交接与对战 WSS 是两条独立路径，导入卡组／录像不会自动入房。
 
 | 模块责任 | 实际入口 | 维护边界 |
@@ -53,6 +58,8 @@ Replay Core WASM 仅在用户播放时运行，二者不能按“WASM”合并�
 | 本地卡组 | [deckStore.ts](../src/stores/deckStore.ts)、[BuildDeck/store.ts](../src/ui/BuildDeck/store.ts)、[deckImport.ts](../src/service/deckImport.ts) | IndexedDB、解析与编辑草稿；接收权限与字段见专题 |
 | 原始录像 | [capture.ts](../src/replay/capture.ts)、[library.ts](../src/replay/library.ts) | 到达时捕获、hash 去重、原件／条目／会话关联；存储失败提示 |
 | 只读重演 | [worker.ts](../src/replay/worker.ts)、[engine.ts](../src/replay/engine.ts)、[Replay UI](../src/ui/Replay/index.tsx) | 固定资源、响应回灌、事件与完整查询；独立在线状态 |
+| 离线运行时与提取 | [runtime.ts](../src/replay/runtime.ts)、[extract.ts](../src/replay/extract.ts) | 共享 SHA 校验资源；提取保留原卡号顺序，不执行对局、不推测备牌 |
+| 双边本地练习 | [practice](../src/practice/)、[Practice UI](../src/ui/Practice/)、[profile](../src/variant/practice.ts) | Worker 隔离、双方响应归属和过期请求取消；不触发联机连接或修改编辑草稿 |
 | 重演展示 | [scene.ts](../src/ui/Replay/scene.ts)、[FieldBoard](../src/ui/Replay/FieldBoard.tsx)、[cardState.ts](../src/ui/Replay/cardState.ts) | 展示动作队列，每批末回到 Core 查询 |
 | 固定协议来源 | [protocol-source](../protocol-source/README.md)、[生成 IDL](../src/api/ocgcore/idl/) | 保留来源 commit／许可证，日常构建不执行 protoc 或初始化 submodule |
 
@@ -62,7 +69,7 @@ Replay Core WASM 仅在用户播放时运行，二者不能按“WASM”合并�
 源／目标下标移动，移除也可指定位置以区分重复卡片；只在用户主动自动排序时重排。
 复制卡片与搜索加入共用 `canAdd`，移动保留原有的数量抵扣。保存、导出与联机入场沿用
 相同数组顺序与原存储／协议格式。桌面卡图和手机独立手柄的交互见 [手机界面](mobile-ui.md)；
-本次未改变 UI／草稿／IndexedDB 或协议的责任边界，现有图继续适用。
+编辑器禁表筛选按当前禁表的 0／1／2／3 类别过滤搜索结果；忽略禁表仅改变编辑器加入判定，仍按 alias 归并同名卡且合计最多 3 张。切回限制保留现有卡片和顺序，仅提示不合规；在线卡组检查仍由服务端完成。设置统一保存智能连锁初值、随机出拳策略和音效，房内快捷状态双向同步。横屏几何由同一份数值同时驱动 CSS 与卡片动画，旋转不重建在线选择。
 
 ```mermaid
 sequenceDiagram
