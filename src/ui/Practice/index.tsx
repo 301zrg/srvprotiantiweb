@@ -18,7 +18,10 @@ import { useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
 import type { PracticeConfig } from "@/practice/engine";
-import { practicePhaseChoices } from "@/practice/interactions";
+import {
+  needsPracticePrompt,
+  practicePhaseChoices,
+} from "@/practice/interactions";
 import {
   encodePracticeAnswer,
   type PracticeChoice,
@@ -130,20 +133,7 @@ export const Component = () => {
   useEffect(() => {
     setSelected([]);
     setConfirmation(undefined);
-    setPromptOpen(
-      !!request &&
-        ![
-          "idle",
-          "battle",
-          "chain",
-          "place",
-          "cards",
-          "tribute",
-          "sum",
-          "unselect",
-          "sort",
-        ].includes(request.kind),
-    );
+    setPromptOpen(needsPracticePrompt(request));
   }, [request?.id, session.generation]);
   const choose = (choice: PracticeChoice, label = "") => {
     if (!request || responding) return;

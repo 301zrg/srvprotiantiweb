@@ -1,4 +1,4 @@
-import { CopyOutlined } from "@ant-design/icons";
+import { CloseOutlined, CopyOutlined } from "@ant-design/icons";
 import { App, Button, Input } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,7 @@ import { connectionStore } from "@/variant/connection";
 import { readJoinForm, saveJoinForm } from "@/variant/joinForm";
 import { communityLinks, roomRulesUrl } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
+import { mobileMessages } from "@/variant/mobileMessages";
 import { previewMessages } from "@/variant/previewMessages";
 import {
   isRoomCommand,
@@ -59,7 +60,14 @@ function ReplayReceipt() {
   const { language } = useI18N();
   const status = useSnapshot(replayCaptureStatus),
     navigate = useNavigate();
-  if (status.state === "idle") return null;
+  const [dismissed, setDismissed] = useState("");
+  const receipt = `${status.state}:${status.notice}:${status.saved}:${status.detail}`;
+  useEffect(() => {
+    if (status.state === "idle" || status.state === "receiving") return;
+    const timer = setTimeout(() => setDismissed(receipt), 7000);
+    return () => clearTimeout(timer);
+  }, [receipt, status.state]);
+  if (status.state === "idle" || dismissed === receipt) return null;
   return (
     <div
       style={{
@@ -78,6 +86,7 @@ function ReplayReceipt() {
         justifyContent: "space-between",
       }}
       role="status"
+      data-testid="replay-receipt"
     >
       <span>
         {t(`Replay${status.notice}`, {
@@ -88,6 +97,13 @@ function ReplayReceipt() {
       <Button onClick={() => navigate("/replays")}>
         {siteMessages(language).replays}
       </Button>
+      <Button
+        data-testid="replay-receipt-close"
+        type="text"
+        icon={<CloseOutlined />}
+        aria-label={mobileMessages(language).close}
+        onClick={() => setDismissed(receipt)}
+      />
     </div>
   );
 }

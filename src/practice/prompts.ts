@@ -181,8 +181,10 @@ export function parsePracticeRequest(
     request.choices = cards("word");
   } else if (message === 18 || message === 24) {
     request.kind = "place";
-    request.min = request.max = u8();
-    request.cancelable = request.min === 0;
+    const count = u8();
+    // Core's zero means one optional location, cancelled with location=0.
+    request.min = request.max = Math.max(1, count);
+    request.cancelable = count === 0;
     const mask = u32();
     for (let bit = 0; bit < 32; bit++)
       if (!(mask & (1 << bit)))

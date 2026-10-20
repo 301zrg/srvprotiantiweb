@@ -44,6 +44,7 @@ class SettingStore implements NeosStore {
   randomRpsMode = defaultSetting.randomRpsMode;
   serverMessageMode = defaultSetting.serverMessageMode;
   showZoneCounts = defaultSetting.showZoneCounts;
+  hidePlayerIds = defaultSetting.hidePlayerIds;
 
   /** Compatibility for older callers; persistence uses serverMessageMode only. */
   get showServerMessages() {
@@ -75,6 +76,7 @@ class SettingStore implements NeosStore {
     this.randomRpsMode = defaultSetting.randomRpsMode;
     this.serverMessageMode = defaultSetting.serverMessageMode;
     this.showZoneCounts = defaultSetting.showZoneCounts;
+    this.hidePlayerIds = defaultSetting.hidePlayerIds;
     this.confirmOperations = defaultSetting.confirmOperations;
   }
 }
@@ -96,6 +98,7 @@ subscribe(settingStore, () => {
             "randomRpsMode",
             "serverMessageMode",
             "showZoneCounts",
+            "hidePlayerIds",
             "confirmOperations",
           ]),
         ),

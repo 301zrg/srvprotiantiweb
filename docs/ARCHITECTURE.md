@@ -20,6 +20,9 @@ flowchart TB
     Adapter --> Services["service 房间 / 对局 / 换备"]
     Services --> Stores["Valtio 在线状态"]
     Stores --> UI
+    Services --> RpsNotice["猜拳反馈<br/>独立出拳与结果事件序号"]
+    UI -->|"已提交手势"| RpsNotice
+    RpsNotice --> UI
     UI --> Sqlite["sql.js + 当前语 CDB<br/>文本与搜索，SQLite WASM"]
     UI --> Decks["IndexedDB 卡组"]
     Transport -->|"到达时捕获 0x17 原件"| Capture["ReplayCapture"]
@@ -51,6 +54,8 @@ Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二�
 阶段栏与原菜单共用 `variant/duelPhases.ts`，依据当前请求来源、回合归属与 Core 标志禁用不可进入的阶段。`PhaseState.command` 仅在 idle／battle 请求期间有效，提交、失效、新阶段或其他选择会清除；响应继续经过操作所有权及确认机制。区域内部数量角标由“画面与消息”的持久化 `showZoneCounts` 控制，不影响区域列表与主卡组保密。练习共享卡图、响应式几何与 `PhaseBar` 展示，保留独立 Worker、请求及状态，不复用在线 handler 或连接。
 
 测试部署显式使用固定预览名称，保留同一 Origin 与浏览器存储。仅测试构建从正式站公开元数据读取当前 WSS；生产构建继续要求自己的显式环境变量。构建读取失败即中止，不写入陈旧地址。构建来源、共享入口覆盖关系与网关变更边界见 [自动部署](cloudflare-ci.md#固定测试入口与-wss)。
+
+`service/mora/feedback.ts` 将实际提交的手势与收到的胜负结果分开计数，由 Layout 中唯一 `RpsFeedback` 展示；相同平局仍是新事件，不依赖手势值是否变化。`hidePlayerIds` 仅作用于显示层，固定八个星号，不改房间原名、身份、缓存或录像。非空主／额外牌堆的数量角标深度取当前叠牌高度之上，仍归原区域和同一开关。练习双方牌堆允许完整查看，在线主卡组保密约束继续保留；位置 count=0、选择面板路由和验证契约见 [本地练习](practice.md)。
 
 | 模块责任 | 实际入口 | 维护边界 |
 | --- | --- | --- |

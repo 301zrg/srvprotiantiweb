@@ -4,7 +4,9 @@ import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
 import { matStore, roomStore } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
+import { displayPlayerId } from "@/variant/playerIds";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import { ActionHistoryContent } from "../Message/ActionHistory";
@@ -17,6 +19,7 @@ import styles from "./index.module.scss";
 
 /** Keep controls and chat mounted when rotating; only their placement changes. */
 export const DuelSidebar = ({ wide }: { wide: boolean }) => {
+  const { hidePlayerIds } = useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
   const { turnCount, currentPlayer, selfType, observerSwapped, phase } =
@@ -104,7 +107,7 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
             <div>
               {previewFormat(text.turnStatus, {
                 turn: turnCount,
-                player,
+                player: displayPlayerId(player, hidePlayerIds),
                 phase: duelPhaseLabel(language, phase.currentPhase),
               })}
             </div>

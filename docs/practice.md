@@ -4,7 +4,9 @@
 
 「重试本次手牌」使用开局时复制的双方卡组、起始手牌、洗牌选项和四个随机种子，不受随后修改的页面选项影响。「重新发牌」按当前页面选项重新复制卡组并产生新种子。不洗牌仅保留初始主卡组顺序，不禁止卡片效果随后要求的洗牌。备牌不进入测试对局。
 
-双方所有操作均由用户选择。A 方始终在下、B 方在上，不因回合或响应方改变而翻转；双方手牌与里侧卡片可见。点击卡片打开正常动作菜单，位置和目标可直接在场地选择，组合／宣言等通过选择面板处理。当前操作方取 Core 请求中的 player 字段，可能在 A 回合由 B 处理连锁。查看详情不会提交响应；主卡组普通查看只显示数量，检索候选由当前 Core 请求提供。
+双方所有操作均由用户选择。A 方始终在下、B 方在上，不因回合或响应方改变而翻转；双方手牌与里侧卡片可见。点击卡片打开正常动作菜单，位置和目标可直接在场地选择，组合／宣言等通过选择面板处理。当前操作方取 Core 请求中的 player 字段，可能在 A 回合由 B 处理连锁。双方主卡组与额外卡组可随时查看全部卡片，按 Core 当前 sequence 从大到小（牌堆顶到底）排列；查看详情或牌堆本身不提交响应。检索／翻看候选严格来自当前 Core 请求，只有合法候选可提交。
+
+选择路由集中在 `interactions.ts`：通常／战斗命令和位置选择保留场地操作；场上及手牌目标可直接选，卡组、墓地、除外、额外、叠放材料等场地外候选自动打开选择窗口，连锁与其他输入同样显式显示。706 `MSG_SELECT_PLACE`／`MSG_SELECT_DISFIELD` 的 count=0 表示可取消的单位置请求，选择时仍需一组三字节，取消为 `[player,0,0]`；不能将其当成零个位置。正常多位置请求仍严格满足数量。
 
 六阶段栏与联机共享展示组件，颜色表示回合方，当前阶段、可操作与禁用有不同样式。练习允许替 B 使用其合法命令，可进入的阶段仅来自当前 Core 请求，不按卡名推断、不任意跳阶段；MR2 首回合不能进战阶／主二。操作确认沿用全局开关，取消不提交；重新发牌或新请求使旧确认失效。
 
@@ -33,6 +35,9 @@
 node scripts/test_practice_runtime_loader.mjs
 node scripts/test_practice_runtime.mjs
 node scripts/test_practice_prompts.mjs
+node scripts/test_practice_place.mjs
+node --experimental-strip-types scripts/test_practice_interactions.mjs
+node scripts/practice_followup_ui.mjs
 npm run test:replay-runtime
 SMOKE_URL=http://127.0.0.1:4173 node scripts/practice_ui.mjs
 SMOKE_URL=http://127.0.0.1:4173 node scripts/practice_editor_roundtrip_ui.mjs

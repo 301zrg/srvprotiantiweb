@@ -1,5 +1,6 @@
 import { ygopro } from "@/api";
 import { Container } from "@/container";
+import { notifyRpsResult } from "@/service/mora/feedback";
 
 export default function handResult(
   container: Container,
@@ -13,6 +14,8 @@ export default function handResult(
   if (me && op) {
     me.moraResult = msg.meResult;
     op.moraResult = msg.opResult;
+    if (context.roomStore.selfType !== ygopro.StocTypeChange.SelfType.OBSERVER)
+      notifyRpsResult(msg.meResult, msg.opResult);
   } else if (
     context.roomStore.selfType !== ygopro.StocTypeChange.SelfType.OBSERVER
   ) {

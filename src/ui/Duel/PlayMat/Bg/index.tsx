@@ -191,7 +191,17 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
       }
     },
     children: showZoneCounts ? (
-      <span data-testid="zone-count-badge" className={styles.count}>
+      <span
+        data-testid="zone-count-badge"
+        className={styles.count}
+        style={
+          {
+            "--zone-count-depth": `${
+              zone === DECK || zone === EXTRA ? getN(zone) + 2 : 4
+            }px`,
+          } as React.CSSProperties
+        }
+      >
         {getN(zone)}
       </span>
     ) : undefined,

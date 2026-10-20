@@ -88,7 +88,7 @@
   position: absolute;
   bottom: 4px;
   right: 4px;
-  transform: translateZ(4px);
+  transform: translateZ(var(--zone-count-depth, 4px));
   z-index: 12;
   padding: 0 5px;
   min-width: 24px;
@@ -101,11 +101,11 @@
   text-align: center;
   pointer-events: none;
 }
-.op .count { transform: rotate(180deg) translateZ(4px); }
-.deck .count { transform: rotate(var(--deck-rotate-z)) translateZ(4px); }
-.deck.extra-deck .count { transform: rotate(calc(-1 * var(--deck-rotate-z))) translateZ(4px); }
-.op .deck .count { transform: rotate(calc(180deg + var(--deck-rotate-z))) translateZ(4px); }
-.op .deck.extra-deck .count { transform: rotate(calc(180deg - var(--deck-rotate-z))) translateZ(4px); }
+.op .count { transform: rotate(180deg) translateZ(var(--zone-count-depth, 4px)); }
+.deck .count { transform: rotate(var(--deck-rotate-z)) translateZ(var(--zone-count-depth, 4px)); }
+.deck.extra-deck .count { transform: rotate(calc(-1 * var(--deck-rotate-z))) translateZ(var(--zone-count-depth, 4px)); }
+.op .deck .count { transform: rotate(calc(180deg + var(--deck-rotate-z))) translateZ(var(--zone-count-depth, 4px)); }
+.op .deck.extra-deck .count { transform: rotate(calc(180deg - var(--deck-rotate-z))) translateZ(var(--zone-count-depth, 4px)); }
 .block[role="button"] { cursor: pointer; }
 .block[role="button"]:focus-visible { outline: 3px solid #40a9ff; }
 

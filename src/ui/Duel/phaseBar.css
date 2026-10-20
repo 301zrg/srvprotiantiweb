@@ -12,3 +12,8 @@
   .duel-phase-bar .ant-btn.ant-btn { font-size:9px; letter-spacing:-.2px; }
   .practice-session .duel-phase-bar .ant-btn.ant-btn { font-size:11px; letter-spacing:normal; }
 }
+@media (orientation:landscape) and (max-height:600px) {
+  .duel-phase-bar .ant-btn.ant-btn {
+    height:26px; min-height:26px; padding:2px 1px;
+  }
+}

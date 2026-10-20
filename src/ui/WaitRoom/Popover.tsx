@@ -7,6 +7,7 @@ import { useSnapshot } from "valtio";
 
 import { getUIContainer } from "@/container/compat";
 import { eventbus, Task } from "@/infra";
+import { notifyRpsPlayed } from "@/service/mora/feedback";
 import { RpsHand, RpsRequest } from "@/service/mora/request";
 import { RoomStage, roomStore } from "@/stores/roomStore";
 import { settingStore } from "@/stores/settingStore";
@@ -98,6 +99,9 @@ export const MoraPopover: React.FC<
     )
       return false;
     onSelect?.(result);
+    notifyRpsPlayed(
+      result === Mora.Rock ? 2 : result === Mora.Scissors ? 1 : 3,
+    );
     setOpen(false);
     return true;
   };

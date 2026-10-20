@@ -83,6 +83,7 @@ try {
       await page.locator('[data-testid="practice-slot"][data-selectable="true"]').first().click();
       await page.waitForFunction(()=>window.__practiceTrace.last?.pending?.kind==='chain'&&window.__practiceTrace.last.pending.player===1,{timeout:15000});
       await expect(page.getByTestId('practice-active-player')).toContainText('B 方');
+      await page.locator('.ant-modal-close:visible').click();
       await page.locator('[data-testid="practice-card"][data-player="1"][data-location="2"]').first().click();
       await page.locator('[data-testid="practice-card-action"]:visible').click();
       await page.waitForFunction(()=>window.__practiceTrace.last?.pending?.kind==='cards',{timeout:15000});
@@ -95,7 +96,7 @@ try {
         if(pending.kind==='cards'){await page.waitForTimeout(100);continue;}
         assert.equal(pending.kind,'chain',JSON.stringify(pending));
         assert.equal(pending.cancelable,true);
-        await page.getByTestId('practice-cancel').click();
+        await page.getByTestId('practice-choices').getByTestId('practice-cancel').click();
         await page.waitForFunction(id=>window.__practiceTrace.last?.pending?.id!==id,pending.id,{timeout:15000});
       }
       await page.waitForFunction(()=>window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.cards.some(c=>c.player===1&&c.location===16&&c.code===97268402),null,{timeout:15000});

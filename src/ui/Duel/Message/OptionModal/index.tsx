@@ -8,6 +8,7 @@ import { proxy, useSnapshot } from "valtio";
 
 import { sendSelectOptionResponse } from "@/api";
 import { getUIContainer } from "@/container/compat";
+import { notifyRpsPlayed } from "@/service/mora/feedback";
 import { RpsRequest } from "@/service/mora/request";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
@@ -263,6 +264,7 @@ export const displayOptionModal = async (
       )
         return;
       sendSelectOptionResponse(conn, value);
+      if (config?.randomRps) notifyRpsPlayed(value);
       rs(value);
     };
   });

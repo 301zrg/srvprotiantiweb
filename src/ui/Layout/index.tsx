@@ -21,6 +21,7 @@ import {
 } from "@/infra/resource";
 import { replayCaptureStatus } from "@/replay/capture";
 import { initStore } from "@/stores";
+import { RpsFeedback } from "@/ui/RpsFeedback";
 import { basePath, environmentId, getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { siteMessages } from "@/variant/messages";
@@ -126,6 +127,7 @@ export const Component = () => {
   return (
     <>
       <SettingPanel />
+      <RpsFeedback />
       {navigation.state === "loading" &&
         navigation.location?.pathname === "/match" &&
         capture.state === "receiving" &&

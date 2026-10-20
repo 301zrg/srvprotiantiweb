@@ -1,4 +1,4 @@
-import { App, Button, Typography } from "antd";
+import { Button, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -30,7 +30,6 @@ export const RandomRpsControls = ({
   const { t } = useTranslation("WaitRoom");
   const { language } = useI18N();
   const text = previewMessages(language);
-  const { message } = App.useApp();
   useEffect(() => setSuggestion(undefined), [requestId, randomRpsMode]);
   if (randomRpsMode === "off") return null;
   return (
@@ -60,16 +59,6 @@ export const RandomRpsControls = ({
             const accepted = onSelect(hand);
             if (accepted !== false) {
               setSuggestion(hand);
-              message.success({
-                key: "random-rps-result",
-                content: previewFormat(
-                  clientRevisionMessages(language).playedRps,
-                  {
-                    hand: t(["Rock", "Scissors", "Paper"][hand - 1]),
-                  },
-                ),
-                duration: 6,
-              });
             }
           } else setSuggestion(hand);
         }}

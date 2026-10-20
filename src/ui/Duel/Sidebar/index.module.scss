@@ -36,3 +36,6 @@
 .tabs button { flex: 1; min-width: 0; min-height: 44px; height: auto; padding: 4px; white-space: normal; font-size: 12px; }
 .content { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
 @media (max-height: 400px) { .status { margin: 4px 0; font-size: 11px; } }
+@media (orientation: landscape) and (max-height: 600px) {
+  .controls { flex: 0 0 auto; max-height: none; overflow: visible; }
+}

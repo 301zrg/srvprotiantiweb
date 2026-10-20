@@ -7,7 +7,8 @@ import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { previewMessages } from "@/variant/previewMessages";
 
 export const MessageSetting = () => {
-  const { serverMessageMode, showZoneCounts } = useSnapshot(settingStore);
+  const { serverMessageMode, showZoneCounts, hidePlayerIds } =
+    useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
   const revision = clientRevisionMessages(language);
@@ -25,6 +26,20 @@ export const MessageSetting = () => {
       <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
         {revision.showZoneCountsHelp}
       </Typography.Paragraph>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <Checkbox
+          data-testid="setting-hide-player-ids"
+          checked={hidePlayerIds}
+          onChange={(event) => {
+            settingStore.hidePlayerIds = event.target.checked;
+          }}
+        >
+          {revision.hidePlayerIds}
+        </Checkbox>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {revision.hidePlayerIdsHelp}
+        </Typography.Paragraph>
+      </fieldset>
       <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
         <legend style={{ fontSize: 14 }}>{text.messageMode}</legend>
         <Radio.Group

@@ -23,7 +23,7 @@ let globalMsgApi: ReturnType<typeof message.useMessage>[0] | undefined;
 export const HintNotification = () => {
   const { t } = useTranslation("ClientUI");
   const { t: handText } = useTranslation("WaitRoom");
-  const { serverMessageMode } = useSnapshot(settingStore);
+  const { serverMessageMode, hidePlayerIds } = useSnapshot(settingStore);
   const portrait = useMediaQuery("(orientation: portrait)");
   const { language } = useI18N();
   const text = previewMessages(language);
@@ -46,6 +46,10 @@ export const HintNotification = () => {
   });
 
   globalMsgApi = msgApi;
+  useEffect(() => {
+    notiApi.destroy();
+    setSummary(undefined);
+  }, [hidePlayerIds]);
   useEffect(() => {
     if (hintState && hintState.msg) {
       msgApi.info(`${hintState.msg}`);

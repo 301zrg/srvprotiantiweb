@@ -2,6 +2,19 @@ import type { ReplayCard } from "../replay/messages";
 import type { PhaseKey } from "../variant/duelPhases";
 import type { PracticeChoice, PracticeRequest } from "./prompts";
 
+/** Normal commands stay on the board; off-board choices need a visible panel. */
+export function needsPracticePrompt(request: PracticeRequest | undefined) {
+  if (!request || ["idle", "battle", "place"].includes(request.kind))
+    return false;
+  return (
+    !["cards", "tribute", "sum", "unselect"].includes(request.kind) ||
+    request.choices.some(
+      (choice) =>
+        choice.location !== undefined && ![2, 4, 8].includes(choice.location),
+    )
+  );
+}
+
 export function choicesAtCard(
   request: PracticeRequest | undefined,
   card: Pick<ReplayCard, "player" | "location" | "sequence">,

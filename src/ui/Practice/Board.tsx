@@ -8,6 +8,7 @@ import type { PracticeChoice, PracticeRequest } from "@/practice/prompts";
 import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { YgoCard } from "@/ui/Shared";
+import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { mobileMessages } from "@/variant/mobileMessages";
 import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
@@ -249,6 +250,7 @@ export const PracticeBoard = ({
           }`}
           style={style}
           data-testid="practice-card"
+          data-card-code={card.code}
           data-player={card.player}
           data-location={card.location}
           data-sequence={card.sequence}
@@ -275,13 +277,10 @@ export const PracticeBoard = ({
   };
   const pileCards =
     pile &&
-    frame.cards.filter(
-      (c) => c.player === pile.player && c.location === pile.location,
-    );
-  const visiblePileCards =
-    pile?.location === 1
-      ? (pileCards || []).filter((card) => addressChoices(card).length)
-      : pileCards || [];
+    frame.cards
+      .filter((c) => c.player === pile.player && c.location === pile.location)
+      .sort((a, b) => b.sequence - a.sequence);
+  const visiblePileCards = pileCards || [];
   return (
     <div
       className="practice-mat-viewport"
@@ -413,6 +412,7 @@ export const PracticeBoard = ({
         width={640}
         centered
       >
+        <p>{clientRevisionMessages(language).pileOrder}</p>
         <div className="practice-pile-cards">
           {visiblePileCards.map((card, i) => cardButton(card, String(i)))}
           {!visiblePileCards.length && (

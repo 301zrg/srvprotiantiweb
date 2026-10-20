@@ -13,6 +13,7 @@ export interface SettingConfig {
   randomRpsMode: RandomRpsMode;
   serverMessageMode: ServerMessageMode;
   showZoneCounts: boolean;
+  hidePlayerIds: boolean;
 }
 
 /** Normalize old browser settings without letting the old replay flag unmute. */
@@ -39,6 +40,7 @@ export function normalizeSetting(value: unknown): SettingConfig {
     animation: { ...defaultAnimationConfig, ...config.animation },
     confirmOperations: config.confirmOperations === true,
     showZoneCounts: config.showZoneCounts !== false,
+    hidePlayerIds: config.hidePlayerIds === true,
     chainSetting: [
       ChainSetting.CHAIN_ALL,
       ChainSetting.CHAIN_IGNORE,

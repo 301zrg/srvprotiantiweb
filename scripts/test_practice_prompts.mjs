@@ -86,6 +86,7 @@ try {
    assert(Duel.AnnounceAttribute(1,1,ATTRIBUTE_EARTH+ATTRIBUTE_LIGHT)==ATTRIBUTE_EARTH)
    assert(Duel.AnnounceNumber(1,2,5)==2)
    assert(Duel.AnnounceCard(1)==26202165)
+   assert(Duel.RockPaperScissors(false)==0)
    Duel.SelectDisableField(1,1,LOCATION_MZONE,0,0)
    Debug.AddCard(70781052,0,0,LOCATION_DECK,0,POS_FACEDOWN_DEFENSE)
    Debug.AddCard(46986414,0,0,LOCATION_DECK,0,POS_FACEDOWN_DEFENSE)
@@ -106,13 +107,10 @@ try {
     const p = frame.pending;
     if (p.kind === "idle") break;
     seen.push(p.message);
-    assert.equal(
-      p.player,
-      1,
-      "Every scripted choice belongs to B during A end phase",
-    );
+    if (p.message !== 132) assert.equal(p.player, 1, "Scripted choices belong to B during A end phase");
     let answer;
-    if (p.kind === "yesno") answer = 1;
+    if (p.message === 132) answer = p.player === 0 ? 2 : 1;
+    else if (p.kind === "yesno") answer = 1;
     else if (p.kind === "option") answer = p.choices[0].value;
     else if (
       p.kind === "cards" ||
@@ -164,7 +162,7 @@ try {
   evaluate("assert(_practice_prompt_done==true)");
   assert.deepEqual(
     seen,
-    [12, 13, 14, 15, 26, 23, 23, 19, 140, 141, 143, 142, 24, 25, 20, 22],
+    [12, 13, 14, 15, 26, 23, 23, 19, 140, 141, 143, 142, 132, 132, 24, 25, 20, 22],
   );
   engine.close();
   console.log(
