@@ -160,3 +160,19 @@
 .dropdown-disabled {
   display: none;
 }
+
+.materialCount {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 26px;
+  height: 24px;
+  border: 1px solid #ffd978;
+  border-radius: 6px;
+  padding: 0 4px;
+  color: #fff0bb;
+  background: #29231af5;
+  font: bold 17px/22px sans-serif;
+  cursor: pointer;
+  transform: translateZ(1px);
+}

@@ -54,11 +54,11 @@ try {
     if(process.argv.includes('--red-only'))break;
     await page.evaluate(()=>window.__preview.duel(true));await page.waitForTimeout(800);
     await page.screenshot({path:folder+'/'+name+'-duel.png'});
-    await page.evaluate(()=>{const v=window.__preview; const seed=v.cardStore.inner[0]; for(let i=0;i<3;i++)v.cardStore.inner.push({...seed,uuid:'hidden-main-'+i,location:{...seed.location,zone:v.ygopro.CardZone.DECK,sequence:i}});});
+    await page.evaluate(()=>{const v=window.__preview; const seed=v.cardStore.inner[0]; for(let i=0;i<3;i++)v.cardStore.inner.push({...seed,uuid:'hidden-main-'+i,location:{...seed.location,zone:v.ygopro.CardZone.DECK,sequence:i,position:v.ygopro.CardPosition.FACEDOWN}});});
     const deckTop=page.locator('[data-testid="duel-card"][data-card-zone="DECK"][data-card-controller="0"]').last();
     await deckTop.click();
     await expect(page.getByTestId('duel-card-list')).toHaveAttribute('data-card-count','3');
-    await expect(page.getByTestId('duel-card-list').locator('[data-card-code]')).toHaveCount(0);
+    await expect(page.getByTestId('duel-card-list').locator('[data-card-code="0"]')).toHaveCount(3);
     await page.getByTestId('duel-card-list-panel-close').click();
     const board=await page.getByTestId('duel-board-viewport').boundingBox();
     assert.ok(board.width>240&&board.height>150,name+' usable board');

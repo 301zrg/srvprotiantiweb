@@ -16,6 +16,8 @@ export interface CardType {
   code: number; // 卡号
   meta: CardMeta; // 卡片元数据
   confirmedHandCode?: number; // 本次结算已展示的手牌，仅用于选卡。
+  deckReversed?: boolean; // Native DECK_TOP individual reversal, independent of whole-deck reversal.
+  deckPublicCode?: number; // Explicit identity granted by DECK_TOP, not a cached hidden identity.
   location: ygopro.CardLocation;
   idleInteractivities: Interactivity<number>[]; // IDLE状态下的互动信息
   counters: { [type: number]: number }; // 指示器
@@ -32,6 +34,7 @@ export interface CardType {
 
 export class CardStore implements NeosStore {
   inner: CardType[] = [];
+  deckReversed = false;
   at(zone: ygopro.CardZone, controller: number): CardType[];
   at(
     zone: ygopro.CardZone,
@@ -78,7 +81,12 @@ export class CardStore implements NeosStore {
     }
   }
   find(location: ygopro.CardLocation): CardType | undefined {
-    return this.at(location.zone, location.controller, location.sequence);
+    return this.at(
+      location.zone,
+      location.controller,
+      location.sequence,
+      location.is_overlay ? location.overlay_sequence : undefined,
+    );
   }
   // 获取特定位置下的所有超量素材
   findOverlay(
@@ -96,6 +104,7 @@ export class CardStore implements NeosStore {
   }
   reset(): void {
     this.inner = [];
+    this.deckReversed = false;
   }
 }
 

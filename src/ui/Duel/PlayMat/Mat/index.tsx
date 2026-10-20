@@ -81,7 +81,20 @@ export const Mat: React.FC = () => {
 };
 
 const Cards: React.FC = () => {
-  const { inner } = useSnapshot(cardStore);
+  const { inner, deckReversed } = useSnapshot(cardStore);
+  const address = (location: (typeof inner)[number]["location"]) =>
+    `${location.controller}:${location.zone}:${location.sequence}`;
+  const slots = new Map<
+    string,
+    { count: number; position?: ygopro.CardPosition }
+  >();
+  for (const card of inner) {
+    const key = address(card.location);
+    const slot = slots.get(key) || { count: 0 };
+    if (card.location.is_overlay) slot.count++;
+    else slot.position = card.location.position;
+    slots.set(key, slot);
+  }
   const length = inner.length;
   const container = getUIContainer();
   const firstCard = inner[0]?.uuid;
@@ -92,7 +105,17 @@ const Cards: React.FC = () => {
   return (
     <>
       {Array.from({ length }).map((_, i) => (
-        <Card key={inner[i].uuid} idx={i} />
+        <Card
+          key={inner[i].uuid}
+          idx={i}
+          overlayCount={slots.get(address(inner[i].location))?.count || 0}
+          hostPosition={
+            inner[i].location.is_overlay
+              ? slots.get(address(inner[i].location))?.position
+              : undefined
+          }
+          deckReversed={deckReversed}
+        />
       ))}
     </>
   );

@@ -88,17 +88,18 @@ function ReplayReceipt() {
       role="status"
       data-testid="replay-receipt"
     >
-      <span>
+      <span style={{ flex: 1, minWidth: 0 }}>
         {t(`Replay${status.notice}`, {
           count: status.saved,
           detail: localizeReplayText(status.detail, language as Language),
         })}
       </span>
-      <Button onClick={() => navigate("/replays")}>
+      <Button style={{ flexShrink: 0 }} onClick={() => navigate("/replays")}>
         {siteMessages(language).replays}
       </Button>
       <Button
         data-testid="replay-receipt-close"
+        style={{ flexShrink: 0 }}
         type="text"
         icon={<CloseOutlined />}
         aria-label={mobileMessages(language).close}

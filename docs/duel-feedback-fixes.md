@@ -14,6 +14,10 @@
 
 ## 本地回归方法
 
+当前测试预览的区域展示：素材不再与宿主完全重合，扇形偏移限制在同一格附近，宿主显示数量，可点素材或宿主列表。素材顺序／取除仍由服务端消息决定。主卡组列表按顶到底显示完整张数，里侧卡仅生成卡背且详情不可点；`MSG_DECK_TOP` 的高位单卡翻转标志与 `MSG_REVERSE_DECK` 的整副翻转按异或决定朝向，身份只来自明确的公开消息／表侧位置，不把隐藏缓存卡号用于翻转后的展示。固定 Core 依据见 `third-party/replay/ocgcore/processor.cpp` 的 reverse_deck 分支；原生客户端对应处理可参照 [DuelClient](https://github.com/Fluorohydride/ygopro/blob/master/gframe/duelclient.cpp)。
+
+展示回归：`node scripts/test_deck_visibility.mjs` 与 `node scripts/client_round4_ui.mjs`，后者覆盖桌面、手机两种横屏和竖屏的公开／隐藏牌堆、素材点击、卡片菜单、反馈条和可展开记录区。原生练习代破另见 [Practice](practice.md)。这些结果仍属于本地软件验证。
+
 ```powershell
 npm run test:duel-feedback
 npm run test:mobile-ui

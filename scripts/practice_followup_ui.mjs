@@ -10,14 +10,14 @@ const cases=process.argv.slice(2).length?process.argv.slice(2):['activate','set'
 try{for(const kind of cases){
  const page=await browser.newPage({viewport:{width:1280,height:800}});const errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- await page.addInitScript(()=>{localStorage.setItem('language','cn');window.__trace={frames:[],sent:[],received:[]};const Native=Worker;window.Worker=class extends Native{constructor(...a){super(...a);this.addEventListener('message',({data})=>{window.__trace.received.push(data.type);if(data.type==='frame'){window.__trace.last=data.frame;window.__trace.frames.push({step:data.frame.step,kind:data.frame.pending?.kind,id:data.frame.pending?.id,choices:data.frame.pending?.choices,events:data.frame.events.map(e=>e[0])});}});}postMessage(data,...a){window.__trace.sent.push(data);super.postMessage(data,...a);}};});
+ await page.addInitScript(()=>{localStorage.setItem('language','cn');window.__trace={frames:[],sent:[],received:[],workers:0};const Native=Worker;window.Worker=class extends Native{constructor(...a){super(...a);this.epoch=++window.__trace.workers;this.addEventListener('message',({data})=>{window.__trace.received.push(data.type);if(data.type==='frame'){window.__trace.lastEpoch=this.epoch;window.__trace.last=data.frame;window.__trace.frames.push({step:data.frame.step,kind:data.frame.pending?.kind,id:data.frame.pending?.id,choices:data.frame.pending?.choices,events:data.frame.events.map(e=>e[0])});}});}postMessage(data,...a){window.__trace.sent.push(data);super.postMessage(data,...a);}};});
  try{
  await page.goto(origin,{waitUntil:'domcontentloaded'});await expect(page.locator('main[data-ready="true"]')).toBeVisible({timeout:60000});
  await page.evaluate(kind=>new Promise((resolve,reject)=>{const r=indexedDB.open('decks');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const tx=db.transaction('decks','readwrite');const store=tx.objectStore('decks');store.clear();const main=kind==='venus'?[...Array(37).fill(64734921),...Array(3).fill(39552864)]:Array(40).fill(kind==='trap'?83968380:98645731);store.put({deckName:'A test',main,extra:[44508094,52687916],side:[]},'A test');if(['venus','trap'].includes(kind))store.put({deckName:'B normal',main:Array(40).fill(26202165),extra:[],side:[]},'B normal');tx.oncomplete=()=>{db.close();resolve();};};}),kind);
  await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('main[data-ready="true"]')).toBeVisible({timeout:60000});
  await page.goto(origin+'/#/practice',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle',null,{timeout:60000});
  if(['venus','trap'].includes(kind)){
-   await page.getByTestId('practice-setup').click();await page.locator('.practice-setup .ant-select').nth(1).click();await page.locator('.ant-select-item-option-content:visible').getByText('B normal',{exact:true}).click();await page.getByTestId('practice-start').click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle'&&window.__trace.sent.filter(s=>s.type==='open').length===2,null,{timeout:30000});
+   await page.getByTestId('practice-setup').click();await page.locator('.practice-setup .ant-select').nth(1).click();await page.locator('.ant-select-item-option-content:visible').getByText('B normal',{exact:true}).click();await page.getByTestId('practice-start').click();await page.waitForFunction(()=>window.__trace.lastEpoch===2&&window.__trace.last?.pending?.kind==='idle',null,{timeout:30000});
  }
  if(kind==='inspect'){
    for(const player of [0,1])for(const location of [1,64]){
@@ -46,7 +46,7 @@ try{for(const kind of cases){
      await expect(page.getByTestId('phase-ep')).toBeEnabled();
    }
  }else if(kind==='trap'){
-   await page.locator('[data-testid="practice-card"][data-player="0"][data-location="2"]').first().click();await page.locator('[data-testid="practice-card-action"][data-action="4"]:visible').click();await page.locator('[data-testid="practice-slot"][data-selectable="true"]').first().click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle',null,{timeout:10000});await page.getByTestId('phase-ep').click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='chain'&&window.__trace.last.pending.player===0,null,{timeout:10000});await page.getByTestId('practice-choices').locator('button[data-index]').first().click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle'&&window.__trace.last.pending.player===1,null,{timeout:10000});assert.ok(await page.evaluate(()=>window.__trace.last.cards.some(c=>c.player===0&&c.location===16&&c.code===83968380)));
+   await page.locator('[data-testid="practice-card"][data-player="0"][data-location="2"]').first().click();await expect(page.locator('[data-testid="practice-card-action"][data-action="4"]:visible')).not.toContainText('1159');await expect(page.locator('[data-testid="practice-card-action"][data-action="4"]:visible')).toHaveText('\u76d6\u653e');await page.locator('[data-testid="practice-card-action"][data-action="4"]:visible').click();await page.locator('[data-testid="practice-slot"][data-selectable="true"]').first().click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle',null,{timeout:10000});await page.getByTestId('phase-ep').click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='chain'&&window.__trace.last.pending.player===0,null,{timeout:10000});await page.getByTestId('practice-choices').locator('button[data-index]').first().click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle'&&window.__trace.last.pending.player===1,null,{timeout:10000});assert.ok(await page.evaluate(()=>window.__trace.last.cards.some(c=>c.player===0&&c.location===16&&c.code===83968380)));
  }else{
    await page.locator('[data-testid="practice-card"][data-player="0"][data-location="2"]').first().click();
    await page.locator(`[data-testid="practice-card-action"][data-action="${kind==='activate'?5:4}"]:visible`).click();
@@ -69,7 +69,8 @@ try{for(const kind of cases){
      await expect(page.getByTestId('phase-ep')).toBeEnabled();
    }
  }
+ await page.getByTestId('practice-history').click();await expect(page.getByTestId('practice-history-content').locator('li')).not.toHaveCount(0);await page.locator('.ant-drawer-close:visible').click();
  await page.screenshot({path:'.audit-tmp/practice-followup/'+kind+'.png'});
  assert.deepEqual(errors,[]);console.log('PASS native spell/set/monster/trap/pile continuation',kind);
- }finally{writeFileSync('.audit-tmp/practice-followup/'+kind+'-trace.json',JSON.stringify({trace:await page.evaluate(()=>window.__trace),errors},null,2));await page.close();}
+ }catch(error){await page.screenshot({path:'.audit-tmp/practice-followup/'+kind+'-failure.png'});throw error;}finally{writeFileSync('.audit-tmp/practice-followup/'+kind+'-trace.json',JSON.stringify({trace:await page.evaluate(()=>window.__trace),errors},null,2));await page.close();}
 }}finally{await browser.close();await server?.httpServer.close();}

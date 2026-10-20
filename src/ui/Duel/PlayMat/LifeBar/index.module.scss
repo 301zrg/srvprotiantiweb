@@ -80,6 +80,15 @@
   .timer-container { position: static; padding: 0 5px; background: none; font-size: 11px; gap: 3px; }
 }
 
+@media (orientation: landscape) and (max-height: 600px) {
+  .container.sidebar {
+    .life-bar { padding: 3px; gap: 1px; }
+    .life { font-size: 20px; }
+    .name { font-size: 11px; }
+    .timer-container { font-size: 10px; line-height: 12px; }
+  }
+}
+
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
   .container {
     top: max(6px, env(safe-area-inset-top));

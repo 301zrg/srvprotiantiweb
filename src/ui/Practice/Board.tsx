@@ -15,7 +15,8 @@ import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import bgStyles from "../Duel/PlayMat/Bg/index.module.scss";
 import { matConfig, updateMatLayout } from "../Duel/PlayMat/css";
-import { positionLabel } from "../Replay/cardState";
+import { materialOffset } from "../Duel/PlayMat/materials";
+import { positionLabel, replayCardWords } from "../Replay/cardState";
 import { replayFieldWords } from "../Replay/FieldBoard";
 import type { SceneFrame } from "../Replay/scene";
 
@@ -141,10 +142,15 @@ export const PracticeBoard = ({
     height: 1,
     geometry: { ...matConfig },
   });
-  const [pile, setPile] = useState<{ player: number; location: number }>();
+  const [pile, setPile] = useState<{
+    player: number;
+    location: number;
+    sequence?: number;
+  }>();
   const { showZoneCounts } = useSnapshot(settingStore);
   const words = previewMessages(language);
   const actions = replayFieldWords(language);
+  const cardWords = replayCardWords(language);
   useLayoutEffect(() => {
     const element = host.current;
     if (!element) return;
@@ -181,7 +187,7 @@ export const PracticeBoard = ({
   const commandLabel = (choice: PracticeChoice) => {
     const ids =
       request?.kind === "idle"
-        ? [1151, 1152, 0, 1153, 1159, 1150]
+        ? [1151, 1152, 0, 1153, 1153, 1150]
         : request?.kind === "battle"
         ? [1150, 1157]
         : [1150];
@@ -193,7 +199,21 @@ export const PracticeBoard = ({
       .filter(Boolean)
       .join(" · ");
   };
-  const cardButton = (card: ReplayCard, key: string, positioned = false) => {
+  const materialCard = (host: ReplayCard, index: number) => ({
+    ...host,
+    code: host.overlay[index],
+    location: host.location | 128,
+    overlayIndex: index,
+    overlay: [],
+    position: 1,
+    type: 0,
+  });
+  const cardButton = (
+    card: ReplayCard & { overlayIndex?: number },
+    key: string,
+    positioned = false,
+    materialHost?: ReplayCard,
+  ) => {
     const choices = addressChoices(card);
     const pick =
       request && selecting.has(request.kind) ? choices[0] : undefined;
@@ -203,19 +223,31 @@ export const PracticeBoard = ({
         : [];
     const name = fetchCard(card.code).text.name || String(card.code);
     const p = point(
-      card,
+      materialHost || card,
       g,
       frame.cards.filter((c) => c.player === card.player && c.location === 2)
         .length,
     );
+    const offset = materialHost
+      ? materialOffset(
+          card.overlayIndex!,
+          materialHost.overlay.length,
+          p.height,
+          p.rotation,
+        )
+      : { x: 0, y: 0 };
     const style: CSSProperties | undefined = positioned
       ? {
-          left: `calc(50% + ${p.x}px)`,
-          top: `calc(50% + ${p.y}px)`,
+          left: `calc(50% + ${p.x + offset.x}px)`,
+          top: `calc(50% + ${p.y + offset.y}px)`,
           height: p.height,
           width: p.height * g.CARD_RATIO,
           transform: `translate(-50%, -50%) rotate(${p.rotation}deg)`,
-          zIndex: card.location === 2 ? card.sequence + 20 : 4,
+          zIndex: materialHost
+            ? 2
+            : card.location === 2
+            ? card.sequence + 20
+            : 4,
         }
       : undefined;
     const items = [
@@ -235,6 +267,20 @@ export const PracticeBoard = ({
           onChoose(choice, `${name} · ${commandLabel(choice)}`);
         },
       })),
+      ...(card.overlay.length
+        ? [
+            {
+              key: "materials",
+              label: `${cardWords.materials} (${card.overlay.length})`,
+              onClick: () =>
+                setPile({
+                  player: card.player,
+                  location: card.location | 128,
+                  sequence: card.sequence,
+                }),
+            },
+          ]
+        : []),
       { key: "details", label: words.details, onClick: () => onInspect(card) },
     ];
     return (
@@ -242,7 +288,11 @@ export const PracticeBoard = ({
         key={key}
         trigger={["click"]}
         menu={{ items }}
-        open={pick ? false : undefined}
+        open={
+          pick || (!legalCommands.length && !card.overlay.length)
+            ? false
+            : undefined
+        }
       >
         <button
           className={`practice-field-card ${
@@ -251,6 +301,8 @@ export const PracticeBoard = ({
           style={style}
           data-testid="practice-card"
           data-card-code={card.code}
+          data-overlay-index={card.overlayIndex}
+          data-material-count={card.overlay.length}
           data-player={card.player}
           data-location={card.location}
           data-sequence={card.sequence}
@@ -262,9 +314,24 @@ export const PracticeBoard = ({
           aria-pressed={pick ? selected.includes(pick.index) : undefined}
           onClick={() => {
             if (pick) onToggle(pick);
+            else if (!legalCommands.length && !card.overlay.length)
+              onInspect(card);
           }}
         >
           <YgoCard code={card.code} width="100%" />
+          {!!card.overlay.length && (
+            <span
+              className="practice-material-count"
+              data-testid="practice-material-count"
+              style={
+                positioned
+                  ? { transform: `rotate(${-p.rotation}deg)` }
+                  : undefined
+              }
+            >
+              {card.overlay.length}
+            </span>
+          )}
           {(card.location === 4 || card.location === 8) &&
             !!(card.type & 1) && (
               <span className="practice-card-power">
@@ -275,16 +342,25 @@ export const PracticeBoard = ({
       </Dropdown>
     );
   };
-  const pileCards =
-    pile &&
-    frame.cards
-      .filter((c) => c.player === pile.player && c.location === pile.location)
-      .sort((a, b) => b.sequence - a.sequence);
+  const pileHost =
+    pile && pile.location & 128
+      ? frame.cards.find(
+          (c) =>
+            c.player === pile.player &&
+            c.location === (pile.location & 127) &&
+            c.sequence === pile.sequence,
+        )
+      : undefined;
+  const pileCards = pileHost
+    ? pileHost.overlay.map((_, i) => materialCard(pileHost, i))
+    : pile &&
+      frame.cards
+        .filter((c) => c.player === pile.player && c.location === pile.location)
+        .sort((a, b) => b.sequence - a.sequence);
   const visiblePileCards = pileCards || [];
   return (
     <div
       className="practice-mat-viewport"
-      ref={host}
       data-testid="practice-board"
       data-fixed-view="0"
     >
@@ -295,104 +371,116 @@ export const PracticeBoard = ({
           </span>
         ))}
       </div>
-      <div
-        className="practice-board-plane"
-        style={{
-          width: g.BOARD_WIDTH,
-          height: g.BOARD_HEIGHT,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-        }}
-      >
-        {[0, 1].flatMap((player) =>
-          [4, 8].flatMap((location) =>
-            Array.from({ length: location === 4 ? 5 : 6 }, (_, sequence) => {
-              const address = { player, location, sequence, position: 1 };
-              const p = point(address, g, 0);
-              const choice =
-                request?.kind === "place"
-                  ? addressChoices(address)[0]
-                  : undefined;
-              const height =
-                location === 4
-                  ? g.BLOCK_HEIGHT_M
-                  : sequence === 5
-                  ? g.CARD_HEIGHT_O
-                  : g.BLOCK_HEIGHT_S;
+      <div className="practice-play-area" ref={host}>
+        <div
+          className="practice-board-plane"
+          style={{
+            width: g.BOARD_WIDTH,
+            height: g.BOARD_HEIGHT,
+            transform: `translate(-50%, -50%) scale(${scale})`,
+          }}
+        >
+          {[0, 1].flatMap((player) =>
+            [4, 8].flatMap((location) =>
+              Array.from({ length: location === 4 ? 5 : 6 }, (_, sequence) => {
+                const address = { player, location, sequence, position: 1 };
+                const p = point(address, g, 0);
+                const choice =
+                  request?.kind === "place"
+                    ? addressChoices(address)[0]
+                    : undefined;
+                const height =
+                  location === 4
+                    ? g.BLOCK_HEIGHT_M
+                    : sequence === 5
+                    ? g.CARD_HEIGHT_O
+                    : g.BLOCK_HEIGHT_S;
+                return (
+                  <button
+                    key={`${player}:${location}:${sequence}`}
+                    className={`${bgStyles.block} practice-field-slot`}
+                    data-testid="practice-slot"
+                    data-player={player}
+                    data-location={location}
+                    data-sequence={sequence}
+                    data-selectable={!!choice}
+                    data-selected={!!choice && selected.includes(choice.index)}
+                    disabled={!choice}
+                    aria-label={`${player === 0 ? "A" : "B"} ${practiceZoneName(
+                      location,
+                    )} ${sequence + 1}`}
+                    style={{
+                      left: `calc(50% + ${p.x}px)`,
+                      top: `calc(50% + ${p.y}px)`,
+                      width:
+                        sequence === 5 ? height * g.CARD_RATIO : g.BLOCK_WIDTH,
+                      height,
+                    }}
+                    onClick={() => {
+                      if (choice) onToggle(choice);
+                    }}
+                  />
+                );
+              }),
+            ),
+          )}
+          {[0, 1].flatMap((player) =>
+            [1, 64, 16, 32].map((location) => {
+              const cards = frame.cards.filter(
+                (c) => c.player === player && c.location === location,
+              );
+              const p = point(
+                { player, location, sequence: 0, position: 1 },
+                g,
+                0,
+              );
               return (
                 <button
-                  key={`${player}:${location}:${sequence}`}
-                  className={`${bgStyles.block} practice-field-slot`}
-                  data-testid="practice-slot"
+                  className="practice-field-pile"
+                  key={`${player}:${location}`}
+                  data-testid="practice-pile"
                   data-player={player}
                   data-location={location}
-                  data-sequence={sequence}
-                  data-selectable={!!choice}
-                  data-selected={!!choice && selected.includes(choice.index)}
-                  disabled={!choice}
-                  aria-label={`${player === 0 ? "A" : "B"} ${practiceZoneName(
-                    location,
-                  )} ${sequence + 1}`}
                   style={{
                     left: `calc(50% + ${p.x}px)`,
                     top: `calc(50% + ${p.y}px)`,
-                    width:
-                      sequence === 5 ? height * g.CARD_RATIO : g.BLOCK_WIDTH,
-                    height,
+                    height: p.height,
+                    width: p.height * g.CARD_RATIO,
                   }}
-                  onClick={() => {
-                    if (choice) onToggle(choice);
-                  }}
-                />
+                  aria-label={`${practiceZoneName(location)} (${cards.length})`}
+                  onClick={() => setPile({ player, location })}
+                >
+                  {!!cards.length && (
+                    <YgoCard
+                      code={cards.at(-1)?.code}
+                      isBack={location === 1}
+                      width="100%"
+                    />
+                  )}
+                  <span className="practice-pile-label">
+                    {practiceZoneName(location)}
+                  </span>
+                  {showZoneCounts && (
+                    <span className="practice-pile-count">{cards.length}</span>
+                  )}
+                </button>
               );
             }),
-          ),
-        )}
-        {[0, 1].flatMap((player) =>
-          [1, 64, 16, 32].map((location) => {
-            const cards = frame.cards.filter(
-              (c) => c.player === player && c.location === location,
-            );
-            const p = point(
-              { player, location, sequence: 0, position: 1 },
-              g,
-              0,
-            );
-            return (
-              <button
-                className="practice-field-pile"
-                key={`${player}:${location}`}
-                data-testid="practice-pile"
-                data-player={player}
-                data-location={location}
-                style={{
-                  left: `calc(50% + ${p.x}px)`,
-                  top: `calc(50% + ${p.y}px)`,
-                  height: p.height,
-                  width: p.height * g.CARD_RATIO,
-                }}
-                aria-label={`${practiceZoneName(location)} (${cards.length})`}
-                onClick={() => setPile({ player, location })}
-              >
-                {!!cards.length && (
-                  <YgoCard
-                    code={cards.at(-1)?.code}
-                    isBack={location === 1}
-                    width="100%"
-                  />
-                )}
-                <span className="practice-pile-label">
-                  {practiceZoneName(location)}
-                </span>
-                {showZoneCounts && (
-                  <span className="practice-pile-count">{cards.length}</span>
-                )}
-              </button>
-            );
-          }),
-        )}
-        {frame.cards
-          .filter((card) => [2, 4, 8].includes(card.location))
-          .map((card) => cardButton(card, card.sceneId, true))}
+          )}
+          {frame.cards
+            .filter((card) => [2, 4, 8].includes(card.location))
+            .flatMap((card) => [
+              ...card.overlay.map((_, i) =>
+                cardButton(
+                  materialCard(card, i),
+                  `${card.sceneId}:material:${i}`,
+                  true,
+                  card,
+                ),
+              ),
+              cardButton(card, card.sceneId, true),
+            ])}
+        </div>
       </div>
       <Modal
         open={!!pile}
@@ -404,15 +492,19 @@ export const PracticeBoard = ({
         }
         title={
           pile
-            ? `${pile.player === 0 ? "A" : "B"} · ${practiceZoneName(
-                pile.location,
-              )} (${pileCards?.length || 0})`
+            ? `${pileHost ? cardWords.materials : ""} ${
+                pile.player === 0 ? "A" : "B"
+              } · ${practiceZoneName(pile.location & 127)} (${
+                pileCards?.length || 0
+              })`
             : ""
         }
         width={640}
         centered
       >
-        <p>{clientRevisionMessages(language).pileOrder}</p>
+        {pile && [1, 64].includes(pile.location) && (
+          <p>{clientRevisionMessages(language).pileOrder}</p>
+        )}
         <div className="practice-pile-cards">
           {visiblePileCards.map((card, i) => cardButton(card, String(i)))}
           {!visiblePileCards.length && (

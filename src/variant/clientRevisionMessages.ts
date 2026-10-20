@@ -1,6 +1,8 @@
 /** User-approved copy for client preview follow-ups. */
 const messages = {
   cn: {
+    expandLogs: "展开记录面板",
+    collapseLogs: "收起记录面板",
     hidePlayerIds: "隐藏双方玩家 ID",
     hidePlayerIdsHelp: "将双方玩家 ID 统一显示为固定的 ********。",
     rpsWin: "猜拳结果：获胜",
@@ -17,6 +19,8 @@ const messages = {
       "固定我方在下、对方在上，双方手牌与里侧卡可见。点击卡片选择动作，由你处理双方的操作与连锁；可进入的阶段以当前规则为准。",
   },
   en: {
+    expandLogs: "Expand log panel",
+    collapseLogs: "Collapse log panel",
     hidePlayerIds: "Hide both player IDs",
     hidePlayerIdsHelp: "Replace both player IDs with the fixed text ********.",
     rpsWin: "Rock-paper-scissors: you won.",
@@ -33,6 +37,8 @@ const messages = {
       "Your side stays at the bottom, with both hands and face-down cards visible. Click cards to choose actions and handle both players' actions and chains. Available phases follow the current rules.",
   },
   ja: {
+    expandLogs: "ログパネルを展開",
+    collapseLogs: "ログパネルを折りたたむ",
     hidePlayerIds: "双方のプレイヤーIDを隠す",
     hidePlayerIdsHelp: "双方のプレイヤーIDを固定の ******** で表示します。",
     rpsWin: "じゃんけんの結果：勝ち",
@@ -49,6 +55,8 @@ const messages = {
       "自分は下、相手は上に固定し、双方の手札と裏側のカードを表示します。カードをクリックして操作を選び、双方の行動とチェーンに応答します。移行できるフェイズは現在のルールに従います。",
   },
   ko: {
+    expandLogs: "기록 패널 펼치기",
+    collapseLogs: "기록 패널 접기",
     hidePlayerIds: "양쪽 플레이어 ID 숨기기",
     hidePlayerIdsHelp: "양쪽 플레이어 ID를 고정된 ********로 표시합니다.",
     rpsWin: "가위바위보 결과: 승리",

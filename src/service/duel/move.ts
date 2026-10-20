@@ -194,6 +194,8 @@ export default async (container: Container, move: MsgMove) => {
   // 更新信息
   delete target.confirmedHandCode;
   target.code = code;
+  if (from.zone !== DECK || to.zone !== DECK) target.deckPublicCode = undefined;
+  if (from.zone !== DECK || to.zone !== DECK) target.deckReversed = undefined;
   target.location = to;
   if (fromEmpty) {
     context.cardStore.inner.push(target);

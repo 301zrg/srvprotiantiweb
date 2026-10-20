@@ -12,6 +12,7 @@
   overflow: hidden;
 }
 
+
 .observer-wait {
   align-self: center;
   max-width: 240px;
@@ -70,4 +71,8 @@
       font-size: 14px;
     }
   }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .menu-container.sidebar button { min-height: 30px; height: 30px; padding: 2px; font-size: 11px; }
 }

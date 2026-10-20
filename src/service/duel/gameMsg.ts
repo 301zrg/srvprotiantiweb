@@ -1,5 +1,6 @@
 import { ygopro } from "@/api";
 import { CardHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardHint";
+import { DeckVisibilityGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/deckVisibility";
 import { PlayerHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/playerHint";
 import { Container } from "@/container";
 import { isUIContainer } from "@/container/compat";
@@ -18,6 +19,7 @@ import onMsgChainEnd from "./chainEnd";
 import onMsgChaining from "./chaining";
 import onMsgChainSolved from "./chainSolved";
 import onConfirmCards from "./confirmCards";
+import { updateDeckVisibility } from "./deckVisibility";
 import onMsgDraw from "./draw";
 import onMsgFieldDisabled from "./fieldDisabled";
 import onMsgFilpSummoned from "./flipSummoned";
@@ -95,6 +97,10 @@ export default async function handleGameMsg(
     if (container.conn.cancelled) return;
   }
   const msg = pb.stoc_game_msg;
+  if (msg instanceof DeckVisibilityGameMessage) {
+    updateDeckVisibility(container, msg.deckVisibility);
+    return;
+  }
   if (isUIContainer(container)) {
     if (["select_idle_cmd", "select_battle_cmd"].includes(msg.gameMsg))
       beginActionRequest(

@@ -35,7 +35,17 @@
 .tabs { display: flex; gap: 4px; flex: 0 0 auto; }
 .tabs button { flex: 1; min-width: 0; min-height: 44px; height: auto; padding: 4px; white-space: normal; font-size: 12px; }
 .content { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
+.feedbackSlot { height: 28px; flex: 0 0 28px; }
+.tabs button.expand { flex: 0 0 32px; min-width: 32px; }
+.sidebar[data-logs-expanded="true"] {
+  [data-testid="duel-menu"], [data-testid="duel-turn-status"] { display: none; }
+}
 @media (max-height: 400px) { .status { margin: 4px 0; font-size: 11px; } }
 @media (orientation: landscape) and (max-height: 600px) {
+  .sidebar { gap: 4px; }
+  .tabs button { min-height: 30px; height: 30px; padding: 2px; }
+  .status { margin: 3px 0; height: 16px; line-height: 16px; }
+  .status > div { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .status strong { display: none; }
   .controls { flex: 0 0 auto; max-height: none; overflow: visible; }
 }

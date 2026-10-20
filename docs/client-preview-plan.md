@@ -68,7 +68,7 @@
 ### 6. Regions and duel layout
 - Files: duel board geometry/styles/springs, zone list, main/sidebar; root owns these files.
 - [x] Add meaningful browser fixture coverage for empty regions and hidden-deck content before changing interaction.
-- [x] Implement deck-only count view and uniform empty-zone clicks/counts.
+- [x] Implement a concealed main-deck view and uniform empty-zone clicks/counts; the fourth follow-up replaces its original count-only body with full card backs and authoritative face-up visibility.
 - [x] Reflow wide board and fixed right information rail; preserve portrait, pending-choice dialogs, observer restrictions and current confirmation setting.
 - [x] Verify 1440x900, 1280x800, 844x390, 568x320, 390x844, 320x640, all languages and relevant protocol selections/animations.
 
@@ -80,6 +80,8 @@
 - Release procedure: Recheck production source is unchanged; return preview link, tested scope and remaining real-device/full-match acceptance.
 
 ## Execution ledger
+
+Fourth follow-up: user authorized eight display/interaction fixes on the same named preview. Expand/collapse log labels in four languages were explicitly confirmed on 2026-10-20; other text reuses approved copy. Repair the right-aligned replay action, duplicate practice audio, generic S/T set label, effect-placeholder formatting, LP/hand separation, live/practice material display and detach indices, usable landscape log panel and compact pass-through feedback, practice history, portrait action-first inspection, and authoritative face-up deck display. New entrypoints are `test_practice_presentation.mjs`, `test_deck_visibility.mjs` and `client_round4_ui.mjs`. No Core/Lua, server, production branch or origin configuration changes are authorized or needed.
 
 Third follow-up remains preview-only. User approved the five four-language rows and the separate pile-order explanation in `client-preview-followup-copy.md`. Repair nonempty-pile label depth, short-landscape controls, dismissible/7-second replay receipts, fixed-length ID masking and played/outcome RPS notices. Practice normal-spell count=0 placement and hidden off-board choices were reproduced with Pot of Duality; cover actual spell/set/monster/trap continuation, all supported native response message types, both-pile inspection and current order. Exact final results belong to the draft PR and ignored acceptance evidence.
 

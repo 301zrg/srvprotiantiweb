@@ -8,7 +8,11 @@ import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import { ReplayAudio } from "../Replay/audio";
-import { type SceneFrame, sceneSteps, seedScene } from "../Replay/scene";
+import type { SceneFrame } from "../Replay/scene";
+import {
+  advancePracticeScene,
+  type PracticeHistoryEntry,
+} from "./presentation";
 
 /** Owns one local Core session. It never accesses online stores or transport. */
 export function usePracticeSession(language: string) {
@@ -16,6 +20,7 @@ export function usePracticeSession(language: string) {
   const audioSetting = useSnapshot(settingStore).audio;
   const [frame, setFrame] = useState<PracticeFrame>();
   const [scene, setScene] = useState<SceneFrame>();
+  const [history, setHistory] = useState<PracticeHistoryEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [responding, setResponding] = useState(false);
   const [error, setError] = useState("");
@@ -68,6 +73,7 @@ export function usePracticeSession(language: string) {
       currentFrame.current = undefined;
       setFrame(undefined);
       setScene(undefined);
+      setHistory([]);
       setError("");
       setBusy(true);
       setResponding(false);
@@ -112,13 +118,11 @@ export function usePracticeSession(language: string) {
         setFrame(incoming);
         setBusy(false);
         setResponding(false);
-        let nextScene = seedScene(incoming, currentScene.current);
-        if (currentScene.current) {
-          const steps = sceneSteps(currentScene.current, incoming);
-          for (const step of steps)
-            if (step.action) audio.current?.play(step.action, 1);
-          nextScene = steps.at(-1) || nextScene;
-        }
+        const update = advancePracticeScene(incoming, currentScene.current);
+        const nextScene = update.scene;
+        for (const action of update.actions) audio.current?.play(action, 1);
+        if (update.entries.length)
+          setHistory((old) => [...old, ...update.entries].slice(-500));
         currentScene.current = nextScene;
         setScene(nextScene);
         if (!incoming.pending)
@@ -168,6 +172,7 @@ export function usePracticeSession(language: string) {
   return {
     frame,
     scene,
+    history,
     busy,
     responding,
     error,

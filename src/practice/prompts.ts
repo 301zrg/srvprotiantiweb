@@ -37,6 +37,7 @@ export interface PracticeRequest {
   description?: number;
   code?: number;
   target?: number;
+  location?: number;
   mode?: number;
   must?: PracticeChoice[];
   opcodes?: number[];
@@ -134,8 +135,9 @@ export function parsePracticeRequest(
   } else if (message === 12 || message === 13) {
     request.kind = "yesno";
     if (message === 12) {
-      request.code = u32();
-      u32();
+      request.code = u32() & 0x7fffffff;
+      const address = u32();
+      request.location = (address >>> 8) & 255;
     }
     request.description = u32();
     request.choices = [0, 1].map((value) => ({ index: value, value }));

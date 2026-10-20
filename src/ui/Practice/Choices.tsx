@@ -23,6 +23,7 @@ import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import { replayCardWords } from "../Replay/cardState";
 import { replayFieldWords } from "../Replay/FieldBoard";
+import { practiceEffectText } from "./presentation";
 
 const system = (id: number) => fetchStrings(Region.System, id);
 const zone = (location: number) =>
@@ -72,7 +73,15 @@ export function PracticeChoices({
       old.includes(index) ? old.filter((n) => n !== index) : [...old, index],
     );
   const title =
-    request.description && request.kind !== "counter"
+    request.kind === "yesno"
+      ? practiceEffectText(
+          request,
+          system,
+          getStrings,
+          (code) => fetchCard(code).text.name || String(code),
+          zone,
+        )
+      : request.description && request.kind !== "counter"
       ? getStrings(request.description)
       : request.kind === "sort"
       ? t("SortCards")
@@ -103,7 +112,7 @@ export function PracticeChoices({
         system(1152),
         actions.position,
         system(1153),
-        system(1159),
+        actions.set,
         system(1150),
         "BP",
         "EP",

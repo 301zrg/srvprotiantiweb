@@ -7,6 +7,7 @@ import { useSnapshot } from "valtio";
 import { Region, sendSelectMultiResponse } from "@/api";
 import { fetchStrings, getCardStr, ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
+import { useMediaQuery } from "@/hook";
 import { eventbus, Task } from "@/infra";
 import {
   cardStore,
@@ -14,9 +15,13 @@ import {
   Interactivity,
   InteractType,
   isCardDisabled,
+  isMe,
 } from "@/stores";
 import { showCardModal as displayCardModal } from "@/ui/Duel/Message/CardModal";
+import { useI18N } from "@/ui/I18N";
+import { replayCardWords } from "@/ui/Replay/cardState";
 import { YgoCard } from "@/ui/Shared";
+import { previewMessages } from "@/variant/previewMessages";
 
 import {
   displayActiveOptionModal,
@@ -29,6 +34,7 @@ import {
   interactTypeToIcon,
   interactTypeToString,
 } from "../../utils";
+import { visibleDeckCode } from "../deckVisibility";
 import styles from "./index.module.scss";
 import {
   attack,
@@ -42,8 +48,16 @@ import type { FocusOptions, SpringApiProps } from "./springs/types";
 const { HAND, DECK, GRAVE, REMOVED, EXTRA, MZONE, SZONE, TZONE } =
   ygopro.CardZone;
 
-export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
+export const Card: React.FC<{
+  idx: number;
+  overlayCount: number;
+  hostPosition?: ygopro.CardPosition;
+  deckReversed: boolean;
+}> = React.memo(({ idx, overlayCount, hostPosition, deckReversed }) => {
   const container = getUIContainer();
+  const portrait = useMediaQuery("(orientation: portrait)");
+  const { language } = useI18N();
+  const words = previewMessages(language);
   const card = cardStore.inner[idx];
   const snap = useSnapshot(card);
 
@@ -131,6 +145,22 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     };
   }, []);
 
+  const materialLayoutMounted = useRef(false);
+  useEffect(() => {
+    if (
+      materialLayoutMounted.current &&
+      (card.location.is_overlay || card.location.zone === DECK)
+    )
+      void addToAnimation(() => move({ card, api }));
+    materialLayoutMounted.current = true;
+  }, [
+    overlayCount,
+    hostPosition,
+    deckReversed,
+    snap.deckReversed,
+    snap.location.position,
+  ]);
+
   // <<< 动画 <<<
 
   // >>> 效果 >>>
@@ -166,7 +196,7 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
 
     if (!map.size) {
       setDropdownMenuDisabled(true);
-      return;
+      return false;
     } else {
       setDropdownMenuDisabled(false);
     }
@@ -312,8 +342,42 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       },
     };
     setDropdownMenu({
-      items: [...nonEffectItem, ...(hasEffect ? [effectItem] : [])],
+      items: [
+        ...nonEffectItem,
+        ...(hasEffect ? [effectItem] : []),
+        ...(!isField
+          ? [
+              ...(overlayCount && !card.location.is_overlay
+                ? [
+                    {
+                      key: "materials",
+                      label: `${
+                        replayCardWords(language).materials
+                      } (${overlayCount})`,
+                      onClick: (
+                        event: Parameters<NonNullable<MenuProps["onClick"]>>[0],
+                      ) => {
+                        event.domEvent.stopPropagation();
+                        displayCardListModal({ isZone: false, monster: card });
+                      },
+                    },
+                  ]
+                : []),
+              {
+                key: "details",
+                label: words.details,
+                onClick: (
+                  event: Parameters<NonNullable<MenuProps["onClick"]>>[0],
+                ) => {
+                  event.domEvent.stopPropagation();
+                  displayCardModal(card);
+                },
+              },
+            ]
+          : []),
+      ],
     });
+    return true;
   };
 
   const onClick = () => {
@@ -326,24 +390,14 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
         } else {
           console.error("card is selectable but the response is undefined!");
         }
+        setDropdownMenuDisabled(true);
+        return;
       }
-
-      // 中央弹窗展示选中卡牌信息
-      // TODO: 同一张卡片，是否重复点击会关闭CardModal？
-      displayCardModal(card);
-      handleDropdownMenu([card], false);
-
-      // 侧边栏展示超量素材信息
-      const overlayMaterials = cardStore.findOverlay(
-        card.location.zone,
-        card.location.controller,
-        card.location.sequence,
-      );
-      if (overlayMaterials.length > 0) {
-        displayCardListModal({
-          isZone: false,
-          monster: card,
-        });
+      const hasActions = handleDropdownMenu([card], false);
+      if (!hasActions || !portrait) {
+        if (overlayCount && !card.location.is_overlay) {
+          displayCardListModal({ isZone: false, monster: card });
+        } else displayCardModal(card);
       }
     };
 
@@ -367,6 +421,12 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
   // <<< 效果 <<<
 
   const location = snap.location;
+  const shownCode =
+    location.zone === DECK
+      ? visibleDeckCode(snap, deckReversed)
+      : snap.code === 0
+      ? snap.meta.id
+      : snap.code;
   const disabled = isCardDisabled(snap as CardType);
   const idleActions = snap.idleInteractivities
     .map(({ interactType }) => InteractType[interactType])
@@ -391,7 +451,7 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     <animated.div
       data-testid="duel-card"
       data-card-uuid={snap.uuid}
-      data-card-code={snap.code}
+      data-card-code={location.zone === DECK ? shownCode : snap.code}
       data-card-controller={location.controller}
       data-card-zone={ygopro.CardZone[location.zone]}
       data-card-zone-value={location.zone}
@@ -399,6 +459,8 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       data-card-position={ygopro.CardPosition[location.position]}
       data-card-position-value={location.position}
       data-card-is-overlay={location.is_overlay}
+      title={location.is_overlay ? snap.meta.text.name : undefined}
+      data-material-count={location.is_overlay ? undefined : overlayCount}
       data-card-overlay-sequence={location.overlay_sequence}
       data-card-is-token={snap.isToken}
       data-card-status={snap.status}
@@ -454,12 +516,40 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
         >
           <YgoCard
             className={styles.cover}
-            code={snap.code === 0 ? snap.meta.id : snap.code}
+            code={shownCode}
             disabled={disabled}
           />
           <YgoCard className={styles.back} isBack />
         </div>
       </Dropdown>
+      {!location.is_overlay && overlayCount > 0 && (
+        <button
+          type="button"
+          className={styles.materialCount}
+          data-testid="duel-material-count"
+          style={{
+            transform: `translateZ(1px) rotate(calc(-${
+              (isMe(location.controller) ? 0 : 180) +
+              ([
+                ygopro.CardPosition.DEFENSE,
+                ygopro.CardPosition.FACEUP_DEFENSE,
+                ygopro.CardPosition.FACEDOWN_DEFENSE,
+              ].includes(location.position)
+                ? 90
+                : 0)
+            }deg - var(--duel-view-rotation, 0deg)))`,
+          }}
+          aria-label={`${
+            replayCardWords(language).materials
+          } (${overlayCount})`}
+          onClick={(event) => {
+            event.stopPropagation();
+            displayCardListModal({ isZone: false, monster: card });
+          }}
+        >
+          {overlayCount}
+        </button>
+      )}
       {snap.targeted ? <div className={styles.streamer} /> : <></>}
     </animated.div>
   );

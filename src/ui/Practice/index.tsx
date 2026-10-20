@@ -1,6 +1,6 @@
 import "./style.css";
 
-import { SettingOutlined } from "@ant-design/icons";
+import { HistoryOutlined, SettingOutlined } from "@ant-design/icons";
 import {
   Alert,
   Button,
@@ -44,6 +44,7 @@ import { PhaseBar } from "../Duel/PhaseBar";
 import { positionLabel } from "../Replay/cardState";
 import { PracticeBoard } from "./Board";
 import { PracticeChoices } from "./Choices";
+import { PracticeHistory } from "./History";
 import { usePracticeSession } from "./usePracticeSession";
 export { setPracticeDeck } from "@/practice/session";
 
@@ -62,6 +63,7 @@ export const Component = () => {
   const [noShuffle, setNoShuffle] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [inspected, setInspected] = useState<ReplayCard>();
   const [confirmation, setConfirmation] = useState<{
@@ -186,6 +188,13 @@ export const Component = () => {
       <aside className="practice-session-rail">
         <header className="practice-session-title">
           <h1>{words.practice}</h1>
+          <Button
+            icon={<HistoryOutlined />}
+            data-testid="practice-history"
+            aria-label={words.history}
+            title={words.history}
+            onClick={() => setHistoryOpen(true)}
+          />
           <Button
             icon={<SettingOutlined />}
             data-testid="practice-settings"
@@ -419,6 +428,14 @@ export const Component = () => {
       >
         {confirmation?.label}
       </Modal>
+      <Drawer
+        open={historyOpen}
+        title={words.history}
+        onClose={() => setHistoryOpen(false)}
+        width={400}
+      >
+        <PracticeHistory entries={session.history} language={language} />
+      </Drawer>
       <Drawer
         open={!!inspected}
         title={card?.text.name || words.details}

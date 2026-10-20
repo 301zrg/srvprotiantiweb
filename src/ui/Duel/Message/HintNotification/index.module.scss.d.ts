@@ -4,5 +4,6 @@ declare const classNames: {
   readonly summary: "summary";
   readonly unread: "unread";
   readonly preview: "preview";
+  readonly feedback: "feedback";
 };
 export = classNames;

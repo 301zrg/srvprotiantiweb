@@ -17,14 +17,19 @@ export function needsPracticePrompt(request: PracticeRequest | undefined) {
 
 export function choicesAtCard(
   request: PracticeRequest | undefined,
-  card: Pick<ReplayCard, "player" | "location" | "sequence">,
+  card: Pick<ReplayCard, "player" | "location" | "sequence"> & {
+    overlayIndex?: number;
+  },
 ): PracticeChoice[] {
   return (
     request?.choices.filter(
       (choice) =>
         choice.player === card.player &&
         choice.location === card.location &&
-        choice.sequence === card.sequence,
+        choice.sequence === card.sequence &&
+        (!(card.location & 128) ||
+          card.overlayIndex === undefined ||
+          choice.value === card.overlayIndex),
     ) || []
   );
 }

@@ -72,6 +72,12 @@ try {
  e:SetCode(EVENT_PHASE+PHASE_END)
  e:SetCountLimit(1)
  e:SetOperation(function()
+   local xyz=Debug.AddCard(10002346,0,0,LOCATION_MZONE,2,POS_FACEUP_DEFENSE)
+   local mat1=Debug.AddCard(26202165,0,0,LOCATION_GRAVE,0,POS_FACEUP_ATTACK)
+   local mat2=Debug.AddCard(46986414,0,0,LOCATION_GRAVE,0,POS_FACEUP_ATTACK)
+   Duel.Overlay(xyz,Group.FromCards(mat1,mat2))
+   Duel.Destroy(xyz,REASON_EFFECT)
+   assert(xyz:IsLocation(LOCATION_MZONE) and xyz:GetOverlayCount()==1)
    local g=Duel.GetFieldGroup(0,LOCATION_HAND,0)
    local c=g:GetFirst()
    assert(Duel.SelectEffectYesNo(1,c))
@@ -107,7 +113,11 @@ try {
     const p = frame.pending;
     if (p.kind === "idle") break;
     seen.push(p.message);
-    if (p.message !== 132) assert.equal(p.player, 1, "Scripted choices belong to B during A end phase");
+    if (seen.length <= 2) {
+      assert.equal(p.player,0,"Gachi's replacement belongs to A");
+      if (p.message===12) {assert.equal(p.code,10002346);assert.equal(p.description,96);assert.equal(p.location,4);}
+      else {assert.equal(p.message,15);assert.deepEqual(p.choices.map(c=>c.location),[132,132]);assert.deepEqual(p.choices.map(c=>c.value),[0,1]);}
+    } else if (p.message !== 132) assert.equal(p.player, 1, "Scripted choices belong to B during A end phase");
     let answer;
     if (p.message === 132) answer = p.player === 0 ? 2 : 1;
     else if (p.kind === "yesno") answer = 1;
@@ -162,7 +172,7 @@ try {
   evaluate("assert(_practice_prompt_done==true)");
   assert.deepEqual(
     seen,
-    [12, 13, 14, 15, 26, 23, 23, 19, 140, 141, 143, 142, 132, 132, 24, 25, 20, 22],
+    [12, 15, 12, 13, 14, 15, 26, 23, 23, 19, 140, 141, 143, 142, 132, 132, 24, 25, 20, 22],
   );
   engine.close();
   console.log(

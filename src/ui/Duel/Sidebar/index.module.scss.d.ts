@@ -5,5 +5,7 @@ declare const classNames: {
   readonly status: "status";
   readonly tabs: "tabs";
   readonly content: "content";
+  readonly feedbackSlot: "feedbackSlot";
+  readonly expand: "expand";
 };
 export = classNames;

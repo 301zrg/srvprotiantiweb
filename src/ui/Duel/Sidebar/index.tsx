@@ -1,3 +1,4 @@
+import { CompressOutlined, ExpandOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
@@ -6,6 +7,7 @@ import { ygopro } from "@/api";
 import { matStore, roomStore } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
+import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { displayPlayerId } from "@/variant/playerIds";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
@@ -22,12 +24,15 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
   const { hidePlayerIds } = useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
+  const revision = clientRevisionMessages(language);
+  const [expanded, setExpanded] = useState(false);
   const { turnCount, currentPlayer, selfType, observerSwapped, phase } =
     useSnapshot(matStore);
   const room = useSnapshot(roomStore);
   const [active, setActive] = useState<"history" | "chat">("history");
   const content = useRef<HTMLDivElement>(null);
   const controls = useRef<HTMLDivElement>(null);
+  const feedbackSlot = useRef<HTMLDivElement>(null);
   const observing =
     selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
   const player =
@@ -49,6 +54,8 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
       closeCardListModal();
     }
     setActive(tab);
+    if (wide && window.matchMedia("(max-height: 600px)").matches)
+      setExpanded(true);
   };
 
   useEffect(() => {
@@ -67,11 +74,16 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
 
   useLayoutEffect(() => {
     if (!wide || !content.current) return;
-    const update = () =>
+    const update = () => {
       document.documentElement.style.setProperty(
         "--duel-sidebar-content-top",
         `${content.current?.getBoundingClientRect().top ?? 180}px`,
       );
+      document.documentElement.style.setProperty(
+        "--duel-feedback-top",
+        `${feedbackSlot.current?.getBoundingClientRect().top ?? 0}px`,
+      );
+    };
     const observer = new ResizeObserver(update);
     observer.observe(content.current);
     if (controls.current) observer.observe(controls.current);
@@ -84,13 +96,14 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
         "--duel-sidebar-content-top",
       );
     };
-  }, [wide]);
+  }, [wide, expanded]);
 
   return (
     <aside
       className={wide ? styles.sidebar : styles.shell}
       data-testid={wide ? "duel-sidebar" : undefined}
       data-duel-sidebar={wide ? "true" : undefined}
+      data-logs-expanded={expanded}
     >
       <div
         ref={controls}
@@ -123,6 +136,13 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
         <Menu docked={wide} />
       </div>
       {wide && (
+        <div
+          ref={feedbackSlot}
+          className={styles.feedbackSlot}
+          data-testid="duel-feedback-slot"
+        />
+      )}
+      {wide && (
         <nav className={styles.tabs} aria-label={text.displayMessages}>
           <Button
             data-testid="duel-history-tab"
@@ -140,6 +160,19 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
           >
             {text.chat}
           </Button>
+          <Button
+            className={styles.expand}
+            data-testid="duel-expand-logs"
+            title={expanded ? revision.collapseLogs : revision.expandLogs}
+            aria-label={expanded ? revision.collapseLogs : revision.expandLogs}
+            aria-expanded={expanded}
+            icon={expanded ? <CompressOutlined /> : <ExpandOutlined />}
+            onClick={() => {
+              closeCardModal();
+              closeCardListModal();
+              setExpanded((old) => !old);
+            }}
+          />
         </nav>
       )}
       <div ref={content} className={wide ? styles.content : styles.shell}>

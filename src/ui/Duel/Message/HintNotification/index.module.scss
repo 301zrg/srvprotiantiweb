@@ -2,6 +2,29 @@
   background-color: #333;
 }
 
+.feedback {
+  position: fixed;
+  z-index: 1010;
+  top: 86px;
+  left: 12px;
+  right: 12px;
+  height: 28px;
+  pointer-events: none;
+  :global(.ant-message) { position: absolute; inset: 0 !important; width: 100%; transform: none !important; pointer-events: none; }
+  :global(.ant-message-notice-wrapper) { animation: none !important; transition: none !important; transform: none !important; }
+  :global(.ant-message-notice) { padding: 0; pointer-events: none; }
+  :global(.ant-message-notice-content) { box-sizing: border-box; max-width: 100%; max-height: 28px; overflow: hidden; padding: 1px 6px !important; background: #182634ed; color: #fff; box-shadow: none; pointer-events: none !important; font-size: 12px; line-height: 13px; overflow-wrap: anywhere; }
+  :global(.ant-message-custom-content) { display: flex; align-items: center; }
+  :global(.ant-message-custom-content > span:last-child) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-align: left; }
+}
+@media (orientation: landscape) and (min-width: 480px) {
+  .feedback { top: var(--duel-feedback-top, 0px); left: auto; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); }
+  // App-level messages share the reserved feedback strip during an online duel.
+  :global(body:has([data-duel-sidebar="true"]) > .ant-message) { top: var(--duel-feedback-top, 0px) !important; left: auto !important; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); transform: none !important; pointer-events: none; }
+  :global(body:has([data-duel-sidebar="true"]) > .ant-message .ant-message-notice-wrapper) { animation: none !important; }
+  :global(body:has([data-duel-sidebar="true"]) > .ant-message .ant-message-notice-content) { pointer-events: none !important; max-width: 100%; max-height: 28px; overflow: hidden; padding: 1px 6px; font-size: 12px; line-height: 13px; }
+}
+
 .summary {
   position: fixed;
   top: 86px;

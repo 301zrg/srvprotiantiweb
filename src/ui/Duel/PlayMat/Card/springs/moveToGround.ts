@@ -1,9 +1,10 @@
 import { easings } from "@react-spring/web";
 
 import { ygopro } from "@/api";
-import { isMe } from "@/stores";
+import { cardStore, isMe } from "@/stores";
 
 import { matConfig } from "../../css";
+import { materialOffset } from "../../materials";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
@@ -25,7 +26,10 @@ export const moveToGround: MoveFunc = async (props) => {
 
   const { location } = card;
 
-  const { controller, zone, sequence, position, is_overlay } = location;
+  const { controller, zone, sequence, is_overlay } = location;
+  const position = is_overlay
+    ? cardStore.at(zone, controller, sequence)?.location.position
+    : location.position;
 
   let height = zone === SZONE ? BLOCK_HEIGHT_S : BLOCK_HEIGHT_M;
 
@@ -77,13 +81,25 @@ export const moveToGround: MoveFunc = async (props) => {
   height = defence ? BLOCK_WIDTH : height;
   const rz = (isMe(controller) ? 0 : 180) + (defence ? 90 : 0);
 
-  const ry = [
-    ygopro.CardPosition.FACEDOWN,
-    ygopro.CardPosition.FACEDOWN_ATTACK,
-    ygopro.CardPosition.FACEDOWN_DEFENSE,
-  ].includes(position ?? 5)
-    ? 180
-    : 0;
+  if (is_overlay) {
+    const offset = materialOffset(
+      location.overlay_sequence,
+      cardStore.findOverlay(zone, controller, sequence).length,
+      height,
+      rz,
+    );
+    x += offset.x;
+    y += offset.y;
+  }
+  const ry =
+    !is_overlay &&
+    [
+      ygopro.CardPosition.FACEDOWN,
+      ygopro.CardPosition.FACEDOWN_ATTACK,
+      ygopro.CardPosition.FACEDOWN_DEFENSE,
+    ].includes(position ?? 5)
+      ? 180
+      : 0;
 
   // 动画
   const isToken = options?.fromZone === TZONE;
@@ -116,7 +132,7 @@ export const moveToGround: MoveFunc = async (props) => {
     height,
     z: 0,
     subZ: isToken ? 100 : 0,
-    zIndex: is_overlay ? 1 : 3,
+    zIndex: is_overlay ? 2 : 3,
     config: {
       easing: easings.easeInQuad,
       duration: 100,

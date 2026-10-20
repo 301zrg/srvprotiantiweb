@@ -27,8 +27,8 @@ const helper = async (
   selected?: boolean,
   mustSelect?: boolean,
 ) => {
-  const { controller, zone, sequence } = location;
-  const target = context.cardStore.at(zone, controller, sequence);
+  const { zone } = location;
+  const target = context.cardStore.find(location);
 
   // Zero-code choices can follow a hand confirmation before its final shuffle.
   // Explicit server identity wins; confirmation never exposes the board itself.

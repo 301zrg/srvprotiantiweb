@@ -1,7 +1,8 @@
 import { ygopro } from "@/api";
-import { isMe } from "@/stores";
+import { cardStore, isMe } from "@/stores";
 
 import { matConfig } from "../../css";
+import { deckCardFaceUp } from "../../deckVisibility";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
@@ -39,7 +40,14 @@ export const moveToDeck: MoveFunc = async (props) => {
     y,
     z,
     rz,
-    ry: isMe(controller) ? (zone === DECK ? 180 : 0) : 180,
+    ry:
+      zone === DECK
+        ? deckCardFaceUp(card, cardStore.deckReversed)
+          ? 0
+          : 180
+        : isMe(controller)
+        ? 0
+        : 180,
     zIndex: z,
     height: DECK_CARD_HEIGHT,
 

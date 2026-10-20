@@ -68,6 +68,16 @@ export const YgoCard: React.FC<Props> = (props) => {
         )}
       </div>
     ),
-    [code, targeted, disabled],
+    [
+      code,
+      isBack,
+      targeted,
+      disabled,
+      className,
+      width,
+      style,
+      onClick,
+      onLoad,
+    ],
   );
 };
