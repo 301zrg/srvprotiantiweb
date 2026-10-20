@@ -39,13 +39,16 @@ export const HintNotification = () => {
   const [summary, setSummary] = useState<{ name: string; content: string }>();
   const [unread, setUnread] = useState(0);
   const feedback = useRef<HTMLDivElement>(null);
+  const chatFeedback = useRef<HTMLDivElement>(null);
   const [msgApi, msgContextHolder] = message.useMessage({
     maxCount: 1,
     duration: 2,
     getContainer: () => feedback.current || document.body,
   });
   const [notiApi, notiContextHolder] = notification.useNotification({
-    maxCount: NeosConfig.ui.hint.maxCount,
+    maxCount: portrait ? NeosConfig.ui.hint.maxCount : 1,
+    duration: portrait ? 4.5 : 2,
+    getContainer: () => chatFeedback.current || document.body,
   });
 
   globalMsgApi = msgApi;
@@ -132,6 +135,11 @@ export const HintNotification = () => {
         ref={feedback}
         className={styles.feedback}
         data-testid="duel-feedback"
+      />
+      <div
+        ref={chatFeedback}
+        className={styles.chatFeedback}
+        data-testid="duel-chat-feedback"
       />
       {msgContextHolder}
       {notiContextHolder}

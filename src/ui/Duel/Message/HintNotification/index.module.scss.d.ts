@@ -5,5 +5,6 @@ declare const classNames: {
   readonly unread: "unread";
   readonly preview: "preview";
   readonly feedback: "feedback";
+  readonly chatFeedback: "chatFeedback";
 };
 export = classNames;

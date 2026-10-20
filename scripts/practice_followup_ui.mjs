@@ -6,18 +6,18 @@ const server=process.env.SMOKE_URL?undefined:await preview({build:{outDir:proces
 const origin=process.env.SMOKE_URL||server.resolvedUrls.local[0];
 const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
 mkdirSync('.audit-tmp/practice-followup',{recursive:true});
-const cases=process.argv.slice(2).length?process.argv.slice(2):['activate','set','inspect','venus','trap'];
+const cases=process.argv.slice(2).length?process.argv.slice(2):['activate','set','inspect','venus','venus-hand','trap'];
 try{for(const kind of cases){
  const page=await browser.newPage({viewport:{width:1280,height:800}});const errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  await page.addInitScript(()=>{localStorage.setItem('language','cn');window.__trace={frames:[],sent:[],received:[],workers:0};const Native=Worker;window.Worker=class extends Native{constructor(...a){super(...a);this.epoch=++window.__trace.workers;this.addEventListener('message',({data})=>{window.__trace.received.push(data.type);if(data.type==='frame'){window.__trace.lastEpoch=this.epoch;window.__trace.last=data.frame;window.__trace.frames.push({step:data.frame.step,kind:data.frame.pending?.kind,id:data.frame.pending?.id,choices:data.frame.pending?.choices,events:data.frame.events.map(e=>e[0])});}});}postMessage(data,...a){window.__trace.sent.push(data);super.postMessage(data,...a);}};});
  try{
  await page.goto(origin,{waitUntil:'domcontentloaded'});await expect(page.locator('main[data-ready="true"]')).toBeVisible({timeout:60000});
- await page.evaluate(kind=>new Promise((resolve,reject)=>{const r=indexedDB.open('decks');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const tx=db.transaction('decks','readwrite');const store=tx.objectStore('decks');store.clear();const main=kind==='venus'?[...Array(37).fill(64734921),...Array(3).fill(39552864)]:Array(40).fill(kind==='trap'?83968380:98645731);store.put({deckName:'A test',main,extra:[44508094,52687916],side:[]},'A test');if(['venus','trap'].includes(kind))store.put({deckName:'B normal',main:Array(40).fill(26202165),extra:[],side:[]},'B normal');tx.oncomplete=()=>{db.close();resolve();};};}),kind);
+ await page.evaluate(kind=>new Promise((resolve,reject)=>{const r=indexedDB.open('decks');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const tx=db.transaction('decks','readwrite');const store=tx.objectStore('decks');store.clear();const main=kind==='venus-hand'?[...Array(3).fill(39552864),...Array(37).fill(64734921)]:kind==='venus'?[...Array(37).fill(64734921),...Array(3).fill(39552864)]:Array(40).fill(kind==='trap'?83968380:98645731);store.put({deckName:'A test',main,extra:[44508094,52687916],side:[]},'A test');if(['venus','venus-hand','trap'].includes(kind))store.put({deckName:'B normal',main:Array(40).fill(26202165),extra:[],side:[]},'B normal');tx.oncomplete=()=>{db.close();resolve();};};}),kind);
  await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('main[data-ready="true"]')).toBeVisible({timeout:60000});
  await page.goto(origin+'/#/practice',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle',null,{timeout:60000});
- if(['venus','trap'].includes(kind)){
-   await page.getByTestId('practice-setup').click();await page.locator('.practice-setup .ant-select').nth(1).click();await page.locator('.ant-select-item-option-content:visible').getByText('B normal',{exact:true}).click();await page.getByTestId('practice-start').click();await page.waitForFunction(()=>window.__trace.lastEpoch===2&&window.__trace.last?.pending?.kind==='idle',null,{timeout:30000});
+ if(['venus','venus-hand','trap'].includes(kind)){
+   await page.getByTestId('practice-setup').click();await page.locator('.practice-setup .ant-select').nth(1).click();await page.locator('.ant-select-item-option-content:visible').getByText('B normal',{exact:true}).click();if(kind==='venus-hand')await page.locator('.practice-setup input[type=checkbox]').check();await page.getByTestId('practice-start').click();await page.waitForFunction(()=>window.__trace.lastEpoch===2&&window.__trace.last?.pending?.kind==='idle',null,{timeout:30000});
  }
  if(kind==='inspect'){
    for(const player of [0,1])for(const location of [1,64]){
@@ -27,14 +27,19 @@ try{for(const kind of cases){
      assert.deepEqual(actual,Array.from({length:actual.length},(_,i)=>actual.length-1-i),'Pile is shown top first');
      await page.locator('.ant-modal-close:visible').click();
    }
- }else if(kind==='venus'){
+ }else if(kind==='venus'||kind==='venus-hand'){
+   if(kind==='venus-hand')assert.equal(await page.evaluate(()=>window.__trace.last.cards.filter(c=>c.player===0&&c.location===2&&c.code===39552864).length),3,'Deterministic all-hand Venus targets');
    await page.locator('[data-testid="practice-card"][data-player="0"][data-location="2"][data-card-code="64734921"]').first().click();await page.locator('[data-testid="practice-card-action"][data-action="0"]:visible').click();await page.locator('[data-testid="practice-slot"][data-selectable="true"]').first().click();await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle'&&window.__trace.last.cards.some(c=>c.player===0&&c.location===4),null,{timeout:10000});
    for(let attempt=1;attempt<=3;attempt++){
      await page.locator('[data-testid="practice-card"][data-player="0"][data-location="4"][data-card-code="64734921"]').click();await page.locator('[data-testid="practice-card-action"][data-action="5"]:visible').click();
      for(let step=0;step<12;step++){
        await page.waitForFunction(()=>window.__trace.last?.pending,null,{timeout:10000});const pending=await page.evaluate(()=>window.__trace.last.pending);
        if(pending.kind==='idle')break;
-       if(pending.kind==='cards'){await expect(page.getByTestId('practice-choices')).toBeVisible();await page.getByTestId('practice-choices').locator('button[data-index]').first().click();await page.getByTestId('practice-confirm').click();}
+       if(pending.kind==='cards'){
+         if(pending.choices.every(c=>[2,4,8].includes(c.location))){
+           const c=pending.choices[0];await page.locator(`.practice-positioned-card[data-player="${c.player}"][data-location="${c.location}"][data-sequence="${c.sequence}"]`).click();await page.getByTestId('practice-board-confirm').click();
+         }else{await expect(page.getByTestId('practice-choices')).toBeVisible();await page.getByTestId('practice-choices').locator('button[data-index]').first().click();await page.getByTestId('practice-confirm').click();}
+       }
        else if(pending.kind==='place')await page.locator('[data-testid="practice-slot"][data-selectable="true"]').first().click();
        else if(pending.kind==='position')await page.getByTestId('practice-choices').locator('button[data-index]').first().click();
        else if(pending.kind==='chain'&&pending.cancelable)await page.getByTestId('practice-choices').getByTestId('practice-cancel').click();
