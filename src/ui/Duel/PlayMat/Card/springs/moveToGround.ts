@@ -78,15 +78,13 @@ export const moveToGround: MoveFunc = async (props) => {
     ygopro.CardPosition.FACEDOWN_DEFENSE,
     ygopro.CardPosition.FACEUP_DEFENSE,
   ].includes(position ?? 5);
-  height = defence ? BLOCK_WIDTH : height;
-  const rz = (isMe(controller) ? 0 : 180) + (defence ? 90 : 0);
+  const rz = (isMe(controller) ? 0 : 180) + (!is_overlay && defence ? 90 : 0);
 
   if (is_overlay) {
     const offset = materialOffset(
       location.overlay_sequence,
       cardStore.findOverlay(zone, controller, sequence).length,
       height,
-      rz,
     );
     x += offset.x;
     y += offset.y;
@@ -117,7 +115,7 @@ export const moveToGround: MoveFunc = async (props) => {
       x,
       y,
       height,
-      z: is_overlay ? 120 : 200,
+      z: is_overlay ? 0 : 200,
       ry,
       rz,
       config: {

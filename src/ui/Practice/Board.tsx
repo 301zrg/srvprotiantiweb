@@ -3,6 +3,7 @@ import { type CSSProperties, useLayoutEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, getStrings, Region } from "@/api";
+import { useMediaQuery, useMobileInterface } from "@/hook";
 import { choicesAtCard } from "@/practice/interactions";
 import type { PracticeChoice, PracticeRequest } from "@/practice/prompts";
 import type { ReplayCard } from "@/replay/messages";
@@ -18,7 +19,7 @@ import { matConfig, updateMatLayout } from "../Duel/PlayMat/css";
 import { materialOffset } from "../Duel/PlayMat/materials";
 import { positionLabel, replayCardWords } from "../Replay/cardState";
 import { replayFieldWords } from "../Replay/FieldBoard";
-import type { SceneFrame } from "../Replay/scene";
+import type { PracticeSceneFrame } from "./materials";
 
 export const practiceZoneName = (zone: number) =>
   fetchStrings(
@@ -112,7 +113,6 @@ function point(
   }
   if (card.location === 4 && card.position & 12) {
     rotation += 90;
-    height = g.BLOCK_WIDTH;
   }
   return { x: x * side, y: y * side, height, rotation };
 }
@@ -127,7 +127,7 @@ export const PracticeBoard = ({
   onChoose,
   onInspect,
 }: {
-  frame: SceneFrame;
+  frame: PracticeSceneFrame;
   request?: PracticeRequest;
   language: string;
   disabled: boolean;
@@ -148,6 +148,9 @@ export const PracticeBoard = ({
     sequence?: number;
   }>();
   const { showZoneCounts } = useSnapshot(settingStore);
+  const portrait = useMediaQuery("(orientation: portrait)");
+  const mobile = useMobileInterface();
+  const actionFirst = portrait && mobile;
   const words = previewMessages(language);
   const actions = replayFieldWords(language);
   const cardWords = replayCardWords(language);
@@ -213,6 +216,7 @@ export const PracticeBoard = ({
     key: string,
     positioned = false,
     materialHost?: ReplayCard,
+    staged = false,
   ) => {
     const choices = addressChoices(card);
     const pick =
@@ -223,7 +227,7 @@ export const PracticeBoard = ({
         : [];
     const name = fetchCard(card.code).text.name || String(card.code);
     const p = point(
-      materialHost || card,
+      materialHost ? { ...materialHost, position: 1 } : card,
       g,
       frame.cards.filter((c) => c.player === card.player && c.location === 2)
         .length,
@@ -233,7 +237,6 @@ export const PracticeBoard = ({
           card.overlayIndex!,
           materialHost.overlay.length,
           p.height,
-          p.rotation,
         )
       : { x: 0, y: 0 };
     const style: CSSProperties | undefined = positioned
@@ -248,6 +251,7 @@ export const PracticeBoard = ({
             : card.location === 2
             ? card.sequence + 20
             : 4,
+          pointerEvents: staged ? "none" : undefined,
         }
       : undefined;
     const items = [
@@ -281,7 +285,15 @@ export const PracticeBoard = ({
             },
           ]
         : []),
-      { key: "details", label: words.details, onClick: () => onInspect(card) },
+      ...(actionFirst
+        ? [
+            {
+              key: "details",
+              label: words.details,
+              onClick: () => onInspect(card),
+            },
+          ]
+        : []),
     ];
     return (
       <Dropdown
@@ -314,7 +326,10 @@ export const PracticeBoard = ({
           aria-pressed={pick ? selected.includes(pick.index) : undefined}
           onClick={() => {
             if (pick) onToggle(pick);
-            else if (!legalCommands.length && !card.overlay.length)
+            else if (
+              !actionFirst ||
+              (!legalCommands.length && !card.overlay.length)
+            )
               onInspect(card);
           }}
         >
@@ -358,6 +373,63 @@ export const PracticeBoard = ({
         .filter((c) => c.player === pile.player && c.location === pile.location)
         .sort((a, b) => b.sequence - a.sequence);
   const visiblePileCards = pileCards || [];
+  const renderedCards = frame.cards
+    .filter((card) => [2, 4, 8].includes(card.location))
+    .flatMap((card) => [
+      ...card.overlay.map((_, i) => {
+        const m = frame.materials?.find(
+          (m) =>
+            m.host.player === card.player &&
+            m.host.location === card.location &&
+            m.host.sequence === card.sequence &&
+            m.index === i,
+        );
+        return m?.atOrigin
+          ? cardButton(m.card, m.card.sceneId, true, undefined, true)
+          : cardButton(
+              materialCard(card, i),
+              m?.card.sceneId ?? `${card.sceneId}:material:${i}`,
+              true,
+              card,
+            );
+      }),
+      cardButton(card, card.sceneId, true),
+    ]);
+  for (const m of frame.materials ?? []) {
+    if (
+      frame.cards.some(
+        (c) =>
+          [2, 4, 8].includes(c.location) &&
+          c.player === m.host.player &&
+          c.location === m.host.location &&
+          c.sequence === m.host.sequence,
+      )
+    )
+      continue;
+    const hostCard = {
+      ...m.card,
+      ...m.host,
+      position: 1,
+      overlay: (frame.materials ?? [])
+        .filter(
+          (o) =>
+            o.host.player === m.host.player &&
+            o.host.location === m.host.location &&
+            o.host.sequence === m.host.sequence,
+        )
+        .map((o) => o.card.code),
+    };
+    renderedCards.push(
+      m.atOrigin
+        ? cardButton(m.card, m.card.sceneId, true, undefined, true)
+        : cardButton(
+            materialCard(hostCard, m.index),
+            m.card.sceneId,
+            true,
+            hostCard,
+          ),
+    );
+  }
   return (
     <div
       className="practice-mat-viewport"
@@ -467,19 +539,7 @@ export const PracticeBoard = ({
               );
             }),
           )}
-          {frame.cards
-            .filter((card) => [2, 4, 8].includes(card.location))
-            .flatMap((card) => [
-              ...card.overlay.map((_, i) =>
-                cardButton(
-                  materialCard(card, i),
-                  `${card.sceneId}:material:${i}`,
-                  true,
-                  card,
-                ),
-              ),
-              cardButton(card, card.sceneId, true),
-            ])}
+          {renderedCards}
         </div>
       </div>
       <Modal

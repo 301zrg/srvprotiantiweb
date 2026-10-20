@@ -333,6 +333,7 @@ const onBlockClick = (
       placeStore.selectPlaceRequiredCount
     ) {
       sendSelectPlaceResponse(container.conn, placeStore.selectPlaceResponses);
+      container.context.matStore.hint.msg = "";
       cardStore.inner.forEach((card) => (card.idleInteractivities = []));
       placeStore.clearAllInteractivity();
       placeStore.startPlaceSelection(1);

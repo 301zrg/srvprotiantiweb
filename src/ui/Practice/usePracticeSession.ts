@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
+import { passPracticeChain } from "@/practice/chain";
 import type { PracticeConfig, PracticeFrame } from "@/practice/engine";
 import type { PracticeAnswer, PracticeRequest } from "@/practice/prompts";
 import { settingStore } from "@/stores/settingStore";
@@ -8,7 +9,7 @@ import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import { ReplayAudio } from "../Replay/audio";
-import type { SceneFrame } from "../Replay/scene";
+import type { PracticeSceneFrame } from "./materials";
 import {
   advancePracticeScene,
   type PracticeHistoryEntry,
@@ -18,8 +19,9 @@ import {
 export function usePracticeSession(language: string) {
   const words = previewMessages(language);
   const audioSetting = useSnapshot(settingStore).audio;
+  const chainSetting = useSnapshot(settingStore).chainSetting;
   const [frame, setFrame] = useState<PracticeFrame>();
-  const [scene, setScene] = useState<SceneFrame>();
+  const [scene, setScene] = useState<PracticeSceneFrame>();
   const [history, setHistory] = useState<PracticeHistoryEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [responding, setResponding] = useState(false);
@@ -28,7 +30,7 @@ export function usePracticeSession(language: string) {
   const generation = useRef(0);
   const pending = useRef<PracticeRequest>();
   const retryConfig = useRef<PracticeConfig>();
-  const currentScene = useRef<SceneFrame>();
+  const currentScene = useRef<PracticeSceneFrame>();
   const currentFrame = useRef<PracticeFrame>();
   const timeout = useRef<ReturnType<typeof setTimeout>>();
   const next = useRef<ReturnType<typeof setTimeout>>();
@@ -98,7 +100,7 @@ export function usePracticeSession(language: string) {
         );
       };
       local.onerror = () => fail(words.practiceLoadFailed);
-      local.onmessage = ({ data }) => {
+      local.onmessage = async ({ data }) => {
         if (epoch !== generation.current) return;
         if (data.type === "error") {
           fail(data.text);
@@ -114,16 +116,26 @@ export function usePracticeSession(language: string) {
         clearTimeout(timeout.current);
         const incoming = data.frame as PracticeFrame;
         currentFrame.current = incoming;
-        pending.current = incoming.pending;
-        setFrame(incoming);
-        setBusy(false);
-        setResponding(false);
         const update = advancePracticeScene(incoming, currentScene.current);
         const nextScene = update.scene;
         for (const action of update.actions) audio.current?.play(action, 1);
         if (update.entries.length)
           setHistory((old) => [...old, ...update.entries].slice(-500));
         currentScene.current = nextScene;
+        if (update.animation.length) {
+          pending.current = undefined;
+          setResponding(true);
+          for (const step of update.animation) {
+            if (epoch !== generation.current) return;
+            setScene(step);
+            await new Promise((resolve) => setTimeout(resolve, 180));
+          }
+          if (epoch !== generation.current) return;
+        }
+        pending.current = incoming.pending;
+        setFrame(incoming);
+        setBusy(false);
+        setResponding(false);
         setScene(nextScene);
         if (!incoming.pending)
           next.current = setTimeout(
@@ -169,6 +181,10 @@ export function usePracticeSession(language: string) {
     });
     return true;
   };
+  useEffect(() => {
+    if (frame?.pending && passPracticeChain(frame.pending, chainSetting))
+      answer(frame.pending, -1);
+  }, [frame?.pending, chainSetting]);
   return {
     frame,
     scene,

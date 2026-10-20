@@ -19,6 +19,8 @@ export interface CardType {
   deckReversed?: boolean; // Native DECK_TOP individual reversal, independent of whole-deck reversal.
   deckPublicCode?: number; // Explicit identity granted by DECK_TOP, not a cached hidden identity.
   location: ygopro.CardLocation;
+  /** Display-only origin while Core attaches materials to a host still in Extra. */
+  overlayOrigin?: ygopro.CardLocation;
   idleInteractivities: Interactivity<number>[]; // IDLE状态下的互动信息
   counters: { [type: number]: number }; // 指示器
   isToken: boolean; // 是否是token

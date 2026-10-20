@@ -17,7 +17,38 @@ import {
 import { duelResultMessages, formatDuelResult } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
 
+import { showCardModal } from "../CardModal";
 import styles from "./index.module.scss";
+
+const HistoryCard = ({
+  code,
+  className,
+  width,
+}: {
+  code: number;
+  className?: string;
+  width?: string;
+}) => (
+  <button
+    type="button"
+    data-testid="duel-history-card"
+    data-card-code={code}
+    disabled={!code}
+    title={code ? fetchCard(code).text.name : undefined}
+    style={{
+      border: 0,
+      padding: 0,
+      background: "transparent",
+      cursor: code ? "pointer" : "default",
+      flexShrink: 0,
+    }}
+    onClick={() => {
+      if (code) showCardModal({ meta: fetchCard(code) });
+    }}
+  >
+    <YgoCard code={code} className={className} width={width} />
+  </button>
+);
 
 const { assetsPath } = useConfig();
 
@@ -100,7 +131,7 @@ const HistoryItem: React.FC<History> = ({
         data-result-kind={result.kind}
         data-player={player}
       >
-        {card > 0 && <YgoCard code={card} width="3rem" />}
+        {card > 0 && <HistoryCard code={card} width="3rem" />}
         <div className={styles.resultText}>
           <strong>
             {playerLabel} · {formatted.title}
@@ -114,7 +145,7 @@ const HistoryItem: React.FC<History> = ({
   if (operation === HistoryOp.ANNOUNCE)
     return (
       <div className={styles.announcement} data-testid="duel-history-announce">
-        <YgoCard code={card} width="3rem" />
+        <HistoryCard code={card} width="3rem" />
         <div>
           <strong>
             {playerLabel} · {mobileMessages(language).declaredCard}
@@ -126,7 +157,7 @@ const HistoryItem: React.FC<History> = ({
   return (
     <div className={styles.history}>
       <div className={styles["card-container"]}>
-        <YgoCard className={styles.card} code={card} />
+        <HistoryCard className={styles.card} code={card} />
         {currentLocation && (
           <div className={styles.location}>{`${zone2Text(
             currentLocation.zone,

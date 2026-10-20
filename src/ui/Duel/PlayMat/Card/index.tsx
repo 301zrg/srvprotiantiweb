@@ -7,7 +7,7 @@ import { useSnapshot } from "valtio";
 import { Region, sendSelectMultiResponse } from "@/api";
 import { fetchStrings, getCardStr, ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
-import { useMediaQuery } from "@/hook";
+import { useMediaQuery, useMobileInterface } from "@/hook";
 import { eventbus, Task } from "@/infra";
 import {
   cardStore,
@@ -56,6 +56,8 @@ export const Card: React.FC<{
 }> = React.memo(({ idx, overlayCount, hostPosition, deckReversed }) => {
   const container = getUIContainer();
   const portrait = useMediaQuery("(orientation: portrait)");
+  const mobile = useMobileInterface();
+  const actionFirst = portrait && mobile;
   const { language } = useI18N();
   const words = previewMessages(language);
   const card = cardStore.inner[idx];
@@ -363,16 +365,20 @@ export const Card: React.FC<{
                     },
                   ]
                 : []),
-              {
-                key: "details",
-                label: words.details,
-                onClick: (
-                  event: Parameters<NonNullable<MenuProps["onClick"]>>[0],
-                ) => {
-                  event.domEvent.stopPropagation();
-                  displayCardModal(card);
-                },
-              },
+              ...(actionFirst
+                ? [
+                    {
+                      key: "details",
+                      label: words.details,
+                      onClick: (
+                        event: Parameters<NonNullable<MenuProps["onClick"]>>[0],
+                      ) => {
+                        event.domEvent.stopPropagation();
+                        displayCardModal(card);
+                      },
+                    },
+                  ]
+                : []),
             ]
           : []),
       ],
@@ -394,7 +400,7 @@ export const Card: React.FC<{
         return;
       }
       const hasActions = handleDropdownMenu([card], false);
-      if (!hasActions || !portrait) {
+      if (!hasActions || !actionFirst) {
         if (overlayCount && !card.location.is_overlay) {
           displayCardListModal({ isZone: false, monster: card });
         } else displayCardModal(card);

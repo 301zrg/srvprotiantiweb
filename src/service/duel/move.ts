@@ -14,17 +14,14 @@ const { EMPTY, HAND, GRAVE, REMOVED, DECK, EXTRA, MZONE, SZONE, TZONE } =
   ygopro.CardZone;
 const { FACEDOWN, FACEDOWN_ATTACK, FACEDOWN_DEFENSE } = ygopro.CardPosition;
 
-const overlayStack: ygopro.CardLocation[] = [];
-
 /*
  * * 超量素材的`Location`：
  * - 位置是跟随超量怪兽的，通过`is_overlay`字段判断是否是超量素材，`overlay_sequence`是在某个超量怪兽下面的超量序列；
  * - 超量怪兽移动，超量素材需要跟着移动，并且需要前端自己维护这个关系，因为当超量怪兽移动时，
  *   后端不会针对超量素材传`MSG_MOVE`；
  * - 某个超量怪兽下面的超量素材的`overlay_sequence`也需要前端自己维护；
- * - 当进行超量召唤时，超量素材会临时移动到某个位置，玩家选择完超量怪兽的位置后，超量怪兽会从`EXTRA ZONE`
- *   move到`MZONE`，这之后超量素材应该移动到超量怪兽的位置，但是后端会传这部分的`MSG_MOVE`信息，
- *   因此前端需要自己维护，现在的做法采用了`入栈-出栈`的方式。
+ * - Core 先把素材挂在仍位于额外卡组的宿主上，再询问进场位置。保留真实地址，
+ *   展示暂留原位；收到宿主进场消息后，先依次叠素材，再移动宿主。
  * - 当场上的超量怪兽离开`MZONE`，比如送墓/除外时，超量素材会跟着超量怪兽移动，这时候它们的`sequence`还是一样的，
  *   然后后端会传`MSG_MOVE`，对超量素材的位置进行修正。
  *
@@ -119,43 +116,31 @@ export default async (container: Container, move: MsgMove) => {
     }
   }
 
-  // 超量
-  if (to.is_overlay && from.zone === MZONE) {
-    // 准备超量召唤，超量素材入栈
-    if ((reason & REASON_MATERIAL) > 0) {
-      to.zone = MZONE;
-      overlayStack.push(to);
-    }
-  } else if (to.zone === MZONE && overlayStack.length) {
-    // 超量召唤
-    console.color("grey")(`超量召唤！overlayStack=${overlayStack}`);
+  if (to.is_overlay && to.zone === EXTRA && (reason & REASON_MATERIAL) > 0)
+    target.overlayOrigin =
+      target.overlayOrigin ?? new ygopro.CardLocation(from);
+  else delete target.overlayOrigin;
 
-    // 超量素材出栈
-    const xyzLocations = overlayStack.splice(0, overlayStack.length);
-    for (const location of xyzLocations) {
-      const overlayMaterial = context.cardStore.at(
-        location.zone,
-        location.controller,
-        location.sequence,
-        location.overlay_sequence,
+  if (
+    !from.is_overlay &&
+    !to.is_overlay &&
+    to.zone === MZONE &&
+    from.zone === EXTRA
+  ) {
+    const materials = context.cardStore
+      .findOverlay(from.zone, from.controller, from.sequence)
+      .sort(
+        (a, b) => a.location.overlay_sequence - b.location.overlay_sequence,
       );
-      if (overlayMaterial) {
-        // 超量素材的位置应该和超量怪兽保持一致
-        overlayMaterial.location.controller = to.controller;
-        overlayMaterial.location.zone = to.zone;
-        overlayMaterial.location.sequence = to.sequence;
-
-        await callCardMove(overlayMaterial.uuid);
-      } else {
-        console.warn(
-          `<Move>overlayMaterial from
-            zone=${location.zone},
-            controller=${location.controller},
-            sequence=${location.sequence},
-            overlay_sequence=${location.overlay_sequence}
-          is null`,
-        );
-      }
+    for (const material of materials) {
+      delete material.overlayOrigin;
+      material.location = new ygopro.CardLocation({
+        ...material.location.toObject(),
+        controller: to.controller,
+        zone: to.zone,
+        sequence: to.sequence,
+      });
+      await callCardMove(material.uuid);
     }
   }
 
@@ -170,13 +155,35 @@ export default async (container: Container, move: MsgMove) => {
     [HAND, GRAVE, REMOVED, DECK, EXTRA, TZONE].includes(from.zone) &&
     !from.is_overlay
   )
-    fromCards.forEach(
-      (c) => c.location.sequence > from.sequence && c.location.sequence--,
-    );
-  if (!toEmpty && [HAND, GRAVE, REMOVED, DECK, EXTRA, TZONE].includes(to.zone))
-    toCards.forEach(
-      (c) => c.location.sequence >= to.sequence && c.location.sequence++,
-    );
+    fromCards
+      .sort((a, b) => a.location.sequence - b.location.sequence)
+      .forEach((c) => {
+        if (c.location.sequence <= from.sequence) return;
+        for (const material of context.cardStore.findOverlay(
+          from.zone,
+          from.controller,
+          c.location.sequence,
+        ))
+          material.location.sequence--;
+        c.location.sequence--;
+      });
+  if (
+    !toEmpty &&
+    !to.is_overlay &&
+    [HAND, GRAVE, REMOVED, DECK, EXTRA, TZONE].includes(to.zone)
+  )
+    toCards
+      .sort((a, b) => b.location.sequence - a.location.sequence)
+      .forEach((c) => {
+        if (c.location.sequence < to.sequence) return;
+        for (const material of context.cardStore.findOverlay(
+          to.zone,
+          to.controller,
+          c.location.sequence,
+        ))
+          material.location.sequence++;
+        c.location.sequence++;
+      });
   if (!fromEmpty && from.is_overlay) {
     // 超量素材的序号也需要维护
     const overlay_sequence = from.overlay_sequence;
@@ -233,9 +240,10 @@ export default async (container: Container, move: MsgMove) => {
     playEffect(AudioActionType.SOUND_DESTROYED);
   }
 
-  const p = fromEmpty
-    ? Promise.resolve()
-    : callCardMove(target.uuid, { fromZone: from.zone });
+  const p =
+    fromEmpty || target.overlayOrigin
+      ? Promise.resolve()
+      : callCardMove(target.uuid, { fromZone: from.zone });
   // 如果from或者to是手卡，那么需要刷新除了这张卡之外，这个玩家的所有手卡
   if ([from.zone, to.zone].includes(HAND)) {
     const pHands = context.cardStore

@@ -11,7 +11,7 @@
   height: 28px;
   pointer-events: none;
   :global(.ant-message) { position: absolute; inset: 0 !important; width: 100%; transform: none !important; pointer-events: none; }
-  :global(.ant-message-notice-wrapper) { animation: none !important; transition: none !important; transform: none !important; }
+  :global(.ant-message-notice-wrapper) { transform: none !important; }
   :global(.ant-message-notice) { padding: 0; pointer-events: none; }
   :global(.ant-message-notice-content) { box-sizing: border-box; max-width: 100%; max-height: 28px; overflow: hidden; padding: 1px 6px !important; background: #182634ed; color: #fff; box-shadow: none; pointer-events: none !important; font-size: 12px; line-height: 13px; overflow-wrap: anywhere; }
   :global(.ant-message-custom-content) { display: flex; align-items: center; }
@@ -20,17 +20,19 @@
 .chatFeedback { display: contents; }
 @media (orientation: landscape) and (min-width: 480px) {
   .chatFeedback {
-    display: block; position: fixed; z-index: 1010; top: var(--duel-sidebar-content-top, 180px); right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); height: max(0px, calc(100dvh - var(--duel-sidebar-content-top, 180px) - 8px)); overflow: hidden; pointer-events: none;
+    display: block; position: fixed; z-index: 1010; bottom: 8px; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); height: max(76px, calc(100dvh - var(--duel-sidebar-content-top, 180px) - 8px)); overflow: hidden; pointer-events: none;
     :global(.ant-notification) { position: absolute; inset: 0 !important; width: 100%; transform: none !important; }
-    :global(.ant-notification-notice) { width: 100% !important; box-sizing: border-box; padding: 6px 8px; margin: 0; pointer-events: none !important; background: #182634f5; color: white; }
-    :global(.ant-notification-notice-message) { margin: 0 !important; color: white; font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    :global(.ant-notification-notice-description) { margin: 0 !important; font-size: 12px; line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-    :global(.ant-notification-notice-icon), :global(.ant-notification-notice-close) { display: none; }
+    :global(.ant-notification-notice-wrapper) { width: 100% !important; max-width: 100%; }
+    :global(.ant-notification-notice) { width: 100% !important; box-sizing: border-box; padding: 6px 8px !important; margin: 0 !important; pointer-events: none !important; background: #182634f5; color: white; }
+    :global(.ant-notification-notice-message) { margin: 0 30px 0 0 !important; color: white; font-size: 12px !important; line-height: 16px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    :global(.ant-notification-notice-description) { margin: 0 !important; font-size: 12px !important; line-height: 16px !important; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+    :global(.ant-notification-notice-icon) { display: none; }
+    :global(.ant-notification-notice-close) { display: flex; align-items: center; justify-content: center; top: 0; right: 0; width: 30px; height: 30px; color: white; pointer-events: auto !important; }
   }
   .feedback { top: var(--duel-feedback-top, 0px); left: auto; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); }
   // App-level messages share the reserved feedback strip during an online duel.
   :global(body:has([data-duel-sidebar="true"]) > .ant-message) { top: var(--duel-feedback-top, 0px) !important; left: auto !important; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); transform: none !important; pointer-events: none; }
-  :global(body:has([data-duel-sidebar="true"]) > .ant-message .ant-message-notice-wrapper) { animation: none !important; }
+  :global(body:has([data-duel-sidebar="true"]) > .ant-message .ant-message-notice-wrapper) { transform: none !important; }
   :global(body:has([data-duel-sidebar="true"]) > .ant-message .ant-message-notice-content) { pointer-events: none !important; max-width: 100%; max-height: 28px; overflow: hidden; padding: 1px 6px; font-size: 12px; line-height: 13px; }
 }
 

@@ -177,7 +177,15 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
       )}
       <div ref={content} className={wide ? styles.content : styles.shell}>
         {wide && active === "history" && <ActionHistoryContent embedded />}
-        <ChatBox key="chat" embedded={wide} visible={active === "chat"} />
+        <ChatBox
+          key="chat"
+          embedded={wide}
+          visible={active === "chat"}
+          onCloseEmbedded={() => {
+            setActive("history");
+            setExpanded(false);
+          }}
+        />
       </div>
     </aside>
   );

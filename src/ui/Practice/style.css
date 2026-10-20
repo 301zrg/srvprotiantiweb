@@ -34,6 +34,7 @@
 .practice-material-count { position:absolute; right:-4px; bottom:-4px; min-width:24px; padding:2px 4px; border:1px solid #ffd978; border-radius:5px; background:#29231af5; color:#fff0bb; font:bold 17px/20px sans-serif; pointer-events:none; }
 .practice-history { padding-left:22px; }
 .practice-history li { margin-bottom:12px; line-height:1.5; overflow-wrap:anywhere; }
+.practice-history-card { border:0; padding:0; background:none; color:#9cd8ff; font:inherit; text-align:left; text-decoration:underline; cursor:pointer; }
 .practice-session-rail { position:absolute; top:8px; bottom:8px; right:8px; width:var(--practice-rail); box-sizing:border-box; overflow:auto; padding:10px; border:1px solid #526274; border-radius:8px; background:#1d293beF; display:flex; flex-direction:column; gap:12px; }
 .practice-session-title { display:flex; gap:6px; align-items:center; justify-content:space-between; }
 .practice-session-title h1 { margin:0; font-size:18px; }

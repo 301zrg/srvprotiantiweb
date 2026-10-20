@@ -14,7 +14,7 @@ try {
     await page.addInitScript(()=>{
       localStorage.setItem('language','cn');
       window.__practiceTrace={frames:[],workers:[],configs:[],terminated:[]};const Native=window.Worker;
-      window.Worker=class extends Native {constructor(...args){super(...args);this.index=window.__practiceTrace.workers.length;window.__practiceTrace.workers.push(this);this.addEventListener('message',({data})=>{if(data.type==='frame'){window.__practiceTrace.frames.push(data.frame);window.__practiceTrace.last=data.frame;}});}postMessage(data,...args){if(data.type==='open')window.__practiceTrace.configs.push(data.config);super.postMessage(data,...args);}terminate(){window.__practiceTrace.terminated.push(this.index);super.terminate();}};
+      window.Worker=class extends Native {constructor(...args){super(...args);this.index=window.__practiceTrace.workers.length;window.__practiceTrace.workers.push(this);this.addEventListener('message',({data})=>{if(data.type==='frame'){window.__practiceTrace.lastWorker=this.index;window.__practiceTrace.frames.push(data.frame);window.__practiceTrace.last=data.frame;}});}postMessage(data,...args){if(data.type==='open')window.__practiceTrace.configs.push(data.config);super.postMessage(data,...args);}terminate(){window.__practiceTrace.terminated.push(this.index);super.terminate();}};
     });
     await page.goto(origin,{waitUntil:'domcontentloaded'});await expect(page.locator('main[data-ready="true"]')).toBeVisible({timeout:60000});
     await page.evaluate(()=>new Promise((resolve,reject)=>{
@@ -54,11 +54,11 @@ try {
     await page.getByRole('spinbutton',{name:'起始手牌'}).fill('4');
     await page.locator('.ant-modal-close:visible').click();
     await page.getByTestId('practice-retry').click();
-    await page.waitForFunction(()=>window.__practiceTrace.configs.length===2&&window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.turn===1,{timeout:30000});
+    await page.waitForFunction(()=>window.__practiceTrace.configs.length===2&&window.__practiceTrace.lastWorker===1&&window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.turn===1,{timeout:30000});
     assert.equal(await page.locator('[data-testid="practice-card"][data-player="0"][data-location="2"]').count(),6,'Retry retains the original hand size');
     assert.equal(await page.evaluate(()=>JSON.stringify(window.__practiceTrace.configs[0].seed)===JSON.stringify(window.__practiceTrace.configs[1].seed)),true);
     await page.getByTestId('practice-redeal').click();
-    await page.waitForFunction(()=>window.__practiceTrace.configs.length===3&&window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.cards.filter(c=>c.player===0&&c.location===2).length===5,{timeout:30000});
+    await page.waitForFunction(()=>window.__practiceTrace.configs.length===3&&window.__practiceTrace.lastWorker===2&&window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.cards.filter(c=>c.player===0&&c.location===2).length===5,{timeout:30000});
     assert.equal(await page.locator('[data-testid="practice-card"][data-player="1"][data-location="2"]').count(),4,'Redeal uses the edited hand size');
     assert.equal(await page.evaluate(()=>JSON.stringify(window.__practiceTrace.configs[0].seed)!==JSON.stringify(window.__practiceTrace.configs[2].seed)),true);
     await page.evaluate(()=>{const trace=window.__practiceTrace;trace.workers[0].dispatchEvent(new MessageEvent('message',{data:{type:'frame',frame:{...trace.last,turn:9999,lp:[1234,5678]}}}));});
@@ -69,7 +69,7 @@ try {
       await page.locator('.ant-select[aria-label="B 方卡组"]').click();
       await page.locator('.ant-select-item-option-content:visible').getByText('Practice B',{exact:true}).click();
       await page.getByTestId('practice-start').click();
-      await page.waitForFunction(()=>window.__practiceTrace.configs.length===4&&window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.turn===1,{timeout:30000});
+      await page.waitForFunction(()=>window.__practiceTrace.configs.length===4&&window.__practiceTrace.lastWorker===3&&window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.turn===1,{timeout:30000});
       await page.getByTestId('practice-settings').click();
       await page.getByTestId('confirm-operations-setting').check();
       await page.getByTestId('settings-close').click();
@@ -82,6 +82,22 @@ try {
       await page.getByTestId('practice-action-confirm').click();
       await page.locator('[data-testid="practice-slot"][data-selectable="true"]').first().click();
       await page.waitForFunction(()=>window.__practiceTrace.last?.pending?.kind==='chain'&&window.__practiceTrace.last.pending.player===1,{timeout:15000});
+      // Changing mode while an optional prompt is open must advance the real
+      // local duel once, without sending a stale or online response.
+      await page.locator('.ant-modal-close:visible').click();
+      await page.getByTestId('practice-chain-setting').click();
+      await page.locator('.ant-select-item-option-content:visible').getByText('忽略连锁',{exact:true}).click();
+      await page.waitForFunction(()=>window.__practiceTrace.last?.pending?.kind==='idle',null,{timeout:15000});
+      assert.ok(await page.evaluate(()=>window.__practiceTrace.last.cards.some(c=>c.player===1&&c.location===2&&c.code===97268402)));
+      await page.getByTestId('practice-chain-setting').click();
+      await page.locator('.ant-select-item-option-content:visible').getByText('全部连锁',{exact:true}).click();
+      await page.getByTestId('practice-retry').click();
+      await page.waitForFunction(()=>window.__practiceTrace.configs.length===5&&window.__practiceTrace.lastWorker===4&&window.__practiceTrace.last?.pending?.kind==='idle'&&window.__practiceTrace.last.turn===1,null,{timeout:30000});
+      await page.locator('[data-testid="practice-card"][data-player="0"][data-location="2"]').first().click();
+      await page.locator('[data-testid="practice-card-action"][data-action="0"]:visible').click();
+      await page.getByTestId('practice-action-confirm').click();
+      await page.locator('[data-testid="practice-slot"][data-selectable="true"]').first().click();
+      await page.waitForFunction(()=>window.__practiceTrace.last?.pending?.kind==='chain'&&window.__practiceTrace.last.pending.player===1,null,{timeout:15000});
       await expect(page.getByTestId('practice-active-player')).toContainText('B 方');
       await page.locator('.ant-modal-close:visible').click();
       await page.locator('[data-testid="practice-card"][data-player="1"][data-location="2"]').first().click();

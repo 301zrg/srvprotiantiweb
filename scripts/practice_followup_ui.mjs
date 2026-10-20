@@ -16,6 +16,7 @@ try{for(const kind of cases){
  await page.evaluate(kind=>new Promise((resolve,reject)=>{const r=indexedDB.open('decks');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;const tx=db.transaction('decks','readwrite');const store=tx.objectStore('decks');store.clear();const main=kind==='venus-hand'?[...Array(3).fill(39552864),...Array(37).fill(64734921)]:kind==='venus'?[...Array(37).fill(64734921),...Array(3).fill(39552864)]:Array(40).fill(kind==='trap'?83968380:98645731);store.put({deckName:'A test',main,extra:[44508094,52687916],side:[]},'A test');if(['venus','venus-hand','trap'].includes(kind))store.put({deckName:'B normal',main:Array(40).fill(26202165),extra:[],side:[]},'B normal');tx.oncomplete=()=>{db.close();resolve();};};}),kind);
  await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('main[data-ready="true"]')).toBeVisible({timeout:60000});
  await page.goto(origin+'/#/practice',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__trace.last?.pending?.kind==='idle',null,{timeout:60000});
+ if(kind==='trap'){await page.getByTestId('practice-chain-setting').click();await page.locator('.ant-select-item-option-content:visible').getByText('\u5168\u90e8\u8fde\u9501',{exact:true}).click();}
  if(['venus','venus-hand','trap'].includes(kind)){
    await page.getByTestId('practice-setup').click();await page.locator('.practice-setup .ant-select').nth(1).click();await page.locator('.ant-select-item-option-content:visible').getByText('B normal',{exact:true}).click();if(kind==='venus-hand')await page.locator('.practice-setup input[type=checkbox]').check();await page.getByTestId('practice-start').click();await page.waitForFunction(()=>window.__trace.lastEpoch===2&&window.__trace.last?.pending?.kind==='idle',null,{timeout:30000});
  }
@@ -74,7 +75,8 @@ try{for(const kind of cases){
      await expect(page.getByTestId('phase-ep')).toBeEnabled();
    }
  }
- await page.getByTestId('practice-history').click();await expect(page.getByTestId('practice-history-content').locator('li')).not.toHaveCount(0);await page.locator('.ant-drawer-close:visible').click();
+ await page.getByTestId('practice-history').click();await expect(page.getByTestId('practice-history-content').locator('li')).not.toHaveCount(0);
+ const historyCard=page.getByTestId('practice-history-card').first();if(kind!=='inspect'){await expect(historyCard).toBeVisible();const code=await historyCard.getAttribute('data-card-code');await historyCard.click();await expect(page.getByTestId('practice-history-content')).not.toBeVisible();await expect(page.locator('.practice-detail-image')).toBeVisible();assert.ok((await page.locator('.practice-detail-image').getAttribute('src')).includes(code));await page.locator('.ant-drawer-close:visible').click();}else await page.locator('.ant-drawer-close:visible').click();
  await page.screenshot({path:'.audit-tmp/practice-followup/'+kind+'.png'});
  assert.deepEqual(errors,[]);console.log('PASS native spell/set/monster/trap/pile continuation',kind);
  }catch(error){await page.screenshot({path:'.audit-tmp/practice-followup/'+kind+'-failure.png'});throw error;}finally{writeFileSync('.audit-tmp/practice-followup/'+kind+'-trace.json',JSON.stringify({trace:await page.evaluate(()=>window.__trace),errors},null,2));await page.close();}

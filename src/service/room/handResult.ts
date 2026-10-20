@@ -15,7 +15,19 @@ export default function handResult(
     me.moraResult = msg.meResult;
     op.moraResult = msg.opResult;
     if (context.roomStore.selfType !== ygopro.StocTypeChange.SelfType.OBSERVER)
-      notifyRpsResult(msg.meResult, msg.opResult);
+      // The room adapter has already converted native hands to HandType.
+      notifyRpsResult(
+        msg.meResult === ygopro.HandType.ROCK
+          ? 2
+          : msg.meResult === ygopro.HandType.SCISSORS
+          ? 1
+          : msg.meResult,
+        msg.opResult === ygopro.HandType.ROCK
+          ? 2
+          : msg.opResult === ygopro.HandType.SCISSORS
+          ? 1
+          : msg.opResult,
+      );
   } else if (
     context.roomStore.selfType !== ygopro.StocTypeChange.SelfType.OBSERVER
   ) {

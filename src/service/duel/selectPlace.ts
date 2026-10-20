@@ -12,6 +12,7 @@ export default async (container: Container, selectPlace: MsgSelectPlace) => {
 
   if (selectPlace.count === 1 && selectPlace.places.length === 1) {
     const place = selectPlace.places[0];
+    context.matStore.hint.msg = "";
     sendSelectPlaceResponse(conn, {
       controller: place.controller,
       zone: place.zone,

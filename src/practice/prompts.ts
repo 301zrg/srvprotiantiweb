@@ -37,6 +37,7 @@ export interface PracticeRequest {
   description?: number;
   code?: number;
   target?: number;
+  specialCount?: number;
   location?: number;
   mode?: number;
   must?: PracticeChoice[];
@@ -121,7 +122,7 @@ export function parsePracticeRequest(
   } else if (message === 16) {
     request.kind = "chain";
     const count = u8();
-    u8();
+    request.specialCount = u8();
     u32();
     u32();
     request.choices = Array.from({ length: count }, (_, index) => {

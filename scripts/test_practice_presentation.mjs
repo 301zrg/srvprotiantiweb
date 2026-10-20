@@ -19,9 +19,10 @@ try {
   assert.equal(text,'Activate Monster Zone in Gachi?');
   assert.equal(practiceEffectText({message:13,description:95,code:10002346},system,system,()=> 'Gachi',()=> ''),'Detach from Gachi instead?');
   const {materialOffset}=await vite.ssrLoadModule('/src/ui/Duel/PlayMat/materials.ts');
-  for(const count of [1,2,20]) {
-    assert.ok(Math.abs(materialOffset(0,count,88,0).y)<0.001,'Attack materials must stay in their own monster row');
-    assert.ok(2*Math.abs(materialOffset(0,count,120,90).y)+120*5.9/8.6<96,'Opposing defense fans must fit the MR2 row spacing');
+  for(const count of [1,2,20]) for(const height of [88,120]) for(const rotation of [0,180]) for(let i=0;i<count;i++) {
+    const offset=materialOffset(i,count,height,rotation);
+    assert.ok(Math.abs(offset.y)<0.001,'Materials stay portrait in their own row, including defense hosts');
+    assert.ok(2*Math.abs(offset.x)+height*5.9/8.6<=120,'Entire material fan fits inside its monster slot');
   }
   console.log('PASS practice event audio identity and effect text substitution');
 } finally {await vite.close();}

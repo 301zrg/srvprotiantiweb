@@ -58,9 +58,14 @@ export const HintNotification = () => {
   }, [hidePlayerIds]);
   useEffect(() => {
     if (hintState && hintState.msg) {
-      msgApi.info(`${hintState.msg}`);
-    }
-  }, [hintState.msg]);
+      msgApi.open({
+        key: "duel-hint",
+        type: "info",
+        content: `${hintState.msg}`,
+        duration: 2,
+      });
+    } else msgApi.destroy("duel-hint");
+  }, [hintState.msg, msgApi]);
 
   useEffect(() => {
     if (toss) {

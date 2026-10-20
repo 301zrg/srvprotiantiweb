@@ -1,3 +1,4 @@
+import { CloseOutlined } from "@ant-design/icons";
 import { Button, Input } from "antd";
 import classNames from "classnames";
 import React, { useEffect } from "react";
@@ -18,10 +19,11 @@ interface ChatItem {
   content: string;
 }
 
-export const ChatBox: React.FC<{ embedded?: boolean; visible?: boolean }> = ({
-  embedded = false,
-  visible = true,
-}) => {
+export const ChatBox: React.FC<{
+  embedded?: boolean;
+  visible?: boolean;
+  onCloseEmbedded?: () => void;
+}> = ({ embedded = false, visible = true, onCloseEmbedded }) => {
   const { language } = useI18N();
   const { open } = useSnapshot(store);
   const { dialogs, input, setInput, ref, onSend } = useChat(true);
@@ -41,6 +43,18 @@ export const ChatBox: React.FC<{ embedded?: boolean; visible?: boolean }> = ({
       data-testid={embedded ? "duel-chat-panel" : undefined}
       style={embedded && !visible ? { display: "none" } : undefined}
     >
+      {embedded && (
+        <Button
+          data-testid="duel-chat-close"
+          size="small"
+          aria-label={mobileMessages(language).close}
+          icon={<CloseOutlined />}
+          onClick={() => {
+            onClose();
+            onCloseEmbedded?.();
+          }}
+        />
+      )}
       <ScrollableArea
         className={styles.dialogs}
         hostClassName={styles.scrollHost}

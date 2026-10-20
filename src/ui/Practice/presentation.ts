@@ -1,11 +1,8 @@
 import type { PracticeRequest } from "@/practice/prompts";
 import type { ReplayFrame } from "@/replay/engine";
-import {
-  type SceneAction,
-  type SceneFrame,
-  sceneSteps,
-  seedScene,
-} from "@/ui/Replay/scene";
+import { type SceneAction, sceneSteps, seedScene } from "@/ui/Replay/scene";
+
+import { practiceMaterialFrames, type PracticeSceneFrame } from "./materials";
 
 export interface PracticeHistoryEntry {
   action: SceneAction;
@@ -16,7 +13,7 @@ export interface PracticeHistoryEntry {
 /** A batch's final query inherits its last action; it is not another event. */
 export function advancePracticeScene(
   frame: ReplayFrame,
-  previous?: SceneFrame,
+  previous?: PracticeSceneFrame,
 ) {
   const steps = previous ? sceneSteps(previous, frame) : [seedScene(frame)];
   let last = previous?.action;
@@ -27,8 +24,14 @@ export function advancePracticeScene(
       last = step.action;
     }
   }
+  const presentation = practiceMaterialFrames(
+    previous,
+    steps.at(-1)!,
+    frame.events,
+  );
   return {
-    scene: steps.at(-1)!,
+    scene: presentation.scene,
+    animation: presentation.animation,
     actions: entries.map((entry) => entry.action),
     entries,
   };

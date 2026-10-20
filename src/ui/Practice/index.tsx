@@ -17,6 +17,8 @@ import { useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
+import { useMediaQuery } from "@/hook";
+import { passPracticeChain } from "@/practice/chain";
 import type { PracticeConfig } from "@/practice/engine";
 import {
   needsPracticePrompt,
@@ -50,12 +52,14 @@ export { setPracticeDeck } from "@/practice/session";
 
 export const Component = () => {
   const { language } = useI18N();
+  const portrait = useMediaQuery("(orientation: portrait)");
   const words = previewMessages(language);
   const revision = clientRevisionMessages(language);
   const interaction = duelInteractionMessages(language);
   const { t } = useTranslation("ClientUI");
   const navigate = useNavigate();
   const decks = useSnapshot(deckStore).decks;
+  const { chainSetting } = useSnapshot(settingStore);
   const [draft] = useState(getPracticeDeck);
   const [deckA, setDeckA] = useState(draft ? "draft" : "local:0");
   const [deckB, setDeckB] = useState(draft ? "draft" : "local:0");
@@ -66,6 +70,7 @@ export const Component = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [inspected, setInspected] = useState<ReplayCard>();
+  const [historyCard, setHistoryCard] = useState<number>();
   const [confirmation, setConfirmation] = useState<{
     request: PracticeRequest;
     choice: PracticeChoice;
@@ -84,7 +89,9 @@ export const Component = () => {
     answer,
     retryConfig,
   } = session;
-  const request = frame?.pending;
+  const request = passPracticeChain(frame?.pending, chainSetting)
+    ? undefined
+    : frame?.pending;
   const selectedDeck = (id: string) =>
     id === "draft" ? draft : decks[Number(id.slice(6))];
   const options = [
@@ -119,6 +126,7 @@ export const Component = () => {
     }
     setSetupOpen(false);
     setInspected(undefined);
+    setHistoryCard(undefined);
     start(next);
   };
   useEffect(() => {
@@ -139,6 +147,8 @@ export const Component = () => {
   }, [request?.id, session.generation]);
   const choose = (choice: PracticeChoice, label = "") => {
     if (!request || responding) return;
+    setInspected(undefined);
+    setHistoryCard(undefined);
     if (
       settingStore.confirmOperations &&
       ["idle", "battle"].includes(request.kind)
@@ -170,7 +180,8 @@ export const Component = () => {
     responding || error ? undefined : request,
   );
   const currentPhase = corePhaseKey(frame?.phase ?? 0);
-  const card = inspected && fetchCard(inspected.code);
+  const detailCode = inspected?.code ?? historyCard;
+  const card = detailCode ? fetchCard(detailCode) : undefined;
   return (
     <main className="practice-session" data-testid="practice-page">
       {scene && (
@@ -211,6 +222,17 @@ export const Component = () => {
               () => choose(choice!, phase.toUpperCase()),
             ]),
           )}
+        />
+        <Select
+          data-testid="practice-chain-setting"
+          aria-label={words.chainMode}
+          value={chainSetting}
+          onChange={(value) => (settingStore.chainSetting = value)}
+          options={[
+            { value: 2, label: words.chainSmart },
+            { value: 0, label: words.chainAll },
+            { value: 1, label: words.chainIgnore },
+          ]}
         />
         {frame && (
           <div
@@ -434,29 +456,54 @@ export const Component = () => {
         onClose={() => setHistoryOpen(false)}
         width={400}
       >
-        <PracticeHistory entries={session.history} language={language} />
+        <PracticeHistory
+          entries={session.history}
+          language={language}
+          onInspect={(code) => {
+            setHistoryOpen(false);
+            setInspected(undefined);
+            setHistoryCard(code);
+          }}
+        />
       </Drawer>
       <Drawer
-        open={!!inspected}
+        open={!!detailCode}
+        mask={false}
+        placement={portrait ? "bottom" : "right"}
+        height="45dvh"
         title={card?.text.name || words.details}
-        onClose={() => setInspected(undefined)}
-        width={400}
+        onClose={() => {
+          setInspected(undefined);
+          setHistoryCard(undefined);
+        }}
+        width="min(400px, 36vw)"
       >
-        {inspected && (
+        {!!detailCode && (
           <>
             <img
               className="practice-detail-image"
-              src={getCardImgUrl(inspected.code)}
+              src={getCardImgUrl(detailCode)}
               alt={card?.text.name || ""}
             />
-            <p>{positionLabel(inspected, language)}</p>
-            <p>
-              {inspected.attack}/{inspected.defense}
-            </p>
+            {inspected && (
+              <>
+                <p>{positionLabel(inspected, language)}</p>
+                <p>
+                  {inspected.attack}/{inspected.defense}
+                </p>
+              </>
+            )}
             <p className="practice-description">{card?.text.desc}</p>
           </>
         )}
-        <Button onClick={() => setInspected(undefined)}>{t("Confirm")}</Button>
+        <Button
+          onClick={() => {
+            setInspected(undefined);
+            setHistoryCard(undefined);
+          }}
+        >
+          {t("Confirm")}
+        </Button>
       </Drawer>
     </main>
   );

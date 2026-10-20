@@ -53,7 +53,7 @@ try{
  await page.evaluate(()=>{window.__followup.settingStore.randomRpsMode='off';window.__followup.rps();});
  await page.getByTestId('waitroom-mora-'+({1:'scissors',2:'rock',3:'paper'}[me])).click();
  await expect(page.locator('.ant-message')).toContainText('本次已出：');
- await page.evaluate(([me,op])=>window.__followup.result(me,op),[me,op]);await expect(page.locator('.ant-message')).toContainText('猜拳结果：'+text);
+ await page.evaluate(([me,op])=>window.__followup.result(me===1?2:me===2?1:me,op===1?2:op===2?1:op),[me,op]);await expect(page.locator('.ant-message')).toContainText('猜拳结果：'+text);
  }
  }
  assert.deepEqual(errors,[]);console.log('PASS populated pile overlays, short landscape controls, ID masking, dismissible replay receipt, manual RPS and repeated tie',only||'all');

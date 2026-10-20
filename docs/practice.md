@@ -10,6 +10,8 @@
 
 六阶段栏与联机共享展示组件，颜色表示回合方，当前阶段、可操作与禁用有不同样式。练习允许替 B 使用其合法命令，可进入的阶段仅来自当前 Core 请求，不按卡名推断、不任意跳阶段；MR2 首回合不能进战阶／主二。操作确认沿用全局开关，取消不提交；重新发牌或新请求使旧确认失效。
 
+连锁确认与设置中的智能／全部／忽略同步并持久化，但练习响应仍只送给本地 Worker。智能模式使用 Core 的 `special_count` 决定是否询问可选连锁，忽略模式跳过可选连锁，全部模式保留所有有候选的询问；任何模式都不跳过强制效果。操作记录中的公开卡名可点击查看静态详情，不提交响应。
+
 ## 边界与维护
 
 - `src/practice/session.ts` 只复制编辑器草稿，不写 IndexedDB，也不访问在线状态。
@@ -24,7 +26,7 @@
 - 音效直接读取共享 `settingStore.audio.enableSoundEffects`、`soundEffectsVolume`，使用独立 ReplayAudio 实例；关闭、退出、切后台立即停止该实例的声音。
 - `presentation.ts` 按事件对象身份消费展示动作；每批末尾的完整查询继承上一动作，不再重复播音，空事件批次也不重播。相同内容的两个真实事件仍分别处理。相同事件流生成本地操作历史，最多保留最近 500 项；重试／发新手牌清空，切语言重新格式化，不使用在线 historyStore。
 - 魔法与陷阱盖放统一使用已有“盖放”文案。原生效果确认保留请求位置与卡号，替换系统提示的区域／卡名占位符，包括岩铁的取除素材代破。素材的候选地址含宿主 sequence 与独立 overlay index，不能因共享宿主而都选成第一张。
-- 场上素材按与联机相同的受限扇形偏移展示，宿主显示独立数量；可从宿主菜单打开素材列表，也可直接点露出的素材。LP 单独占顶部一行，场地缩放仅使用其下方空间。卡片有动作时先显示动作／详情菜单，没有动作时直接查看详情；查看不向 Core 提交响应。
+- 攻击／守备使用相同的物理卡片尺寸，守备只旋转宿主；素材始终竖放，统一向右小幅露出，整个素材堆不超出怪兽区。宿主显示独立数量，可从菜单打开素材列表，也可直接点露出的素材。`materials.ts` 保留 Core 先挂载到额外卡组宿主的素材原位，选定落点后按顺序移动素材，最后展示宿主；动画期间不提交旧响应。LP 单独占顶部一行，场地缩放仅使用其下方空间。仅手机竖屏在有动作时显示“详情”菜单；电脑／横屏同步展示详情且不重复该菜单项，没有动作时直接查看详情。查看不向 Core 提交响应。
 
 修改请求解析、响应编码、初始化规则或资源边界时，更新本文对应契约并运行能区分错误行为的真实 Core 回归；只更新受影响的架构、入口与验收文档，不重复追加历史过程。
 
@@ -39,10 +41,12 @@ node scripts/test_practice_runtime_loader.mjs
 node scripts/test_practice_runtime.mjs
 node scripts/test_practice_prompts.mjs
 node scripts/test_practice_presentation.mjs
+node scripts/test_practice_chain_xyz.mjs
 node scripts/test_practice_place.mjs
 node --experimental-strip-types scripts/test_practice_interactions.mjs
 node scripts/practice_followup_ui.mjs
 node scripts/client_round4_ui.mjs
+node scripts/client_round5_ui.mjs
 npm run test:replay-runtime
 SMOKE_URL=http://127.0.0.1:4173 node scripts/practice_ui.mjs
 SMOKE_URL=http://127.0.0.1:4173 node scripts/practice_editor_roundtrip_ui.mjs

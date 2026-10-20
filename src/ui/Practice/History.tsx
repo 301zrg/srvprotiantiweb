@@ -9,9 +9,11 @@ import type { PracticeHistoryEntry } from "./presentation";
 export function PracticeHistory({
   entries,
   language,
+  onInspect,
 }: {
   entries: PracticeHistoryEntry[];
   language: string;
+  onInspect: (code: number) => void;
 }) {
   const words = replayFieldWords(language);
   return (
@@ -31,9 +33,19 @@ export function PracticeHistory({
               </strong>
               <div>
                 {words[action.kind as keyof typeof words] || words.ready}{" "}
-                {action.code
-                  ? fetchCard(action.code).text.name || action.code
-                  : ""}{" "}
+                {action.code ? (
+                  <button
+                    type="button"
+                    className="practice-history-card"
+                    data-testid="practice-history-card"
+                    data-card-code={action.code}
+                    onClick={() => onInspect(action.code!)}
+                  >
+                    {fetchCard(action.code).text.name || action.code}
+                  </button>
+                ) : (
+                  ""
+                )}{" "}
                 {action.amount ?? ""}
               </div>
               {action.from && action.to && (
