@@ -41,6 +41,11 @@ import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { corePhaseKey } from "@/variant/duelPhases";
 import { formatDuelResult } from "@/variant/duelResults";
 import { battleTimingLabel, formatChainContext } from "@/variant/duelTiming";
+import {
+  fieldPositionLabel,
+  fieldSelectionMessages,
+  type FieldSpot,
+} from "@/variant/fieldSelection";
 import { mobileMessages } from "@/variant/mobileMessages";
 import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
@@ -61,6 +66,7 @@ export const Component = () => {
   const words = previewMessages(language);
   const revision = clientRevisionMessages(language);
   const interaction = duelInteractionMessages(language);
+  const fieldWords = fieldSelectionMessages(language);
   const { t } = useTranslation("ClientUI");
   const navigate = useNavigate();
   const decks = useSnapshot(deckStore).decks;
@@ -75,6 +81,8 @@ export const Component = () => {
   const [promptMinimized, setPromptMinimized] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
+  const [located, setLocated] = useState<FieldSpot>();
+  const locateTimer = useRef<ReturnType<typeof setTimeout>>();
   const [inspected, setInspected] = useState<ReplayCard>();
   const [historyCard, setHistoryCard] = useState<number>();
   const [confirmation, setConfirmation] = useState<{
@@ -168,7 +176,15 @@ export const Component = () => {
     setConfirmation(undefined);
     setPromptMinimized(false);
     setPromptOpen(needsPracticePrompt(request));
+    setLocated(undefined);
+    clearTimeout(locateTimer.current);
+    return () => clearTimeout(locateTimer.current);
   }, [request?.id, session.generation]);
+  const highlight = (spot: FieldSpot) => {
+    clearTimeout(locateTimer.current);
+    setLocated(spot);
+    locateTimer.current = setTimeout(() => setLocated(undefined), 1400);
+  };
   const choose = (choice: PracticeChoice, label = "") => {
     if (!request || responding) return;
     setInspected(undefined);
@@ -200,6 +216,35 @@ export const Component = () => {
     ["cards", "tribute", "sum", "place", "unselect", "sort"].includes(
       request.kind,
     );
+  const selectedChoices =
+    request?.kind === "unselect"
+      ? request.choices.filter((choice) => choice.forced)
+      : selected.flatMap(
+          (index) =>
+            request?.choices.filter((choice) => choice.index === index) ?? [],
+        );
+  const selectedPositions = selectedChoices
+    .map((choice) => {
+      if (
+        choice.player === undefined ||
+        choice.location === undefined ||
+        choice.sequence === undefined
+      )
+        return "";
+      return fieldPositionLabel(
+        {
+          player: choice.player,
+          location: choice.location,
+          sequence: choice.sequence,
+        },
+        0,
+        language,
+        (id) => fetchStrings(Region.System, id),
+        (player) => (player === 0 ? "A" : "B"),
+      );
+    })
+    .filter(Boolean)
+    .join("; ");
   const phaseChoices = practicePhaseChoices(
     responding || error ? undefined : request,
   );
@@ -236,6 +281,7 @@ export const Component = () => {
           language={language}
           disabled={responding || !!error}
           selected={selected}
+          located={located}
           onToggle={toggle}
           onChoose={choose}
           onInspect={setInspected}
@@ -364,8 +410,16 @@ export const Component = () => {
             {selection && (
               <>
                 <span>
-                  {selected.length} / {request.min}–{request.max || "∞"}
+                  {selectedChoices.length} / {request.min}–{request.max || "∞"}
                 </span>
+                {!!selectedPositions && (
+                  <span
+                    className="practice-board-selected-positions"
+                    aria-live="polite"
+                  >
+                    {fetchStrings(Region.System, 212)} {selectedPositions}
+                  </span>
+                )}
                 <Button
                   data-testid="practice-board-confirm"
                   disabled={
@@ -465,7 +519,19 @@ export const Component = () => {
         centered
         width={720}
         footer={null}
-        title={words.operations}
+        title={
+          promptMinimized && selection ? (
+            <Button
+              type="text"
+              data-testid="practice-return-selection"
+              onClick={() => setPromptMinimized(false)}
+            >
+              {fieldWords.back}
+            </Button>
+          ) : (
+            words.operations
+          )
+        }
         destroyOnClose
       >
         {request && (
@@ -476,6 +542,12 @@ export const Component = () => {
             disabled={responding}
             selected={selected}
             onSelectedChange={setSelected}
+            onToggle={toggle}
+            onHighlight={highlight}
+            onLocate={(spot) => {
+              highlight(spot);
+              setPromptMinimized(true);
+            }}
             onInspectChain={() => setPromptMinimized(true)}
             chainContext={chainContext}
             onAnswer={(pending, value) => {

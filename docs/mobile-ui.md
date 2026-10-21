@@ -84,6 +84,8 @@
 
 ## 本地回归
 
+场上目标选择以五格行保留真实位置和空格，双方分组，对手镜像。弹窗中的编号与场地角标一致；青色虚线为候选，金色实线与勾号为已选。查看场上位置收起弹窗，返回选牌保留草稿；竖屏旋转不重编响应编号。场地仅增加可穿透的角标与轮廓，不放大、平移卡片，最小化继续使用现有独立预留空间。四语新增文案见 [确认稿](client-preview-target-copy.md)。在线／练习回归分别为 `scripts/client_target_selection_ui.mjs` 和 `scripts/practice_field_selection_ui.mjs`，触控模拟不替代手机真机验收。
+
 ```powershell
 npm run test:mobile-ui
 npm run test:deck-editor-ui

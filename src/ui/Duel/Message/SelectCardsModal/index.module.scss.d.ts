@@ -1,4 +1,11 @@
 declare const classNames: {
+  readonly spatialGroup: "spatialGroup";
+  readonly fieldOption: "fieldOption";
+  readonly fieldCover: "fieldCover";
+  readonly fieldImage: "fieldImage";
+  readonly fieldCheck: "fieldCheck";
+  readonly selectionSummary: "selectionSummary";
+
   readonly container: "container";
   readonly btns: "btns";
   readonly "ant-pro-checkcard": "ant-pro-checkcard";

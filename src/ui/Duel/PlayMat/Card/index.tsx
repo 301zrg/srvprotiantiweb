@@ -1,3 +1,4 @@
+import { AimOutlined, CheckOutlined } from "@ant-design/icons";
 import { animated, to, useSpring } from "@react-spring/web";
 import { Dropdown, type MenuProps } from "antd";
 import classnames from "classnames";
@@ -17,10 +18,18 @@ import {
   isCardDisabled,
   isMe,
 } from "@/stores";
+import {
+  fieldSelectionStore,
+  fieldSpotKey,
+  focusFieldSelection,
+  onlineFieldSpot,
+  toggleFieldSelection,
+} from "@/stores/fieldSelectionStore";
 import { showCardModal as displayCardModal } from "@/ui/Duel/Message/CardModal";
 import { useI18N } from "@/ui/I18N";
 import { replayCardWords } from "@/ui/Replay/cardState";
 import { YgoCard } from "@/ui/Shared";
+import { fieldPosition, fieldPositionLabel } from "@/variant/fieldSelection";
 import { previewMessages } from "@/variant/previewMessages";
 
 import {
@@ -62,6 +71,23 @@ export const Card: React.FC<{
   const words = previewMessages(language);
   const card = cardStore.inner[idx];
   const snap = useSnapshot(card);
+  const fieldSnap = useSnapshot(fieldSelectionStore);
+  const fieldSpot = onlineFieldSpot(snap.location);
+  const fieldKey = fieldSpot ? fieldSpotKey(fieldSpot) : "";
+  const fieldEntry = fieldSnap.active
+    ? fieldSnap.entries.find((entry) => entry.key === fieldKey)
+    : undefined;
+  const fieldCandidate =
+    !!fieldEntry || snap.selectInfo.selectable || snap.selectInfo.selected;
+  const fieldChosen = fieldEntry?.selected || snap.selectInfo.selected;
+  const fieldFocused = !!fieldEntry && fieldSnap.focused === fieldKey;
+  const fieldPositionInfo =
+    fieldSpot && fieldPosition(fieldSpot, isMe(0) ? 0 : 1);
+  const fieldLabel = fieldSpot
+    ? fieldPositionLabel(fieldSpot, isMe(0) ? 0 : 1, language, (id) =>
+        fetchStrings(Region.System, id),
+      )
+    : "";
 
   const [spring, api] = useSpring<SpringApiProps>(
     () =>
@@ -474,6 +500,8 @@ export const Card: React.FC<{
       data-card-selected={snap.selectInfo.selected}
       data-card-targeted={snap.targeted}
       data-card-disabled={disabled}
+      data-field-selected={fieldCandidate ? !!fieldChosen : undefined}
+      data-field-focused={fieldCandidate ? fieldFocused : undefined}
       data-card-idle-actions={idleActions}
       data-card-idle-responses={idleActionResponses}
       data-card-idle-response-sources={idleActionSources}
@@ -482,6 +510,9 @@ export const Card: React.FC<{
         /* 有可操作选项或者已被选中*/
         [styles.glowing]: glowing || snap.selectInfo.selected,
         [styles.shining]: snap.selectInfo.selectable, // 可以被选中
+        [styles.targetCandidate]: fieldCandidate,
+        [styles.targetSelected]: fieldCandidate && fieldChosen,
+        [styles.targetFocused]: fieldFocused,
       })}
       style={
         {
@@ -502,7 +533,51 @@ export const Card: React.FC<{
         } as any as CSSProperties
       }
       onClick={onClick}
+      onClickCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          event.target.closest("button, a, input, select, textarea")
+        )
+          return;
+        if (fieldEntry && toggleFieldSelection(fieldKey)) {
+          event.preventDefault();
+          event.stopPropagation();
+          setDropdownMenuDisabled(true);
+        }
+      }}
+      onMouseEnter={() => {
+        if (fieldEntry) focusFieldSelection(fieldKey);
+      }}
+      role={fieldEntry ? "button" : undefined}
+      tabIndex={fieldEntry ? 0 : undefined}
+      aria-label={fieldEntry ? fieldLabel : undefined}
+      aria-pressed={fieldEntry ? !!fieldChosen : undefined}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (fieldEntry && ["Enter", " "].includes(event.key)) {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleFieldSelection(fieldKey);
+        }
+      }}
     >
+      {fieldCandidate && fieldPositionInfo && (
+        <animated.span
+          className={styles.targetLabel}
+          data-testid="duel-field-marker"
+          data-slot={fieldPositionInfo.slot}
+          title={fieldLabel}
+          style={{
+            transform: spring.rz.to(
+              (rz) =>
+                `translateZ(2px) rotate(calc(-${rz}deg - var(--duel-view-rotation, 0deg)))`,
+            ),
+          }}
+        >
+          {fieldChosen && <CheckOutlined />}
+          {fieldPositionInfo.slot ?? <AimOutlined />}
+        </animated.span>
+      )}
       <div className={styles.focus} />
       <div className={styles.shadow} />
       <Dropdown

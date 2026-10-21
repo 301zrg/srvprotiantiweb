@@ -1,4 +1,9 @@
 declare const classNames: {
+  readonly targetCandidate: "targetCandidate";
+  readonly targetSelected: "targetSelected";
+  readonly targetFocused: "targetFocused";
+  readonly targetLabel: "targetLabel";
+
   readonly "mat-card": "mat-card";
   readonly "img-wrap": "img-wrap";
   readonly cover: "cover";

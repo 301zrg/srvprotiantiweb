@@ -1,18 +1,32 @@
+import { CheckOutlined } from "@ant-design/icons";
 import { CheckCard } from "@ant-design/pro-components";
 import { Button, Card, Segmented, Space, Tooltip } from "antd";
 import classnames from "classnames";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { INTERNAL_Snapshot as Snapshot, useSnapshot } from "valtio";
 
 import { type CardMeta, Region, ygopro } from "@/api";
 import { fetchStrings } from "@/api";
+import { getUIContainer, hasUIContainer } from "@/container/compat";
 import { useMobileInterface } from "@/hook";
 import { CardType, isMe, matStore } from "@/stores";
+import {
+  bindFieldSelection,
+  fieldSpotKey,
+  focusFieldSelection,
+  onlineFieldSpot,
+} from "@/stores/fieldSelectionStore";
+import { FieldSelectionGrid } from "@/ui/Duel/FieldSelection";
 import { useI18N } from "@/ui/I18N";
 import { ScrollableArea, YgoCard } from "@/ui/Shared";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { type DuelTiming, formatChainContext } from "@/variant/duelTiming";
+import {
+  fieldPosition,
+  fieldPositionLabel,
+  fieldSelectionMessages,
+} from "@/variant/fieldSelection";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import { groupBy } from "../../utils";
@@ -60,6 +74,9 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
   const { t } = useTranslation("ClientUI");
   const mobile = useMobileInterface();
   const { language } = useI18N();
+  useSnapshot(matStore);
+  const viewPlayer = isMe(0) ? 0 : 1;
+  const fieldWords = fieldSelectionMessages(language);
   const grouped = groupBy(selectables, (option) => option.location?.zone!);
   const [result, setResult] = useState<[ygopro.CardZone, Option[]][]>([]);
   const [submitable, setSubmitable] = useState(false);
@@ -68,6 +85,113 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
   useEffect(() => {
     setInspecting(false);
   }, [isOpen]);
+  const address = (option: Snapshot<Option>) =>
+    option.location ? onlineFieldSpot(option.location) : undefined;
+  const spatialOptions = useMemo(
+    () =>
+      !isChain
+        ? [...selectables, ...selecteds, ...mustSelects].filter((option) => {
+            const spot = address(option);
+            return spot && fieldPosition(spot, viewPlayer);
+          })
+        : [],
+    [selectables, selecteds, mustSelects, isChain, viewPlayer],
+  );
+  const spatial = spatialOptions.length > 0;
+  const chosen = result.flatMap(([, options]) => options);
+  const sameOption = (left: Snapshot<Option>, right: Snapshot<Option>) => {
+    if (left.response !== undefined && right.response !== undefined)
+      return left.response === right.response;
+    if (left === right) return true;
+    const a = left.location;
+    const b = right.location;
+    return (
+      !!a &&
+      !!b &&
+      a.controller === b.controller &&
+      a.zone === b.zone &&
+      a.sequence === b.sequence &&
+      a.is_overlay === b.is_overlay &&
+      a.overlay_sequence === b.overlay_sequence &&
+      left.effectDesc === right.effectDesc
+    );
+  };
+  const selected = (option: Snapshot<Option>) =>
+    chosen.some((item) => sameOption(item, option));
+  const label = (option: Snapshot<Option>) => {
+    const spot = address(option);
+    return spot
+      ? fieldPositionLabel(spot, viewPlayer, language, (id) =>
+          fetchStrings(Region.System, id),
+        )
+      : "";
+  };
+  const toggle = (option: Snapshot<Option>) =>
+    setResult((previous) =>
+      previous.map(([zone, values]) => [
+        zone,
+        zone !== option.location?.zone
+          ? values
+          : values.some((item) => sameOption(item, option))
+          ? values.filter((item) => !sameOption(item, option))
+          : [...values, option as Option],
+      ]),
+    );
+  const entries = () =>
+    spatialOptions.map((option) => {
+      const spot = address(option)!;
+      const fixed = !selectables.includes(option);
+      return {
+        key: fieldSpotKey(spot),
+        spot,
+        selected: fixed || selected(option),
+        fixed,
+      };
+    });
+  const binding = useRef<ReturnType<typeof bindFieldSelection>>();
+  useEffect(() => {
+    if (!isOpen || !spatial) return;
+    const current = bindFieldSelection(
+      entries(),
+      (key) => {
+        const option = selectables.find((option) => {
+          const spot = address(option);
+          return spot && fieldSpotKey(spot) === key;
+        });
+        if (option) toggle(option);
+      },
+      hasUIContainer() ? getUIContainer().conn.signal : undefined,
+    );
+    binding.current = current;
+    return () => {
+      current.release();
+      if (binding.current === current) binding.current = undefined;
+    };
+  }, [isOpen, spatialOptions]);
+  useEffect(() => {
+    binding.current?.update(entries());
+  }, [result, spatialOptions]);
+  const locate = (option: Snapshot<Option>) => {
+    closeCardModal();
+    setInspecting(true);
+    const spot = address(option);
+    if (spot) focusFieldSelection(fieldSpotKey(spot));
+  };
+  const displayCode = (option: Snapshot<Option>) => {
+    if (
+      !option.location ||
+      !hasUIContainer() ||
+      isMe(option.location.controller)
+    )
+      return option.meta.id;
+    const location =
+      getUIContainer().context.cardStore.find(
+        option.location as ygopro.CardLocation,
+      )?.location ?? option.location;
+    return address(option) && [1, 3, 5].includes(location.position)
+      ? 0
+      : option.meta.id;
+  };
 
   const hint = useSnapshot(matStore.hint);
   const preHintMsg = hint.esHint || "";
@@ -121,12 +245,124 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
 
   // Quick select if possiable
   const onQuickSelect = (option: Option) => {
+    if (spatial) return;
     if (max === 1 || single) {
       // if `max` is 1, it means that we can just select one,
       // so quick selection is possiable in this case.
       closeCardModal();
       onSubmit([option]);
     }
+  };
+
+  const renderOption = (card: Snapshot<Option>, j = 0) => {
+    const spot = address(card);
+    const position = spot && fieldPosition(spot, viewPlayer);
+    const code = displayCode(card);
+    const location =
+      card.location && hasUIContainer()
+        ? getUIContainer().context.cardStore.find(
+            card.location as ygopro.CardLocation,
+          )?.location ?? card.location
+        : card.location;
+    const defense = location && [2, 3].includes(location.position);
+    return (
+      <Tooltip
+        title={card.effectDesc}
+        placement="bottom"
+        key={`${card.response}:${j}`}
+      >
+        <div
+          className={spatial && position ? styles.fieldOption : undefined}
+          data-testid="duel-select-card-option"
+          data-card-code={code}
+          data-card-controller={card.location?.controller}
+          data-card-zone={
+            card.location?.zone === undefined
+              ? undefined
+              : ygopro.CardZone[card.location.zone]
+          }
+          data-card-zone-value={card.location?.zone}
+          data-card-sequence={card.location?.sequence}
+          data-card-response={card.response}
+          data-field-selected={selected(card)}
+          data-field-defense={!!defense}
+          aria-label={spatial && position ? label(card) : undefined}
+          onMouseEnter={() => {
+            if (isOpen && spatial && spot)
+              focusFieldSelection(fieldSpotKey(spot));
+          }}
+          onDoubleClick={() => onQuickSelect(card as Option)}
+        >
+          <CheckCard
+            cover={
+              spatial && position ? (
+                <div className={styles.fieldCover}>
+                  <YgoCard
+                    code={code}
+                    targeted={card.targeted}
+                    disabled={card.disabled}
+                    className={styles.fieldImage}
+                  />
+                  {selected(card) && (
+                    <CheckOutlined className={styles.fieldCheck} />
+                  )}
+                </div>
+              ) : (
+                <YgoCard
+                  code={code}
+                  targeted={card.targeted}
+                  disabled={card.disabled}
+                  className={styles.card}
+                />
+              )
+            }
+            className={classnames(styles["check-card"], {
+              [styles.opponent]:
+                !spatial &&
+                card.location?.controller !== undefined &&
+                !isMe(card.location.controller),
+            })}
+            value={card}
+            onClick={() => {
+              if (!mobile && code > 0)
+                showCardModal({ ...card, meta: card.meta } as Option);
+            }}
+          />
+          {spatial && position && (
+            <>
+              <Button
+                className={styles.preview}
+                data-testid="duel-select-card-locate"
+                aria-label={`${fieldWords.locate}: ${label(card)}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  locate(card);
+                }}
+                onDoubleClick={(event) => event.stopPropagation()}
+              >
+                {fieldWords.locate}
+              </Button>
+            </>
+          )}
+          {mobile && (!spatial || !position || code > 0) && (
+            <Button
+              className={styles.preview}
+              data-testid="duel-select-card-preview"
+              aria-label={`${mobileMessages(language).viewCard} ${
+                code ? card.meta.text.name : ""
+              }`}
+              onClick={(event) => {
+                event.stopPropagation();
+                showCardModal(card);
+              }}
+              onDoubleClick={(event) => event.stopPropagation()}
+            >
+              {mobileMessages(language).viewCard}
+            </Button>
+          )}
+        </div>
+      </Tooltip>
+    );
   };
 
   return (
@@ -157,12 +393,19 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
         disabled: !submitable,
       }}
       open={isOpen}
-      minimized={emptyChain ? inspecting : undefined}
-      onMinimizedChange={emptyChain ? setInspecting : undefined}
+      minimized={emptyChain || spatial ? inspecting : undefined}
+      onMinimizedChange={emptyChain || spatial ? setInspecting : undefined}
       minimizedActions={
         emptyChain ? (
           <Button data-testid="duel-chain-continue" onClick={onCancel}>
             {submitText}
+          </Button>
+        ) : spatial ? (
+          <Button
+            data-testid="duel-field-selection-back"
+            onClick={() => setInspecting(false)}
+          >
+            {fieldWords.back}
           </Button>
         ) : undefined
       }
@@ -253,95 +496,69 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
             {fetchStrings(Region.System, 202)}
           </p>
         )}
-        <Selector
-          zoneOptions={zoneOptions}
-          selectedZone={selectedZone}
-          onChange={setSelectedZone as any}
-        />
+        {!spatial && (
+          <Selector
+            zoneOptions={zoneOptions}
+            selectedZone={selectedZone}
+            onChange={setSelectedZone as any}
+          />
+        )}
         <ScrollableArea maxHeight="50vh">
-          {grouped.map(
-            (options, i) =>
-              options[0] === selectedZone && (
-                <div className={styles["container"]} key={i}>
-                  <CheckCard.Group
-                    onChange={(res: any) => {
-                      const newRes: [ygopro.CardZone, Option[]][] = result.map(
-                        ([k, v]) => [k, k === selectedZone ? res : v],
-                      );
-                      setResult(newRes);
-                    }}
-                    value={
-                      result.find(([k, _]) => k === selectedZone)?.[1] ??
-                      ([] as any)
-                    }
-                    // TODO 考虑如何设置默认值，比如只有一个的，就直接选中
-                    multiple
-                    className={styles["check-group"]}
-                  >
-                    {options[1].map((card, j) => (
-                      <Tooltip
-                        title={card.effectDesc}
-                        placement="bottom"
-                        key={j}
-                      >
-                        {/* 这儿必须有一个div，不然tooltip不生效 */}
-                        <div
-                          data-testid="duel-select-card-option"
-                          data-card-code={card.meta.id}
-                          data-card-controller={card.location?.controller}
-                          data-card-zone={
-                            card.location?.zone === undefined
-                              ? undefined
-                              : ygopro.CardZone[card.location.zone]
-                          }
-                          data-card-zone-value={card.location?.zone}
-                          data-card-sequence={card.location?.sequence}
-                          data-card-response={card.response}
-                          onDoubleClick={() => onQuickSelect(card as Option)}
-                        >
-                          <CheckCard
-                            cover={
-                              <YgoCard
-                                code={card.meta.id}
-                                targeted={card.targeted}
-                                disabled={card.disabled}
-                                className={styles.card}
-                              />
-                            }
-                            className={classnames(styles["check-card"], {
-                              [styles.opponent]:
-                                card.location?.controller !== undefined &&
-                                !isMe(card.location.controller),
-                            })}
-                            value={card}
-                            onClick={() => {
-                              if (!mobile) showCardModal(card);
-                            }}
-                          />
-                          {mobile && (
-                            <Button
-                              className={styles.preview}
-                              data-testid="duel-select-card-preview"
-                              aria-label={`${
-                                mobileMessages(language).viewCard
-                              } ${card.meta.text.name}`}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                showCardModal(card);
-                              }}
-                              onDoubleClick={(event) => event.stopPropagation()}
-                            >
-                              {mobileMessages(language).viewCard}
-                            </Button>
-                          )}
-                        </div>
-                      </Tooltip>
-                    ))}
-                  </CheckCard.Group>
-                </div>
-              ),
-          )}
+          <div className={styles.container}>
+            <CheckCard.Group
+              className={spatial ? styles.spatialGroup : styles["check-group"]}
+              multiple
+              value={
+                (spatial
+                  ? chosen
+                  : result.find(([zone]) => zone === selectedZone)?.[1] ??
+                    []) as any
+              }
+              onChange={(res: any) =>
+                setResult((previous) =>
+                  previous.map(([zone, values]) => [
+                    zone,
+                    spatial
+                      ? res.filter(
+                          (option: Option) => option.location?.zone === zone,
+                        )
+                      : zone === selectedZone
+                      ? res
+                      : values,
+                  ]),
+                )
+              }
+            >
+              {spatial ? (
+                <FieldSelectionGrid
+                  options={selectables}
+                  address={address}
+                  viewPlayer={viewPlayer}
+                  language={language}
+                  renderOption={renderOption}
+                />
+              ) : (
+                grouped
+                  .filter(([zone]) => zone === selectedZone)
+                  .flatMap(([, options]) => options.map(renderOption))
+              )}
+            </CheckCard.Group>
+          </div>
         </ScrollableArea>
+        {spatial && (
+          <div
+            className={styles.selectionSummary}
+            data-testid="duel-field-selection-summary"
+          >
+            <span>
+              {chosen.length + mustSelects.length}/{max}{" "}
+              {fetchStrings(Region.System, 212)}
+            </span>
+            {[...mustSelects, ...chosen].map((option, i) => (
+              <span key={i}>{label(option) || option.meta.text.name}</span>
+            ))}
+          </div>
+        )}
         <p>
           <span>
             {/* TODO: 这里的字体可以调整下 */}
@@ -359,14 +576,14 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
                 <Card
                   cover={
                     <YgoCard
-                      code={card.meta.id}
+                      code={displayCode(card)}
                       targeted={card.targeted}
                       className={styles.card}
                     />
                   }
                   className={styles["check-card"]}
                   onClick={() => {
-                    showCardModal(card);
+                    if (displayCode(card) > 0) showCardModal(card);
                   }}
                 />
               </div>

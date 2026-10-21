@@ -10,6 +10,11 @@ import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { YgoCard } from "@/ui/Shared";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
+import {
+  fieldPosition,
+  fieldPositionLabel,
+  type FieldSpot,
+} from "@/variant/fieldSelection";
 import { mobileMessages } from "@/variant/mobileMessages";
 import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
@@ -123,6 +128,7 @@ export const PracticeBoard = ({
   language,
   disabled,
   selected,
+  located,
   onToggle,
   onChoose,
   onInspect,
@@ -132,6 +138,7 @@ export const PracticeBoard = ({
   language: string;
   disabled: boolean;
   selected: number[];
+  located?: FieldSpot;
   onToggle: (choice: PracticeChoice) => void;
   onChoose: (choice: PracticeChoice, label?: string) => void;
   onInspect: (card: ReplayCard) => void;
@@ -221,6 +228,16 @@ export const PracticeBoard = ({
     const choices = addressChoices(card);
     const pick =
       request && selecting.has(request.kind) ? choices[0] : undefined;
+    const selectedPick =
+      !!pick &&
+      (selected.includes(pick.index) ||
+        (request?.kind === "unselect" && !!pick.forced));
+    const field = pick && fieldPosition(card, 0);
+    const isLocated =
+      !!located &&
+      located.player === card.player &&
+      located.location === card.location &&
+      located.sequence === card.sequence;
     const legalCommands =
       request && ["idle", "battle", "chain"].includes(request.kind)
         ? choices
@@ -319,11 +336,23 @@ export const PracticeBoard = ({
           data-location={card.location}
           data-sequence={card.sequence}
           data-actionable={!!choices.length}
-          data-selected={!!pick && selected.includes(pick.index)}
+          data-selectable={!!pick}
+          data-selected={selectedPick}
+          data-located={isLocated}
           data-facedown={!!(card.position & 10)}
-          title={`${name} · ${positionLabel(card, language)}`}
+          title={`${name} · ${positionLabel(card, language)}${
+            field
+              ? ` · ${fieldPositionLabel(
+                  card,
+                  0,
+                  language,
+                  (id) => fetchStrings(Region.System, id),
+                  (player) => (player === 0 ? "A" : "B"),
+                )}`
+              : ""
+          }`}
           aria-label={name}
-          aria-pressed={pick ? selected.includes(pick.index) : undefined}
+          aria-pressed={pick ? selectedPick : undefined}
           onClick={() => {
             if (pick) onToggle(pick);
             else if (
@@ -334,6 +363,21 @@ export const PracticeBoard = ({
           }}
         >
           <YgoCard code={card.code} width="100%" />
+          {field && (
+            <span
+              className="practice-selection-badge"
+              data-testid="practice-selection-badge"
+              aria-hidden="true"
+              style={
+                positioned
+                  ? { transform: `rotate(${-p.rotation}deg)` }
+                  : undefined
+              }
+            >
+              {selectedPick ? "✓ " : ""}
+              {field.slot ?? fetchStrings(Region.System, field.systemId)}
+            </span>
+          )}
           {!!card.overlay.length && (
             <span
               className="practice-material-count"

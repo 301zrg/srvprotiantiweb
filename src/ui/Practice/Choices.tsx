@@ -19,8 +19,15 @@ import {
   type PracticeRequest,
 } from "@/practice/prompts";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
+import {
+  fieldPosition,
+  fieldPositionLabel,
+  fieldSelectionMessages,
+  type FieldSpot,
+} from "@/variant/fieldSelection";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
+import { FieldSelectionGrid } from "../Duel/FieldSelection";
 import { replayCardWords } from "../Replay/cardState";
 import { replayFieldWords } from "../Replay/FieldBoard";
 import { practiceEffectText } from "./presentation";
@@ -51,6 +58,9 @@ export function PracticeChoices({
   chainContext,
   selected: controlledSelected,
   onSelectedChange,
+  onToggle,
+  onHighlight,
+  onLocate,
 }: {
   request: PracticeRequest;
   language: string;
@@ -60,6 +70,9 @@ export function PracticeChoices({
   chainContext?: string;
   selected?: number[];
   onSelectedChange?: Dispatch<SetStateAction<number[]>>;
+  onToggle?: (choice: PracticeChoice) => void;
+  onHighlight?: (spot: FieldSpot) => void;
+  onLocate?: (spot: FieldSpot) => void;
 }) {
   const { t } = useTranslation("ClientUI");
   const words = previewMessages(language),
@@ -73,6 +86,26 @@ export function PracticeChoices({
   const [declared, setDeclared] = useState<PracticeChoice[]>([]);
   const answer = request.kind === "counter" ? counts : selected;
   const emptyChain = request.kind === "chain" && !request.choices.length;
+  const fieldWords = fieldSelectionMessages(language);
+  const spatial = ["cards", "tribute", "sum", "unselect", "sort"].includes(
+    request.kind,
+  );
+  const owner = (player: number) => (player === 0 ? "A" : "B");
+  const address = (choice: PracticeChoice): FieldSpot | undefined => {
+    if (
+      !spatial ||
+      choice.player === undefined ||
+      choice.location === undefined ||
+      choice.sequence === undefined
+    )
+      return;
+    const spot = {
+      player: choice.player,
+      location: choice.location,
+      sequence: choice.sequence,
+    };
+    return fieldPosition(spot, 0) ? spot : undefined;
+  };
   const toggle = (index: number) =>
     setSelected((old) =>
       old.includes(index) ? old.filter((n) => n !== index) : [...old, index],
@@ -110,7 +143,7 @@ export function PracticeChoices({
       : request.kind === "idle" || request.kind === "battle"
       ? words.operations
       : t("SelectCard");
-  const choiceLabel = (c: PracticeChoice) => {
+  const choiceLabel = (c: PracticeChoice, includePosition = true) => {
     const name = c.code ? fetchCard(c.code).text.name || String(c.code) : "";
     let action = "";
     if (request.kind === "idle")
@@ -137,13 +170,18 @@ export function PracticeChoices({
       action = system((request.message === 140 ? 1020 : 1010) + c.index);
     if (request.message === 143) action = String(c.action);
     if (request.message === 132) action = ["", "✌", "✊", "✋"][c.value!];
-    const place = c.location
+    const spot = address(c);
+    const place = spot
+      ? fieldPositionLabel(spot, 0, language, system, owner)
+      : c.location
       ? `${c.player === 0 ? "A" : "B"} · ${zone(c.location)} · ${
           c.sequence! + 1
         }`
       : "";
     const description = c.description ? getStrings(c.description) : "";
-    return [action, name, description, place].filter(Boolean).join(" · ");
+    return [action, name, description, includePosition ? place : ""]
+      .filter(Boolean)
+      .join(" · ");
   };
   const immediate = [
     "idle",
@@ -153,8 +191,89 @@ export function PracticeChoices({
     "option",
     "position",
     "announce",
+    "unselect",
   ].includes(request.kind);
   const choices = request.kind === "announce" ? declared : request.choices;
+  const chosen = (choice: PracticeChoice) =>
+    selected.includes(choice.index) ||
+    (request.kind === "unselect" && !!choice.forced);
+  const renderChoice = (choice: PracticeChoice, i: number) => {
+    const label = choiceLabel(choice);
+    const spot = address(choice);
+    const position = spot && fieldPosition(spot, 0);
+    const isChosen = chosen(choice);
+    return request.kind === "counter" ? (
+      <label key={choice.index} className="practice-counter">
+        <span>
+          {label} · {choice.value}
+        </span>
+        <InputNumber
+          aria-label={label}
+          min={0}
+          max={choice.value}
+          value={counts[i]}
+          onChange={(value) =>
+            setCounts((old) =>
+              old.map((n, j) => (i === j ? Number(value || 0) : n)),
+            )
+          }
+        />
+      </label>
+    ) : (
+      <div
+        className="practice-choice-option"
+        key={`${choice.index}:${choice.action}:${i}`}
+        onMouseEnter={() => spot && onHighlight?.(spot)}
+      >
+        <Button
+          className={`practice-choice ${spot ? "field-selection-button" : ""}`}
+          type={isChosen ? "primary" : "default"}
+          disabled={disabled}
+          title={label}
+          aria-label={label}
+          aria-pressed={spatial || !immediate ? isChosen : undefined}
+          data-action={choice.action}
+          data-index={choice.index}
+          data-selected={isChosen}
+          data-field-option={!!spot}
+          onFocus={() => spot && onHighlight?.(spot)}
+          onClick={() => {
+            if (request.kind === "unselect") onAnswer(request, [choice.index]);
+            else if (immediate) onAnswer(request, choice.value!);
+            else if (onToggle) onToggle(choice);
+            else toggle(choice.index);
+          }}
+        >
+          {position && (
+            <span className="practice-selection-badge" aria-hidden="true">
+              {isChosen ? "✓ " : ""}
+              {position.slot ?? system(position.systemId)}
+            </span>
+          )}
+          {choice.code && (
+            <img src={getCardImgUrl(choice.code)} alt="" loading="lazy" />
+          )}
+          <span className="practice-choice-label">
+            {request.kind === "sort" && isChosen
+              ? `${selected.indexOf(choice.index) + 1}. `
+              : ""}
+            {choice.forced && request.kind === "unselect" ? "✓ " : ""}
+            {spot ? choiceLabel(choice, false) : label}
+          </span>
+        </Button>
+        {spot && onLocate && (
+          <Button
+            className="practice-locate-card field-selection-button"
+            data-testid="practice-locate-card"
+            disabled={disabled}
+            onClick={() => onLocate(spot)}
+          >
+            {fieldWords.locate}
+          </Button>
+        )}
+      </div>
+    );
+  };
   return (
     <section
       className="practice-choices"
@@ -217,56 +336,43 @@ export function PracticeChoices({
           }
         />
       )}
-      <div className="practice-choice-list">
-        {choices.map((choice, i) => {
-          const label = choiceLabel(choice),
-            chosen = selected.includes(choice.index);
-          return request.kind === "counter" ? (
-            <label key={choice.index} className="practice-counter">
-              <span>
-                {label} · {choice.value}
-              </span>
-              <InputNumber
-                aria-label={label}
-                min={0}
-                max={choice.value}
-                value={counts[i]}
-                onChange={(value) =>
-                  setCounts((old) =>
-                    old.map((n, j) => (i === j ? Number(value || 0) : n)),
-                  )
-                }
-              />
-            </label>
-          ) : (
-            <Button
-              key={`${choice.index}:${choice.action}:${i}`}
-              className="practice-choice"
-              type={chosen ? "primary" : "default"}
-              disabled={disabled}
-              aria-pressed={!immediate ? chosen : undefined}
-              data-action={choice.action}
-              data-index={choice.index}
-              onClick={() =>
-                immediate
-                  ? onAnswer(request, choice.value!)
-                  : toggle(choice.index)
-              }
-            >
-              {choice.code && (
-                <img src={getCardImgUrl(choice.code)} alt="" loading="lazy" />
-              )}
-              <span>
-                {request.kind === "sort" && chosen
-                  ? `${selected.indexOf(choice.index) + 1}. `
-                  : ""}
-                {choice.forced && request.kind === "unselect" ? "✓ " : ""}
-                {label}
-              </span>
-            </Button>
-          );
-        })}
+      <div
+        className={`practice-choice-list ${
+          spatial ? "practice-choice-grid" : ""
+        }`}
+      >
+        {spatial ? (
+          <FieldSelectionGrid
+            options={choices}
+            address={address}
+            viewPlayer={0}
+            language={language}
+            owner={owner}
+            renderOption={(choice) =>
+              renderChoice(choice, choices.indexOf(choice))
+            }
+          />
+        ) : (
+          choices.map(renderChoice)
+        )}
       </div>
+      {spatial && (
+        <p
+          className="practice-selected-positions"
+          data-testid="practice-selected-positions"
+          aria-live="polite"
+        >
+          {system(212)}{" "}
+          {request.kind === "unselect"
+            ? choices.filter(chosen).length
+            : selected.length}
+          {" · "}
+          {choices
+            .filter(chosen)
+            .map((choice) => choiceLabel(choice))
+            .join("; ")}
+        </p>
+      )}
       <div className="practice-choice-footer">
         {emptyChain && (
           <Button

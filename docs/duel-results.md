@@ -45,6 +45,16 @@ MSG_CONFIRM_CARDS 展示手牌时，翻开并移出手牌后增加短暂停留�
 
 ## 回归入口
 
+### 场上目标的位置与选择草稿
+
+场上目标按当前视角的五格位置排列，空格保留，对方位置镜像；双方怪兽区、魔陷区和场地区分别分组。数字始终从当前画面左侧数起，不是协议 sequence。共享 `fieldSelection.ts`／`FieldSelectionGrid` 只负责位置和展示，保留原候选对象与响应编号。
+
+候选用青色虚线框，已选用金色实线框与勾号；弹窗和场地显示相同编号。查看位置仅临时强调并收起弹窗，返回保留草稿；悬停和查看详情不发送响应。在线 `fieldSelectionStore` 只桥接本次弹窗草稿与场地点击，不持有连接或规则逻辑。确认仍交给原输入处理器；新输入、阶段／回合／场面重建、小局重置、连接中止及弹窗关闭均清理，旧所有者不能清除新请求。
+
+里侧对手目标保持卡背，不因本地已有卡名而显示身份；原本公开的场上卡仍可查看。原生逐次 `select_unselect_card` 保留原交互语义，不把每一步确认改成普通多选。
+
+`node scripts/test_field_selection.mjs` 验证镜像、空位及原始候选；`node scripts/test_field_selection_session.mjs` 验证草稿生命周期；`node scripts/client_target_selection_ui.mjs` 在独立静态夹具用原生封包验证四种视口、双向选择和原始响应。
+
 - npm run test:duel-reveal-delay：合成时钟检验速度边界、默认停留、后台暂停、连接终止清理。
 - npm run test:duel-result-core：锁定的 706 WASM Core 与原始 Lua，在合成场地发动色之支配者，核验三种类型宣言与双方限制描述。
 - npm run test:duel-results-ui：独立测试构建／Chromium，原生封包注入，覆盖桌面及手机横竖屏的四语历史、实际提交值和原响应、回传去重、玩家限制，以及真实卡片动画的停留与隐藏恢复。测试注入仅在独立产物，不进入正常发布。

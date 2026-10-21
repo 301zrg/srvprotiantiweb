@@ -5,6 +5,7 @@ import { PlayerHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg
 import { Container } from "@/container";
 import { isUIContainer } from "@/container/compat";
 import { replayStore } from "@/stores";
+import { clearFieldSelection } from "@/stores/fieldSelectionStore";
 import { showWaiting } from "@/ui/Duel/Message";
 import { markNextPrompt } from "@/variant/duelDiagnostics";
 
@@ -102,6 +103,13 @@ export default async function handleGameMsg(
     return;
   }
   if (isUIContainer(container)) {
+    if (
+      ActiveList.includes(msg.gameMsg) ||
+      ["start", "reload_field", "new_turn", "new_phase", "win"].includes(
+        msg.gameMsg,
+      )
+    )
+      clearFieldSelection();
     if (["select_idle_cmd", "select_battle_cmd"].includes(msg.gameMsg))
       beginActionRequest(
         container,

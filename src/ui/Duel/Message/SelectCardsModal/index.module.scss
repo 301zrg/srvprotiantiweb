@@ -62,6 +62,18 @@
   top: 0;
 }
 
+.spatialGroup { display: block; width: 100%; }
+.fieldOption { min-width: 0; width: 100%; text-align: center; }
+.fieldOption .check-card { width: 100%; height: auto; aspect-ratio: auto; outline: 2px dashed #75def1; outline-offset: -1px; border-color: transparent; }
+.fieldOption[data-field-selected="true"] .check-card { outline: 3px solid #ffdb75; }
+.fieldOption .check-card::before { display: none; }
+.fieldCheck { position: absolute; top: 1px; right: 1px; z-index: 2; color: #ffdb75; background: #172a34; padding: 3px; border-radius: 3px; }
+.fieldCover { position: relative; width: 100%; height: clamp(60px, 10vw, 100px); }
+.fieldCover .fieldImage { position: absolute; top: 50%; left: 50%; height: 90%; width: auto; aspect-ratio: var(--card-ratio); transform: translate(-50%, -50%); }
+.fieldOption[data-field-defense="true"] .fieldImage { height: 70%; transform: translate(-50%, -50%) rotate(90deg); }
+.fieldOption .preview { width: 100%; padding: 2px; min-height: 44px; height: auto; white-space: normal; font-size: 11px; line-height: 14px; }
+.selectionSummary { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 6px 0; color: #ffe5a0; font-size: 12px; }
+
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
   .check-group {
     grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
