@@ -33,6 +33,17 @@ export interface History {
 
 export class HistoryStore implements NeosStore {
   historys: History[] = [];
+  declaration?: { serial: number; result: DuelResult };
+  private declarationSerial = 0;
+
+  private notifyDeclaration(result: DuelResult) {
+    if (
+      ["option", "race", "attribute", "number", "zone", "card"].includes(
+        result.kind,
+      )
+    )
+      this.declaration = { serial: ++this.declarationSerial, result };
+  }
 
   putMove(
     context: Context,
@@ -111,6 +122,7 @@ export class HistoryStore implements NeosStore {
       result,
       source,
     });
+    this.notifyDeclaration(result);
   }
 
   putTargeted(context: Context, card: number, location: ygopro.CardLocation) {
@@ -166,6 +178,7 @@ export class HistoryStore implements NeosStore {
 
   reset(): void {
     this.historys = [];
+    this.declaration = undefined;
   }
 }
 

@@ -7,6 +7,7 @@ import {
   Checkbox,
   Drawer,
   InputNumber,
+  message,
   Modal,
   Select,
   Spin,
@@ -38,10 +39,14 @@ import { openSettingPanel } from "@/ui/Setting";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { corePhaseKey } from "@/variant/duelPhases";
+import { formatDuelResult } from "@/variant/duelResults";
+import { battleTimingLabel, formatChainContext } from "@/variant/duelTiming";
 import { mobileMessages } from "@/variant/mobileMessages";
 import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
+import feedbackStyles from "../Duel/Message/HintNotification/index.module.scss";
+import { NeosModal } from "../Duel/Message/NeosModal";
 import { PhaseBar } from "../Duel/PhaseBar";
 import { positionLabel } from "../Replay/cardState";
 import { PracticeBoard } from "./Board";
@@ -67,6 +72,7 @@ export const Component = () => {
   const [noShuffle, setNoShuffle] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
+  const [promptMinimized, setPromptMinimized] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [inspected, setInspected] = useState<ReplayCard>();
@@ -78,6 +84,23 @@ export const Component = () => {
   }>();
   const autoStarted = useRef(false);
   const session = usePracticeSession(language);
+  const feedbackContainer = useRef<HTMLDivElement>(null);
+  const [feedbackApi, feedbackHolder] = message.useMessage({
+    maxCount: 1,
+    duration: 2,
+    getContainer: () => feedbackContainer.current || document.body,
+  });
+  useEffect(() => {
+    const latest = session.feedback.at(-1);
+    if (!latest) {
+      feedbackApi.destroy();
+      return;
+    }
+    const result = formatDuelResult(latest.result, language);
+    feedbackApi.info(
+      `${latest.player === 0 ? "A" : "B"} · ${result.title}: ${result.value}`,
+    );
+  }, [session.feedback, language, feedbackApi]);
   const {
     frame,
     scene,
@@ -143,6 +166,7 @@ export const Component = () => {
   useEffect(() => {
     setSelected([]);
     setConfirmation(undefined);
+    setPromptMinimized(false);
     setPromptOpen(needsPracticePrompt(request));
   }, [request?.id, session.generation]);
   const choose = (choice: PracticeChoice, label = "") => {
@@ -180,10 +204,31 @@ export const Component = () => {
     responding || error ? undefined : request,
   );
   const currentPhase = corePhaseKey(frame?.phase ?? 0);
+  const phaseDetail = battleTimingLabel(session.timing.battle, language);
+  const chainContext =
+    request?.kind === "chain"
+      ? formatChainContext(
+          session.timing.event,
+          request.hint0 ?? 0,
+          request.hint1 ?? 0,
+          language,
+        )
+      : undefined;
   const detailCode = inspected?.code ?? historyCard;
   const card = detailCode ? fetchCard(detailCode) : undefined;
   return (
-    <main className="practice-session" data-testid="practice-page">
+    <main
+      className="practice-session"
+      data-testid="practice-page"
+      data-prompt-minimized={promptMinimized && promptOpen}
+    >
+      <div
+        ref={feedbackContainer}
+        className={`${feedbackStyles.feedback} practice-feedback`}
+        data-testid="practice-feedback"
+      >
+        {feedbackHolder}
+      </div>
       {scene && (
         <PracticeBoard
           frame={scene}
@@ -215,6 +260,7 @@ export const Component = () => {
         </header>
         <PhaseBar
           current={currentPhase}
+          labels={phaseDetail ? { bp: phaseDetail } : undefined}
           turnOwner={frame?.turnPlayer === 1 ? "opponent" : "self"}
           actions={Object.fromEntries(
             Object.entries(phaseChoices).map(([phase, choice]) => [
@@ -245,7 +291,7 @@ export const Component = () => {
             {previewFormat(words.turnStatus, {
               turn: frame.turn,
               player: frame.turnPlayer === 0 ? "A" : "B",
-              phase: currentPhase?.toUpperCase() || "",
+              phase: phaseDetail || currentPhase?.toUpperCase() || "",
             })}
             {request && (
               <strong data-testid="practice-active-player">
@@ -298,7 +344,10 @@ export const Component = () => {
             {!["idle", "battle"].includes(request.kind) && (
               <Button
                 data-testid="practice-open-prompt"
-                onClick={() => setPromptOpen(true)}
+                onClick={() => {
+                  setPromptOpen(true);
+                  setPromptMinimized(false);
+                }}
               >
                 {words.operations}
               </Button>
@@ -397,9 +446,22 @@ export const Component = () => {
           </Button>
         </div>
       </Modal>
-      <Modal
+      <NeosModal
         open={promptOpen && !!request && !error}
-        onCancel={() => setPromptOpen(false)}
+        minimized={promptMinimized}
+        onMinimizedChange={setPromptMinimized}
+        minimizedActions={
+          request?.kind === "chain" && !request.choices.length ? (
+            <Button
+              type="primary"
+              data-testid="practice-chain-continue"
+              disabled={responding}
+              onClick={() => answer(request, -1)}
+            >
+              {fetchStrings(Region.System, 1211)}
+            </Button>
+          ) : undefined
+        }
         centered
         width={720}
         footer={null}
@@ -414,12 +476,14 @@ export const Component = () => {
             disabled={responding}
             selected={selected}
             onSelectedChange={setSelected}
+            onInspectChain={() => setPromptMinimized(true)}
+            chainContext={chainContext}
             onAnswer={(pending, value) => {
               answer(pending, value);
             }}
           />
         )}
-      </Modal>
+      </NeosModal>
       <Modal
         open={!!confirmation}
         title={interaction.title}

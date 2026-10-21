@@ -121,7 +121,11 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
               {previewFormat(text.turnStatus, {
                 turn: turnCount,
                 player: displayPlayerId(player, hidePlayerIds),
-                phase: duelPhaseLabel(language, phase.currentPhase),
+                phase: duelPhaseLabel(
+                  language,
+                  phase.currentPhase,
+                  phase.battleTiming,
+                ),
               })}
             </div>
             {!observing && currentPlayer >= 0 && (

@@ -1,3 +1,5 @@
+import type { DuelResult, ValueResultKind } from "@/variant/duelResults";
+
 /** Local Core choices. These objects never enter the online protocol/store. */
 export interface PracticeChoice {
   index: number;
@@ -38,6 +40,8 @@ export interface PracticeRequest {
   code?: number;
   target?: number;
   specialCount?: number;
+  hint0?: number;
+  hint1?: number;
   location?: number;
   mode?: number;
   must?: PracticeChoice[];
@@ -47,6 +51,24 @@ export const practiceResponseMessages = new Set([
   10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 25, 26, 132, 140, 141,
   142, 143,
 ]);
+
+/** Public Core selection results; timing and input hints are handled separately. */
+export function practiceHintResults(events: number[][]) {
+  const kinds: Partial<Record<number, ValueResultKind>> = {
+    4: "option",
+    6: "race",
+    7: "attribute",
+    8: "card",
+    9: "number",
+    11: "zone",
+  };
+  return events.flatMap((event) => {
+    const kind = event[0] === 2 ? kinds[event[1]] : undefined;
+    if (!kind || event.length < 7) return [];
+    const value = new DataView(new Uint8Array(event).buffer).getUint32(3, true);
+    return [{ player: event[2], result: { kind, value } as DuelResult }];
+  });
+}
 
 export function parsePracticeRequest(
   bytes: Uint8Array,
@@ -123,8 +145,8 @@ export function parsePracticeRequest(
     request.kind = "chain";
     const count = u8();
     request.specialCount = u8();
-    u32();
-    u32();
+    request.hint0 = u32();
+    request.hint1 = u32();
     request.choices = Array.from({ length: count }, (_, index) => {
       u8();
       const forced = !!u8();

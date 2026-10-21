@@ -80,14 +80,14 @@ export const moveToGround: MoveFunc = async (props) => {
   ].includes(position ?? 5);
   const rz = (isMe(controller) ? 0 : 180) + (!is_overlay && defence ? 90 : 0);
 
+  let zIndex = 3;
   if (is_overlay) {
-    const offset = materialOffset(
-      location.overlay_sequence,
-      cardStore.findOverlay(zone, controller, sequence).length,
-      height,
-    );
+    const count = cardStore.findOverlay(zone, controller, sequence).length;
+    const offset = materialOffset(location.overlay_sequence, count, height);
     x += offset.x;
     y += offset.y;
+    // Inner cards cover outer cards, leaving every fan edge exposed in any DOM order.
+    zIndex = 2 - count + location.overlay_sequence;
   }
   const ry =
     !is_overlay &&
@@ -130,7 +130,7 @@ export const moveToGround: MoveFunc = async (props) => {
     height,
     z: 0,
     subZ: isToken ? 100 : 0,
-    zIndex: is_overlay ? 2 : 3,
+    zIndex,
     config: {
       easing: easings.easeInQuad,
       duration: 100,

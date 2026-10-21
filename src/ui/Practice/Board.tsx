@@ -247,10 +247,10 @@ export const PracticeBoard = ({
           width: p.height * g.CARD_RATIO,
           transform: `translate(-50%, -50%) rotate(${p.rotation}deg)`,
           zIndex: materialHost
-            ? 2
+            ? card.overlayIndex! + 1
             : card.location === 2
             ? card.sequence + 20
-            : 4,
+            : Math.max(4, card.overlay.length + 1),
           pointerEvents: staged ? "none" : undefined,
         }
       : undefined;
@@ -417,6 +417,7 @@ export const PracticeBoard = ({
             o.host.location === m.host.location &&
             o.host.sequence === m.host.sequence,
         )
+        .sort((a, b) => a.index - b.index)
         .map((o) => o.card.code),
     };
     renderedCards.push(

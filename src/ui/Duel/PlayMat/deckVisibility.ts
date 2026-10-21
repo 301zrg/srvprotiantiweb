@@ -22,9 +22,11 @@ export function visibleDeckCode(
   card: Parameters<typeof deckCardFaceUp>[0] & {
     code: number;
     deckPublicCode?: number;
+    confirmedDeckCode?: number;
   },
   reversed: boolean,
 ) {
+  if (card.confirmedDeckCode) return card.confirmedDeckCode;
   if (!deckCardFaceUp(card, reversed)) return 0;
   return card.deckPublicCode ?? (reversed ? 0 : card.code);
 }

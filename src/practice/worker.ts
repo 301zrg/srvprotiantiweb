@@ -21,10 +21,13 @@ self.onmessage = async ({ data }) => {
         cards,
         unpackScripts(scripts, profile.unpackedScriptBytes),
       );
+      engine.setChainMode(data.chainMode);
       self.postMessage({ type: "frame", frame: engine.open(data.config) });
     } else if (data.type === "next" && engine) {
+      engine.setChainMode(data.chainMode);
       self.postMessage({ type: "frame", frame: engine.next() });
     } else if (data.type === "respond" && engine) {
+      engine.setChainMode(data.chainMode);
       if (engine.respond(data.id, data.player, data.answer))
         self.postMessage({ type: "frame", frame: engine.next() });
       else self.postMessage({ type: "rejected", id: data.id });

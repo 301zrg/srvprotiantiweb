@@ -7,10 +7,11 @@ import { useSnapshot } from "valtio";
 import { fetchStrings, Region } from "@/api";
 import { useConfig } from "@/config";
 import { useMediaQuery } from "@/hook";
-import { HandResult, matStore } from "@/stores";
+import { HandResult, historyStore, matStore } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { useChat } from "@/ui/Shared";
+import { formatDuelResult } from "@/variant/duelResults";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import styles from "./index.module.scss";
@@ -28,6 +29,7 @@ export const HintNotification = () => {
   const { language } = useI18N();
   const text = previewMessages(language);
   const matSnap = useSnapshot(matStore);
+  const declaration = useSnapshot(historyStore).declaration;
   const hintState = matSnap.hint;
   const toss = matSnap.tossResult;
   const handResults = matSnap.handResults;
@@ -52,6 +54,16 @@ export const HintNotification = () => {
   });
 
   globalMsgApi = msgApi;
+  useEffect(() => {
+    if (!declaration) return;
+    const result = formatDuelResult(declaration.result, language);
+    msgApi.open({
+      key: "declaration",
+      type: "info",
+      content: `${result.title}: ${result.value}`,
+      duration: 3,
+    });
+  }, [declaration?.serial, msgApi]);
   useEffect(() => {
     notiApi.destroy();
     setSummary(undefined);

@@ -3,8 +3,14 @@ import { useSnapshot } from "valtio";
 
 import { passPracticeChain } from "@/practice/chain";
 import type { PracticeConfig, PracticeFrame } from "@/practice/engine";
-import type { PracticeAnswer, PracticeRequest } from "@/practice/prompts";
+import {
+  type PracticeAnswer,
+  practiceHintResults,
+  type PracticeRequest,
+} from "@/practice/prompts";
 import { settingStore } from "@/stores/settingStore";
+import { duelResultSource } from "@/variant/duelResults";
+import { advanceCoreTiming, type DuelTiming } from "@/variant/duelTiming";
 import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
@@ -23,6 +29,10 @@ export function usePracticeSession(language: string) {
   const [frame, setFrame] = useState<PracticeFrame>();
   const [scene, setScene] = useState<PracticeSceneFrame>();
   const [history, setHistory] = useState<PracticeHistoryEntry[]>([]);
+  const [timing, setTiming] = useState<DuelTiming>({});
+  const [feedback, setFeedback] = useState<
+    ReturnType<typeof practiceHintResults>
+  >([]);
   const [busy, setBusy] = useState(false);
   const [responding, setResponding] = useState(false);
   const [error, setError] = useState("");
@@ -32,6 +42,7 @@ export function usePracticeSession(language: string) {
   const retryConfig = useRef<PracticeConfig>();
   const currentScene = useRef<PracticeSceneFrame>();
   const currentFrame = useRef<PracticeFrame>();
+  const currentTiming = useRef<DuelTiming>({});
   const timeout = useRef<ReturnType<typeof setTimeout>>();
   const next = useRef<ReturnType<typeof setTimeout>>();
   const audio = useRef<ReplayAudio>();
@@ -73,9 +84,12 @@ export function usePracticeSession(language: string) {
       retryConfig.current = structuredClone(config);
       currentScene.current = undefined;
       currentFrame.current = undefined;
+      currentTiming.current = {};
       setFrame(undefined);
       setScene(undefined);
       setHistory([]);
+      setTiming({});
+      setFeedback([]);
       setError("");
       setBusy(true);
       setResponding(false);
@@ -115,12 +129,47 @@ export function usePracticeSession(language: string) {
         if (data.type !== "frame") return;
         clearTimeout(timeout.current);
         const incoming = data.frame as PracticeFrame;
+        const cards =
+          currentScene.current?.cards ??
+          currentFrame.current?.cards ??
+          incoming.cards;
+        currentTiming.current = advanceCoreTiming(
+          currentTiming.current,
+          incoming.events,
+          (player, location, sequence) =>
+            cards.find(
+              (card) =>
+                card.player === player &&
+                card.location === location &&
+                card.sequence === sequence,
+            )?.code,
+        );
+        setTiming(currentTiming.current);
         currentFrame.current = incoming;
         const update = advancePracticeScene(incoming, currentScene.current);
         const nextScene = update.scene;
         for (const action of update.actions) audio.current?.play(action, 1);
-        if (update.entries.length)
-          setHistory((old) => [...old, ...update.entries].slice(-500));
+        const results = practiceHintResults(incoming.events);
+        if (results.length) setFeedback(results);
+        const resultEntries: PracticeHistoryEntry[] = results.map(
+          ({ player, result }) => ({
+            action: {
+              kind: "result",
+              player,
+              code:
+                result.kind === "card"
+                  ? result.value
+                  : duelResultSource(result),
+            },
+            result,
+            turn: incoming.turn,
+            phase: incoming.phase,
+          }),
+        );
+        if (update.entries.length || resultEntries.length)
+          setHistory((old) =>
+            [...old, ...update.entries, ...resultEntries].slice(-500),
+          );
         currentScene.current = nextScene;
         if (update.animation.length) {
           pending.current = undefined;
@@ -142,7 +191,10 @@ export function usePracticeSession(language: string) {
             () => {
               if (epoch !== generation.current) return;
               arm(15000);
-              local.postMessage({ type: "next" });
+              local.postMessage({
+                type: "next",
+                chainMode: settingStore.chainSetting,
+              });
             },
             incoming.events.length ? 90 : 0,
           );
@@ -150,6 +202,7 @@ export function usePracticeSession(language: string) {
       arm(120000);
       local.postMessage({
         type: "open",
+        chainMode: settingStore.chainSetting,
         base: new URL(
           `${import.meta.env.BASE_URL}replay/${practiceProfile.revision}/`,
           window.location.origin,
@@ -175,6 +228,7 @@ export function usePracticeSession(language: string) {
     }, 15000);
     worker.current.postMessage({
       type: "respond",
+      chainMode: settingStore.chainSetting,
       id: request.id,
       player: request.player,
       answer: value,
@@ -189,6 +243,8 @@ export function usePracticeSession(language: string) {
     frame,
     scene,
     history,
+    timing,
+    feedback,
     busy,
     responding,
     error,

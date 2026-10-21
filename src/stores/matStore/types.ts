@@ -106,6 +106,7 @@ export interface HintState {
 }
 
 export interface PhaseState {
+  battleTiming?: number | "attack";
   command?: "idle" | "battle";
   currentPhase: ygopro.StocGameMessage.MsgNewPhase.PhaseType;
   enableBp: boolean; // 允许进入战斗阶段

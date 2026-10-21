@@ -16,6 +16,7 @@ export interface CardType {
   code: number; // 卡号
   meta: CardMeta; // 卡片元数据
   confirmedHandCode?: number; // 本次结算已展示的手牌，仅用于选卡。
+  confirmedDeckCode?: number; // Explicit identity displayed only during confirmation.
   deckReversed?: boolean; // Native DECK_TOP individual reversal, independent of whole-deck reversal.
   deckPublicCode?: number; // Explicit identity granted by DECK_TOP, not a cached hidden identity.
   location: ygopro.CardLocation;

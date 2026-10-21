@@ -12,6 +12,7 @@ import { CardType, isMe, matStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { ScrollableArea, YgoCard } from "@/ui/Shared";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
+import { type DuelTiming, formatChainContext } from "@/variant/duelTiming";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import { groupBy } from "../../utils";
@@ -32,6 +33,7 @@ export interface SelectCardsModalProps {
   totalLevels: number; // 需要的总等级数（用于同调/仪式/...）
   overflow: boolean; // 选择等级时候，是否可以溢出
   isChain?: boolean; // 是否是 select_chain 选择
+  chainContext?: { source?: DuelTiming["event"]; hint0: number; hint1: number };
   onSubmit: (options: Snapshot<Option[]>) => void;
   onCancel: () => void;
   onFinish: () => void;
@@ -50,6 +52,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
   totalLevels,
   overflow,
   isChain = false,
+  chainContext,
   onSubmit,
   onCancel,
   onFinish,
@@ -60,6 +63,11 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
   const grouped = groupBy(selectables, (option) => option.location?.zone!);
   const [result, setResult] = useState<[ygopro.CardZone, Option[]][]>([]);
   const [submitable, setSubmitable] = useState(false);
+  const emptyChain = isChain && selectables.length === 0;
+  const [inspecting, setInspecting] = useState(false);
+  useEffect(() => {
+    setInspecting(false);
+  }, [isOpen]);
 
   const hint = useSnapshot(matStore.hint);
   const preHintMsg = hint.esHint || "";
@@ -74,9 +82,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
       zone,
       [] as Option[],
     ]);
-    if (initial.length > 0) {
-      setResult(initial);
-    }
+    setResult(initial);
   }, [selectables]);
 
   // 判断是否可以提交
@@ -127,11 +133,22 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
     <NeosModal
       title={
         <>
-          <span>{preHintMsg}</span>
-          <span>{selectHintMsg}</span>
           <span>
-            ({i18n("PleaseSelect")} {minMaxText} {i18n("Cards")})
+            {isChain && chainContext
+              ? formatChainContext(
+                  chainContext.source,
+                  chainContext.hint0,
+                  chainContext.hint1,
+                  language,
+                )
+              : preHintMsg}
           </span>
+          <span>{emptyChain ? "" : selectHintMsg}</span>
+          {!isChain && (
+            <span>
+              ({i18n("PleaseSelect")} {minMaxText} {i18n("Cards")})
+            </span>
+          )}
           <span>{single ? i18n("SelectOneCardAtTime") : ""}</span>
         </>
       } // TODO: 这里可以再细化一些
@@ -140,6 +157,15 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
         disabled: !submitable,
       }}
       open={isOpen}
+      minimized={emptyChain ? inspecting : undefined}
+      onMinimizedChange={emptyChain ? setInspecting : undefined}
+      minimizedActions={
+        emptyChain ? (
+          <Button data-testid="duel-chain-continue" onClick={onCancel}>
+            {submitText}
+          </Button>
+        ) : undefined
+      }
       afterClose={() => {
         // Modal每次展示时都会消费`esHint`和`esSelectHint`，
         // 否则这些提示会保留到下一次Modal展示，可能会疑惑玩家
@@ -147,51 +173,66 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
         matStore.hint.esSelectHint = undefined;
       }}
       footer={
-        <>
-          <Button
-            data-testid="duel-select-card-reset"
-            onClick={() => {
-              closeCardModal();
-              setResult(grouped.map(([zone]) => [zone, []]));
-            }}
-          >
-            {duelInteractionMessages(language).reset}
-          </Button>
-          {cancelable && (
-            <Button
-              data-testid="duel-select-card-cancel"
-              onClick={() => {
-                closeCardModal();
-                onCancel();
-              }}
-            >
-              {cancelText}
+        emptyChain ? (
+          <>
+            <Button data-testid="duel-select-card-cancel" onClick={onCancel}>
+              {fetchStrings(Region.System, 1214)}
             </Button>
-          )}
-          {finishable && (
             <Button
-              data-testid="duel-select-card-finish"
+              data-testid="duel-chain-inspect"
               type="primary"
+              onClick={() => setInspecting(true)}
+            >
+              {fetchStrings(Region.System, 1213)}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              data-testid="duel-select-card-reset"
               onClick={() => {
                 closeCardModal();
-                onFinish();
+                setResult(grouped.map(([zone]) => [zone, []]));
               }}
             >
-              {finishText}
+              {duelInteractionMessages(language).reset}
             </Button>
-          )}
-          <Button
-            data-testid="duel-select-card-submit"
-            type="primary"
-            disabled={!submitable}
-            onClick={() => {
-              closeCardModal();
-              onSubmit([...mustSelects, ...result.map(([_, v]) => v).flat()]);
-            }}
-          >
-            {submitText}
-          </Button>
-        </>
+            {cancelable && (
+              <Button
+                data-testid="duel-select-card-cancel"
+                onClick={() => {
+                  closeCardModal();
+                  onCancel();
+                }}
+              >
+                {cancelText}
+              </Button>
+            )}
+            {finishable && (
+              <Button
+                data-testid="duel-select-card-finish"
+                type="primary"
+                onClick={() => {
+                  closeCardModal();
+                  onFinish();
+                }}
+              >
+                {finishText}
+              </Button>
+            )}
+            <Button
+              data-testid="duel-select-card-submit"
+              type="primary"
+              disabled={!submitable}
+              onClick={() => {
+                closeCardModal();
+                onSubmit([...mustSelects, ...result.map(([_, v]) => v).flat()]);
+              }}
+            >
+              {submitText}
+            </Button>
+          </>
+        )
       }
     >
       <Space
@@ -205,6 +246,13 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
         direction="vertical"
         style={{ width: "100%", overflow: "hidden" }}
       >
+        {emptyChain && (
+          <p>
+            {fetchStrings(Region.System, 201)}
+            <br />
+            {fetchStrings(Region.System, 202)}
+          </p>
+        )}
         <Selector
           zoneOptions={zoneOptions}
           selectedZone={selectedZone}

@@ -10,8 +10,7 @@ export function passPracticeChain(
     request.kind === "chain" &&
     request.cancelable &&
     !request.choices.some((choice) => choice.forced) &&
-    (!request.choices.length ||
-      mode === 1 ||
-      (mode === 2 && request.specialCount === 0))
+    (mode === 1 ||
+      (mode === 2 && (!request.choices.length || request.specialCount === 0)))
   );
 }

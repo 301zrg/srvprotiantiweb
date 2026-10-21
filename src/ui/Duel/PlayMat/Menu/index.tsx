@@ -43,6 +43,7 @@ import {
   type PhaseKey,
   phaseKeys,
 } from "@/variant/duelPhases";
+import { type BattleTiming, battleTimingLabel } from "@/variant/duelTiming";
 import { mobileMessages } from "@/variant/mobileMessages";
 import { previewMessages } from "@/variant/previewMessages";
 
@@ -271,8 +272,16 @@ const initialPhaseBind = (
   ];
 };
 
-export const duelPhaseLabel = (language: string, phase: PhaseType) =>
-  initialPhaseBind(language).find(([key]) => key === phase)?.[1] ?? "";
+export const duelPhaseLabel = (
+  language: string,
+  phase: PhaseType,
+  timing?: BattleTiming,
+) =>
+  (onlinePhaseKey(phase) === "bp"
+    ? battleTimingLabel(timing, language)
+    : undefined) ??
+  initialPhaseBind(language).find(([key]) => key === phase)?.[1] ??
+  "";
 
 export const Menu = ({ docked = false }: { docked?: boolean }) => {
   const mobile = useMobileInterface();
@@ -313,7 +322,14 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
     selfType,
     observerView,
     chainSetting,
-    phase: { currentPhase, command, enableBp, enableM2, enableEp },
+    phase: {
+      currentPhase,
+      battleTiming,
+      command,
+      enableBp,
+      enableM2,
+      enableEp,
+    },
   } = useSnapshot(matStore);
   const phaseBind = initialPhaseBind(language);
   const observing =
@@ -436,7 +452,12 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
         labels={Object.fromEntries(
           phaseBind
             .filter(([, , , show]) => show)
-            .map(([phase, label]) => [onlinePhaseKey(phase), label]),
+            .map(([phase, label]) => [
+              onlinePhaseKey(phase),
+              onlinePhaseKey(phase) === onlinePhaseKey(currentPhase)
+                ? duelPhaseLabel(language, currentPhase, battleTiming)
+                : label,
+            ]),
         )}
       />
       <div className={docked ? styles.primary : styles.contents}>
@@ -454,7 +475,7 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
             type="text"
             disabled={globalDisable}
           >
-            {phaseBind.find(([key]) => key === currentPhase)?.[1]}
+            {duelPhaseLabel(language, currentPhase, battleTiming)}
           </Button>
         </DropdownWithTitle>
         <DropdownWithTitle

@@ -4,11 +4,15 @@ import { type Interactivity, InteractType } from "@/stores";
 import MsgSelectBattleCmd = ygopro.StocGameMessage.MsgSelectBattleCmd;
 import { Container } from "@/container";
 
+import { fetchEsHintMeta } from "./util";
+
 export default async (
   container: Container,
   selectBattleCmd: MsgSelectBattleCmd,
 ) => {
   const context = container.context;
+  context.matStore.phase.battleTiming = 24;
+  fetchEsHintMeta({ context, originMsg: 24 });
   const player = selectBattleCmd.player;
   const cmds = selectBattleCmd.battle_cmds;
 

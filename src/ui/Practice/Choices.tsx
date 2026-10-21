@@ -47,6 +47,8 @@ export function PracticeChoices({
   language,
   disabled,
   onAnswer,
+  onInspectChain,
+  chainContext,
   selected: controlledSelected,
   onSelectedChange,
 }: {
@@ -54,6 +56,8 @@ export function PracticeChoices({
   language: string;
   disabled: boolean;
   onAnswer: (request: PracticeRequest, answer: PracticeAnswer) => void;
+  onInspectChain?: () => void;
+  chainContext?: string;
   selected?: number[];
   onSelectedChange?: Dispatch<SetStateAction<number[]>>;
 }) {
@@ -68,6 +72,7 @@ export function PracticeChoices({
   const [query, setQuery] = useState("");
   const [declared, setDeclared] = useState<PracticeChoice[]>([]);
   const answer = request.kind === "counter" ? counts : selected;
+  const emptyChain = request.kind === "chain" && !request.choices.length;
   const toggle = (index: number) =>
     setSelected((old) =>
       old.includes(index) ? old.filter((n) => n !== index) : [...old, index],
@@ -95,7 +100,9 @@ export function PracticeChoices({
       : request.kind === "position"
       ? system(561)
       : request.kind === "chain"
-      ? system(550)
+      ? emptyChain
+        ? `${system(201)}\n${system(202)}`
+        : system(550)
       : request.kind === "place"
       ? system(request.message === 24 ? 570 : 571)
       : request.kind === "bits"
@@ -162,6 +169,9 @@ export function PracticeChoices({
           player: request.player === 0 ? "A" : "B",
         })}
       </h2>
+      {chainContext && (
+        <p data-testid="practice-chain-context">{chainContext}</p>
+      )}
       <p>
         {request.code ? `${fetchCard(request.code).text.name} · ` : ""}
         {title}
@@ -258,6 +268,16 @@ export function PracticeChoices({
         })}
       </div>
       <div className="practice-choice-footer">
+        {emptyChain && (
+          <Button
+            type="primary"
+            disabled={disabled}
+            data-testid="practice-chain-inspect"
+            onClick={onInspectChain}
+          >
+            {system(1213)}
+          </Button>
+        )}
         {request.cancelable && (
           <Button
             disabled={disabled}

@@ -18,6 +18,7 @@ const defaultProps: Omit<
 > & { isChain: boolean } = {
   isOpen: false,
   isChain: false,
+  chainContext: undefined,
   min: 0, // 最少选择多少卡
   max: 0, // 最多选择多少卡
   single: false, // 是否只能单选
@@ -30,30 +31,33 @@ const defaultProps: Omit<
   overflow: false, // 选择等级时候，是否可以溢出
 };
 
-const localStore = proxy(defaultProps);
+const localStore = proxy({ ...defaultProps });
 
 export const SelectActionsModal: React.FC = () => {
   const container = getUIContainer();
   const snap = useSnapshot(localStore);
 
   const onSubmit = (options: Snapshot<Option[]>) => {
+    if (!localStore.isOpen || !rs) return;
     const values = options.map((option) => option.response!);
     if (localStore.isChain) {
       sendSelectSingleResponse(container.conn, values[0]);
     } else {
       sendSelectMultiResponse(container.conn, values);
     }
-    rs();
+    finish();
   };
 
   const onFinish = () => {
+    if (!localStore.isOpen || !rs) return;
     sendSelectSingleResponse(container.conn, FINISH_RESPONSE);
-    rs();
+    finish();
   };
 
   const onCancel = () => {
+    if (!localStore.isOpen || !rs) return;
     sendSelectSingleResponse(container.conn, CANCEL_RESPONSE);
-    rs();
+    finish();
   };
 
   return (
@@ -68,7 +72,13 @@ export const SelectActionsModal: React.FC = () => {
   );
 };
 
-let rs: (v?: any) => void = () => {};
+let rs: (() => void) | undefined;
+const finish = () => {
+  const resolve = rs;
+  rs = undefined;
+  localStore.isOpen = false;
+  resolve?.();
+};
 
 export const displaySelectActionsModal = async (
   args: Partial<Omit<typeof defaultProps, "isOpen">>,

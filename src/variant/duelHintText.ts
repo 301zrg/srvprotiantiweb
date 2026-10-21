@@ -1,7 +1,7 @@
 import i18next from "i18next";
 
 import { fetchCard } from "@/api/cards";
-import { fetchStrings, Region } from "@/api/strings";
+import { getStrings } from "@/api/strings";
 
 import type { Language } from "./languageLink";
 
@@ -23,11 +23,11 @@ export function formatDuelHint(
 ): string {
   let text =
     typeof source.originMsg === "number"
-      ? fetchStrings(Region.System, source.originMsg)
+      ? getStrings(source.originMsg)
       : hintKeys[source.originMsg]
       ? i18next.t(`ClientUI:${hintKeys[source.originMsg]}`, { lng: language })
       : source.originMsg;
   const name = source.cardID ? fetchCard(source.cardID).text.name : undefined;
-  if (name) text = text.replace("[?]", name);
+  if (name) text = text.replaceAll("[?]", name).replaceAll("[%ls]", name);
   return text;
 }

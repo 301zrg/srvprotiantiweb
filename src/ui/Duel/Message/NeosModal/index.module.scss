@@ -15,9 +15,30 @@
   bottom: max(8px, env(safe-area-inset-bottom)) !important;
   margin-bottom: 0;
   transform: none;
+  padding: 0 !important;
+  :global(.ant-modal-content) { padding: 8px 44px 8px 12px; }
+  :global(.ant-modal-header) { margin: 0; }
+  :global(.ant-modal-close) { top: 0; right: 0; height: 44px; width: 40px; }
   :global(.ant-modal-body),
   :global(.ant-modal-footer) {
     display: none;
+  }
+}
+
+.miniTitle { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.titleText { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.miniTitle :global(.ant-btn) { flex: none; height: 28px; padding: 0 8px; }
+@media (orientation: portrait), (max-width: 479px) {
+  .mini {
+    top: calc(124px + env(safe-area-inset-top)) !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    left: 8px;
+    right: 8px;
+    width: calc(100% - 16px) !important;
+  }
+  :global(body:has([data-testid="practice-page"])) .mini {
+    top: calc(var(--header-height, 48px) + env(safe-area-inset-top)) !important;
   }
 }
 

@@ -2,6 +2,7 @@ import { ReplayEngine, type ReplayFrame } from "../replay/engine";
 import { parseQuery, splitCoreMessages } from "../replay/messages";
 import type { ReplayRuntime } from "../replay/runtime";
 import type { IDeck } from "../stores/deckStore";
+import { passPracticeChain } from "./chain";
 import {
   encodePracticeAnswer,
   parsePracticeRequest,
@@ -39,7 +40,11 @@ export class PracticeEngine {
   private serial = 0;
   private step = 0;
   private ignoredWins = 0;
+  private chainMode = 2;
   constructor(private core: ReplayRuntime) {}
+  setChainMode(mode = 2) {
+    this.chainMode = [0, 1, 2].includes(mode) ? mode : 2;
+  }
   install(cards: Uint8Array, scripts: Uint8Array) {
     new ReplayEngine(this.core).install(cards, scripts);
   }
@@ -139,7 +144,11 @@ export class PracticeEngine {
   }
   next(): PracticeFrame {
     if (!this.handle) throw new Error("Practice is closed");
-    if (this.pending) return this.frame([]);
+    if (this.pending) {
+      if (passPracticeChain(this.pending, this.chainMode))
+        this.respond(this.pending.id, this.pending.player, -1);
+      else return this.frame([]);
+    }
     const started = performance.now();
     for (let i = 0; i < 10000; i++) {
       if (performance.now() - started > 4000)
@@ -172,7 +181,7 @@ export class PracticeEngine {
             if (this.pending)
               throw new Error("Multiple simultaneous Core requests");
             this.pending = parsePracticeRequest(message, ++this.serial);
-            if (this.pending.kind === "chain" && !this.pending.choices.length)
+            if (passPracticeChain(this.pending, this.chainMode))
               this.respond(this.pending.id, this.pending.player, -1);
           }
           events.push(Array.from(message));

@@ -2,6 +2,7 @@ import { fetchCard, ygopro } from "@/api";
 import { fetchCommonHintMeta, fetchSelectHintMeta } from "@/stores";
 import { getLanguage } from "@/variant";
 import { duelResultSource, type ValueResultKind } from "@/variant/duelResults";
+import { isBattleHint } from "@/variant/duelTiming";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import MsgHint = ygopro.StocGameMessage.MsgHint;
@@ -44,6 +45,8 @@ export default async (container: Container, hint: MsgHint) => {
       break;
     }
     case MsgHint.HintType.HINT_EVENT: {
+      if (isBattleHint(hint.hint_data))
+        container.context.matStore.phase.battleTiming = hint.hint_data;
       await fetchEsHintMeta({
         context: container.context,
         originMsg: hint.hint_data,

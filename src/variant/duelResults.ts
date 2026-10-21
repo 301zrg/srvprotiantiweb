@@ -20,7 +20,7 @@ export type DuelResult =
         | "playerDescriptionRemoved";
       value: number;
     }
-  | { kind: "coin" | "dice"; values: number[] }
+  | { kind: "coin" | "dice"; values: readonly number[] }
   | { kind: "yesNo" | "effectDecision"; value: number; accepted: boolean };
 
 export type ValueResultKind = Exclude<

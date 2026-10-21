@@ -10,7 +10,9 @@
 
 六阶段栏与联机共享展示组件，颜色表示回合方，当前阶段、可操作与禁用有不同样式。练习允许替 B 使用其合法命令，可进入的阶段仅来自当前 Core 请求，不按卡名推断、不任意跳阶段；MR2 首回合不能进战阶／主二。操作确认沿用全局开关，取消不提交；重新发牌或新请求使旧确认失效。
 
-连锁确认与设置中的智能／全部／忽略同步并持久化，但练习响应仍只送给本地 Worker。智能模式使用 Core 的 `special_count` 决定是否询问可选连锁，忽略模式跳过可选连锁，全部模式保留所有有候选的询问；任何模式都不跳过强制效果。操作记录中的公开卡名可点击查看静态详情，不提交响应。
+连锁确认与设置中的智能／全部／忽略同步并持久化，但练习响应仍只送给本地 Worker。每次 open／next／respond 携带当前模式，Core 循环与界面使用相同策略。智能模式使用 Core 的 `special_count` 决定是否询问可选连锁，忽略模式跳过可选连锁，全部模式也保留零候选询问：“是”收起窗口供查看场面，“确定”才提交 -1，“否”直接提交 -1；任何模式都不跳过强制效果。操作记录中的公开卡名可点击查看静态详情，不提交响应。
+
+`duelTiming.ts` 由原生事件重建连锁原因与战斗细分，保留两段 hint_timing；召唤声明／成功、发动来源与伤害步骤按当前系统词条显示。它与在线仅共享展示格式，不共享状态或输入。声明结果从本地 Core 的 HINT 事件进入练习历史与独立短提示条，重开清除，切语言重新格式化。
 
 ## 边界与维护
 
@@ -42,6 +44,13 @@ node scripts/test_practice_runtime.mjs
 node scripts/test_practice_prompts.mjs
 node scripts/test_practice_presentation.mjs
 node scripts/test_practice_chain_xyz.mjs
+node scripts/test_practice_chain_modes.mjs
+node scripts/test_practice_zero_selection.mjs
+node scripts/test_duel_timing.mjs
+node scripts/practice_chain_modes_ui.mjs
+node scripts/client_chain_timing_ui.mjs
+node scripts/client_zero_selection_reveal_ui.mjs
+node scripts/client_material_layers_ui.mjs
 node scripts/test_practice_place.mjs
 node --experimental-strip-types scripts/test_practice_interactions.mjs
 node scripts/practice_followup_ui.mjs

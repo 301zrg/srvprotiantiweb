@@ -7,6 +7,14 @@ try {
  const hidden={code:46986414,location:{position:5}};
  assert.equal(visibleDeckCode(hidden,false),0);
  assert.equal(visibleDeckCode(hidden,true),0,'Whole-deck reversal must not reveal an identity cached while hidden');
+ const confirmed={...hidden,confirmedDeckCode:89631139};
+ for(const reversed of [false,true]) {
+   assert.equal(visibleDeckCode(confirmed,reversed),89631139,'Only the explicit confirmation identity may override hidden cached data');
+   assert.equal(visibleDeckCode({...hidden,confirmedDeckCode:0},reversed),0,'A zero confirmation code grants no hidden identity');
+   const ended={...confirmed};delete ended.confirmedDeckCode;
+   assert.equal(visibleDeckCode(ended,reversed),0,'Ending confirmation must hide the cached identity again');
+ }
+ assert.equal(deckCardFaceUp(confirmed,false),false,'Confirmation must not change physical deck orientation');
  assert.equal(visibleDeckCode({...hidden,location:{position:2}},false),46986414);
  for(const reversed of [false,true])for(const individual of [false,true]) {
    const card={...hidden,deckReversed:individual,deckPublicCode:26202165};

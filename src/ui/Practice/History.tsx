@@ -1,5 +1,6 @@
 import { fetchCard } from "@/api";
 import { corePhaseKey } from "@/variant/duelPhases";
+import { formatDuelResult } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import { replayFieldWords } from "../Replay/FieldBoard";
@@ -22,9 +23,12 @@ export function PracticeHistory({
       {entries
         .slice()
         .reverse()
-        .map(({ action, turn, phase }, index) => {
+        .map(({ action, turn, phase, result }, index) => {
           const player =
             action.player ?? action.to?.player ?? action.from?.player;
+          const formatted = result
+            ? formatDuelResult(result, language)
+            : undefined;
           return (
             <li key={entries.length - index} data-history-kind={action.kind}>
               <strong>
@@ -32,7 +36,10 @@ export function PracticeHistory({
                 {player === undefined ? "" : player === 0 ? "A" : "B"}
               </strong>
               <div>
-                {words[action.kind as keyof typeof words] || words.ready}{" "}
+                {formatted
+                  ? `${formatted.title}: `
+                  : words[action.kind as keyof typeof words] ||
+                    words.ready}{" "}
                 {action.code ? (
                   <button
                     type="button"
@@ -41,10 +48,12 @@ export function PracticeHistory({
                     data-card-code={action.code}
                     onClick={() => onInspect(action.code!)}
                   >
-                    {fetchCard(action.code).text.name || action.code}
+                    {formatted?.value ||
+                      fetchCard(action.code).text.name ||
+                      action.code}
                   </button>
                 ) : (
-                  ""
+                  formatted?.value || ""
                 )}{" "}
                 {action.amount ?? ""}
               </div>
