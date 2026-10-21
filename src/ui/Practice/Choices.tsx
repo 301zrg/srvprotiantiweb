@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import {
   fetchCard,
   fetchStrings,
-  getCardImgUrl,
   getStrings,
   Region,
   searchCards,
@@ -30,6 +29,8 @@ import { previewFormat, previewMessages } from "@/variant/previewMessages";
 import { FieldSelectionGrid } from "../Duel/FieldSelection";
 import { replayCardWords } from "../Replay/cardState";
 import { replayFieldWords } from "../Replay/FieldBoard";
+import type { SceneCard } from "../Replay/scene";
+import { YgoCard } from "../Shared";
 import { practiceEffectText } from "./presentation";
 
 const system = (id: number) => fetchStrings(Region.System, id);
@@ -61,6 +62,7 @@ export function PracticeChoices({
   onToggle,
   onHighlight,
   onLocate,
+  targetedCards = [],
 }: {
   request: PracticeRequest;
   language: string;
@@ -73,6 +75,10 @@ export function PracticeChoices({
   onToggle?: (choice: PracticeChoice) => void;
   onHighlight?: (spot: FieldSpot) => void;
   onLocate?: (spot: FieldSpot) => void;
+  targetedCards?: readonly Pick<
+    SceneCard,
+    "player" | "location" | "sequence" | "targeted"
+  >[];
 }) {
   const { t } = useTranslation("ClientUI");
   const words = previewMessages(language),
@@ -143,6 +149,16 @@ export function PracticeChoices({
       : request.kind === "idle" || request.kind === "battle"
       ? words.operations
       : t("SelectCard");
+  const choicePlace = (c: PracticeChoice) => {
+    const spot = address(c);
+    return spot
+      ? fieldPositionLabel(spot, 0, language, system, owner)
+      : c.location !== undefined && c.sequence !== undefined
+      ? `${c.player === 0 ? "A" : "B"} · ${zone(c.location & 127)} (${
+          c.sequence + 1
+        })`
+      : "";
+  };
   const choiceLabel = (c: PracticeChoice, includePosition = true) => {
     const name = c.code ? fetchCard(c.code).text.name || String(c.code) : "";
     let action = "";
@@ -170,14 +186,7 @@ export function PracticeChoices({
       action = system((request.message === 140 ? 1020 : 1010) + c.index);
     if (request.message === 143) action = String(c.action);
     if (request.message === 132) action = ["", "✌", "✊", "✋"][c.value!];
-    const spot = address(c);
-    const place = spot
-      ? fieldPositionLabel(spot, 0, language, system, owner)
-      : c.location
-      ? `${c.player === 0 ? "A" : "B"} · ${zone(c.location)} · ${
-          c.sequence! + 1
-        }`
-      : "";
+    const place = choicePlace(c);
     const description = c.description ? getStrings(c.description) : "";
     return [action, name, description, includePosition ? place : ""]
       .filter(Boolean)
@@ -202,6 +211,12 @@ export function PracticeChoices({
     const spot = address(choice);
     const position = spot && fieldPosition(spot, 0);
     const isChosen = chosen(choice);
+    const targeted = !!targetedCards.find(
+      (card) =>
+        card.player === choice.player &&
+        card.location === choice.location &&
+        card.sequence === choice.sequence,
+    )?.targeted;
     return request.kind === "counter" ? (
       <label key={choice.index} className="practice-counter">
         <span>
@@ -235,6 +250,7 @@ export function PracticeChoices({
           data-action={choice.action}
           data-index={choice.index}
           data-selected={isChosen}
+          data-card-targeted={targeted}
           data-field-option={!!spot}
           onFocus={() => spot && onHighlight?.(spot)}
           onClick={() => {
@@ -251,7 +267,27 @@ export function PracticeChoices({
             </span>
           )}
           {choice.code && (
-            <img src={getCardImgUrl(choice.code)} alt="" loading="lazy" />
+            <YgoCard
+              code={choice.code}
+              targeted={targeted}
+              className="practice-choice-artwork"
+            />
+          )}
+          {!position && choicePlace(choice) && (
+            <span
+              className="practice-selection-location"
+              data-testid="practice-selection-location"
+            >
+              {choicePlace(choice)}
+            </span>
+          )}
+          {targeted && (
+            <span
+              className="practice-targeted-label"
+              data-testid="practice-selection-targeted"
+            >
+              {t("Targeted")}
+            </span>
           )}
           <span className="practice-choice-label">
             {request.kind === "sort" && isChosen

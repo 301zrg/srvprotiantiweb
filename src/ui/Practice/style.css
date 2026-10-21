@@ -153,6 +153,10 @@
   object-fit: contain;
 }
 .practice-choice-option { position:relative; min-width:0; max-width:100%; }
+.practice-choice-artwork { width:44px; flex-shrink:0; }
+.practice-choice-grid .practice-choice-artwork { width:min(76px,100%); }
+.practice-selection-location { display:block; white-space:normal; overflow-wrap:anywhere; font-size:12px; line-height:1.4; }
+.practice-targeted-label { display:block; color:#ffb4cd; border:1px solid #e56d97; border-radius:3px; padding:2px; font-size:11px; }
 .practice-choice-grid .field-selection-fallback > .field-selection-option { width:min(220px,100%); }
 .practice-choice-grid .practice-choice-option { display:flex; flex-direction:column; align-items:stretch; gap:4px; width:100%; }
 .practice-choice-grid .practice-choice { position:relative; width:100%; flex-direction:column; align-items:center; padding:5px; font-size:12px; }

@@ -53,6 +53,10 @@ MSG_CONFIRM_CARDS 展示手牌时，翻开并移出手牌后增加短暂停留�
 
 里侧对手目标保持卡背，不因本地已有卡名而显示身份；原本公开的场上卡仍可查看。原生逐次 `select_unselect_card` 保留原交互语义，不把每一步确认改成普通多选。
 
+混合区域与纯场外候选共用受容器约束的卡图尺寸，不能让 PC 固定宽度溢出较窄的场外栏。场外卡显示所属玩家、区域和原始 `sequence + 1`，例如“我方 · 墓地 (2)”；该数字不因筛选或勾选重排，提交仍使用原 response。选中摘要也显示该位置；叠放卡另外保留宿主位置和独立素材序号。
+
+同一连锁内已被正式取为对象的卡，按原生 `MSG_BECOME_TARGET` 标记，选牌界面同时显示既有“成为对象”文案与对象图标。联机读取当前 CardStore，而非候选创建时的旧副本；单个连锁环节结算不清理整条连锁，连锁结束及卡片离区按现有规则清理。选材、代价和草稿勾选不自动视为取对象。行为依据 [YGOPro 的对象事件和连锁结束处理](https://github.com/Fluorohydride/ygopro/blob/master/gframe/duelclient.cpp)。`scripts/client_mixed_selection_ui.mjs` 覆盖四种尺寸、同名墓地卡、纯额外选择、动态对象标记与原始响应。
+
 `node scripts/test_field_selection.mjs` 验证镜像、空位及原始候选；`node scripts/test_field_selection_session.mjs` 验证草稿生命周期；`node scripts/client_target_selection_ui.mjs` 在独立静态夹具用原生封包验证四种视口、双向选择和原始响应。
 
 - npm run test:duel-reveal-delay：合成时钟检验速度边界、默认停留、后台暂停、连接终止清理。

@@ -64,6 +64,8 @@
 
 .spatialGroup { display: block; width: 100%; }
 .fieldOption { min-width: 0; width: 100%; text-align: center; }
+.optionLocation { display: block; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; padding: 3px 0; }
+.targetTag { display: block; color: #ffb4cd; border: 1px solid #e56d97; border-radius: 3px; font-size: 11px; line-height: 1.4; padding: 2px; margin: 3px 0; }
 .fieldOption .check-card { width: 100%; height: auto; aspect-ratio: auto; outline: 2px dashed #75def1; outline-offset: -1px; border-color: transparent; }
 .fieldOption[data-field-selected="true"] .check-card { outline: 3px solid #ffdb75; }
 .fieldOption .check-card::before { display: none; }

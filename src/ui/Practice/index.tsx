@@ -539,6 +539,7 @@ export const Component = () => {
             key={`${session.generation}:${request.id}`}
             request={request}
             language={language}
+            targetedCards={scene?.cards}
             disabled={responding}
             selected={selected}
             onSelectedChange={setSelected}

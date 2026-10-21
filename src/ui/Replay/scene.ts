@@ -1,7 +1,7 @@
 import type { ReplayFrame } from "@/replay/engine";
 import type { ReplayCard } from "@/replay/messages";
 
-export type SceneCard = ReplayCard & { sceneId: string };
+export type SceneCard = ReplayCard & { sceneId: string; targeted?: boolean };
 export interface Spot {
   player: number;
   location: number;
@@ -52,6 +52,7 @@ export function seedScene(
     chains: [],
     cards: frame.cards.map((c) => ({
       ...c,
+      targeted: false,
       sceneId:
         previous?.cards.find((old) => same(old, c) && old.code === c.code)
           ?.sceneId ||
@@ -154,6 +155,10 @@ export function sceneSteps(
           ...to,
           position: event[12],
           sceneId: moved?.sceneId || `move:${next.step}:${i}`,
+          targeted:
+            from.location === 4 && to.location === 4
+              ? !!moved?.targeted
+              : false,
         });
       }
       const arriving = scene.cards.find((c) => same(c, to));
@@ -230,6 +235,13 @@ export function sceneSteps(
           ? to
           : { player: 1 - from.player, location: 0, sequence: 0 },
       });
+    } else if (kind === 83) {
+      for (let index = 0; index < event[1]; index++) {
+        const target = scene.cards.find((card) =>
+          same(card, spot(event, 2 + index * 4)),
+        );
+        if (target) target.targeted = true;
+      }
     } else if (kind === 70) {
       const to = spot(event, 5),
         code = packed(event, 1),
@@ -237,7 +249,10 @@ export function sceneSteps(
       scene.chains = [...scene.chains, { ...to, code, index }];
       emit({ kind: "chain", code, to, amount: index });
     } else if ([72, 73, 74].includes(kind)) {
-      if (kind === 74) scene.chains = [];
+      if (kind === 74) {
+        scene.chains = [];
+        for (const card of scene.cards) card.targeted = false;
+      }
       emit({ kind: kind === 74 ? "chainEnd" : "resolve", amount: event[1] });
     } else if ([91, 92, 94, 100].includes(kind)) {
       const player = event[1],
@@ -284,6 +299,9 @@ export function sceneSteps(
   const final = seedScene(next, scene);
   final.action = scene.action;
   final.chains = scene.chains;
+  for (const card of final.cards)
+    card.targeted = !!scene.cards.find((old) => old.sceneId === card.sceneId)
+      ?.targeted;
   steps.push(final);
   return steps;
 }

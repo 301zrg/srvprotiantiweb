@@ -10,7 +10,7 @@ import { type CardMeta, Region, ygopro } from "@/api";
 import { fetchStrings } from "@/api";
 import { getUIContainer, hasUIContainer } from "@/container/compat";
 import { useMobileInterface } from "@/hook";
-import { CardType, isMe, matStore } from "@/stores";
+import { cardStore, CardType, isMe, matStore } from "@/stores";
 import {
   bindFieldSelection,
   fieldSpotKey,
@@ -21,6 +21,7 @@ import { FieldSelectionGrid } from "@/ui/Duel/FieldSelection";
 import { useI18N } from "@/ui/I18N";
 import { ScrollableArea, YgoCard } from "@/ui/Shared";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
+import { duelResultMessages } from "@/variant/duelResultMessages";
 import { type DuelTiming, formatChainContext } from "@/variant/duelTiming";
 import {
   fieldPosition,
@@ -74,6 +75,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
   const { t } = useTranslation("ClientUI");
   const mobile = useMobileInterface();
   const { language } = useI18N();
+  const boardCards = useSnapshot(cardStore).inner;
   useSnapshot(matStore);
   const viewPlayer = isMe(0) ? 0 : 1;
   const fieldWords = fieldSelectionMessages(language);
@@ -120,11 +122,24 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
     chosen.some((item) => sameOption(item, option));
   const label = (option: Snapshot<Option>) => {
     const spot = address(option);
-    return spot
-      ? fieldPositionLabel(spot, viewPlayer, language, (id) =>
-          fetchStrings(Region.System, id),
-        )
-      : "";
+    if (spot)
+      return fieldPositionLabel(spot, viewPlayer, language, (id) =>
+        fetchStrings(Region.System, id),
+      );
+    const location = option.location;
+    if (!location) return "";
+    const owners = duelResultMessages(language);
+    return `${
+      isMe(location.controller) ? owners.self : owners.opponent
+    } · ${fetchStrings(Region.System, location.zone + 1000)} (${
+      location.sequence + 1
+    })${
+      location.is_overlay
+        ? ` · ${fetchStrings(Region.System, 1007)} (${
+            location.overlay_sequence + 1
+          })`
+        : ""
+    }`;
   };
   const toggle = (option: Snapshot<Option>) =>
     setResult((previous) =>
@@ -192,6 +207,20 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
       ? 0
       : option.meta.id;
   };
+  const liveTargeted = (option: Snapshot<Option>) => {
+    const location = option.location;
+    if (!location || !hasUIContainer()) return !!option.targeted;
+    return !!boardCards.find((card) => {
+      const at = card.location;
+      return (
+        at.controller === location.controller &&
+        at.zone === location.zone &&
+        at.sequence === location.sequence &&
+        at.is_overlay === location.is_overlay &&
+        (!at.is_overlay || at.overlay_sequence === location.overlay_sequence)
+      );
+    })?.targeted;
+  };
 
   const hint = useSnapshot(matStore.hint);
   const preHintMsg = hint.esHint || "";
@@ -258,6 +287,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
     const spot = address(card);
     const position = spot && fieldPosition(spot, viewPlayer);
     const code = displayCode(card);
+    const targeted = liveTargeted(card);
     const location =
       card.location && hasUIContainer()
         ? getUIContainer().context.cardStore.find(
@@ -272,7 +302,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
         key={`${card.response}:${j}`}
       >
         <div
-          className={spatial && position ? styles.fieldOption : undefined}
+          className={styles.fieldOption}
           data-testid="duel-select-card-option"
           data-card-code={code}
           data-card-controller={card.location?.controller}
@@ -285,8 +315,9 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
           data-card-sequence={card.location?.sequence}
           data-card-response={card.response}
           data-field-selected={selected(card)}
-          data-field-defense={!!defense}
-          aria-label={spatial && position ? label(card) : undefined}
+          data-field-defense={!!position && !!defense}
+          data-card-targeted={targeted}
+          aria-label={label(card) || undefined}
           onMouseEnter={() => {
             if (isOpen && spatial && spot)
               focusFieldSelection(fieldSpotKey(spot));
@@ -295,26 +326,17 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
         >
           <CheckCard
             cover={
-              spatial && position ? (
-                <div className={styles.fieldCover}>
-                  <YgoCard
-                    code={code}
-                    targeted={card.targeted}
-                    disabled={card.disabled}
-                    className={styles.fieldImage}
-                  />
-                  {selected(card) && (
-                    <CheckOutlined className={styles.fieldCheck} />
-                  )}
-                </div>
-              ) : (
+              <div className={styles.fieldCover}>
                 <YgoCard
                   code={code}
-                  targeted={card.targeted}
+                  targeted={targeted}
                   disabled={card.disabled}
-                  className={styles.card}
+                  className={styles.fieldImage}
                 />
-              )
+                {selected(card) && (
+                  <CheckOutlined className={styles.fieldCheck} />
+                )}
+              </div>
             }
             className={classnames(styles["check-card"], {
               [styles.opponent]:
@@ -328,6 +350,22 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
                 showCardModal({ ...card, meta: card.meta } as Option);
             }}
           />
+          {!position && label(card) && (
+            <span
+              className={styles.optionLocation}
+              data-testid="duel-selection-location"
+            >
+              {label(card)}
+            </span>
+          )}
+          {targeted && (
+            <span
+              className={styles.targetTag}
+              data-testid="duel-selection-targeted"
+            >
+              {t("Targeted")}
+            </span>
+          )}
           {spatial && position && (
             <>
               <Button
@@ -577,7 +615,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
                   cover={
                     <YgoCard
                       code={displayCode(card)}
-                      targeted={card.targeted}
+                      targeted={liveTargeted(card)}
                       className={styles.card}
                     />
                   }

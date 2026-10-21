@@ -211,6 +211,7 @@ export const PracticeBoard = ({
   };
   const materialCard = (host: ReplayCard, index: number) => ({
     ...host,
+    targeted: false,
     code: host.overlay[index],
     location: host.location | 128,
     overlayIndex: index,
@@ -219,7 +220,7 @@ export const PracticeBoard = ({
     type: 0,
   });
   const cardButton = (
-    card: ReplayCard & { overlayIndex?: number },
+    card: ReplayCard & { overlayIndex?: number; targeted?: boolean },
     key: string,
     positioned = false,
     materialHost?: ReplayCard,
@@ -338,6 +339,7 @@ export const PracticeBoard = ({
           data-actionable={!!choices.length}
           data-selectable={!!pick}
           data-selected={selectedPick}
+          data-card-targeted={!!card.targeted}
           data-located={isLocated}
           data-facedown={!!(card.position & 10)}
           title={`${name} · ${positionLabel(card, language)}${
@@ -362,7 +364,7 @@ export const PracticeBoard = ({
               onInspect(card);
           }}
         >
-          <YgoCard code={card.code} width="100%" />
+          <YgoCard code={card.code} width="100%" targeted={card.targeted} />
           {field && (
             <span
               className="practice-selection-badge"

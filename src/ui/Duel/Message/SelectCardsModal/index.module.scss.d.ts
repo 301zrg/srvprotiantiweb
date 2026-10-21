@@ -1,4 +1,6 @@
 declare const classNames: {
+  readonly optionLocation: "optionLocation";
+  readonly targetTag: "targetTag";
   readonly spatialGroup: "spatialGroup";
   readonly fieldOption: "fieldOption";
   readonly fieldCover: "fieldCover";

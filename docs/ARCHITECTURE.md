@@ -10,6 +10,7 @@
 flowchart TB
   Website["SRVPro 官网页面"] -->|"观战链接 / 卡组与录像交接"| Router
   Static["外部 HTTPS 静态托管<br/>应用 / 四语资源 / 音效 / 录像资源"] --> Router
+  TestEntry["test.ocg1103nexus.com<br/>独立只读测试入口 Worker"] -->|"固定预览上游 / GET与HEAD"| Static
   Images["配置的 HTTPS 卡图源"] --> UI
   subgraph Browser["浏览器：srvprotiantiweb"]
     Router["HashRouter + 页面懒加载"] --> UI["React / Ant Design UI"]
@@ -54,6 +55,8 @@ Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二�
 阶段栏与原菜单共用 `variant/duelPhases.ts`，依据当前请求来源、回合归属与 Core 标志禁用不可进入的阶段。`PhaseState.command` 仅在 idle／battle 请求期间有效，提交、失效、新阶段或其他选择会清除；响应继续经过操作所有权及确认机制。区域内部数量角标由“画面与消息”的持久化 `showZoneCounts` 控制，不影响区域列表与主卡组保密。练习共享卡图、响应式几何与 `PhaseBar` 展示，保留独立 Worker、请求及状态，不复用在线 handler 或连接。
 
 测试部署显式使用固定预览名称，保留同一 Origin 与浏览器存储。仅测试构建从正式站公开元数据读取当前 WSS；生产构建继续要求自己的显式环境变量。构建读取失败即中止，不写入陈旧地址。构建来源、共享入口覆盖关系与网关变更边界见 [自动部署](cloudflare-ci.md#固定测试入口与-wss)。
+
+独立自定义测试入口只转发固定预览的静态 HTTP 请求；测试浏览器的 WSS 仍直接进入既有网关，Origin 精确白名单独立于静态入口。该 Worker 没有服务端游戏状态，也不修改正式根域名绑定；不同 Origin 的浏览器存储互相隔离。
 
 `service/mora/feedback.ts` 将实际提交的手势与收到的胜负结果分开计数，由 Layout 中唯一 `RpsFeedback` 展示；相同平局仍是新事件，不依赖手势值是否变化。`hidePlayerIds` 仅作用于显示层，固定八个星号，不改房间原名、身份、缓存或录像。非空主／额外牌堆的数量角标深度取当前叠牌高度之上，仍归原区域和同一开关。练习双方牌堆允许完整查看，在线主卡组保密约束继续保留；位置 count=0、选择面板路由和验证契约见 [本地练习](practice.md)。
 

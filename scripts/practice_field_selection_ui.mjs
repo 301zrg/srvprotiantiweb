@@ -72,7 +72,7 @@ try {
             { index: 6, player: 1, location: 8, sequence: 0, code: 26202165 },
             { index: 2, player: 1, location: 8, sequence: 4, code: 26202165 },
           ];
-          const cards = options.filter(c => c.location === 4 || c.location === 8).map(c => ({ ...c, attack: 1000, defense: 1000, type: c.location === 4 ? 1 : 2, level: 4, rank: 0, overlay: [], counters: [], position: c.player === 1 ? 8 : 1 }));
+          const cards = options.filter(c => c.location === 4 || c.location === 8).map(c => ({ ...c, attack: 1000, defense: 1000, type: c.location === 4 ? 1 : 2, level: 4, rank: 0, overlay: c.index === 9 ? [26202165] : [], counters: [], position: c.player === 1 ? 8 : 1 }));
           const frame = { ...state.last, events: [], cards, pending: { id, message: kind === 'unselect' ? 26 : kind === 'sort' ? 25 : 15, kind, player, min, max, cancelable: true, choices: options } };
           state.workers[epoch ?? state.epoch].dispatchEvent(new MessageEvent('message', { data: { type: 'frame', frame } }));
         }, { id, kind, min, max, player, choices, epoch });
@@ -89,6 +89,16 @@ try {
 
       await inject(501);
       await open();
+      for (const [event, marked] of [[[83, 1, 0, 4, 2, 1], true], [[73, 1], true], [[74], false]]) {
+        await page.evaluate(event => {
+          const state = window.__fieldPractice;
+          state.workers[state.epoch].dispatchEvent(new MessageEvent('message', { data: { type: 'frame', frame: { ...state.last, step: state.last.step + 1, events: [event] } } }));
+        }, event);
+        await expect(boardCard(0, 4, 2)).toHaveAttribute('data-card-targeted', String(marked));
+        await expect(page.locator('.practice-positioned-card[data-player="0"][data-location="132"][data-sequence="2"]')).toHaveAttribute('data-card-targeted', 'false');
+        if (marked) await expect(candidate(9).locator('..').getByTestId('practice-selection-targeted')).toBeVisible();
+        else await expect(candidate(9).locator('..').getByTestId('practice-selection-targeted')).toHaveCount(0);
+      }
       await expect(page.getByTestId('practice-choices').getByTestId('practice-locate-card').first()).toBeVisible();
       const x = await Promise.all([3, 9, 7].map(async index => (await candidate(index).boundingBox()).x));
       assert.ok(x[0] < x[1] && x[1] < x[2], 'A candidates keep actual left-to-right 0/2/4 field positions');

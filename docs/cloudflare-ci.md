@@ -55,6 +55,10 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 
 本地验证可设置 `SRVPRO_BUILD_TARGET=preview` 后执行 `npm run build:cloudflare`。`npm run test:preview-config` 覆盖跨分支固定名称、当前 WSS 覆盖、生产隔离及失败拒绝。
 
+2026-10-21 增加固定自定义测试入口 `https://test.ocg1103nexus.com/`：独立 Worker `srvprotiantiweb-test-entry` 的配置与源码位于 [deployment/test-entry](../deployment/test-entry/wrangler.json)，仅 GET／HEAD 转发至上述固定预览，不存储玩家数据、不代理 WSS、不改变正式 Worker 或根域名路由。`global_fetch_strictly_public` 允许按公开互联网规则访问原预览；路径与查询保留，认证／Cookie 不转发，站内重定向保持测试域名，响应增加 noindex。不是按用户输入选择上游的开放代理。
+
+此入口只需单独发布一次；以后已有 `preview:cloudflare` 更新固定预览时，自定义测试域名自动读取相同内容，不必重复发另一份静态资源。需要更新入口程序时，先运行 `node scripts/test_preview_entry.mjs`，再显式使用 `npx wrangler@4.148.0 deploy --config deployment/test-entry/wrangler.json`；该命令只属于独立测试 Worker，不能省略配置参数或用于主站发布。网关额外精确允许 `https://test.ocg1103nexus.com`，依然要求备份、配置校验及自建连接连续性检查。不同网页 Origin 的本地卡组与设置由浏览器隔离，不自动迁移。
+
 网关仅需授权上述固定测试 Origin 一次；不使用 `*.workers.dev` 通配符。按用户授权修改现有 Nginx Origin 表前，备份原文件、核对修改范围并运行 `nginx -t`，成功后仅平滑重载 Nginx，不重启游戏、PM2 或 cloudflared。未设强制关停超时的旧工作进程会继续处理已有连接；仍需用自建连接验证重载前后连续性，不能据此声称所有真实对局已验收。[Nginx 平滑重载](https://nginx.org/en/docs/control.html)
 
 固定预览解决后续前端版本重复配置的问题。Quick Tunnel 重启仍可能换地址：维护者须先更新正式站公开配置，随后重新构建测试版；已打开的旧页面也需刷新。现有断线恢复受客户端重试次数／时限和服务端保留窗口约束，不能保证超时或游戏服务重启后的恢复，详见 [会话恢复](session-recovery.md)。
