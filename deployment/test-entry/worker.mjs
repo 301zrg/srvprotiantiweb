@@ -5,6 +5,10 @@ export default {
   async fetch(request) {
     if (!['GET', 'HEAD'].includes(request.method)) return new Response(null, { status: 405, headers: { Allow: 'GET, HEAD' } });
     const incoming = new URL(request.url);
+    if (incoming.protocol === 'http:') {
+      incoming.protocol = 'https:';
+      return new Response(null, { status: 308, headers: { Location: incoming.href, 'X-Robots-Tag': 'noindex, nofollow' } });
+    }
     const upstream = new URL(PREVIEW);
     upstream.pathname = incoming.pathname;
     upstream.search = incoming.search;

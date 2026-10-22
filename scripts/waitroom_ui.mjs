@@ -433,18 +433,19 @@ try {
         ["한국어", "ko"],
         ["简体中文", "cn"],
       ]) {
+        await click(page.getByTestId("waitroom-settings"));
         await click(
-          page
-            .locator(".ant-select")
-            .filter({ has: page.getByRole("combobox", { name: "界面语言" }) }),
+          page.getByTestId("settings-section-language").locator(".ant-select"),
         );
         await page
-          .locator(".ant-select-item-option")
+          .locator(".ant-select-dropdown:visible .ant-select-item-option")
           .filter({ hasText: label })
           .click();
         await expect
           .poll(() => page.evaluate(() => localStorage.getItem("language")))
           .toBe(code);
+        await click(page.getByTestId("settings-close"));
+        await expect(page.getByTestId("settings-close")).toBeHidden();
         await expect(ready).toHaveAttribute("data-player-ready", "true");
         await touchBounds(ready, viewport, true);
         await touchBounds(page.getByTestId("waitroom-leave"), viewport, true);

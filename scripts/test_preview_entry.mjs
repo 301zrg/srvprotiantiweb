@@ -9,6 +9,13 @@ globalThis.fetch = async request => {
 try {
   assert.equal((await worker.fetch(new Request('https://test.ocg1103nexus.com/', { method: 'POST' }))).status, 405);
   assert.equal(calls.length, 0);
+  for (const method of ['GET', 'HEAD']) {
+    const redirect = await worker.fetch(new Request('http://test.ocg1103nexus.com//evil.example/assets/a?room=TT&name=%E6%B5%8B%E8%AF%95', { method }));
+    assert.equal(redirect.status, 308, `${method} must enter the secure origin before loading assets`);
+    assert.equal(redirect.headers.get('Location'), 'https://test.ocg1103nexus.com//evil.example/assets/a?room=TT&name=%E6%B5%8B%E8%AF%95');
+    assert.equal(redirect.body, null);
+    assert.equal(calls.length, 0, 'HTTP must not fetch or return the preview page');
+  }
   const result = await worker.fetch(new Request('https://test.ocg1103nexus.com//evil.example/assets/a?x=1', { headers: { Cookie: 'private=1', Authorization: 'private', Range: 'bytes=0-5' } }));
   assert.equal(calls[0].url, 'https://codex-client-preview-20261019-black-surf-69e5.1627406938.workers.dev//evil.example/assets/a?x=1');
   assert.equal(calls[0].headers.has('Cookie'), false);

@@ -4,7 +4,7 @@
 
 ## 仓库配置
 
-- [wrangler.json](../wrangler.json)：Worker 名称与现有站点一致，只上传 `dist/` 静态文件，不需要 Worker 运行时代码。包含 `previews: {}`，供非生产分支的 `wrangler preview` 使用；`assets` 和兼容日期仍在顶层，不放进 `previews`。修改 Worker 名称必须同时调整此文件；CI 要求名称一致。[名称要求与 Git 接入](https://developers.cloudflare.com/workers/ci-cd/builds/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#wrangler-configuration-file)
+- [wrangler.json](../wrangler.json)：Worker 名称与现有站点一致，发布 `dist/` 静态文件及最小 [HTTPS 入口](../deployment/static-entry.mjs)。`assets.binding = ASSETS`、`run_worker_first = true` 使入口在命中静态文件前运行：HTTP 返回同主机、路径和查询的 308；HTTPS 将原请求交给 `env.ASSETS.fetch`，保留资源响应。包含 `previews: {}`，供非生产分支的 `wrangler preview` 使用；`assets`（包括绑定）和兼容日期仍在顶层，不放进 `previews`。修改 Worker 名称必须同时调整此文件；CI 要求名称一致。[名称要求与 Git 接入](https://developers.cloudflare.com/workers/ci-cd/builds/)、[资源绑定与执行顺序](https://developers.cloudflare.com/workers/static-assets/binding/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#what-goes-in-the-previews-block)
 - [package.json](../package.json)：`build:cloudflare` 通过 `build:static` 还原固定环境资源，再执行 Vite 构建及资源复制；`deploy:cloudflare` 和 `preview:cloudflare` 通过 [发布脚本](../scripts/release_cloudflare.mjs) 使用固定的 Wrangler `4.148.0`，对明确的 API 限流最多尝试三次。预览始终调用 `wrangler preview`，不会变成生产发布。
 - [build_cloudflare.mjs](../scripts/build_cloudflare.mjs)：生产要求显式传入公开 WSS；测试预览按下节读取正式站公开的当前 WSS。固定根路径与正常资源格式，生成公开 `duel-config.js` 和带源码提交号的 `deployment-info.json`。官网链接与卡组／录像消息白名单可通过公开构建变量一同发布，详见 [公开配置与迁址](public-deployment-config.md)。缺少或无效 WSS、白名单错误、构建失败时返回非零退出码，不执行后续部署。普通 `npm run build` 仍可用于离线组卡开发。
 - 当前发布分支为 **`deploy/cloudflare`**，从包含观战修复、卡组接收功能的最新交付版本建立。`main` 暂时较旧，不能直接改用它发布；以后所有改动合并到 `main` 后再调整生产分支。
@@ -31,7 +31,7 @@
 
 Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wrangler.json` 的 `assets.directory = ./dist` 指定。无需选择 `build:prod`，那是保留的上游构建命令，使用了上游 CDN 基路径。[Workers 构建配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[静态资源](https://developers.cloudflare.com/workers/static-assets/)
 
-4. 在 **Build variables and secrets（构建变量与机密）** 添加以下变量。它们是构建变量；纯静态 Worker 不需要运行时变量或私钥。
+4. 在 **Build variables and secrets（构建变量与机密）** 添加以下变量。它们是构建变量；HTTPS 入口不需要运行时变量或私钥。
 
 | 变量名 | 值 | 作用 |
 | --- | --- | --- |
@@ -55,9 +55,11 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 
 本地验证可设置 `SRVPRO_BUILD_TARGET=preview` 后执行 `npm run build:cloudflare`。`npm run test:preview-config` 覆盖跨分支固定名称、当前 WSS 覆盖、生产隔离及失败拒绝。
 
-2026-10-21 增加固定自定义测试入口 `https://test.ocg1103nexus.com/`：独立 Worker `srvprotiantiweb-test-entry` 的配置与源码位于 [deployment/test-entry](../deployment/test-entry/wrangler.json)，仅 GET／HEAD 转发至上述固定预览，不存储玩家数据、不代理 WSS、不改变正式 Worker 或根域名路由。`global_fetch_strictly_public` 允许按公开互联网规则访问原预览；路径与查询保留，认证／Cookie 不转发，站内重定向保持测试域名，响应增加 noindex。不是按用户输入选择上游的开放代理。
+2026-10-21 增加固定自定义测试入口 `https://test.ocg1103nexus.com/`：独立 Worker `srvprotiantiweb-test-entry` 的配置与源码位于 [deployment/test-entry](../deployment/test-entry/wrangler.json)，仅 GET／HEAD 转发至上述固定预览；HTTP 先返回同主机、路径和查询的 308，不读取预览页面。它不存储玩家数据、不代理 WSS、不改变正式 Worker 或根域名路由。`global_fetch_strictly_public` 允许按公开互联网规则访问原预览；路径与查询保留，认证／Cookie 不转发，站内重定向保持测试域名，响应增加 noindex。不是按用户输入选择上游的开放代理。
 
 此入口只需单独发布一次；以后已有 `preview:cloudflare` 更新固定预览时，自定义测试域名自动读取相同内容，不必重复发另一份静态资源。需要更新入口程序时，先运行 `node scripts/test_preview_entry.mjs`，再显式使用 `npx wrangler@4.148.0 deploy --config deployment/test-entry/wrangler.json`；该命令只属于独立测试 Worker，不能省略配置参数或用于主站发布。网关额外精确允许 `https://test.ocg1103nexus.com`，依然要求备份、配置校验及自建连接连续性检查。不同网页 Origin 的本地卡组与设置由浏览器隔离，不自动迁移。
+
+两个 HTTP 跳转分别随主候选和独立测试入口发布生效；仅发布预览不会更新正式根域名，未来合入并发布 `deploy/cloudflare` 才更新正式入口。无需修改根域名路由或控制台 HTTPS 开关。静态 `_redirects` 只支持路径匹配，不能精确区分 HTTP／HTTPS，因此不添加可能造成 HTTPS 自身循环的全站静态规则。[静态重定向限制](https://developers.cloudflare.com/workers/static-assets/redirects/)。`node scripts/test_https_entry.mjs` 覆盖主入口的 HTTP 308 和 HTTPS 原样透传；`node scripts/test_preview_entry.mjs` 覆盖独立入口。Hash 不发送到服务器，308 不写新 fragment，浏览器继续保留原 Hash 路由；发布后仍需实际浏览器核对跳转、安全上下文及入场。
 
 网关仅需授权上述固定测试 Origin 一次；不使用 `*.workers.dev` 通配符。按用户授权修改现有 Nginx Origin 表前，备份原文件、核对修改范围并运行 `nginx -t`，成功后仅平滑重载 Nginx，不重启游戏、PM2 或 cloudflared。未设强制关停超时的旧工作进程会继续处理已有连接；仍需用自建连接验证重载前后连续性，不能据此声称所有真实对局已验收。[Nginx 平滑重载](https://nginx.org/en/docs/control.html)
 

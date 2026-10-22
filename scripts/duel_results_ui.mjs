@@ -135,7 +135,7 @@ try {
     assert.equal(state.declarationCount, 1, "Repeated identical card hints must not duplicate history");
     assert.equal(state.unimplemented, 0, "Player restriction hints must be handled");
     assert.deepEqual(state.lastCardHint, { type: 1, value: 2 }, "Description add/remove must preserve the independent persistent card hint");
-    const panel = page.getByTestId("duel-history-panel");
+    const panel = page.getByTestId("duel-history-content");
     await expect(panel).toBeVisible();
     const option = panel.locator('[data-result-kind="option"]');
     const historyJson = await page.evaluate(() => JSON.stringify(window.__results.historyStore.historys));
@@ -171,13 +171,45 @@ try {
       assert.equal(await panel.evaluate(el => el.scrollWidth <= el.clientWidth + 1), true, "History must not overflow the phone panel");
       reports.push({ profile, language, confirmedResults: state.count, noPromptHistory: true, noResponses: true });
     }
+    // The old-ruling EP reset is a public hint, not a new player response.
+    for (const [language, label, reset] of [
+      ["cn", "简体中文", "效果重置"], ["en", "English", "Reset Effect"],
+      ["ja", "日本語", "効果リセット"], ["ko", "한국어", "효과 초기화"],
+    ]) {
+      await page.evaluate(() => window.__results.openSettingPanel({ defaultKey: "language" }));
+      await page.locator(".ant-modal:visible .ant-select").click();
+      await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: label }).click();
+      await expect.poll(() => page.evaluate(() => localStorage.getItem("language"))).toBe(language);
+      await page.getByTestId("settings-close").click();
+      for (const player of [0, 1, 1]) {
+        const before = await page.evaluate(() => window.__results.historyStore.historys.length);
+        await page.evaluate(async player => {
+          const { send, u32 } = window.__results;
+          await send(2, [4, player, ...u32(1162)]);
+        }, player);
+        await expect(page.getByTestId("duel-feedback")).toContainText(reset);
+        await expect(panel.locator('[data-result-kind="option"]').last()).toContainText(reset);
+        const after = await page.evaluate(() => ({
+          row: window.__results.historyStore.historys.at(-1),
+          count: window.__results.historyStore.historys.length,
+          responses: window.__results.packets.length,
+        }));
+        assert.equal(after.count, before + 1, "Separate same-value EP resets must not be deduplicated");
+        assert.deepEqual(after.row.result, { kind: "option", value: 1162 });
+        assert.equal(after.row.player, player);
+        assert.equal(after.responses, 0, "An EP reset notification never creates a response");
+      }
+      reports.push({ profile, language, epResetHistoryAndToast: true, bothPlayers: true, repeatedResetsPreserved: true });
+    }
+    await page.screenshot({ path: `${output}/${profile}-ep-reset.png` });
     await page.evaluate(() => {
       window.__results.matStore.selfType = window.__duelTest.api.ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
       window.__results.matStore.observerView = 1;
     });
     await expect(option.first()).toContainText(words.ko.first);
     await page.screenshot({ path: `${output}/${profile}-history.png` });
-    await page.getByTestId("duel-history-panel-close").click();
+    const closeHistory = page.getByTestId("duel-history-panel-close");
+    if (await closeHistory.count()) await closeHistory.click();
     await page.evaluate(() => window.__results.matStore.selfType = 1);
     await page.evaluate(() => {
       const { send, u32, settingStore } = window.__results;
