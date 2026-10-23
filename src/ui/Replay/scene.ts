@@ -1,11 +1,13 @@
 import type { ReplayFrame } from "@/replay/engine";
 import type { ReplayCard } from "@/replay/messages";
+import { type CardLinks, clearCardLinks } from "@/variant/cardInformation";
 
-export type SceneCard = ReplayCard & {
-  sceneId: string;
-  targeted?: boolean;
-  targetFlash?: number;
-};
+export type SceneCard = ReplayCard &
+  CardLinks & {
+    sceneId: string;
+    targeted?: boolean;
+    targetFlash?: number;
+  };
 export interface Spot {
   player: number;
   location: number;
@@ -49,7 +51,7 @@ export function seedScene(
   frame: ReplayFrame,
   previous?: SceneFrame,
 ): SceneFrame {
-  return {
+  const scene: SceneFrame = {
     ...frame,
     // A fresh query after restart/seek cannot inherit markers from the old turn.
     // Ordinary queued batches restore their live chain state explicitly below.
@@ -64,6 +66,25 @@ export function seedScene(
         `${frame.step}:${c.player}:${c.location}:${c.sequence}:${c.code}`,
     })),
   };
+  for (const card of scene.cards) {
+    const old = previous?.cards.find((c) => c.sceneId === card.sceneId);
+    card.equipTarget =
+      card.equipLocation !== undefined
+        ? scene.cards.find(
+            (c) => card.equipLocation && same(c, card.equipLocation),
+          )?.sceneId
+        : old?.equipTarget;
+    card.cardTargets =
+      card.targetLocations !== undefined
+        ? card.targetLocations.flatMap((place) => {
+            const id = scene.cards.find((c) => same(c, place))?.sceneId;
+            return id ? [id] : [];
+          })
+        : old?.cardTargets
+        ? [...old.cardTargets]
+        : [];
+  }
+  return scene;
 }
 
 /** Replay events drive visible intermediate actions; every batch ends at the
@@ -116,6 +137,10 @@ export function sceneSteps(
             code: material,
             overlay: [],
             counters: [],
+            equipTarget: undefined,
+            cardTargets: [],
+            equipLocation: null,
+            targetLocations: [],
             sceneId: `material:${next.step}:${i}`,
           };
         }
@@ -166,6 +191,14 @@ export function sceneSteps(
               : false,
         });
       }
+      if (moved && from.location !== to.location) {
+        const movedId = moved.sceneId;
+        clearCardLinks(scene.cards, movedId, (card) => card.sceneId);
+        for (const card of scene.cards) {
+          if (card.sceneId === movedId && [4, 8].includes(from.location))
+            card.counters = [];
+        }
+      }
       const arriving = scene.cards.find((c) => same(c, to));
       emit({
         kind: "move",
@@ -179,7 +212,13 @@ export function sceneSteps(
     } else if (kind === 53) {
       const from = spot(event, 5),
         c = scene.cards.find((c) => same(c, from));
-      if (c) c.position = event[9];
+      if (c) {
+        c.position = event[9];
+        if (event[8] & 5 && event[9] & 10) {
+          c.counters = [];
+          clearCardLinks(scene.cards, c.sceneId, (card) => card.sceneId, false);
+        }
+      }
       emit({ kind: "position", code: packed(event, 1), to: from });
     } else if ([54, 60, 62, 64].includes(kind)) {
       emit({
@@ -275,6 +314,21 @@ export function sceneSteps(
         player,
         amount,
       });
+    } else if ([93, 95, 96, 97].includes(kind)) {
+      const source = scene.cards.find((c) => same(c, spot(event, 1)));
+      const target =
+        kind !== 95 && scene.cards.find((c) => same(c, spot(event, 5)));
+      if (source) {
+        if (kind === 95) delete source.equipTarget;
+        else if (kind === 93)
+          source.equipTarget = target ? target.sceneId : undefined;
+        else if (target)
+          source.cardTargets =
+            kind === 96
+              ? [...new Set([...(source.cardTargets ?? []), target.sceneId])]
+              : source.cardTargets?.filter((id) => id !== target.sceneId);
+      }
+      emit({ kind: "ready" });
     } else if ([101, 102].includes(kind)) {
       const to = spot(event, 3),
         c = scene.cards.find((c) => same(c, to));

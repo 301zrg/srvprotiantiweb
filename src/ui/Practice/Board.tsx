@@ -9,6 +9,10 @@ import type { PracticeChoice, PracticeRequest } from "@/practice/prompts";
 import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { YgoCard } from "@/ui/Shared";
+import {
+  CardInformationLayer,
+  counterDescription,
+} from "@/ui/Shared/CardInformation";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import {
   fieldPosition,
@@ -22,6 +26,7 @@ import { previewFormat, previewMessages } from "@/variant/previewMessages";
 import bgStyles from "../Duel/PlayMat/Bg/index.module.scss";
 import { matConfig, updateMatLayout } from "../Duel/PlayMat/css";
 import { materialOffset } from "../Duel/PlayMat/materials";
+import { sceneInformationCards } from "../Replay/cardInformation";
 import { positionLabel, replayCardWords } from "../Replay/cardState";
 import { replayFieldWords } from "../Replay/FieldBoard";
 import type { PracticeSceneFrame } from "./materials";
@@ -216,6 +221,9 @@ export const PracticeBoard = ({
     location: host.location | 128,
     overlayIndex: index,
     overlay: [],
+    counters: [],
+    equipLocation: null,
+    targetLocations: [],
     position: 1,
     type: 0,
   });
@@ -334,6 +342,14 @@ export const PracticeBoard = ({
           }`}
           style={style}
           data-testid="practice-card"
+          data-card-info-id={
+            positioned &&
+            !materialHost &&
+            !staged &&
+            [4, 8].includes(card.location)
+              ? key
+              : undefined
+          }
           data-card-code={card.code}
           data-overlay-index={card.overlayIndex}
           data-material-count={card.overlay.length}
@@ -346,7 +362,10 @@ export const PracticeBoard = ({
           data-card-targeted={!!card.targeted}
           data-located={isLocated}
           data-facedown={!!(card.position & 10)}
-          title={`${name} · ${positionLabel(card, language)}${
+          title={`${name} · ${positionLabel(
+            card,
+            language,
+          )} · ${counterDescription(card.counters)}${
             field
               ? ` · ${fieldPositionLabel(
                   card,
@@ -500,6 +519,10 @@ export const PracticeBoard = ({
         ))}
       </div>
       <div className="practice-play-area" ref={host}>
+        <CardInformationLayer
+          root={host}
+          cards={sceneInformationCards(frame.cards, language, 0, true)}
+        />
         <div
           className="practice-board-plane"
           style={{

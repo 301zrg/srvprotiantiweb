@@ -1,5 +1,6 @@
 import { ygopro } from "@/api";
 import { CardHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardHint";
+import { CardRelationGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardRelation";
 import { DeckVisibilityGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/deckVisibility";
 import { PlayerHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/playerHint";
 import { Container } from "@/container";
@@ -15,6 +16,7 @@ import onMsgAttack from "./attack";
 import onMsgAttackDisable from "./attackDisable";
 import onMsgBecomeTarget from "./becomeTarget";
 import onMsgCardHint from "./cardHint";
+import { updateCardRelation } from "./cardRelation";
 import { isObserver } from "./catchUp";
 import onMsgChainEnd from "./chainEnd";
 import onMsgChaining from "./chaining";
@@ -98,6 +100,10 @@ export default async function handleGameMsg(
     if (container.conn.cancelled) return;
   }
   const msg = pb.stoc_game_msg;
+  if (msg instanceof CardRelationGameMessage) {
+    updateCardRelation(container, msg.relation);
+    return;
+  }
   if (msg instanceof DeckVisibilityGameMessage) {
     updateDeckVisibility(container, msg.deckVisibility);
     return;

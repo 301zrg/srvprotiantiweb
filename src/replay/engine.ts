@@ -274,7 +274,7 @@ export class ReplayEngine {
             this.handle,
             player,
             location,
-            0xf03ff,
+            0xfc3ff,
             buffer,
             0,
           );

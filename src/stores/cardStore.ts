@@ -2,6 +2,7 @@ import { proxy } from "valtio";
 
 import { CardMeta, ygopro } from "@/api";
 import { STATUS_DISABLED, STATUS_FORBIDDEN } from "@/common";
+import type { CardLinks } from "@/variant/cardInformation";
 
 import type { Interactivity } from "./matStore/types";
 import { type NeosStore } from "./shared";
@@ -11,7 +12,7 @@ import { type NeosStore } from "./shared";
  *
  * TODO: use class
  */
-export interface CardType {
+export interface CardType extends CardLinks {
   uuid: string; // 一张卡的唯一标识
   code: number; // 卡号
   meta: CardMeta; // 卡片元数据

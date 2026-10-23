@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import { fetchCard, getCardImgUrl } from "@/api";
 import type { ReplayCard } from "@/replay/messages";
+import { counterDescription } from "@/ui/Shared/CardInformation";
 
 import {
   concealReplayCard,
@@ -20,6 +21,7 @@ export function ReplayCardTile({
   onInspect,
   className = "",
   style,
+  informationId,
 }: {
   card: ReplayCard;
   language: string;
@@ -28,6 +30,7 @@ export function ReplayCardTile({
   onInspect: (card: ReplayCard) => void;
   className?: string;
   style?: CSSProperties & Record<`--${string}`, string | number>;
+  informationId?: string;
 }) {
   const t = replayCardWords(language);
   const hidden = concealReplayCard(card, reveal);
@@ -45,6 +48,8 @@ export function ReplayCardTile({
       data-location={card.location}
       data-sequence={card.sequence}
       data-position={card.position}
+      data-card-info-id={informationId}
+      title={counterDescription(card.counters) || undefined}
       data-materials={card.overlay.length}
       onClick={() => onInspect(card)}
       aria-label={`${name}，${zoneLabel}，${positionLabel(card, language)}`}
@@ -69,7 +74,7 @@ export function ReplayCardTile({
       )}
       {!!counters.length && (
         <small className="replay-counter-count">
-          {t.counters} {counters.reduce((n, c) => n + c.count, 0)}
+          {counterDescription(card.counters)}
         </small>
       )}
       {!!((card.status || 0) & 1) && (

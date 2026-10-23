@@ -82,6 +82,19 @@ Cloudflare 主入口先将 HTTP 以 308 跳转到相同主机、路径与查询�
 | 重演展示 | [scene.ts](../src/ui/Replay/scene.ts)、[FieldBoard](../src/ui/Replay/FieldBoard.tsx)、[cardState.ts](../src/ui/Replay/cardState.ts) | 展示动作队列，每批末回到 Core 查询 |
 | 固定协议来源 | [protocol-source](../protocol-source/README.md)、[生成 IDL](../src/api/ocgcore/idl/) | 保留来源 commit／许可证，日常构建不执行 protoc 或初始化 submodule |
 
+## 卡片持续信息
+
+原生装备与持续目标、按类型指示物沿各自规则状态通道进入展示层，清理与隐私约束见 [卡片持续信息契约](duel-results.md#持续关联与按种类指示物)。界面不从连锁对象、卡名或无效状态推测持续关系。
+
+```mermaid
+flowchart LR
+  Native["原生 93 / 95 / 96 / 97 与查询"] --> Adapter["在线 adapter / service"]
+  Adapter --> Online["CardStore UUID"]
+  Core["独立 Worker Core 查询 / 事件"] --> Scene["练习 / 录像 sceneId"]
+  Online --> Presentation["共享关联列表 / 视口标记 / 逐类指示物"]
+  Scene --> Presentation
+```
+
 ## 在线消息、会话与录像收尾
 
 卡组草稿的三区数组保存用户指定的顺序。`editDeckStore.add` 只追加，`reorder` 按区域内

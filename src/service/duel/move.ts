@@ -8,6 +8,7 @@ import { callCardMove } from "@/ui/Duel/PlayMat/Card";
 
 import { REASON_DESTROY, REASON_MATERIAL, TYPE_TOKEN } from "../../common";
 import { genCard } from "../utils";
+import { clearOnlineCardLinks } from "./cardRelation";
 
 type MsgMove = ygopro.StocGameMessage.MsgMove;
 const { EMPTY, HAND, GRAVE, REMOVED, DECK, EXTRA, MZONE, SZONE, TZONE } =
@@ -114,6 +115,11 @@ export default async (container: Container, move: MsgMove) => {
       console.info(context.cardStore.at(from.zone, from.controller));
       return;
     }
+  }
+
+  if (to.is_overlay || from.zone !== to.zone) {
+    if ([MZONE, SZONE].includes(from.zone)) target.counters = {};
+    clearOnlineCardLinks(context.cardStore, target.uuid);
   }
 
   if (to.is_overlay && to.zone === EXTRA && (reason & REASON_MATERIAL) > 0)

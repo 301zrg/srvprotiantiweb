@@ -40,11 +40,13 @@ import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
+import { RelatedCards } from "@/ui/Shared/CardInformation";
 import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { type Language, languageLocales } from "@/variant";
 import { previewMessages } from "@/variant/previewMessages";
 
 import { ReplayAudio } from "./audio";
+import { sceneInformationCards } from "./cardInformation";
 import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
 import { DeckExtract } from "./DeckExtract";
@@ -1004,6 +1006,17 @@ function Player({ id, text }: { id: string; text: string[] }) {
               <p>{stateText.forbidden}</p>
             )}
             <p className="replay-description">{selected?.text.desc}</p>
+            <RelatedCards
+              id={currentCard.sceneId}
+              cards={sceneInformationCards(
+                frame?.cards ?? [],
+                language,
+                view,
+                reveal,
+              )}
+              language={language}
+              onLocate={() => setCard(undefined)}
+            />
             {currentCard.declared && (
               <p>
                 {stateText.declared}：

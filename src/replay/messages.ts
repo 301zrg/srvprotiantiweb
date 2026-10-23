@@ -172,6 +172,8 @@ export function splitCoreMessages(bytes: Uint8Array): Uint8Array[] {
 }
 
 export interface ReplayCard {
+  equipLocation?: { player: number; location: number; sequence: number } | null;
+  targetLocations?: { player: number; location: number; sequence: number }[];
   declared?: number;
   code: number;
   position: number;
@@ -235,6 +237,8 @@ export function parseQuery(
         const n = u32();
         if (n > 256) throw new Error("查询数组超限");
         const list = Array.from({ length: n }, u32);
+        if (bit === 0x8000)
+          card.targetLocations = list.map(unpackQueryLocation);
         if (bit === 0x10000) card.overlay = list;
         if (bit === 0x20000) card.counters = list;
       } else {
@@ -249,6 +253,8 @@ export function parseQuery(
         if (bit === 32) card.rank = n;
         if (bit === 256) card.attack = n | 0;
         if (bit === 512) card.defense = n | 0;
+        if (bit === 0x4000)
+          card.equipLocation = (n >>> 8) & 255 ? unpackQueryLocation(n) : null;
         if (bit === 0x40000) card.owner = n;
         if (bit === 0x80000) card.status = n;
         if (bit === 0x800000) u32();
@@ -258,4 +264,12 @@ export function parseQuery(
     cards.push(card);
   }
   return cards;
+}
+
+function unpackQueryLocation(n: number) {
+  return {
+    player: n & 255,
+    location: (n >>> 8) & 255,
+    sequence: (n >>> 16) & 255,
+  };
 }

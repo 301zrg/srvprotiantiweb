@@ -29,6 +29,7 @@ import { showCardModal as displayCardModal } from "@/ui/Duel/Message/CardModal";
 import { useI18N } from "@/ui/I18N";
 import { replayCardWords } from "@/ui/Replay/cardState";
 import { YgoCard } from "@/ui/Shared";
+import { counterDescription } from "@/ui/Shared/CardInformation";
 import { fieldPosition, fieldPositionLabel } from "@/variant/fieldSelection";
 import { previewMessages } from "@/variant/previewMessages";
 
@@ -483,6 +484,9 @@ export const Card: React.FC<{
     <animated.div
       data-testid="duel-card"
       data-card-uuid={snap.uuid}
+      data-card-info-host={
+        !location.is_overlay && fieldSpot ? snap.uuid : undefined
+      }
       data-card-code={location.zone === DECK ? shownCode : snap.code}
       data-card-controller={location.controller}
       data-card-zone={ygopro.CardZone[location.zone]}
@@ -548,9 +552,9 @@ export const Card: React.FC<{
       onMouseEnter={() => {
         if (fieldEntry) focusFieldSelection(fieldKey);
       }}
-      role={fieldEntry ? "button" : undefined}
-      tabIndex={fieldEntry ? 0 : undefined}
-      aria-label={fieldEntry ? fieldLabel : undefined}
+      role={fieldSpot ? "button" : undefined}
+      tabIndex={fieldSpot ? 0 : undefined}
+      aria-label={fieldSpot ? fieldLabel : undefined}
       aria-pressed={fieldEntry ? !!fieldChosen : undefined}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
@@ -558,6 +562,11 @@ export const Card: React.FC<{
           event.preventDefault();
           event.stopPropagation();
           toggleFieldSelection(fieldKey);
+        } else if (fieldSpot && ["Enter", " "].includes(event.key)) {
+          event.preventDefault();
+          event.currentTarget
+            .querySelector<HTMLElement>('[data-testid="duel-card-trigger"]')
+            ?.click();
         }
       }}
     >
@@ -591,6 +600,10 @@ export const Card: React.FC<{
       >
         <div
           data-testid="duel-card-trigger"
+          data-card-info-id={
+            !location.is_overlay && fieldSpot ? snap.uuid : undefined
+          }
+          title={counterDescription(snap.counters) || undefined}
           className={classnames(styles["img-wrap"], {
             [styles.focusing]: classFocus,
           })}

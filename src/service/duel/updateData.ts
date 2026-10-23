@@ -15,6 +15,7 @@ import {
 import { Container } from "@/container";
 
 import { genCard } from "../utils";
+import { updateQueryRelations } from "./cardRelation";
 
 export default async (container: Container, updateData: MsgUpdateData) => {
   const { player: controller, zone, actions } = updateData;
@@ -31,6 +32,11 @@ export default async (container: Container, updateData: MsgUpdateData) => {
           if (updateAction.clear) {
             continue;
           }
+          updateQueryRelations(
+            container.context.cardStore,
+            target,
+            updateAction,
+          );
 
           // code=0 means the query did not expose identity; movement and
           // position messages decide whether an existing visible card changes.

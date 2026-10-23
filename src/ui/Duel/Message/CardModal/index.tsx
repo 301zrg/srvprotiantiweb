@@ -2,10 +2,12 @@ import { Divider, Space, Tag } from "antd";
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
-import { type CardMeta, fetchCard, fetchStrings, Region } from "@/api";
-import { cardStore, type CardType } from "@/stores";
+import { type CardMeta, fetchCard, fetchStrings, Region, ygopro } from "@/api";
+import { cardStore, type CardType, matStore } from "@/stores";
+import { onlineInformationCards } from "@/ui/Duel/PlayMat/cardInformation";
 import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
+import { CardCounters, RelatedCards } from "@/ui/Shared/CardInformation";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { mobileMessages } from "@/variant/mobileMessages";
 
@@ -47,6 +49,7 @@ const store = proxy(defaultStore);
 export const CardModal = () => {
   const snap = useSnapshot(store);
   const { inner } = useSnapshot(cardStore);
+  const { selfType, observerView } = useSnapshot(matStore);
   const uuid = snap.uuid;
   const liveCard = uuid ? inner.find((card) => card.uuid === uuid) : undefined;
   const { language } = useI18N();
@@ -96,7 +99,7 @@ export const CardModal = () => {
                 def={types.includes(TYPE_LINK) ? undefined : def}
               />
             )}
-            <CounterLine counters={counters} />
+            <CardCounters counters={counters} testId="duel-card-counter" />
             <AttLine types={types} race={race} attribute={attribute} />
             {/* TODO: 展示星级/LINK数 */}
           </Space>
@@ -118,6 +121,23 @@ export const CardModal = () => {
             </span>
           </div>
         )}
+        <RelatedCards
+          id={uuid}
+          cards={onlineInformationCards(
+            inner,
+            language,
+            selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
+              ? observerView
+              : matStore.isMe(0)
+              ? 0
+              : 1,
+            selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer,
+          )}
+          language={language}
+          onLocate={() => {
+            store.isOpen = false;
+          }}
+        />
         <Divider style={{ margin: "0.875rem 0" }}></Divider>
         <Desc desc={desc} />
       </div>
@@ -176,32 +196,6 @@ const AtkLine = (props: { atk?: number; def?: number }) => (
     </div>
   </Space>
 );
-
-const CounterLine = (props: { counters: { [type: number]: number } }) => {
-  return (
-    <Space size={10} className={styles.counterLine} direction="vertical">
-      {Object.entries(props.counters).map(
-        ([counterType, count], idx) =>
-          count > 0 && (
-            <div
-              key={idx}
-              data-testid="duel-card-counter"
-              data-counter-type={counterType}
-              data-counter-count={count}
-            >
-              <div className={styles.title}>
-                {fetchStrings(
-                  Region.Counter,
-                  `0x${Number(counterType).toString(16)}`,
-                )}
-              </div>
-              <div className={styles.number}>{count}</div>
-            </div>
-          ),
-      )}
-    </Space>
-  );
-};
 
 export const showCardModal = (
   card: Partial<Pick<CardType, "uuid" | "meta" | "counters" | "hint">>,

@@ -36,6 +36,7 @@ import { deckStore } from "@/stores/deckStore";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
+import { CardCounters, RelatedCards } from "@/ui/Shared/CardInformation";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { corePhaseKey } from "@/variant/duelPhases";
@@ -53,6 +54,10 @@ import { previewFormat, previewMessages } from "@/variant/previewMessages";
 import feedbackStyles from "../Duel/Message/HintNotification/index.module.scss";
 import { NeosModal } from "../Duel/Message/NeosModal";
 import { PhaseBar } from "../Duel/PhaseBar";
+import {
+  sceneInformationCards,
+  sceneInformationId,
+} from "../Replay/cardInformation";
 import { positionLabel } from "../Replay/cardState";
 import { PracticeBoard } from "./Board";
 import { PracticeChoices } from "./Choices";
@@ -628,6 +633,18 @@ export const Component = () => {
                 <p>
                   {inspected.attack}/{inspected.defense}
                 </p>
+                <CardCounters counters={inspected.counters} />
+                <RelatedCards
+                  id={sceneInformationId(session.scene?.cards ?? [], inspected)}
+                  cards={sceneInformationCards(
+                    session.scene?.cards ?? [],
+                    language,
+                    0,
+                    true,
+                  )}
+                  language={language}
+                  onLocate={() => setInspected(undefined)}
+                />
               </>
             )}
             <p className="practice-description">{card?.text.desc}</p>

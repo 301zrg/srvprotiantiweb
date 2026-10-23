@@ -59,7 +59,14 @@ export function practiceMaterialFrames(
     }
     if (toOverlay && card)
       materials.push({
-        card,
+        card: {
+          ...card,
+          counters: [],
+          equipTarget: undefined,
+          cardTargets: [],
+          equipLocation: null,
+          targetLocations: [],
+        },
         host: to,
         index: event[12],
         atOrigin: to.location === 64,

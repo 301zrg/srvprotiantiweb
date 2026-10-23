@@ -5,15 +5,20 @@ import { ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
 import { duelPresentationReady } from "@/service/duel/presentation";
 import { cardStore, matStore, roomStore } from "@/stores";
+import { useI18N } from "@/ui/I18N";
+import { CardInformationLayer } from "@/ui/Shared/CardInformation";
 
 import { Bg } from "../Bg";
 import { Card } from "../Card";
+import { onlineInformationCards } from "../cardInformation";
 import { matConfig, updateMatLayout } from "../css";
 import styles from "./index.module.scss";
 
 // 后面再改名
 export const Mat: React.FC = () => {
   const { selfType, observerView } = useSnapshot(matStore);
+  const { inner } = useSnapshot(cardStore);
+  const { language } = useI18N();
   const { hostInfo } = useSnapshot(roomStore);
   const flipped =
     selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer &&
@@ -59,6 +64,15 @@ export const Mat: React.FC = () => {
       data-testid="duel-board-viewport"
       data-view-controller={flipped ? 1 : matStore.isMe(0) ? 0 : 1}
     >
+      <CardInformationLayer
+        root={viewport}
+        cards={onlineInformationCards(
+          inner,
+          language,
+          flipped ? 1 : matStore.isMe(0) ? 0 : 1,
+          selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer,
+        )}
+      />
       <section className={`${styles.mat} duel-mat`}>
         <div className={`${styles.camera} duel-mat-camera`}>
           <div
@@ -82,8 +96,9 @@ export const Mat: React.FC = () => {
 
 const Cards: React.FC = () => {
   const { inner, deckReversed } = useSnapshot(cardStore);
-  const address = (location: (typeof inner)[number]["location"]) =>
-    `${location.controller}:${location.zone}:${location.sequence}`;
+  const address = (
+    location: Pick<ygopro.CardLocation, "controller" | "zone" | "sequence">,
+  ) => `${location.controller}:${location.zone}:${location.sequence}`;
   const slots = new Map<
     string,
     { count: number; position?: ygopro.CardPosition }
