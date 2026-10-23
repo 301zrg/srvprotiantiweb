@@ -14,7 +14,10 @@ export default (
     );
     if (target) {
       console.info(`${target.meta.text.name} become target`);
-      target.targeted = true;
+      // HintSelection uses this packet for automatic processing too; those
+      // notifications have no CHAIN_END to clear a retained target marker.
+      target.targeted = context.matStore.chains.length > 0;
+      target.targetFlash = (target.targetFlash ?? 0) + 1;
 
       context.historyStore.putTargeted(context, target.code, location);
     } else {

@@ -213,6 +213,7 @@ export default async (container: Container, move: MsgMove) => {
     );
     return;
   }
+  target.targetFlash = undefined;
   if (!(from.zone === MZONE && to.zone === MZONE)) {
     // if the card is moved, it no longer being targeted
     // unless it move over the monster zone.

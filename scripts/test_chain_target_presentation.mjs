@@ -8,6 +8,8 @@ try {
   const frame = { step: 0, consumed: 0, total: 0, events: [], cards: [card(16, 0), card(16, 1), card(4, 2, 1)], lp: [8000, 8000], names: ['A', 'B'], turn: 1, phase: 4, turnPlayer: 0 };
   let scene = seedScene(frame);
   const advance = (events, cards = scene.cards) => (scene = advancePracticeScene({ ...frame, step: scene.step + 1, events, cards }, scene).scene);
+  // The real Core sends CHAINING before the effect's target notification.
+  scene.chains.push({ player: 0, location: 4, sequence: 2, code: 46986414, index: 1 });
   advance([[83, 1, 0, 16, 1, 1]]);
   assert.equal(scene.cards.find(c => c.location === 16 && c.sequence === 1).targeted, true, 'MSG_BECOME_TARGET must mark the exact duplicate, including outside the field');
   assert.equal(!!scene.cards.find(c => c.location === 16 && c.sequence === 0).targeted, false);

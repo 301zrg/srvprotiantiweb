@@ -220,7 +220,11 @@ export const PracticeBoard = ({
     type: 0,
   });
   const cardButton = (
-    card: ReplayCard & { overlayIndex?: number; targeted?: boolean },
+    card: ReplayCard & {
+      overlayIndex?: number;
+      targeted?: boolean;
+      targetFlash?: number;
+    },
     key: string,
     positioned = false,
     materialHost?: ReplayCard,
@@ -364,7 +368,12 @@ export const PracticeBoard = ({
               onInspect(card);
           }}
         >
-          <YgoCard code={card.code} width="100%" targeted={card.targeted} />
+          <YgoCard
+            code={card.code}
+            width="100%"
+            targeted={card.targeted}
+            targetFlash={card.targetFlash}
+          />
           {field && (
             <span
               className="practice-selection-badge"

@@ -31,6 +31,7 @@ const results = [];
 try {
   const { PracticeEngine } = await vite.ssrLoadModule('/src/practice/engine.ts');
   const { practiceHintResults } = await vite.ssrLoadModule('/src/practice/prompts.ts');
+  const { advancePracticeScene } = await vite.ssrLoadModule('/src/ui/Practice/presentation.ts');
   const create = (await import(pathToFileURL(resolve('public/replay/706-v1/ocgcore.js')))).default;
   const core = await create({ wasmBinary: readFileSync('public/replay/706-v1/ocgcore.wasm'), printErr: text => console.error('CORE', text) });
   const engine = new PracticeEngine(core);
@@ -49,9 +50,11 @@ try {
     assert.equal(core._replay_evaluate(engine.handle, pointer), 1, core.UTF8ToString(core._replay_error()));
     core._free(pointer);
     const trace = [], requests = [], cards = [];
+    let scene;
     let activated = false, reset = false;
     for (let step = 0; step < 1000 && !reset; step++) {
       frame = engine.next();
+      scene = advancePracticeScene(frame, scene).scene;
       for (const raw of frame.events) {
         trace.push({ step, turn: frame.turn, phase: frame.phase, raw });
         assert.notEqual(raw[0], 1, 'every fixture response must be accepted without MSG_RETRY');
@@ -85,6 +88,8 @@ try {
     results.push(result);
     writeFileSync(`${folder}/native.json`, JSON.stringify({ resource: { scriptsSha256: sha(packed), resources }, results }, null, 2));
     assert.ok(activated && reset, `Need actual card activation followed by actual End Phase reset for ${id}`);
+    assert.ok(scene.cards.every(c => !c.targeted), 'Automatic EP processing must not retain a chain target');
+    assert.ok(scene.cards.find(c => c.code === id && c.location === 16)?.targetFlash, 'The real EP source still receives finite emphasis');
     const ep = trace.filter(e => e.phase === 512);
     const epResults = ep.filter(e => e.raw[0] === 2 && e.raw[1] === 4);
     assert.equal(epResults.length, 1, 'one actual reset produces one public result');

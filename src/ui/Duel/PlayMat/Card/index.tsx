@@ -599,6 +599,7 @@ export const Card: React.FC<{
             className={styles.cover}
             code={shownCode}
             disabled={disabled}
+            targetFlash={snap.targetFlash}
           />
           <YgoCard className={styles.back} isBack />
         </div>

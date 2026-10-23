@@ -59,6 +59,10 @@ MSG_CONFIRM_CARDS 展示手牌时，翻开并移出手牌后增加短暂停留�
 
 同一连锁内已被正式取为对象的卡，按原生 `MSG_BECOME_TARGET` 标记，选牌界面同时显示既有“成为对象”文案与对象图标。联机读取当前 CardStore，而非候选创建时的旧副本；单个连锁环节结算不清理整条连锁，连锁结束及卡片离区按现有规则清理。选材、代价和草稿勾选不自动视为取对象。行为依据 [YGOPro 的对象事件和连锁结束处理](https://github.com/Fluorohydride/ygopro/blob/master/gframe/duelclient.cpp)。`scripts/client_mixed_selection_ui.mjs` 覆盖四种尺寸、同名墓地卡、纯额外选择、动态对象标记与原始响应。
 
+同一原生消息也被旧脚本 `Duel.HintSelection` 用于自动 EP 处理，不能假定一定存在连锁。所有这类通知都有可重复的 800ms 短暂边框强调；只有当前确有连锁时才保留整条连锁的对象标记。短暂强调不依赖未来的 `CHAIN_END`，不产生决斗响应，不新增历史文案；查询不重播，移动及场面重建丢弃旧强调。在线与练习共用卡图的有限 CSS 动画；当前卡片实例的递增序号使连续通知能重新播放，而不建立全局计时器。此项只修正既有展示生命周期，不改变规则、协议、服务边界或架构图。
+
+`node scripts/test_card_target_highlight.mjs` 覆盖连锁外自动提示、重复强调、查询保留、真实连锁和重开；旧裁定 Core 回归同时核验三张卡的真实 EP 后不遗留对象标记。涉及连锁对象的夹具须先建立真实的连锁上下文，不能把孤立的 83 包作为整条连锁的证明。
+
 `node scripts/test_field_selection.mjs` 验证镜像、空位及原始候选；`node scripts/test_field_selection_session.mjs` 验证草稿生命周期；`node scripts/client_target_selection_ui.mjs` 在独立静态夹具用原生封包验证四种视口、双向选择和原始响应。
 
 - npm run test:duel-reveal-delay：合成时钟检验速度边界、默认停留、后台暂停、连接终止清理。

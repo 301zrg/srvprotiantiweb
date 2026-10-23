@@ -26,6 +26,7 @@ export interface CardType {
   counters: { [type: number]: number }; // 指示器
   isToken: boolean; // 是否是token
   targeted: boolean; // 当前卡是否被选择成为效果的对象
+  targetFlash?: number; // A native selection hint also flashes outside a chain.
   selectInfo: {
     selectable: boolean; // 是否可以被选择
     selected: boolean; // 是否已经被选择

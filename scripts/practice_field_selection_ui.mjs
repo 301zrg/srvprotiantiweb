@@ -89,7 +89,7 @@ try {
 
       await inject(501);
       await open();
-      for (const [event, marked] of [[[83, 1, 0, 4, 2, 1], true], [[73, 1], true], [[74], false]]) {
+      for (const [event, marked] of [[[70, 0, 0, 0, 0, 0, 4, 2, 1, 0, 4, 2, 0, 0, 0, 0, 1], false], [[83, 1, 0, 4, 2, 1], true], [[73, 1], true], [[74], false]]) {
         await page.evaluate(event => {
           const state = window.__fieldPractice;
           state.workers[state.epoch].dispatchEvent(new MessageEvent('message', { data: { type: 'frame', frame: { ...state.last, step: state.last.step + 1, events: [event] } } }));
@@ -99,6 +99,16 @@ try {
         if (marked) await expect(candidate(9).locator('..').getByTestId('practice-selection-targeted')).toBeVisible();
         else await expect(candidate(9).locator('..').getByTestId('practice-selection-targeted')).toHaveCount(0);
       }
+      const beforeAutomaticHint = await responseCount();
+      await page.evaluate(() => {
+        const state = window.__fieldPractice;
+        state.workers[state.epoch].dispatchEvent(new MessageEvent('message', { data: { type: 'frame', frame: {
+          ...state.last, step: state.last.step + 1, events: [[83, 1, 0, 4, 2, 1], [2, 4, 0, 138, 4, 0, 0]],
+        } } }));
+      });
+      await expect(boardCard(0, 4, 2)).toHaveAttribute('data-card-targeted', 'false');
+      await expect(boardCard(0, 4, 2).getByTestId('card-target-flash')).toHaveCSS('opacity', '0', { timeout: 3000 });
+      assert.equal(await responseCount(), beforeAutomaticHint, 'Automatic emphasis must not submit a practice response');
       await expect(page.getByTestId('practice-choices').getByTestId('practice-locate-card').first()).toBeVisible();
       const x = await Promise.all([3, 9, 7].map(async index => (await candidate(index).boundingBox()).x));
       assert.ok(x[0] < x[1] && x[1] < x[2], 'A candidates keep actual left-to-right 0/2/4 field positions');

@@ -1,7 +1,11 @@
 import type { ReplayFrame } from "@/replay/engine";
 import type { ReplayCard } from "@/replay/messages";
 
-export type SceneCard = ReplayCard & { sceneId: string; targeted?: boolean };
+export type SceneCard = ReplayCard & {
+  sceneId: string;
+  targeted?: boolean;
+  targetFlash?: number;
+};
 export interface Spot {
   player: number;
   location: number;
@@ -53,6 +57,7 @@ export function seedScene(
     cards: frame.cards.map((c) => ({
       ...c,
       targeted: false,
+      targetFlash: undefined,
       sceneId:
         previous?.cards.find((old) => same(old, c) && old.code === c.code)
           ?.sceneId ||
@@ -240,7 +245,10 @@ export function sceneSteps(
         const target = scene.cards.find((card) =>
           same(card, spot(event, 2 + index * 4)),
         );
-        if (target) target.targeted = true;
+        if (target) {
+          target.targeted = scene.chains.length > 0;
+          target.targetFlash = (target.targetFlash ?? 0) + 1;
+        }
       }
     } else if (kind === 70) {
       const to = spot(event, 5),
@@ -299,9 +307,11 @@ export function sceneSteps(
   const final = seedScene(next, scene);
   final.action = scene.action;
   final.chains = scene.chains;
-  for (const card of final.cards)
-    card.targeted = !!scene.cards.find((old) => old.sceneId === card.sceneId)
-      ?.targeted;
+  for (const card of final.cards) {
+    const previous = scene.cards.find((old) => old.sceneId === card.sceneId);
+    card.targeted = !!previous?.targeted;
+    card.targetFlash = previous?.targetFlash;
+  }
   steps.push(final);
   return steps;
 }

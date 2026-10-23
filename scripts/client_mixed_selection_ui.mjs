@@ -44,6 +44,17 @@ try {
           });
           window.__round4.packet([...bytes]);
         };
+      });
+      await page.evaluate(() => window.__round4.packet([83, 1, 0, 4, 3, 1]));
+      const emphasized = page.locator('[data-card-zone-value="2"][data-card-sequence="3"][data-card-is-overlay="false"]').first();
+      await expect(emphasized).toHaveAttribute('data-card-targeted', 'false');
+      const pulse = emphasized.getByTestId('card-target-flash');
+      await expect(pulse).toBeAttached();
+      await expect(pulse).toHaveCSS('opacity', '0', { timeout: 3000 });
+      await page.screenshot({ path: `${folder}/${width}-automatic-highlight-ended.png` });
+      assert.equal(await page.evaluate(() => window.__followup.sent.length), 0, 'A visual hint must not send a response');
+      await page.evaluate(() => {
+        window.__followup.stores.matStore.chains.push({ controller: 0, zone: 2, sequence: 3 });
         window.__round4.packet([83, 1, 0, 16, 1, 1]);
         window.__mixedOpen();
       });
@@ -65,7 +76,10 @@ try {
       await expect(grave(0).getByTestId('duel-selection-targeted')).toHaveCount(0);
       await page.evaluate(() => window.__round4.packet([74]));
       await expect(grave(1).getByTestId('duel-selection-targeted')).toHaveCount(0);
-      await page.evaluate(() => window.__round4.packet([83, 1, 0, 16, 0, 1]));
+      await page.evaluate(() => {
+        window.__followup.stores.matStore.chains.push({ controller: 0, zone: 2, sequence: 3 });
+        window.__round4.packet([83, 1, 0, 16, 0, 1]);
+      });
       await expect(grave(0).getByTestId('duel-selection-targeted')).toBeVisible();
       await grave(1).locator('.ant-pro-checkcard').click();
       await grave(0).locator('.ant-pro-checkcard').click();
