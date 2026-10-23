@@ -8,7 +8,7 @@
 
 ```mermaid
 flowchart TB
-  Website["SRVPro 官网页面"] -->|"观战链接 / 卡组与录像交接"| Router
+  Website["SRVPro 官网页面"] -->|"快捷入口 / 观战链接 / 卡组与录像交接"| Router
   Static["外部 HTTPS 静态托管<br/>应用 / 四语资源 / 音效 / 录像资源"] --> Router
   StaticEntry["Cloudflare 主入口 Worker<br/>HTTP 308 / HTTPS ASSETS"] --> Static
   TestEntry["test.ocg1103nexus.com<br/>HTTP 308 / 独立只读测试入口"] -->|"固定预览上游 / HTTPS GET与HEAD"| StaticEntry
@@ -52,6 +52,8 @@ flowchart TB
 网页是外部托管的静态应用，不增加账号或结算后端。SQLite WASM 读取卡片资料；
 Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二者不能按“WASM”合并判断。
 官网交接与对战 WSS 是两条独立路径，导入卡组／录像不会自动入房。
+
+`variant/webEntry` 解析公开 intent，`webEntrySession` 在资源加载前消费链接，并按现有运营来源名单完成一次性 postMessage 账号交接；`ui/WebEntry` 复用既有列表与 Match 表单，不引入新连接服务。带账号观战仅持久化完整身份、清空普通房间号，目标房间仍为临时输入；匿名入口继续恢复旧草稿。参数、来源校验和发送端示例见 [快捷入口](web-entry.md)。
 
 阶段栏与原菜单共用 `variant/duelPhases.ts`，依据当前请求来源、回合归属与 Core 标志禁用不可进入的阶段。`PhaseState.command` 仅在 idle／battle 请求期间有效，提交、失效、新阶段或其他选择会清除；响应继续经过操作所有权及确认机制。区域内部数量角标由“画面与消息”的持久化 `showZoneCounts` 控制，不影响区域列表与主卡组保密。练习共享卡图、响应式几何与 `PhaseBar` 展示，保留独立 Worker、请求及状态，不复用在线 handler 或连接。
 

@@ -30,6 +30,7 @@ import {
   type RoomLink,
   websiteObserverNickname,
 } from "@/variant/roomLink";
+import { webEntryMessages } from "@/variant/webEntryMessages";
 import { localizedWebsiteUrl } from "@/variant/websiteLink";
 
 import styles from "./index.module.scss";
@@ -109,7 +110,15 @@ function ReplayReceipt() {
   );
 }
 
-const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
+export const JoinRoomForm = ({
+  link,
+  autoConnect = false,
+  claimAutojoin,
+}: {
+  link?: RoomLink;
+  autoConnect?: boolean;
+  claimAutojoin?: () => boolean;
+}) => {
   const spectate = !!link?.spectate;
   const autoStarted = useRef(false);
   const [invalidLink, setInvalidLink] = useState(!!link?.invalid);
@@ -213,6 +222,8 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
       return message.error(text.spectatorRoomCommand);
     if (!spectate) {
       saveJoinForm({ nickname, roomName });
+    } else if (nickname.includes("$")) {
+      saveJoinForm({ nickname, roomName: "" });
     }
     setConnecting(true);
     try {
@@ -229,10 +240,12 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   }, [invalidLink, endpointError, nickname, roomName, spectate, message, text]);
 
   useEffect(() => {
-    if (!spectate || !link?.autojoin || autoStarted.current) return;
+    if ((!spectate && !autoConnect) || !link?.autojoin || autoStarted.current)
+      return;
     autoStarted.current = true;
+    if (claimAutojoin && !claimAutojoin()) return;
     void connect();
-  }, [spectate, link?.autojoin, connect]);
+  }, [spectate, autoConnect, link?.autojoin, claimAutojoin, connect]);
 
   return (
     <>
@@ -284,9 +297,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           }}
           autoComplete="off"
         />
-        <small>
-          {spectate ? text.spectatorNicknameHint : text.nicknameHint}
-        </small>
+        {!spectate && <small>{text.nicknameHint}</small>}
         <div className={styles.fieldHeading}>
           <label htmlFor="room-name">{text.room}</label>
           <Button
@@ -335,7 +346,9 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
         {invalidLink && <p role="alert">{text.invalidRoomLink}</p>}
         <p data-testid="join-cache-help">
           {spectate
-            ? previewMessages(language).spectatorRestore
+            ? nickname.includes("$")
+              ? webEntryMessages(language).spectatorCache
+              : previewMessages(language).spectatorRestore
             : previewMessages(language).joinPersistence}
         </p>
         {endpointError && <p role="alert">{endpointError}</p>}

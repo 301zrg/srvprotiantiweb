@@ -12,7 +12,7 @@
 | 接手项目、理解实际模块与数据归属 | [当前架构与四张数据流图](ARCHITECTURE.md)、[当前状态与验收矩阵](PROJECT_STATUS.md) |
 | 开发规则、设计取舍、未完成工作 | [AGENTS](../AGENTS.md)、[设计](../YGOPro_706_Web_Client_Design.md)、[剩余工作](../IMPLEMENTATION_PLAN.md) |
 | 联机配置、封包与服务端兼容 | [WSS 联调](wss-integration.md)、[服务端契约](server-contract-audit.md)、[会话与后台恢复](session-recovery.md) |
-| 通过官网打开卡组、录像或观战 | [卡组接收](deck-import.md)、[录像接收](replay-import.md)、[观战链接](room-spectator-links.md)、[语言参数](language-links.md) |
+| 通过官网打开卡组、录像或观战 | [快捷入口与账号交接](web-entry.md)、[卡组接收](deck-import.md)、[录像接收](replay-import.md)、[观战链接](room-spectator-links.md)、[语言参数](language-links.md) |
 | 首页与手机返回入口、八套一线示例卡组 | [移动界面](mobile-ui.md)、[官网语言链接](language-links.md)、[示例来源与旧库升级](sample-decks.md) |
 | 使用录像库、检查播放范围 | [录像使用](replay-usage.md)、[完整场地展示](replay-field-preview.md)、[录像设计及兼容验收](replay-phase2-plan.md) |
 | 维护卡库、禁表、加载失败、旧裁定 | [1103 资源审计](1103-resource-audit.json)、[原件说明](../resources-staging/1103/README.md)、[资源恢复](resource-recovery.md)、[禁表诊断](banlist-diagnosis.md)、[录像脚本维护](replay-script-maintenance.md) |

@@ -51,7 +51,7 @@ export function readJoinForm(): JoinForm {
       roomName: saved("playerRoomName") ?? "TT",
     };
   // Migrate complete pre-update tab inputs once, without overwriting newer
-  // ordinary input saved by another tab. Spectator forms never call save.
+  // ordinary input saved by another tab. Anonymous spectator input stays temporary.
   if (tab && !browser) saveBrowserDraft(tab);
   return draft;
 }
