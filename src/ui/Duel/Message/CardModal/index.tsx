@@ -1,24 +1,20 @@
-import { Divider, Space, Tag } from "antd";
+import { Divider, Space } from "antd";
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
-import { type CardMeta, fetchCard, fetchStrings, Region, ygopro } from "@/api";
+import { type CardMeta, fetchCard, ygopro } from "@/api";
 import { cardStore, type CardType, matStore } from "@/stores";
 import { onlineInformationCards } from "@/ui/Duel/PlayMat/cardInformation";
 import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
 import { CardCounters, RelatedCards } from "@/ui/Shared/CardInformation";
+import { CardStatsDetails } from "@/ui/Shared/CardStats";
+import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
-import {
-  Attribute2StringCodeMap,
-  extraCardTypes,
-  Race2StringCodeMap,
-  TYPE_LINK,
-  TYPE_MONSTER,
-  Type2StringCodeMap,
-} from "../../../../common";
+import { extraCardTypes, TYPE_LINK, TYPE_MONSTER } from "../../../../common";
 import { Desc } from "./Desc";
 import styles from "./index.module.scss";
 
@@ -55,15 +51,50 @@ export const CardModal = () => {
   const { language } = useI18N();
   const text = mobileMessages(language);
   const { isOpen } = snap;
-  const { meta, counters, hint } = liveCard ?? snap;
+  const information = onlineInformationCards(
+    inner,
+    language,
+    selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
+      ? observerView
+      : matStore.isMe(0)
+      ? 0
+      : 1,
+    selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer,
+  );
+  const visible =
+    !liveCard ||
+    liveCard.location.is_overlay ||
+    !information.find((card) => card.id === liveCard.uuid)?.hidden;
+  const { meta: sourceMeta, counters, hint } = liveCard ?? snap;
+  const meta = visible ? sourceMeta : fetchCard(0);
 
-  const name = meta?.text.name;
   const types = extraCardTypes(meta?.data.type ?? 0);
-  const race = meta?.data.race;
-  const attribute = meta?.data.attribute;
-  const desc = meta?.text.desc;
   const atk = meta?.data.atk;
   const def = meta?.data.def;
+  const printed = meta?.id ? fetchCard(meta.id) : undefined;
+  const faceUp =
+    !!liveCard &&
+    !liveCard.location.is_overlay &&
+    [ygopro.CardZone.MZONE, ygopro.CardZone.SZONE].includes(
+      liveCard.location.zone,
+    ) &&
+    [
+      ygopro.CardPosition.ATTACK,
+      ygopro.CardPosition.FACEUP_ATTACK,
+      ygopro.CardPosition.DEFENSE,
+      ygopro.CardPosition.FACEUP_DEFENSE,
+    ].includes(liveCard.location.position);
+  const currentIdentity =
+    visible &&
+    liveCard &&
+    !liveCard.location.is_overlay &&
+    liveCard.currentCode !== undefined
+      ? { ...meta.data, currentCode: liveCard.currentCode, rank: liveCard.rank }
+      : undefined;
+  const name = currentIdentity?.currentCode
+    ? fetchCard(currentIdentity.currentCode).text.name
+    : printed?.text.name ?? meta?.text.name;
+  const desc = printed?.text.desc ?? meta?.text.desc;
 
   return (
     <DuelPanel
@@ -81,29 +112,40 @@ export const CardModal = () => {
         data-testid="duel-card-detail"
         data-card-code={meta?.id}
       >
-        <Space
-          align="start"
-          size={18}
-          style={{ position: "relative", display: "flex" }}
-          className={styles.overview}
-        >
+        <div className={`${styles.overview} card-stat-overview`}>
           <YgoCard
             code={meta?.id}
             width={CARD_WIDTH}
             style={{ borderRadius: 4 }}
           />
           <Space direction="vertical" className={styles.info}>
-            {((meta?.data.type ?? 0) & TYPE_MONSTER) !== 0 && (
-              <AtkLine
-                atk={atk}
-                def={types.includes(TYPE_LINK) ? undefined : def}
+            {(((meta?.data.type ?? 0) | (printed?.data.type ?? 0)) &
+              TYPE_MONSTER) !==
+              0 && (
+              <CardStatsDetails
+                language={language}
+                live={faceUp && !!((meta.data.type ?? 0) & TYPE_MONSTER)}
+                stats={{
+                  attack: atk,
+                  defense: def,
+                  baseAttack: liveCard?.baseAttack,
+                  baseDefense: liveCard?.baseDefense,
+                  printedAttack: printed?.data.atk,
+                  printedDefense: printed?.data.def,
+                  hasDefense: !types.includes(TYPE_LINK),
+                }}
               />
             )}
             <CardCounters counters={counters} testId="duel-card-counter" />
-            <AttLine types={types} race={race} attribute={attribute} />
-            {/* TODO: 展示星级/LINK数 */}
           </Space>
-        </Space>
+        </div>
+        {!!meta.id && (
+          <CardIdentityDetails
+            code={meta.id}
+            current={currentIdentity}
+            language={language}
+          />
+        )}
         {hint && (
           <div
             className={styles.hint}
@@ -123,79 +165,21 @@ export const CardModal = () => {
         )}
         <RelatedCards
           id={uuid}
-          cards={onlineInformationCards(
-            inner,
-            language,
-            selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
-              ? observerView
-              : matStore.isMe(0)
-              ? 0
-              : 1,
-            selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer,
-          )}
+          cards={information}
           language={language}
           onLocate={() => {
             store.isOpen = false;
           }}
         />
         <Divider style={{ margin: "0.875rem 0" }}></Divider>
+        <strong className="card-printed-description-label">
+          {statsPlaybackMessages(language).printed}
+        </strong>
         <Desc desc={desc} />
       </div>
     </DuelPanel>
   );
 };
-
-const AttLine = (props: {
-  types: number[];
-  race?: number;
-  attribute?: number;
-}) => {
-  const race = props.race
-    ? fetchStrings(Region.System, Race2StringCodeMap.get(props.race) || 0)
-    : undefined;
-  const attribute = props.attribute
-    ? fetchStrings(
-        Region.System,
-        Attribute2StringCodeMap.get(props.attribute) || 0,
-      )
-    : undefined;
-  const types = props.types
-    .map((t) => fetchStrings(Region.System, Type2StringCodeMap.get(t) || 0))
-    .join("/");
-  return (
-    <div className={styles.attline}>
-      {attribute && <Tag>{attribute}</Tag>}
-      {race && <Tag>{race}</Tag>}
-      {types && <Tag>{types}</Tag>}
-    </div>
-  );
-};
-
-const AtkLine = (props: { atk?: number; def?: number }) => (
-  <Space
-    size={10}
-    className={styles.atkLine}
-    direction="vertical"
-    data-testid="duel-card-stats"
-  >
-    <div
-      data-testid="duel-card-stat"
-      data-stat="ATK"
-      data-stat-value={props.atk ?? ""}
-    >
-      <div className={styles.title}>ATK</div>
-      <div className={styles.number}>{props.atk ?? "?"}</div>
-    </div>
-    <div
-      data-testid="duel-card-stat"
-      data-stat="DEF"
-      data-stat-value={props.def ?? ""}
-    >
-      <div className={styles.title}>DEF</div>
-      <div className={styles.number}>{props.def ?? "?"}</div>
-    </div>
-  </Space>
-);
 
 export const showCardModal = (
   card: Partial<Pick<CardType, "uuid" | "meta" | "counters" | "hint">>,

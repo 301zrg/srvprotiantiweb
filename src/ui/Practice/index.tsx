@@ -37,6 +37,8 @@ import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
 import { CardCounters, RelatedCards } from "@/ui/Shared/CardInformation";
+import { CardStatsDetails } from "@/ui/Shared/CardStats";
+import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { corePhaseKey } from "@/variant/duelPhases";
@@ -50,6 +52,7 @@ import {
 import { mobileMessages } from "@/variant/mobileMessages";
 import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
+import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import feedbackStyles from "../Duel/Message/HintNotification/index.module.scss";
 import { NeosModal } from "../Duel/Message/NeosModal";
@@ -75,7 +78,7 @@ export const Component = () => {
   const { t } = useTranslation("ClientUI");
   const navigate = useNavigate();
   const decks = useSnapshot(deckStore).decks;
-  const { chainSetting } = useSnapshot(settingStore);
+  const { chainSetting, controlPanelSide } = useSnapshot(settingStore);
   const [draft] = useState(getPracticeDeck);
   const [deckA, setDeckA] = useState(draft ? "draft" : "local:0");
   const [deckB, setDeckB] = useState(draft ? "draft" : "local:0");
@@ -88,7 +91,9 @@ export const Component = () => {
   const [selected, setSelected] = useState<number[]>([]);
   const [located, setLocated] = useState<FieldSpot>();
   const locateTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [inspected, setInspected] = useState<ReplayCard>();
+  const [inspectedSource, setInspected] = useState<
+    ReplayCard & { sceneId?: string }
+  >();
   const [historyCard, setHistoryCard] = useState<number>();
   const [confirmation, setConfirmation] = useState<{
     request: PracticeRequest;
@@ -264,11 +269,24 @@ export const Component = () => {
           language,
         )
       : undefined;
-  const detailCode = inspected?.code ?? historyCard;
+  const inspected =
+    inspectedSource && !(inspectedSource.location & 128)
+      ? session.scene?.cards.find((c) =>
+          inspectedSource.sceneId
+            ? c.sceneId === inspectedSource.sceneId &&
+              c.code === inspectedSource.code
+            : c.code === inspectedSource.code &&
+              c.player === inspectedSource.player &&
+              c.location === inspectedSource.location &&
+              c.sequence === inspectedSource.sequence,
+        )
+      : undefined;
+  const detailCode = inspected?.code ?? inspectedSource?.code ?? historyCard;
   const card = detailCode ? fetchCard(detailCode) : undefined;
   return (
     <main
       className="practice-session"
+      data-control-side={controlPanelSide}
       data-testid="practice-page"
       data-prompt-minimized={promptMinimized && promptOpen}
     >
@@ -594,9 +612,10 @@ export const Component = () => {
       </Modal>
       <Drawer
         open={historyOpen}
+        placement={controlPanelSide}
         title={words.history}
         onClose={() => setHistoryOpen(false)}
-        width={400}
+        width="min(400px, 100vw)"
       >
         <PracticeHistory
           entries={session.history}
@@ -611,9 +630,13 @@ export const Component = () => {
       <Drawer
         open={!!detailCode}
         mask={false}
-        placement={portrait ? "bottom" : "right"}
+        placement={portrait ? "bottom" : controlPanelSide}
         height="45dvh"
-        title={card?.text.name || words.details}
+        title={
+          (inspected?.currentCode
+            ? fetchCard(inspected.currentCode).text.name
+            : card?.text.name) || words.details
+        }
         onClose={() => {
           setInspected(undefined);
           setHistoryCard(undefined);
@@ -622,17 +645,44 @@ export const Component = () => {
       >
         {!!detailCode && (
           <>
-            <img
-              className="practice-detail-image"
-              src={getCardImgUrl(detailCode)}
-              alt={card?.text.name || ""}
+            <div className="card-stat-overview">
+              <img
+                className="practice-detail-image"
+                src={getCardImgUrl(detailCode)}
+                alt={card?.text.name || ""}
+              />
+              {!!(((card?.data.type ?? 0) | (inspected?.type ?? 0)) & 1) && (
+                <CardStatsDetails
+                  language={language}
+                  live={
+                    !!inspected &&
+                    [4, 8].includes(inspected.location) &&
+                    !!(inspected.position & 5) &&
+                    !!(inspected.type & 1)
+                  }
+                  stats={{
+                    ...inspected,
+                    printedAttack: card?.data.atk,
+                    printedDefense: card?.data.def,
+                    hasDefense: !(
+                      (inspected?.type ?? card?.data.type ?? 0) & 0x4000000
+                    ),
+                  }}
+                />
+              )}
+            </div>
+            <CardIdentityDetails
+              code={detailCode}
+              current={
+                inspected && inspected.currentCode !== undefined
+                  ? inspected
+                  : undefined
+              }
+              language={language}
             />
             {inspected && (
               <>
                 <p>{positionLabel(inspected, language)}</p>
-                <p>
-                  {inspected.attack}/{inspected.defense}
-                </p>
                 <CardCounters counters={inspected.counters} />
                 <RelatedCards
                   id={sceneInformationId(session.scene?.cards ?? [], inspected)}
@@ -647,6 +697,9 @@ export const Component = () => {
                 />
               </>
             )}
+            <strong className="card-printed-description-label">
+              {statsPlaybackMessages(language).printed}
+            </strong>
             <p className="practice-description">{card?.text.desc}</p>
           </>
         )}

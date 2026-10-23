@@ -1,6 +1,8 @@
+import "./controlPanel.css";
+
 import { SettingOutlined } from "@ant-design/icons";
 import { Button } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -21,6 +23,7 @@ import {
 } from "@/infra/resource";
 import { replayCaptureStatus } from "@/replay/capture";
 import { initStore } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
 import { RpsFeedback } from "@/ui/RpsFeedback";
 import { basePath, environmentId, getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
@@ -100,6 +103,10 @@ export const ErrorBoundary = () => {
 };
 
 export const Component = () => {
+  const { controlPanelSide } = useSnapshot(settingStore);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.controlSide = controlPanelSide;
+  }, [controlPanelSide]);
   const { t } = useTranslation("ClientUI");
   const { pathname } = useLocation();
   const navigation = useNavigation();

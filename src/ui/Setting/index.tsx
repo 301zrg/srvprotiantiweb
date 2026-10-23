@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useMediaQuery } from "@/hook";
 import { mobileMessages } from "@/variant/mobileMessages";
 import { previewMessages } from "@/variant/previewMessages";
+import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { I18NSelector, useI18N } from "../I18N";
 import { AnimationSetting } from "./Animation";
@@ -11,6 +12,7 @@ import { AudioSetting } from "./Audio";
 import styles from "./index.module.scss";
 import { MessageSetting } from "./Messages";
 import { OperationSetting } from "./Operations";
+import { ReplaySetting } from "./Replay";
 
 export interface SettingProps {
   defaultKey?:
@@ -19,6 +21,7 @@ export interface SettingProps {
     | "messages"
     | "animation"
     | "operations"
+    | "replay"
     | "other";
 }
 
@@ -49,6 +52,11 @@ export const Setting = ({ defaultKey = "audio" }: SettingProps) => {
           <MessageSetting />
         </>
       ),
+    },
+    {
+      key: "replay",
+      label: statsPlaybackMessages(language).replay,
+      content: <ReplaySetting />,
     },
     { key: "language", label: text.language, content: <I18NSelector /> },
   ];

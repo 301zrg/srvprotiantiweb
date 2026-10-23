@@ -41,12 +41,16 @@ import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
 import { RelatedCards } from "@/ui/Shared/CardInformation";
+import { CardStatsDetails } from "@/ui/Shared/CardStats";
+import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
 import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { type Language, languageLocales } from "@/variant";
 import { previewMessages } from "@/variant/previewMessages";
+import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { ReplayAudio } from "./audio";
 import { sceneInformationCards } from "./cardInformation";
+import { concealReplayCard } from "./cardState";
 import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
 import { DeckExtract } from "./DeckExtract";
@@ -513,11 +517,12 @@ function Player({ id, text }: { id: string; text: string[] }) {
   const watchdog = useRef<number>();
   const pending = useRef(false),
     paused = useRef(true),
-    speed = useRef(1),
+    speed = useRef(settingStore.replaySpeed),
     seek = useRef(0);
   const scene = useRef<SceneFrame>();
   const queue = useRef<SceneFrame[]>([]);
   const requestedAuto = useRef(false);
+  const autoStartPending = useRef(false);
   const [fieldView, setFieldView] = useState(true);
   const [frame, setFrame] = useState<SceneFrame>(),
     [working, setWorking] = useState(true),
@@ -527,13 +532,14 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [seeking, setSeeking] = useState(false),
     [view, setView] = useState(0),
     [target, setTarget] = useState("1"),
-    [rate, setRate] = useState(1),
     [card, setCard] = useState<ReplayCard>(),
     [history, setHistory] = useState<ReplayHistoryFrame[]>([]),
     [showHistory, setShowHistory] = useState(false),
     [title, setTitle] = useState("");
   const [reveal, setReveal] = useState(false);
+  const rate = settings.replaySpeed;
   const stop = () => {
+    autoStartPending.current = false;
     paused.current = true;
     setPlaying(false);
     clearTimeout(timer.current);
@@ -583,9 +589,22 @@ function Player({ id, text }: { id: string; text: string[] }) {
     worker.current.postMessage({ type, turn: seek.current });
     requestedAuto.current = !paused.current;
   };
+  const requestRef = useRef(request);
+  requestRef.current = request;
+  useEffect(() => {
+    speed.current = rate;
+    if (!paused.current && !pending.current && !seek.current) {
+      clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => requestRef.current(), 600 / rate);
+    }
+  }, [rate]);
   useEffect(() => {
     let disposed = false;
+    autoStartPending.current = settingStore.replayAutoPlay && !document.hidden;
+    paused.current = true;
+    setPlaying(false);
     const loadingTimeout = window.setTimeout(() => {
+      if (disposed) return;
       worker.current?.terminate();
       setError(t("ReplayLoadTimeout"));
     }, 120000);
@@ -603,6 +622,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
         );
         worker.current = w;
         w.onmessage = ({ data }) => {
+          if (disposed || worker.current !== w) return;
           if (data.type === "status") {
             setStatus(data.text);
             return;
@@ -618,6 +638,8 @@ function Player({ id, text }: { id: string; text: string[] }) {
             return;
           }
           if (data.type !== "frame") return;
+          const startAuto = autoStartPending.current;
+          autoStartPending.current = false;
           const next = data.frame as ReplayFrame;
           setStatus("");
           setHistory((old) =>
@@ -661,6 +683,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
             stop();
             return;
           }
+          if (startAuto && !document.hidden) {
+            audio.current?.unlock();
+            paused.current = false;
+            setPlaying(true);
+          }
           if (!paused.current)
             timer.current = window.setTimeout(
               () => request(),
@@ -668,6 +695,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
             );
         };
         w.onerror = () => {
+          if (disposed || worker.current !== w) return;
           clearTimeout(loadingTimeout);
           clearTimeout(watchdog.current);
           pending.current = false;
@@ -689,6 +717,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
         );
       })
       .catch((e) => {
+        if (disposed) return;
         if (!disposed) setError(String(e instanceof Error ? e.message : e));
         clearTimeout(loadingTimeout);
         clearTimeout(watchdog.current);
@@ -737,6 +766,13 @@ function Player({ id, text }: { id: string; text: string[] }) {
         c.code === card.code,
     );
   const selected = currentCard ? fetchCard(currentCard.code) : undefined;
+  const selectedIdentity =
+    currentCard &&
+    currentCard.currentCode !== undefined &&
+    !(currentCard.location & 128) &&
+    !concealReplayCard(currentCard, reveal)
+      ? currentCard
+      : undefined;
   return (
     <main
       className={`replay-player ${fieldView ? "replay-player-field" : ""}`}
@@ -799,12 +835,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
             label: `${n}×`,
           }))}
           onChange={(n) => {
-            speed.current = n;
-            setRate(n);
-            if (!paused.current && !pending.current && !seek.current) {
-              clearTimeout(timer.current);
-              timer.current = window.setTimeout(() => request(), 600 / n);
-            }
+            settingStore.replaySpeed = n;
           }}
         />
         <Button onClick={() => setView(1 - view)}>{text[11]}</Button>
@@ -967,7 +998,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
       )}
       <Drawer
         rootClassName="replay-drawer"
-        title={selected?.text.name || currentCard?.code}
+        title={
+          (selectedIdentity?.currentCode
+            ? fetchCard(selectedIdentity.currentCode).text.name
+            : selected?.text.name) || currentCard?.code
+        }
         open={!!currentCard}
         onClose={() => setCard(undefined)}
         width={mobile ? "min(400px, 100vw)" : 400}
@@ -989,22 +1024,42 @@ function Player({ id, text }: { id: string; text: string[] }) {
         )}
         {currentCard && (
           <>
-            <img
-              className="replay-detail-image"
-              src={getCardImgUrl(currentCard.code)}
-              alt=""
+            <div className="card-stat-overview">
+              <img
+                className="replay-detail-image"
+                src={getCardImgUrl(currentCard.code)}
+                alt=""
+              />
+              {!!((currentCard.type | (selected?.data.type ?? 0)) & 1) && (
+                <CardStatsDetails
+                  language={language}
+                  live={
+                    [4, 8].includes(currentCard.location) &&
+                    !!(currentCard.position & 5) &&
+                    !!(currentCard.type & 1)
+                  }
+                  stats={{
+                    ...currentCard,
+                    printedAttack: selected?.data.atk,
+                    printedDefense: selected?.data.def,
+                    hasDefense: !(currentCard.type & 0x4000000),
+                  }}
+                />
+              )}
+            </div>
+            <CardIdentityDetails
+              code={currentCard.code}
+              current={selectedIdentity}
+              language={language}
             />
             <p>{positionLabel(currentCard, language)}</p>
-            {!!(currentCard.type & 1) && (
-              <p>
-                {stateText.atk} {currentCard.attack} / {stateText.def}{" "}
-                {currentCard.defense}
-              </p>
-            )}
             {!!((currentCard.status || 0) & 1) && <p>{stateText.disabled}</p>}
             {!!((currentCard.status || 0) & 0x4000000) && (
               <p>{stateText.forbidden}</p>
             )}
+            <strong className="card-printed-description-label">
+              {statsPlaybackMessages(language).printed}
+            </strong>
             <p className="replay-description">{selected?.text.desc}</p>
             <RelatedCards
               id={currentCard.sceneId}

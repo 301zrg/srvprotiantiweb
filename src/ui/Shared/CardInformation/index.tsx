@@ -11,6 +11,14 @@ import {
   type IdentifiedCardLinks,
   relatedCardLinks,
 } from "@/variant/cardInformation";
+import {
+  type CardStats,
+  placeFieldStats,
+  type StatRect,
+  statText,
+} from "@/variant/cardStats";
+
+import { CompactCardStats } from "../CardStats";
 
 export interface InformationCard extends IdentifiedCardLinks {
   code: number;
@@ -18,6 +26,7 @@ export interface InformationCard extends IdentifiedCardLinks {
   position: string;
   hidden?: boolean;
   counters: Readonly<Record<number, number>> | readonly number[];
+  stats?: CardStats;
 }
 
 export function counterName(type: number) {
@@ -119,6 +128,7 @@ interface CardRect {
   y: number;
   width: number;
   height: number;
+  power?: StatRect;
 }
 
 /** Screen-space annotations stay upright for defense cards and flipped views.
@@ -189,6 +199,8 @@ export function CardInformationLayer({
     let frame = 0,
       previous = "",
       last = 0;
+    const context = document.createElement("canvas").getContext("2d");
+    if (context) context.font = "700 12px system-ui, sans-serif";
     const measure = (time: number) => {
       if (time - last >= 30 && !document.hidden) {
         last = time;
@@ -202,11 +214,32 @@ export function CardInformationLayer({
           latest.current
             .filter(
               (card) =>
-                counterEntries(card.counters).length || linkedIds.has(card.id),
+                counterEntries(card.counters).length ||
+                linkedIds.has(card.id) ||
+                card.stats,
             )
             .map((card) => card.id),
         );
         const boundary = element.getBoundingClientRect();
+        const nextClip = {
+          x: Math.max(0, boundary.x),
+          y: Math.max(0, boundary.y),
+          width: boundary.width,
+          height: boundary.height,
+        };
+        const obstacles = Array.from(
+          element.querySelectorAll<HTMLElement>(
+            "[data-card-info-id], [data-card-uuid], .practice-field-card, .replay-card",
+          ),
+        ).map((node) => node.getBoundingClientRect());
+        const desktop = window.matchMedia(
+          "(min-width: 1024px) and (pointer: fine)",
+        ).matches;
+        const columns = Array.from(
+          element.querySelectorAll<HTMLElement>(
+            '[data-testid="duel-zone"][data-zone="MZONE"], .practice-field-slot[data-location="4"], .replay-field-slot[data-location="4"]',
+          ),
+        ).map((node) => node.getBoundingClientRect());
         const next = Array.from(
           element.querySelectorAll<HTMLElement>("[data-card-info-id]"),
         ).flatMap((node) => {
@@ -222,14 +255,33 @@ export function CardInformationLayer({
             r.left >= boundary.right
           )
             return [];
-          return [{ id, x: r.x, y: r.y, width: r.width, height: r.height }];
+          const stats = latest.current.find((card) => card.id === id)?.stats;
+          const column = columns.find(
+            (slot) =>
+              slot.left <= r.x + r.width / 2 &&
+              slot.right >= r.x + r.width / 2 &&
+              slot.top <= r.y + r.height / 2 &&
+              slot.bottom >= r.y + r.height / 2,
+          );
+          const label =
+            stats &&
+            `${statText(stats.attack)}${
+              stats.hasDefense === false ? "" : ` / ${statText(stats.defense)}`
+            }`;
+          const power =
+            desktop && stats && context
+              ? placeFieldStats(
+                  r,
+                  obstacles,
+                  nextClip,
+                  context.measureText(label!).width,
+                  column?.width,
+                )
+              : undefined;
+          return [
+            { id, x: r.x, y: r.y, width: r.width, height: r.height, power },
+          ];
         });
-        const nextClip = {
-          x: Math.max(0, boundary.x),
-          y: Math.max(0, boundary.y),
-          width: boundary.width,
-          height: boundary.height,
-        };
         const key = JSON.stringify([next, nextClip]);
         if (key !== previous) {
           previous = key;
@@ -325,6 +377,18 @@ export function CardInformationLayer({
                 </span>
               ))}
             </div>
+            {rect.power && card?.stats && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: rect.power.x - rect.x,
+                  top: rect.power.y - rect.y,
+                  width: rect.power.width,
+                }}
+              >
+                <CompactCardStats stats={card.stats} />
+              </div>
+            )}
           </div>
         );
       })}

@@ -4,6 +4,7 @@ import { AudioConfig, defaultAudioConfig } from "./audio";
 
 export type RandomRpsMode = "off" | "suggest" | "play";
 export type ServerMessageMode = "auto" | "popup" | "record";
+export const replaySpeeds = [0.5, 1, 2, 4, 8, 16] as const;
 
 export interface SettingConfig {
   audio: AudioConfig;
@@ -14,6 +15,9 @@ export interface SettingConfig {
   serverMessageMode: ServerMessageMode;
   showZoneCounts: boolean;
   hidePlayerIds: boolean;
+  replaySpeed: number;
+  replayAutoPlay: boolean;
+  controlPanelSide: "left" | "right";
 }
 
 /** Normalize old browser settings without letting the old replay flag unmute. */
@@ -41,6 +45,13 @@ export function normalizeSetting(value: unknown): SettingConfig {
     confirmOperations: config.confirmOperations === true,
     showZoneCounts: config.showZoneCounts !== false,
     hidePlayerIds: config.hidePlayerIds === true,
+    replaySpeed: replaySpeeds.includes(
+      config.replaySpeed as (typeof replaySpeeds)[number],
+    )
+      ? config.replaySpeed!
+      : 1,
+    replayAutoPlay: config.replayAutoPlay !== false,
+    controlPanelSide: config.controlPanelSide === "right" ? "right" : "left",
     chainSetting: [
       ChainSetting.CHAIN_ALL,
       ChainSetting.CHAIN_IGNORE,

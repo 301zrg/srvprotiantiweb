@@ -92,6 +92,7 @@ export const ChatBox: React.FC<{
       placement="bottom"
       title={mobileMessages(language).chat}
       testId="duel-chat-panel"
+      followControlSide
       onClose={onClose}
     >
       {content}

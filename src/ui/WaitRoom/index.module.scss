@@ -4,6 +4,7 @@
   display: flex;
   overflow: hidden;
 }
+.container[data-control-side="right"] { flex-direction: row-reverse; }
 .sider {
   flex: 0 0 280px;
   min-height: 0;

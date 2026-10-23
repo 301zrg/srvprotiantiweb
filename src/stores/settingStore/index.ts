@@ -45,6 +45,9 @@ class SettingStore implements NeosStore {
   serverMessageMode = defaultSetting.serverMessageMode;
   showZoneCounts = defaultSetting.showZoneCounts;
   hidePlayerIds = defaultSetting.hidePlayerIds;
+  replaySpeed = defaultSetting.replaySpeed;
+  replayAutoPlay = defaultSetting.replayAutoPlay;
+  controlPanelSide = defaultSetting.controlPanelSide;
 
   /** Compatibility for older callers; persistence uses serverMessageMode only. */
   get showServerMessages() {
@@ -77,6 +80,9 @@ class SettingStore implements NeosStore {
     this.serverMessageMode = defaultSetting.serverMessageMode;
     this.showZoneCounts = defaultSetting.showZoneCounts;
     this.hidePlayerIds = defaultSetting.hidePlayerIds;
+    this.replaySpeed = defaultSetting.replaySpeed;
+    this.replayAutoPlay = defaultSetting.replayAutoPlay;
+    this.controlPanelSide = defaultSetting.controlPanelSide;
     this.confirmOperations = defaultSetting.confirmOperations;
   }
 }
@@ -99,6 +105,9 @@ subscribe(settingStore, () => {
             "serverMessageMode",
             "showZoneCounts",
             "hidePlayerIds",
+            "replaySpeed",
+            "replayAutoPlay",
+            "controlPanelSide",
             "confirmOperations",
           ]),
         ),

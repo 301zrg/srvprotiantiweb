@@ -1,17 +1,13 @@
 import { fetchCard, ygopro } from "@/api";
 import { type QueryUpdateAction } from "@/api/ocgcore/ocgAdapter/util";
 import { callCardMove } from "@/ui/Duel/PlayMat/Card";
+import { updateOnlineIdentity } from "@/variant/cardIdentity";
+import { updateOnlineStats } from "@/variant/cardStats";
 
 import MsgUpdateData = ygopro.StocGameMessage.MsgUpdateData;
 import { v4 as v4uuid } from "uuid";
 
-import {
-  QUERY_ATTACK,
-  QUERY_COUNTERS,
-  QUERY_DEFENSE,
-  QUERY_OVERLAY_CARD,
-  TYPE_TOKEN,
-} from "@/common";
+import { QUERY_COUNTERS, QUERY_OVERLAY_CARD, TYPE_TOKEN } from "@/common";
 import { Container } from "@/container";
 
 import { genCard } from "../utils";
@@ -47,6 +43,10 @@ export default async (container: Container, updateData: MsgUpdateData) => {
             const newMeta = fetchCard(action.code);
             target.code = action.code;
             target.meta = newMeta;
+            target.baseAttack = undefined;
+            target.baseDefense = undefined;
+            target.currentCode = undefined;
+            target.rank = undefined;
           }
 
           const meta = target.meta;
@@ -58,35 +58,9 @@ export default async (container: Container, updateData: MsgUpdateData) => {
               await callCardMove(target.uuid);
             }
           }
-          if (action?.type_ >= 0) {
-            meta.data.type = action.type_;
-            if (action.type_ & TYPE_TOKEN) {
-              target.isToken = true;
-            }
-          }
-          if (action?.level >= 0) {
-            meta.data.level = action.level;
-          }
-          if (action?.attribute >= 0) {
-            meta.data.attribute = action.attribute;
-          }
-          if (action?.race >= 0) {
-            meta.data.race = action.race;
-          }
-          if (
-            updateAction.queryFlags === undefined
-              ? action.attack >= 0
-              : (updateAction.queryFlags & QUERY_ATTACK) !== 0
-          ) {
-            meta.data.atk = action.attack;
-          }
-          if (
-            updateAction.queryFlags === undefined
-              ? action.defense >= 0
-              : (updateAction.queryFlags & QUERY_DEFENSE) !== 0
-          ) {
-            meta.data.def = action.defense;
-          }
+          updateOnlineIdentity(target, updateAction);
+          if ((meta.data.type ?? 0) & TYPE_TOKEN) target.isToken = true;
+          updateOnlineStats(target, updateAction);
           if (action?.status >= 0) {
             target.status = action.status;
           }

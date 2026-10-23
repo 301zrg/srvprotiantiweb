@@ -16,6 +16,10 @@ export interface CardType extends CardLinks {
   uuid: string; // 一张卡的唯一标识
   code: number; // 卡号
   meta: CardMeta; // 卡片元数据
+  baseAttack?: number;
+  baseDefense?: number;
+  currentCode?: number;
+  rank?: number;
   confirmedHandCode?: number; // 本次结算已展示的手牌，仅用于选卡。
   confirmedDeckCode?: number; // Explicit identity displayed only during confirmation.
   deckReversed?: boolean; // Native DECK_TOP individual reversal, independent of whole-deck reversal.

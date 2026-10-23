@@ -118,6 +118,10 @@ export default async (container: Container, move: MsgMove) => {
   }
 
   if (to.is_overlay || from.zone !== to.zone) {
+    target.baseAttack = undefined;
+    target.baseDefense = undefined;
+    target.currentCode = undefined;
+    target.rank = undefined;
     if ([MZONE, SZONE].includes(from.zone)) target.counters = {};
     clearOnlineCardLinks(context.cardStore, target.uuid);
   }

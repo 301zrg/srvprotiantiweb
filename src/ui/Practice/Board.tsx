@@ -421,12 +421,6 @@ export const PracticeBoard = ({
               {card.overlay.length}
             </span>
           )}
-          {(card.location === 4 || card.location === 8) &&
-            !!(card.type & 1) && (
-              <span className="practice-card-power">
-                {card.attack}/{card.defense}
-              </span>
-            )}
         </button>
       </Dropdown>
     );

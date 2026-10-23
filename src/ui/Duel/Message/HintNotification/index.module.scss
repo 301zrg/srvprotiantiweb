@@ -20,7 +20,7 @@
 .chatFeedback { display: contents; }
 @media (orientation: landscape) and (min-width: 480px) {
   .chatFeedback {
-    display: block; position: fixed; z-index: 1010; bottom: 8px; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); height: max(76px, calc(100dvh - var(--duel-sidebar-content-top, 180px) - 8px)); overflow: hidden; pointer-events: none;
+    display: block; position: fixed; z-index: 1010; bottom: 8px; left: var(--control-feedback-left); right: var(--control-feedback-right); width: calc(var(--duel-sidebar-width, 280px) - 16px); height: max(76px, calc(100dvh - var(--duel-sidebar-content-top, 180px) - 8px)); overflow: hidden; pointer-events: none;
     :global(.ant-notification) { position: absolute; inset: 0 !important; width: 100%; transform: none !important; }
     :global(.ant-notification-notice-wrapper) { width: 100% !important; max-width: 100%; }
     :global(.ant-notification-notice) { width: 100% !important; box-sizing: border-box; padding: 6px 8px !important; margin: 0 !important; pointer-events: none !important; background: #182634f5; color: white; }
@@ -29,9 +29,9 @@
     :global(.ant-notification-notice-icon) { display: none; }
     :global(.ant-notification-notice-close) { display: flex; align-items: center; justify-content: center; top: 0; right: 0; width: 30px; height: 30px; color: white; pointer-events: auto !important; }
   }
-  .feedback { top: var(--duel-feedback-top, 0px); left: auto; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); }
+  .feedback { top: var(--duel-feedback-top, 0px); left: var(--control-feedback-left); right: var(--control-feedback-right); width: calc(var(--duel-sidebar-width, 280px) - 16px); }
   // App-level messages share the reserved feedback strip during an online duel.
-  :global(body:has([data-duel-sidebar="true"]) > .ant-message) { top: var(--duel-feedback-top, 0px) !important; left: auto !important; right: 8px; width: calc(var(--duel-sidebar-width, 280px) - 16px); transform: none !important; pointer-events: none; }
+  :global(body:has([data-duel-sidebar="true"]) > .ant-message) { top: var(--duel-feedback-top, 0px) !important; left: var(--control-feedback-left) !important; right: var(--control-feedback-right); width: calc(var(--duel-sidebar-width, 280px) - 16px); transform: none !important; pointer-events: none; }
   :global(body:has([data-duel-sidebar="true"]) > .ant-message .ant-message-notice-wrapper) { transform: none !important; }
   :global(body:has([data-duel-sidebar="true"]) > .ant-message .ant-message-notice-content) { pointer-events: none !important; max-width: 100%; max-height: 28px; overflow: hidden; padding: 1px 6px; font-size: 12px; line-height: 13px; }
 }

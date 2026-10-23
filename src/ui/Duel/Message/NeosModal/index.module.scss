@@ -9,6 +9,14 @@
   height: fit-content;
   transition: 0.2s;
 }
+:global(html:not([data-control-side="right"])) .modal:not(.mini) {
+  margin-left: max(8px, env(safe-area-inset-left));
+  margin-right: auto;
+}
+:global(html[data-control-side="right"]) .modal:not(.mini) {
+  margin-left: auto;
+  margin-right: max(8px, env(safe-area-inset-right));
+}
 
 .mini {
   top: auto !important;

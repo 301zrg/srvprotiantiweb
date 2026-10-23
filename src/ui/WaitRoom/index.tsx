@@ -74,6 +74,7 @@ export const Component: React.FC = () => {
   const { language } = useI18N();
   const text = roomMessages(language);
   const mobile = useMobileInterface();
+  const { controlPanelSide } = useSnapshot(settingStore);
   const chat = useChat();
   const { user } = useSnapshot(accountStore);
   const [collapsed, setCollapsed] = useState(false);
@@ -142,6 +143,7 @@ export const Component: React.FC = () => {
   return (
     <div
       data-testid="waitroom"
+      data-control-side={controlPanelSide}
       className={classNames(styles.container, {
         [styles.collapsed]: collapsed,
       })}
@@ -159,6 +161,7 @@ export const Component: React.FC = () => {
           onClose={() => setMobileChatOpen(false)}
           title={text.chat}
           testId="waitroom-chat-panel"
+          followControlSide
           bodyClassName={styles.chatPanelBody}
         >
           <Chat controller={chat} />

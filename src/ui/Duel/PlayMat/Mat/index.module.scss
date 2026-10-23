@@ -52,8 +52,8 @@ section.mat {
   .viewport {
     top: max(8px, env(safe-area-inset-top));
     bottom: max(8px, env(safe-area-inset-bottom));
-    left: max(8px, env(safe-area-inset-left));
-    right: calc(var(--duel-sidebar-width, 280px) + 12px + env(safe-area-inset-right));
+    left: var(--control-board-left);
+    right: var(--control-board-right);
   }
 }
 

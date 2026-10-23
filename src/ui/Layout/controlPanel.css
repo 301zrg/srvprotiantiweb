@@ -1,0 +1,23 @@
+/* Shared physical side for the board, portals and nonblocking feedback. */
+:root {
+  --control-panel-left: 0px;
+  --control-panel-right: auto;
+  --control-feedback-left: 8px;
+  --control-feedback-right: auto;
+  --control-board-left: calc(
+    var(--duel-sidebar-width, 280px) + 12px + env(safe-area-inset-left)
+  );
+  --control-board-right: max(8px, env(safe-area-inset-right));
+  --control-board-center-offset: calc(var(--duel-sidebar-width, 280px) / 2);
+}
+:root[data-control-side="right"] {
+  --control-panel-left: auto;
+  --control-panel-right: 0px;
+  --control-feedback-left: auto;
+  --control-feedback-right: 8px;
+  --control-board-left: max(8px, env(safe-area-inset-left));
+  --control-board-right: calc(
+    var(--duel-sidebar-width, 280px) + 12px + env(safe-area-inset-right)
+  );
+  --control-board-center-offset: calc(var(--duel-sidebar-width, 280px) / -2);
+}

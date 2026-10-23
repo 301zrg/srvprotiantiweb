@@ -55,6 +55,11 @@
 .practice-pile-cards .practice-field-card { width:90px; height:131px; }
 .practice-setup { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
 @media (orientation:landscape) and (max-width:1024px) { .practice-session { --practice-rail:220px; } .practice-session-rail { padding:6px; gap:6px; } .practice-session-title h1 { font-size:15px; } }
+@media (orientation:landscape) and (min-width:480px) {
+  .practice-session[data-control-side="left"] .practice-session-rail { left:8px; right:auto; }
+  .practice-session[data-control-side="left"] .practice-mat-viewport { left:calc(var(--practice-rail) + 16px); right:8px; }
+  .practice-session[data-control-side="left"] .practice-feedback { left:18px; right:auto; }
+}
 @media (orientation:portrait), (max-width:479px) {
   .practice-session { display:flex; flex-direction:column; gap:4px; padding:4px; padding-top:calc(36px + var(--duel-minimized-height,0px)); box-sizing:border-box; }
   .practice-session .practice-feedback { top:calc(var(--header-height,48px) + var(--duel-minimized-height,0px) + 4px); left:8px; right:8px; width:auto; }

@@ -2,8 +2,10 @@ import { CloseOutlined } from "@ant-design/icons";
 import { Button, Drawer } from "antd";
 import classNames from "classnames";
 import { createContext, type ReactNode, useContext } from "react";
+import { useSnapshot } from "valtio";
 
 import { useMediaQuery, useMobileInterface } from "@/hook";
+import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { mobileMessages } from "@/variant/mobileMessages";
 
@@ -29,6 +31,7 @@ export function DuelPanel({
   compact = false,
   closeControl = "button",
   desktopWidth = "340px",
+  followControlSide = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -42,15 +45,20 @@ export function DuelPanel({
   compact?: boolean;
   closeControl?: "button" | "icon";
   desktopWidth?: string;
+  followControlSide?: boolean;
 }) {
   const mobile = useMobileInterface();
+  const { controlPanelSide } = useSnapshot(settingStore);
   const sidebar = useContext(DuelSidebarContext);
   const shortSidebar = useMediaQuery(
     "(orientation: landscape) and (max-height: 600px)",
   );
   const portrait = useMediaQuery("(orientation: portrait)");
   const { language } = useI18N();
-  const bottom = !sidebar && (placement === "bottom" || (mobile && portrait));
+  const bottom =
+    !sidebar &&
+    !followControlSide &&
+    (placement === "bottom" || (mobile && portrait));
   return (
     <Drawer
       open={open}
@@ -58,8 +66,8 @@ export function DuelPanel({
       title={title}
       zIndex={zIndex}
       placement={
-        sidebar
-          ? "right"
+        sidebar || followControlSide
+          ? controlPanelSide
           : bottom
           ? "bottom"
           : mobile && compact
@@ -90,8 +98,8 @@ export function DuelPanel({
               bottom: shortSidebar
                 ? "max(8px, env(safe-area-inset-bottom))"
                 : 0,
-              left: "auto",
-              right: 0,
+              left: controlPanelSide === "left" ? 0 : "auto",
+              right: controlPanelSide === "right" ? 0 : "auto",
               width: "var(--duel-sidebar-width, 280px)",
               height: "auto",
             }
