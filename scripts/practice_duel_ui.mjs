@@ -87,6 +87,7 @@ try {
       // Changing mode while an optional prompt is open must advance the real
       // local duel once, without sending a stale or online response.
       await page.locator('.ant-modal-close:visible').click();
+      await expect(page.locator('.ant-modal-mask:visible')).toHaveCount(0);
       await page.getByTestId('practice-chain-setting').click();
       await page.locator('.ant-select-item-option-content:visible').getByText('忽略连锁',{exact:true}).click();
       await waitForState(()=>window.__practiceTrace.last?.pending?.kind==='idle',null,{timeout:15000});

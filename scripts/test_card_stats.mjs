@@ -163,6 +163,11 @@ try {
     undefined,
     "Do not clip or overlap controls outside the board",
   );
+  assert.equal(
+    showPrintedStats({ attack: 3000, baseAttack: 3000, printedAttack: -2 }),
+    true,
+    "A printed question mark is still a different printed value",
+  );
   console.log(
     "PASS card stats: original query, current/base/printed, unknown and zero, partial updates, measured label space",
   );

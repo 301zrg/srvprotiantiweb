@@ -17,10 +17,13 @@ export function statTrend(current?: number, original?: number) {
   return current > original ? "higher" : current < original ? "lower" : "equal";
 }
 export function showPrintedStats(stats: CardStats) {
+  const printedValue = (value?: number) =>
+    known(value) || value === -1 || value === -2;
   return (
-    (known(stats.printedAttack) && stats.printedAttack !== stats.baseAttack) ||
+    (printedValue(stats.printedAttack) &&
+      stats.printedAttack !== stats.baseAttack) ||
     (stats.hasDefense !== false &&
-      known(stats.printedDefense) &&
+      printedValue(stats.printedDefense) &&
       stats.printedDefense !== stats.baseDefense)
   );
 }

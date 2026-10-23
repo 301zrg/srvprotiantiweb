@@ -270,17 +270,18 @@ export const Component = () => {
         )
       : undefined;
   const inspected =
-    inspectedSource &&
-    (session.scene?.cards.find((c) =>
-      inspectedSource.sceneId
-        ? c.sceneId === inspectedSource.sceneId
-        : c.code === inspectedSource.code &&
-          c.player === inspectedSource.player &&
-          c.location === inspectedSource.location &&
-          c.sequence === inspectedSource.sequence,
-    ) ??
-      inspectedSource);
-  const detailCode = inspected?.code ?? historyCard;
+    inspectedSource && !(inspectedSource.location & 128)
+      ? session.scene?.cards.find((c) =>
+          inspectedSource.sceneId
+            ? c.sceneId === inspectedSource.sceneId &&
+              c.code === inspectedSource.code
+            : c.code === inspectedSource.code &&
+              c.player === inspectedSource.player &&
+              c.location === inspectedSource.location &&
+              c.sequence === inspectedSource.sequence,
+        )
+      : undefined;
+  const detailCode = inspected?.code ?? inspectedSource?.code ?? historyCard;
   const card = detailCode ? fetchCard(detailCode) : undefined;
   return (
     <main
@@ -673,9 +674,7 @@ export const Component = () => {
             <CardIdentityDetails
               code={detailCode}
               current={
-                inspected &&
-                [4, 8].includes(inspected.location) &&
-                !!(inspected.position & 5)
+                inspected && inspected.currentCode !== undefined
                   ? inspected
                   : undefined
               }

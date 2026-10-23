@@ -50,6 +50,7 @@ import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { ReplayAudio } from "./audio";
 import { sceneInformationCards } from "./cardInformation";
+import { concealReplayCard } from "./cardState";
 import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
 import { DeckExtract } from "./DeckExtract";
@@ -765,6 +766,13 @@ function Player({ id, text }: { id: string; text: string[] }) {
         c.code === card.code,
     );
   const selected = currentCard ? fetchCard(currentCard.code) : undefined;
+  const selectedIdentity =
+    currentCard &&
+    currentCard.currentCode !== undefined &&
+    !(currentCard.location & 128) &&
+    !concealReplayCard(currentCard, reveal)
+      ? currentCard
+      : undefined;
   return (
     <main
       className={`replay-player ${fieldView ? "replay-player-field" : ""}`}
@@ -991,8 +999,8 @@ function Player({ id, text }: { id: string; text: string[] }) {
       <Drawer
         rootClassName="replay-drawer"
         title={
-          (currentCard?.currentCode
-            ? fetchCard(currentCard.currentCode).text.name
+          (selectedIdentity?.currentCode
+            ? fetchCard(selectedIdentity.currentCode).text.name
             : selected?.text.name) || currentCard?.code
         }
         open={!!currentCard}
@@ -1041,12 +1049,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
             </div>
             <CardIdentityDetails
               code={currentCard.code}
-              current={
-                [4, 8].includes(currentCard.location) &&
-                !!(currentCard.position & 5)
-                  ? currentCard
-                  : undefined
-              }
+              current={selectedIdentity}
               language={language}
             />
             <p>{positionLabel(currentCard, language)}</p>

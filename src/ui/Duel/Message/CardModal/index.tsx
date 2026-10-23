@@ -51,7 +51,22 @@ export const CardModal = () => {
   const { language } = useI18N();
   const text = mobileMessages(language);
   const { isOpen } = snap;
-  const { meta, counters, hint } = liveCard ?? snap;
+  const information = onlineInformationCards(
+    inner,
+    language,
+    selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
+      ? observerView
+      : matStore.isMe(0)
+      ? 0
+      : 1,
+    selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer,
+  );
+  const visible =
+    !liveCard ||
+    liveCard.location.is_overlay ||
+    !information.find((card) => card.id === liveCard.uuid)?.hidden;
+  const { meta: sourceMeta, counters, hint } = liveCard ?? snap;
+  const meta = visible ? sourceMeta : fetchCard(0);
 
   const types = extraCardTypes(meta?.data.type ?? 0);
   const atk = meta?.data.atk;
@@ -69,9 +84,13 @@ export const CardModal = () => {
       ygopro.CardPosition.DEFENSE,
       ygopro.CardPosition.FACEUP_DEFENSE,
     ].includes(liveCard.location.position);
-  const currentIdentity = faceUp
-    ? { ...meta.data, currentCode: liveCard.currentCode, rank: liveCard.rank }
-    : undefined;
+  const currentIdentity =
+    visible &&
+    liveCard &&
+    !liveCard.location.is_overlay &&
+    liveCard.currentCode !== undefined
+      ? { ...meta.data, currentCode: liveCard.currentCode, rank: liveCard.rank }
+      : undefined;
   const name = currentIdentity?.currentCode
     ? fetchCard(currentIdentity.currentCode).text.name
     : printed?.text.name ?? meta?.text.name;
@@ -146,16 +165,7 @@ export const CardModal = () => {
         )}
         <RelatedCards
           id={uuid}
-          cards={onlineInformationCards(
-            inner,
-            language,
-            selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer
-              ? observerView
-              : matStore.isMe(0)
-              ? 0
-              : 1,
-            selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer,
-          )}
+          cards={information}
           language={language}
           onLocate={() => {
             store.isOpen = false;
