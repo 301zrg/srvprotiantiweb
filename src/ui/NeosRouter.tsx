@@ -4,6 +4,7 @@ import { ResourceLoadError } from "@/infra/resource";
 import { captureDeckImport } from "@/variant/deckImportSession";
 import { captureReplayImport } from "@/variant/replayImportSession";
 import { normalizeRoomLink } from "@/variant/roomLink";
+import { captureWebEntry } from "@/variant/webEntrySession";
 
 import { Component, ErrorBoundary, loader } from "./Layout";
 
@@ -23,6 +24,7 @@ async function loadPage<T>(name: string, load: () => Promise<T>): Promise<T> {
 
 captureDeckImport();
 captureReplayImport();
+captureWebEntry();
 const roomLinkUrl = normalizeRoomLink(new URL(window.location.href));
 if (roomLinkUrl)
   window.history.replaceState(window.history.state, "", roomLinkUrl);
@@ -43,6 +45,10 @@ const router = createHashRouter([
         lazy: () => loadPage("online", () => import("./Match")),
       },
       {
+        path: "/entry",
+        lazy: () => loadPage("web entry", () => import("./WebEntry")),
+      },
+      {
         path: "/replays",
         lazy: () => loadPage("replays", () => import("./Replay")),
       },
@@ -53,6 +59,10 @@ const router = createHashRouter([
       {
         path: "/build",
         lazy: () => loadPage("decks", () => import("./BuildDeck")),
+      },
+      {
+        path: "/practice",
+        lazy: () => loadPage("practice", () => import("./Practice")),
       },
       {
         path: "/import",

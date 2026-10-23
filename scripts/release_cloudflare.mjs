@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { previewConfig } from "./preview_config.mjs";
 
 export const WRANGLER_VERSION = "4.148.0";
 const MAX_ATTEMPTS = 3;
@@ -14,16 +15,17 @@ export function wranglerInvocation(mode, npmCli = process.env.npm_execpath) {
     );
   }
   const packageArg = `--package=wrangler@${WRANGLER_VERSION}`;
+  const targetArgs = mode === "preview" ? [mode, "--name", previewConfig.name] : [mode];
   // npm run supplies npm_execpath; invoking it through Node avoids cmd quoting.
   return npmCli
     ? {
         command: process.execPath,
-        args: [npmCli, "exec", "--yes", packageArg, "--", "wrangler", mode],
+        args: [npmCli, "exec", "--yes", packageArg, "--", "wrangler", ...targetArgs],
         shell: false,
       }
     : {
         command: process.platform === "win32" ? "npx.cmd" : "npx",
-        args: ["--yes", packageArg, "--", "wrangler", mode],
+        args: ["--yes", packageArg, "--", "wrangler", ...targetArgs],
         shell: process.platform === "win32",
       };
 }

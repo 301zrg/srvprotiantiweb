@@ -1,6 +1,6 @@
 # 当前架构与数据流
 
-更新：2026-10-10。按 HEAD `6e0085d8c58a6054921a475693c36b6b2d751011` 的实装核对。
+更新：2026-10-22。本轮候选以生产提交 `7b636941` 为基线，新增本地练习和录像卡组提取；仅测试预览。
 本文描述源码边界，不断言正式站点今天的部署版本。功能和测试状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，
 设计理由见 [设计文档](../YGOPro_706_Web_Client_Design.md)。
 
@@ -8,17 +8,23 @@
 
 ```mermaid
 flowchart TB
-  Website["SRVPro 官网页面"] -->|"观战链接 / 卡组与录像交接"| Router
+  Website["SRVPro 官网页面"] -->|"快捷入口 / 观战链接 / 卡组与录像交接"| Router
   Static["外部 HTTPS 静态托管<br/>应用 / 四语资源 / 音效 / 录像资源"] --> Router
+  StaticEntry["Cloudflare 主入口 Worker<br/>HTTP 308 / HTTPS ASSETS"] --> Static
+  TestEntry["test.ocg1103nexus.com<br/>HTTP 308 / 独立只读测试入口"] -->|"固定预览上游 / HTTPS GET与HEAD"| StaticEntry
   Images["配置的 HTTPS 卡图源"] --> UI
   subgraph Browser["浏览器：srvprotiantiweb"]
     Router["HashRouter + 页面懒加载"] --> UI["React / Ant Design UI"]
     UI --> Join["Match 会话<br/>冻结身份 / 房间 / G1 卡组"]
+    UI --> SharedDisplay["共享纯展示<br/>PhaseBar / 卡图 / 响应式几何"]
     Join --> Transport["WebSocketStream<br/>连接生命周期 / 保序队列"]
     Transport --> Adapter["YGOPro 帧解析 / 适配器<br/>内部 protobuf 对象"]
     Adapter --> Services["service 房间 / 对局 / 换备"]
     Services --> Stores["Valtio 在线状态"]
     Stores --> UI
+    Services --> RpsNotice["猜拳反馈<br/>独立出拳与结果事件序号"]
+    UI -->|"已提交手势"| RpsNotice
+    RpsNotice --> UI
     UI --> Sqlite["sql.js + 当前语 CDB<br/>文本与搜索，SQLite WASM"]
     UI --> Decks["IndexedDB 卡组"]
     Transport -->|"到达时捕获 0x17 原件"| Capture["ReplayCapture"]
@@ -29,6 +35,12 @@ flowchart TB
     Player -->|"播放 / 单步 / 跳回合"| Worker["Replay Worker<br/>固定 Core WASM / Lua / cards.data"]
     Worker -->|"事件 + 完整场地查询"| Player
     Profile["固定 profile / SHA 校验<br/>可选 Cache Storage"] --> Worker
+    Library --> Extract["录像开局主卡 / 额外提取<br/>仅解包，不启动对局"]
+    Extract --> Decks
+    Decks --> Practice["双边本地练习 UI<br/>卡组副本 / MR2 / 忽略胜负"]
+    Practice --> SharedDisplay
+    Practice <--> PracticeWorker["Practice Worker<br/>双方选择 / 请求序号隔离"]
+    Profile --> PracticeWorker
   end
   Transport <-->|"WSS：原生 YGOPro 二进制"| Gateway["TLS / WSS 接入"]
   Gateway <--> Server["SRVPro Neos WS<br/>认证 / 房间 / 天梯 / 服务端 Core与Lua"]
@@ -38,8 +50,22 @@ flowchart TB
 
 线上规则、账号、房间、计分、数据库与服务器录像目录属于 SRVPro。
 网页是外部托管的静态应用，不增加账号或结算后端。SQLite WASM 读取卡片资料；
-Replay Core WASM 仅在用户播放时运行，二者不能按“WASM”合并判断。
+Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二者不能按“WASM”合并判断。
 官网交接与对战 WSS 是两条独立路径，导入卡组／录像不会自动入房。
+
+`variant/webEntry` 解析公开 intent，`webEntrySession` 在资源加载前消费链接，并按现有运营来源名单完成一次性 postMessage 账号交接；`ui/WebEntry` 复用既有列表与 Match 表单，不引入新连接服务。带账号观战仅持久化完整身份、清空普通房间号，目标房间仍为临时输入；匿名入口继续恢复旧草稿。参数、来源校验和发送端示例见 [快捷入口](web-entry.md)。
+
+阶段栏与原菜单共用 `variant/duelPhases.ts`，依据当前请求来源、回合归属与 Core 标志禁用不可进入的阶段。`PhaseState.command` 仅在 idle／battle 请求期间有效，提交、失效、新阶段或其他选择会清除；响应继续经过操作所有权及确认机制。区域内部数量角标由“画面与消息”的持久化 `showZoneCounts` 控制，不影响区域列表与主卡组保密。练习共享卡图、响应式几何与 `PhaseBar` 展示，保留独立 Worker、请求及状态，不复用在线 handler 或连接。
+
+测试部署显式使用固定预览名称，保留同一 Origin 与浏览器存储。仅测试构建从正式站公开元数据读取当前 WSS；生产构建继续要求自己的显式环境变量。构建读取失败即中止，不写入陈旧地址。构建来源、共享入口覆盖关系与网关变更边界见 [自动部署](cloudflare-ci.md#固定测试入口与-wss)。
+
+独立自定义测试入口只转发固定预览的静态 HTTP 请求；测试浏览器的 WSS 仍直接进入既有网关，Origin 精确白名单独立于静态入口。该 Worker 没有服务端游戏状态，也不修改正式根域名绑定；不同 Origin 的浏览器存储互相隔离。
+
+Cloudflare 主入口先将 HTTP 以 308 跳转到相同主机、路径与查询的 HTTPS，再将 HTTPS 请求交给原有 ASSETS 绑定；独立测试入口在访问上游前同样跳转。主入口由 `wrangler.json` 的 `run_worker_first` 明确执行，不用会在 HTTPS 上循环的路径重定向。当前只随预览验证；正式站须以后合入发布分支才采用该入口。浏览器在跳转时保留 Hash 路由，但 HTTP 与 HTTPS 的本地存储仍互相隔离。
+
+`service/mora/feedback.ts` 将实际提交的手势与收到的胜负结果分开计数，由 Layout 中唯一 `RpsFeedback` 展示；相同平局仍是新事件，不依赖手势值是否变化。`hidePlayerIds` 仅作用于显示层，固定八个星号，不改房间原名、身份、缓存或录像。非空主／额外牌堆的数量角标深度取当前叠牌高度之上，仍归原区域和同一开关。练习双方牌堆允许完整查看，在线主卡组保密约束继续保留；位置 count=0、选择面板路由和验证契约见 [本地练习](practice.md)。
+
+在线 `MSG_REVERSE_DECK`／`MSG_DECK_TOP` 沿用原始二进制消息，经本地 adapter 扩展交给 service 更新 CardStore，不改固定 protobuf 或线上规则。整副翻转与单卡翻转独立；公开卡号单独记录，不能因翻转把隐藏缓存身份变成公开信息。联机和练习的素材仅共享扇形几何，依旧分别读取在线 CardStore 与本地 Core 查询。练习展示事件去重和最近操作历史保留在练习会话内；既有架构图的模块／连接边界不变。
 
 | 模块责任 | 实际入口 | 维护边界 |
 | --- | --- | --- |
@@ -53,8 +79,28 @@ Replay Core WASM 仅在用户播放时运行，二者不能按“WASM”合并�
 | 本地卡组 | [deckStore.ts](../src/stores/deckStore.ts)、[BuildDeck/store.ts](../src/ui/BuildDeck/store.ts)、[deckImport.ts](../src/service/deckImport.ts) | IndexedDB、解析与编辑草稿；接收权限与字段见专题 |
 | 原始录像 | [capture.ts](../src/replay/capture.ts)、[library.ts](../src/replay/library.ts) | 到达时捕获、hash 去重、原件／条目／会话关联；存储失败提示 |
 | 只读重演 | [worker.ts](../src/replay/worker.ts)、[engine.ts](../src/replay/engine.ts)、[Replay UI](../src/ui/Replay/index.tsx) | 固定资源、响应回灌、事件与完整查询；独立在线状态 |
+| 离线运行时与提取 | [runtime.ts](../src/replay/runtime.ts)、[extract.ts](../src/replay/extract.ts) | 共享 SHA 校验资源；提取保留原卡号顺序，不执行对局、不推测备牌 |
+| 双边本地练习 | [practice](../src/practice/)、[Practice UI](../src/ui/Practice/)、[profile](../src/variant/practice.ts) | Worker 隔离、双方响应归属和过期请求取消；不触发联机连接或修改编辑草稿 |
 | 重演展示 | [scene.ts](../src/ui/Replay/scene.ts)、[FieldBoard](../src/ui/Replay/FieldBoard.tsx)、[cardState.ts](../src/ui/Replay/cardState.ts) | 展示动作队列，每批末回到 Core 查询 |
 | 固定协议来源 | [protocol-source](../protocol-source/README.md)、[生成 IDL](../src/api/ocgcore/idl/) | 保留来源 commit／许可证，日常构建不执行 protoc 或初始化 submodule |
+
+## 卡片持续信息
+
+原生装备与持续目标、按类型指示物沿各自规则状态通道进入展示层，清理与隐私约束见 [卡片持续信息契约](duel-results.md#持续关联与按种类指示物)。界面不从连锁对象、卡名或无效状态推测持续关系。
+
+```mermaid
+flowchart LR
+  Native["原生 93 / 95 / 96 / 97 与查询"] --> Adapter["在线 adapter / service"]
+  Adapter --> Online["CardStore UUID"]
+  Core["独立 Worker Core 查询 / 事件"] --> Scene["练习 / 录像 sceneId"]
+  Online --> Presentation["共享关联列表 / 视口标记 / 逐类指示物 / 攻守与身份对照"]
+  Scene --> Presentation
+  Printed["只读卡面数据库"] --> Presentation
+```
+
+攻守／身份的当前值、原本攻守与卡面资料保持独立，查询省略不覆盖既有原本值；未知值不由卡面猜测。三个模式共用详情格式与桌面空间测量层，效果正文保持卡面原文，协议能力边界见 [当前值与卡面值](duel-results.md#当前值与卡面值客户端测试版)。
+
+操作面板左右位置、录像倍速与首次自动播放由 `settingStore` 规范化并持久保存。左右设置沿布局 CSS 变量和抽屉 placement 生效，不触碰联机连接或 Core 请求；倍速与播放页双向同步，首次自动播放使用一次性标志，不能复活暂停或后台状态，详见 [面板位置](mobile-ui.md#操作面板左右位置客户端测试版) 和 [录像偏好](replay-usage.md#录像播放偏好客户端测试版)。
 
 ## 在线消息、会话与录像收尾
 
@@ -62,7 +108,7 @@ Replay Core WASM 仅在用户播放时运行，二者不能按“WASM”合并�
 源／目标下标移动，移除也可指定位置以区分重复卡片；只在用户主动自动排序时重排。
 复制卡片与搜索加入共用 `canAdd`，移动保留原有的数量抵扣。保存、导出与联机入场沿用
 相同数组顺序与原存储／协议格式。桌面卡图和手机独立手柄的交互见 [手机界面](mobile-ui.md)；
-本次未改变 UI／草稿／IndexedDB 或协议的责任边界，现有图继续适用。
+编辑器禁表筛选按当前禁表的 0／1／2／3 类别过滤搜索结果；忽略禁表仅改变编辑器加入判定，仍按 alias 归并同名卡且合计最多 3 张。切回限制保留现有卡片和顺序，仅提示不合规；在线卡组检查仍由服务端完成。设置统一保存智能连锁初值、随机出拳策略和音效，房内快捷状态双向同步。横屏几何由同一份数值同时驱动 CSS 与卡片动画，旋转不重建在线选择。
 
 ```mermaid
 sequenceDiagram

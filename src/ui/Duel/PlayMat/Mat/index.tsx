@@ -4,15 +4,22 @@ import { useSnapshot } from "valtio";
 import { ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
 import { duelPresentationReady } from "@/service/duel/presentation";
-import { cardStore, matStore } from "@/stores";
+import { cardStore, matStore, roomStore } from "@/stores";
+import { useI18N } from "@/ui/I18N";
+import { CardInformationLayer } from "@/ui/Shared/CardInformation";
 
 import { Bg } from "../Bg";
 import { Card } from "../Card";
+import { onlineInformationCards } from "../cardInformation";
+import { matConfig, updateMatLayout } from "../css";
 import styles from "./index.module.scss";
 
 // 后面再改名
 export const Mat: React.FC = () => {
   const { selfType, observerView } = useSnapshot(matStore);
+  const { inner } = useSnapshot(cardStore);
+  const { language } = useI18N();
+  const { hostInfo } = useSnapshot(roomStore);
   const flipped =
     selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer &&
     observerView === 1;
@@ -23,16 +30,21 @@ export const Mat: React.FC = () => {
     let frame = 0;
     let previous = "";
     const update = () => {
+      const wide = window.matchMedia(
+        "(orientation: landscape) and (min-width: 480px)",
+      ).matches;
+      const changed = updateMatLayout(wide, roomStore.hostInfo?.duelRule ?? 2);
       const scale = Math.min(
-        1,
-        element.clientWidth / 1000,
-        element.clientHeight / 920,
+        1.2,
+        element.clientWidth / matConfig.BOARD_WIDTH,
+        element.clientHeight / matConfig.BOARD_HEIGHT,
       );
       const next = String(scale);
       if (next !== previous) {
         previous = next;
         element.style.setProperty("--duel-board-scale", next);
       }
+      if (changed) window.dispatchEvent(new Event("neos:duel-layout"));
     };
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(frame);
@@ -44,7 +56,7 @@ export const Mat: React.FC = () => {
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [hostInfo?.duelRule]);
   return (
     <div
       ref={viewport}
@@ -52,6 +64,15 @@ export const Mat: React.FC = () => {
       data-testid="duel-board-viewport"
       data-view-controller={flipped ? 1 : matStore.isMe(0) ? 0 : 1}
     >
+      <CardInformationLayer
+        root={viewport}
+        cards={onlineInformationCards(
+          inner,
+          language,
+          flipped ? 1 : matStore.isMe(0) ? 0 : 1,
+          selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer,
+        )}
+      />
       <section className={`${styles.mat} duel-mat`}>
         <div className={`${styles.camera} duel-mat-camera`}>
           <div
@@ -74,7 +95,21 @@ export const Mat: React.FC = () => {
 };
 
 const Cards: React.FC = () => {
-  const { inner } = useSnapshot(cardStore);
+  const { inner, deckReversed } = useSnapshot(cardStore);
+  const address = (
+    location: Pick<ygopro.CardLocation, "controller" | "zone" | "sequence">,
+  ) => `${location.controller}:${location.zone}:${location.sequence}`;
+  const slots = new Map<
+    string,
+    { count: number; position?: ygopro.CardPosition }
+  >();
+  for (const card of inner) {
+    const key = address(card.location);
+    const slot = slots.get(key) || { count: 0 };
+    if (card.location.is_overlay) slot.count++;
+    else slot.position = card.location.position;
+    slots.set(key, slot);
+  }
   const length = inner.length;
   const container = getUIContainer();
   const firstCard = inner[0]?.uuid;
@@ -85,7 +120,17 @@ const Cards: React.FC = () => {
   return (
     <>
       {Array.from({ length }).map((_, i) => (
-        <Card key={inner[i].uuid} idx={i} />
+        <Card
+          key={inner[i].uuid}
+          idx={i}
+          overlayCount={slots.get(address(inner[i].location))?.count || 0}
+          hostPosition={
+            inner[i].location.is_overlay
+              ? slots.get(address(inner[i].location))?.position
+              : undefined
+          }
+          deckReversed={deckReversed}
+        />
       ))}
     </>
   );

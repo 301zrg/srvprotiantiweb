@@ -1,17 +1,54 @@
+import classNames from "classnames";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
 import { useConfig } from "@/config";
+import { useMediaQuery } from "@/hook";
 import { History, HistoryOp, historyStore, matStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
-import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import {
+  DuelPanel,
+  duelSidebarQuery,
+  hasDuelSidebar,
+} from "@/ui/Shared/DuelPanel";
 import { duelResultMessages, formatDuelResult } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
 
+import { showCardModal } from "../CardModal";
 import styles from "./index.module.scss";
+
+const HistoryCard = ({
+  code,
+  className,
+  width,
+}: {
+  code: number;
+  className?: string;
+  width?: string;
+}) => (
+  <button
+    type="button"
+    data-testid="duel-history-card"
+    data-card-code={code}
+    disabled={!code}
+    title={code ? fetchCard(code).text.name : undefined}
+    style={{
+      border: 0,
+      padding: 0,
+      background: "transparent",
+      cursor: code ? "pointer" : "default",
+      flexShrink: 0,
+    }}
+    onClick={() => {
+      if (code) showCardModal({ meta: fetchCard(code) });
+    }}
+  >
+    <YgoCard code={code} className={className} width={width} />
+  </button>
+);
 
 const { assetsPath } = useConfig();
 
@@ -25,24 +62,42 @@ export const ActionHistory: React.FC = () => {
   const { language } = useI18N();
   const text = mobileMessages(language);
   const { isOpen } = useSnapshot(store);
-  const { historys } = useSnapshot(historyStore);
+  const wide = useMediaQuery(duelSidebarQuery);
+  if (wide) return null;
   return (
     <DuelPanel
+      followControlSide
       open={isOpen}
       placement="right"
       onClose={() => (store.isOpen = false)}
       title={text.history}
       testId="duel-history-panel"
     >
-      <div className={styles.container}>
-        {!historys.length && <p>{text.emptyHistory}</p>}
-        <div className={styles.timeline}>
-          {historys.map((history, idx) => (
-            <HistoryItem key={idx} {...(history as History)} />
-          ))}
-        </div>
-      </div>
+      <ActionHistoryContent />
     </DuelPanel>
+  );
+};
+
+export const ActionHistoryContent = ({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) => {
+  const { language } = useI18N();
+  const text = mobileMessages(language);
+  const { historys } = useSnapshot(historyStore);
+  return (
+    <div
+      className={classNames(styles.container, { [styles.embedded]: embedded })}
+      data-testid="duel-history-content"
+    >
+      {!historys.length && <p>{text.emptyHistory}</p>}
+      <div className={styles.timeline}>
+        {historys.map((history, idx) => (
+          <HistoryItem key={idx} {...(history as History)} />
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -77,7 +132,7 @@ const HistoryItem: React.FC<History> = ({
         data-result-kind={result.kind}
         data-player={player}
       >
-        {card > 0 && <YgoCard code={card} width="3rem" />}
+        {card > 0 && <HistoryCard code={card} width="3rem" />}
         <div className={styles.resultText}>
           <strong>
             {playerLabel} · {formatted.title}
@@ -91,7 +146,7 @@ const HistoryItem: React.FC<History> = ({
   if (operation === HistoryOp.ANNOUNCE)
     return (
       <div className={styles.announcement} data-testid="duel-history-announce">
-        <YgoCard code={card} width="3rem" />
+        <HistoryCard code={card} width="3rem" />
         <div>
           <strong>
             {playerLabel} · {mobileMessages(language).declaredCard}
@@ -103,7 +158,7 @@ const HistoryItem: React.FC<History> = ({
   return (
     <div className={styles.history}>
       <div className={styles["card-container"]}>
-        <YgoCard className={styles.card} code={card} />
+        <HistoryCard className={styles.card} code={card} />
         {currentLocation && (
           <div className={styles.location}>{`${zone2Text(
             currentLocation.zone,
@@ -169,4 +224,8 @@ function Op2Text(op: HistoryOp, t: (key: string) => string): string {
   }
 }
 
-export const displayActionHistory = () => (store.isOpen = true);
+export const displayActionHistory = () => {
+  if (hasDuelSidebar())
+    window.dispatchEvent(new CustomEvent("neos:open-duel-history"));
+  else store.isOpen = true;
+};

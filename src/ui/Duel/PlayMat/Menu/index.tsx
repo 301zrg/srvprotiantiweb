@@ -21,7 +21,7 @@ import {
   Tooltip,
 } from "antd";
 import classNames from "classnames";
-import { cloneElement, useEffect, useRef, useState } from "react";
+import { cloneElement, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
@@ -37,8 +37,17 @@ import {
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
 import { IconFont } from "@/ui/Shared";
+import {
+  onlinePhaseKey,
+  phaseAction,
+  type PhaseKey,
+  phaseKeys,
+} from "@/variant/duelPhases";
+import { type BattleTiming, battleTimingLabel } from "@/variant/duelTiming";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { previewMessages } from "@/variant/previewMessages";
 
+import { PhaseBar } from "../../PhaseBar";
 import styles from "./index.module.scss";
 import PhaseType = ygopro.StocGameMessage.MsgNewPhase.PhaseType;
 import { useTranslation } from "react-i18next";
@@ -225,15 +234,6 @@ const phaseTestId = (phase: PhaseType) => {
   }
 };
 
-const isBattleCommandPhase = (phase: PhaseType) =>
-  [
-    PhaseType.BATTLE,
-    PhaseType.BATTLE_START,
-    PhaseType.BATTLE_STEP,
-    PhaseType.DAMAGE,
-    PhaseType.DAMAGE_GAL,
-  ].includes(phase);
-
 // PhaseType, 中文, response, 是否显示，是否禁用
 const initialPhaseBind = (
   language: string,
@@ -272,11 +272,23 @@ const initialPhaseBind = (
   ];
 };
 
-export const Menu = () => {
+export const duelPhaseLabel = (
+  language: string,
+  phase: PhaseType,
+  timing?: BattleTiming,
+) =>
+  (onlinePhaseKey(phase) === "bp"
+    ? battleTimingLabel(timing, language)
+    : undefined) ??
+  initialPhaseBind(language).find(([key]) => key === phase)?.[1] ??
+  "";
+
+export const Menu = ({ docked = false }: { docked?: boolean }) => {
   const mobile = useMobileInterface();
   const { language } = useI18N();
   const navigate = useNavigate();
   const text = mobileMessages(language);
+  const preview = previewMessages(language);
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = menu.current;
@@ -310,76 +322,85 @@ export const Menu = () => {
     selfType,
     observerView,
     chainSetting,
-    phase: { enableBp, enableM2, enableEp, currentPhase },
+    phase: {
+      currentPhase,
+      battleTiming,
+      command,
+      enableBp,
+      enableM2,
+      enableEp,
+    },
   } = useSnapshot(matStore);
-  const [phaseBind, setPhaseBind] = useState(() => initialPhaseBind(language));
-  useEffect(() => setPhaseBind(initialPhaseBind(language)), [language]);
-  const [phaseSwitchItems, setPhaseSwitchItems] = useState<MenuProps["items"]>(
-    [],
-  );
-
-  useEffect(() => {
-    const endResponse = [
-      PhaseType.BATTLE_START,
-      PhaseType.BATTLE_STEP,
-      PhaseType.DAMAGE,
-      PhaseType.DAMAGE_GAL,
-      PhaseType.BATTLE,
-    ].includes(currentPhase)
-      ? 3
-      : 7;
-
-    setPhaseBind((prev) => {
-      const newItems = [...prev];
-
-      // FIXME: 由于不断有玩家反馈说进不了战阶和主2，修改几次实现都解决不了问题，
-      // 因此这里不进行限制。当存在无法进入战阶的自肃时，由后端（srvpro）判断
-      for (const item of newItems) {
-        const [phase, , , ,] = item;
-        if (phase === PhaseType.BATTLE) {
-          // item[4] = !enableBp;
-        } else if (phase === PhaseType.MAIN2) {
-          // item[4] = !enableM2;
-        } else if (phase === PhaseType.END) {
-          // item[4] = !enableEp;
-          item[2] = endResponse;
+  const phaseBind = initialPhaseBind(language);
+  const observing =
+    selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
+  const ownTurn = !observing && matStore.isMe(currentPlayer);
+  const availability = {
+    current: onlinePhaseKey(currentPhase),
+    command,
+    enableBp,
+    enableM2,
+    enableEp,
+    ownTurn,
+  };
+  const enterPhase = (target: PhaseKey, label: string) => {
+    void runActiveAction(container, () => {
+      const live = matStore.phase;
+      const action = phaseAction(
+        {
+          ...live,
+          current: onlinePhaseKey(live.currentPhase),
+          ownTurn:
+            matStore.selfType !==
+              ygopro.StocGameMessage.MsgStart.PlayerType.Observer &&
+            matStore.isMe(matStore.currentPlayer),
+        },
+        target,
+      );
+      return (
+        action && {
+          response: action.response,
+          responseSource: action.source,
+          label,
         }
-      }
-
-      return newItems;
+      );
     });
-  }, [enableBp, enableM2, enableEp, currentPhase]);
-
-  useEffect(() => {
-    const newPhaseSwitchItems = phaseBind
-      .filter(([, , , show]) => show)
-      .map(([phase, label, response, _, disabled], key) => ({
+  };
+  const phaseSwitchItems: MenuProps["items"] = phaseBind
+    .filter(([, , , show]) => show)
+    .map(([phase, label], key) => {
+      const target = onlinePhaseKey(phase)!;
+      return {
         key,
         label,
-        disabled: disabled,
-        onClick: () => {
-          void runActiveAction(container, () => ({
-            response,
-            responseSource: isBattleCommandPhase(currentPhase)
-              ? "battle"
-              : "idle",
-            label: label as string,
-          }));
-        },
+        disabled: !phaseAction(availability, target),
+        onClick: () => enterPhase(target, label),
         "data-testid": `duel-phase-${phaseTestId(phase)}`,
         "data-phase": phaseTestId(phase),
-        icon: disabled ? <CheckOutlined /> : <ArrowRightOutlined />,
+        icon:
+          phase === currentPhase ? <CheckOutlined /> : <ArrowRightOutlined />,
         danger: phase === PhaseType.END,
-      }));
+      };
+    });
+  const phaseButtons = Object.fromEntries(
+    phaseKeys
+      .filter((target) => phaseAction(availability, target))
+      .map((target) => [
+        target,
+        () =>
+          enterPhase(
+            target,
+            phaseBind.find(
+              ([phase]) => onlinePhaseKey(phase) === target,
+            )?.[1] || target,
+          ),
+      ]),
+  );
 
-    setPhaseSwitchItems(newPhaseSwitchItems);
-  }, [container.conn, currentPhase, phaseBind]);
-
-  const languageTexts = messages[language as Language] ?? messages.en;
   const chainSettingTexts = [
-    [ChainSetting.CHAIN_ALL, languageTexts.allChain ?? "All Chain"],
-    [ChainSetting.CHAIN_IGNORE, languageTexts.ignoreChain ?? "Ignore Chain"],
-    [ChainSetting.CHAIN_SMART, languageTexts.smartChain ?? "Smart Chain"],
+    [ChainSetting.CHAIN_ALL, preview.chainAll],
+    [ChainSetting.CHAIN_IGNORE, preview.chainIgnore],
+    [ChainSetting.CHAIN_SMART, preview.chainSmart],
   ] as const;
   const chainSettingTestIds = {
     [ChainSetting.CHAIN_ALL]: "all",
@@ -412,69 +433,97 @@ export const Menu = () => {
     },
   ].map((item, i) => ({ key: i, ...item }));
 
-  const observing =
-    selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
   const globalDisable = observing || !matStore.isMe(currentPlayer);
 
   return (
     <div
-      className={styles["menu-container"]}
+      className={classNames(styles["menu-container"], {
+        [styles.sidebar]: docked,
+      })}
       ref={menu}
       data-testid="duel-menu"
       role="toolbar"
       aria-label={text.settings}
     >
-      {!observing && <SelectManager />}
-      <ReplayControl />
-      <DropdownWithTitle
-        title={i18n("SelectPhase")}
-        menu={{ items: phaseSwitchItems }}
-        disabled={globalDisable}
-      >
-        <Button
-          data-testid="duel-phase-select"
-          data-current-phase={phaseTestId(currentPhase)}
-          icon={<StepForwardFilled style={{ transform: "scale(1.5)" }} />}
-          type="text"
+      <PhaseBar
+        current={onlinePhaseKey(currentPhase)}
+        turnOwner={ownTurn ? "self" : "opponent"}
+        actions={phaseButtons}
+        labels={Object.fromEntries(
+          phaseBind
+            .filter(([, , , show]) => show)
+            .map(([phase, label]) => [
+              onlinePhaseKey(phase),
+              onlinePhaseKey(phase) === onlinePhaseKey(currentPhase)
+                ? duelPhaseLabel(language, currentPhase, battleTiming)
+                : label,
+            ]),
+        )}
+      />
+      <div className={docked ? styles.primary : styles.contents}>
+        {!observing && <SelectManager />}
+        <ReplayControl />
+        <DropdownWithTitle
+          title={i18n("SelectPhase")}
+          menu={{ items: phaseSwitchItems }}
           disabled={globalDisable}
         >
-          {phaseBind.find(([key]) => key === currentPhase)?.[1]}
-        </Button>
-      </DropdownWithTitle>
-      <DropdownWithTitle
-        menu={{
-          items: chainSettingItems,
-        }}
-      >
-        <Button
-          data-testid="duel-chain-setting"
-          disabled={observing}
-          aria-label={
-            chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
-          }
-          data-chain-setting={chainSettingTestIds[chainSetting]}
-          icon={<ChainIcon chainSetting={chainSetting} />}
-          type="text"
-        ></Button>
-      </DropdownWithTitle>
-      <Tooltip title={i18n("History")} open={mobile ? false : undefined}>
-        <Button
-          data-testid="duel-history"
-          aria-label={text.history}
-          icon={<FileSearchOutlined />}
-          onClick={displayActionHistory}
-          type="text"
-        />
-      </Tooltip>
-      <Tooltip title={i18n("ChatRoom")} open={mobile ? false : undefined}>
-        <Button
-          data-testid="duel-chat"
-          aria-label={text.chat}
-          icon={<MessageFilled />}
-          onClick={openChatBox}
-          type="text"
-        ></Button>
-      </Tooltip>
+          <Button
+            data-testid="duel-phase-select"
+            data-current-phase={phaseTestId(currentPhase)}
+            icon={<StepForwardFilled style={{ transform: "scale(1.5)" }} />}
+            type="text"
+            disabled={globalDisable}
+          >
+            {duelPhaseLabel(language, currentPhase, battleTiming)}
+          </Button>
+        </DropdownWithTitle>
+        <DropdownWithTitle
+          menu={{
+            items: chainSettingItems,
+          }}
+        >
+          <Button
+            data-testid="duel-chain-setting"
+            disabled={observing}
+            aria-label={
+              chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
+            }
+            data-chain-setting={chainSettingTestIds[chainSetting]}
+            icon={<ChainIcon chainSetting={chainSetting} />}
+            type="text"
+          >
+            {docked &&
+              chainSettingTexts.find(([key]) => key === chainSetting)?.[1]}
+          </Button>
+        </DropdownWithTitle>
+      </div>
+      {!docked && (
+        <>
+          <Tooltip title={i18n("History")} open={mobile ? false : undefined}>
+            <Button
+              data-testid="duel-history"
+              aria-label={text.history}
+              icon={<FileSearchOutlined />}
+              onClick={displayActionHistory}
+              type="text"
+            >
+              {docked && preview.history}
+            </Button>
+          </Tooltip>
+          <Tooltip title={i18n("ChatRoom")} open={mobile ? false : undefined}>
+            <Button
+              data-testid="duel-chat"
+              aria-label={text.chat}
+              icon={<MessageFilled />}
+              onClick={openChatBox}
+              type="text"
+            >
+              {docked && preview.chat}
+            </Button>
+          </Tooltip>
+        </>
+      )}
       {observing ? (
         <>
           {sideStage === SideStage.WAITING && (
@@ -504,7 +553,9 @@ export const Menu = () => {
             icon={<CloseCircleFilled />}
             type="text"
             onClick={() => navigate("/match")}
-          />
+          >
+            {docked && text.leaveSpectating}
+          </Button>
         </>
       ) : (
         <DropdownWithTitle
@@ -516,7 +567,9 @@ export const Menu = () => {
             data-testid="duel-surrender"
             icon={<CloseCircleFilled />}
             type="text"
-          ></Button>
+          >
+            {docked && i18n("DoYouSurrunder")}
+          </Button>
         </DropdownWithTitle>
       )}
       <Button
@@ -525,7 +578,9 @@ export const Menu = () => {
         icon={<SettingOutlined />}
         type="text"
         onClick={() => openSettingPanel({})}
-      />
+      >
+        {docked && text.settings}
+      </Button>
     </div>
   );
 };

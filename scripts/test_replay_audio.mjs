@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import "fake-indexeddb/auto";
 import { createServer } from "vite";
 const server = await createServer({
-  server: { middlewareMode: true, watch: null },
+  server: { middlewareMode: true, watch: null, hmr: false },
   optimizeDeps: { disabled: true },
   logLevel: "error",
 });
 const originalWindow = globalThis.window;
 const originalStorage = globalThis.localStorage;
+const mockLocation = new URL("http://localhost/");
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 try {
-  globalThis.window = {};
+  globalThis.window = { location: mockLocation };
   globalThis.localStorage = {
     getItem: (key) => (key === "language" ? "cn" : null),
   };
@@ -57,7 +58,7 @@ try {
       return source;
     }
   }
-  globalThis.window = { AudioContext: Audio };
+  globalThis.window = { location: mockLocation, AudioContext: Audio };
   let complete;
   const delayed = new ReplayAudio(
     () =>
@@ -124,7 +125,7 @@ try {
     "16x simultaneous cues must be throttled",
   );
   retry.dispose();
-  globalThis.window = {};
+  globalThis.window = { location: mockLocation };
   const unsupported = new ReplayAudio(async () => {
     throw new Error("Must not fetch");
   });

@@ -4,16 +4,21 @@ import { existsSync } from "node:fs";
 import { chromium, expect, webkit } from "@playwright/test";
 import { createServer, preview } from "vite";
 
-const built = process.argv.includes("--built");
+const externalOrigin = process.env.SMOKE_URL;
+const built = process.argv.includes("--built") || !!externalOrigin;
 const safari = process.argv.includes("--webkit");
 const results = [];
 let browser, vite;
 try {
-  vite = built
-    ? await preview({ preview: { host: "127.0.0.1", port: 0 } })
-    : await createServer({ server: { host: "127.0.0.1", port: 0 } });
-  if (!built) await vite.listen();
-  const origin = vite.resolvedUrls.local[0];
+  if (!externalOrigin) {
+    vite = built
+      ? await preview({ preview: { host: "127.0.0.1", port: 0 } })
+      : await createServer({ server: { host: "127.0.0.1", port: 0 } });
+    if (!built) await vite.listen();
+  }
+  const origin = externalOrigin
+    ? `${externalOrigin.replace(/\/+$/, "")}/`
+    : vite.resolvedUrls.local[0];
   console.log(`Room/session UI server: ${origin}`);
   const edge =
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
@@ -45,7 +50,8 @@ try {
     await context.addInitScript(() => {
       localStorage.setItem("language", "cn");
       if (!sessionStorage.getItem("room-test-initialized")) {
-        localStorage.setItem("playerNickname", "SavedPlayer");
+        if (!localStorage.getItem("joinFormSaved") && !localStorage.getItem("playerNickname"))
+          localStorage.setItem("playerNickname", "SavedPlayer");
         sessionStorage.setItem("room-test-initialized", "1");
       }
       const mock = (window.__roomLink = {
@@ -320,11 +326,11 @@ try {
     );
     assert.equal(
       await page.evaluate(() => localStorage.getItem("playerNickname")),
-      null,
+      "CacheUser",
     );
     await page.getByRole("button", { name: "退出房间" }).click();
-    await expect(page.locator("#player-nickname")).toHaveValue("");
-    await expect(page.locator("#room-name")).toHaveValue("");
+    await expect(page.locator("#player-nickname")).toHaveValue("CacheUser$dummy");
+    await expect(page.locator("#room-name")).toHaveValue("CacheRoom$dummy");
     await page.waitForTimeout(200);
     assert.equal(
       await page.evaluate(() => window.__roomLink.urls.length),
@@ -332,9 +338,12 @@ try {
       "Exit must not auto-rejoin",
     );
     await page.reload();
-    await expect(page.locator("#player-nickname")).toHaveValue("", { timeout: 45000 });
-    await expect(page.locator("#room-name")).toHaveValue("");
-    assert.equal(await page.evaluate(() => window.__roomLink.urls.length), 0, "Reload after spectating must not restore TT or reconnect");
+    await expect(page.locator("#player-nickname")).toHaveValue("CacheUser$dummy", { timeout: 45000 });
+    await expect(page.locator("#room-name")).toHaveValue("CacheRoom$dummy");
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("joinFormSaved"))), {
+      version: 1, nickname: "CacheUser$dummy", roomName: "CacheRoom$dummy",
+    }, "Spectator link fields must never replace the complete ordinary browser draft");
+    assert.equal(await page.evaluate(() => window.__roomLink.urls.length), 0, "Reload after spectating restores the ordinary draft without reconnecting");
     await page.close();
 
     const running = await open(
@@ -413,10 +422,11 @@ try {
     assert.ok(!(await running.evaluate(() => window.__roomLink.packets)).some(p => [2,34,37].includes(p[2])));
     await running.getByTestId("duel-leave-spectating").click();
     await expect(running.locator("#player-nickname")).toHaveValue(
-      "",
+      "CacheUser$dummy",
     );
+    await expect(running.locator("#room-name")).toHaveValue("CacheRoom$dummy");
     await running.close();
-    console.log("PASS spectator cleanup, slow/lost probe acknowledgement and stale OPEN recovery");
+    console.log("PASS spectator draft restoration, slow/lost probe acknowledgement and stale OPEN recovery");
 
     // A cold phone can take longer than the old one-second start delay to
     // mount card components. History must PLAY before live updates, not snap.
@@ -580,14 +590,14 @@ try {
     assert.ok(!locked.url().includes("dummy"));
     assert.equal(
       await locked.evaluate(() => localStorage.getItem("playerNickname")),
-      null,
+      "CacheUser",
     );
     await locked.close();
 
     const prefill = await open(new URLSearchParams({ room }).toString(), true);
     await expect(prefill.locator("#room-name")).toHaveValue(room);
     await expect(prefill.locator("#player-nickname")).toHaveValue(
-      "SavedPlayer",
+      "CacheUser$dummy",
     );
     assert.equal(
       await prefill.evaluate(() => window.__roomLink.urls.length),
@@ -605,9 +615,9 @@ try {
     );
     await prefill.getByRole("button", { name: "退出房间" }).click();
     await expect(prefill.locator("#player-nickname")).toHaveValue(
-      "",
+      "DraftPlayer$dummy",
     );
-    await expect(prefill.locator("#room-name")).toHaveValue("");
+    await expect(prefill.locator("#room-name")).toHaveValue("draft-room$dummy");
     await prefill.close();
 
     if (!mobile) {
@@ -750,7 +760,7 @@ try {
       encodedRoom: true,
       roleConfirmed: true,
       normalFormCached: true,
-      spectatorFormCleared: true,
+      spectatorDraftRestored: true,
       editedDeckPreferred: true,
       backgroundConnectionRecovery: true,
       staleOpenSocketRecovery: true,

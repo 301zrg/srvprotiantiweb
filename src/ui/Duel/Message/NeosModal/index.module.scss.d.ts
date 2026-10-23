@@ -5,5 +5,7 @@ declare const classNames: {
   readonly "ant-modal-footer": "ant-modal-footer";
   readonly hidden: "hidden";
   readonly wrap: "wrap";
+  readonly miniTitle: "miniTitle";
+  readonly titleText: "titleText";
 };
 export = classNames;

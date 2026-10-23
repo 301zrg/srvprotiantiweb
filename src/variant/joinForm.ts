@@ -6,16 +6,23 @@ interface JoinForm {
 }
 let draft: JoinForm | undefined;
 const SESSION_KEY = storageKey("joinFormDraft");
+const SAVED_KEY = "joinFormSaved";
 
-function savedDraft(): JoinForm | undefined {
+function parseForm(raw: string | null): JoinForm | undefined {
   try {
-    const value = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null");
+    const value = JSON.parse(raw ?? "null");
     if (
       value &&
       typeof value.nickname === "string" &&
       typeof value.roomName === "string"
     )
       return { nickname: value.nickname, roomName: value.roomName };
+  } catch {}
+}
+
+function savedDraft(): JoinForm | undefined {
+  try {
+    return parseForm(sessionStorage.getItem(SESSION_KEY));
   } catch {}
 }
 
@@ -35,17 +42,32 @@ function saved(key: string) {
 }
 
 export function readJoinForm(): JoinForm {
-  return (draft ??= savedDraft() ?? {
-    nickname: saved("playerNickname") ?? "",
-    roomName: saved("playerRoomName") ?? "TT",
-  });
+  if (draft) return draft;
+  const tab = savedDraft();
+  const browser = parseForm(saved(SAVED_KEY));
+  draft = tab ??
+    browser ?? {
+      nickname: saved("playerNickname") ?? "",
+      roomName: saved("playerRoomName") ?? "TT",
+    };
+  // Migrate complete pre-update tab inputs once, without overwriting newer
+  // ordinary input saved by another tab. Anonymous spectator input stays temporary.
+  if (tab && !browser) saveBrowserDraft(tab);
+  return draft;
+}
+
+function saveBrowserDraft(value: JoinForm) {
+  try {
+    siteStorage.setItem(SAVED_KEY, JSON.stringify({ version: 1, ...value }));
+  } catch {}
 }
 
 export function saveJoinForm(change: Partial<JoinForm>) {
   draft = { ...readJoinForm(), ...change };
   saveDraft(draft);
-  // The shared persistent cache keeps public portions; full inputs belong to
-  // this tab so another player's edits do not overwrite its credentials.
+  saveBrowserDraft(draft);
+  // Keep legacy public-only fields for compatibility; complete input now has
+  // an explicitly separate durable record, as requested by the user.
   for (const [field, key] of [
     ["nickname", "playerNickname"],
     ["roomName", "playerRoomName"],
@@ -57,13 +79,5 @@ export function saveJoinForm(change: Partial<JoinForm>) {
 }
 
 export function clearJoinForm() {
-  draft = { nickname: "", roomName: "" };
-  saveDraft(draft);
-  for (const key of ["playerNickname", "playerRoomName"]) {
-    try {
-      // Remember an intentional reset so refreshing after spectating stays empty.
-      if (key === "playerRoomName") siteStorage.setItem(key, "");
-      else siteStorage.removeItem(key);
-    } catch {}
-  }
+  saveJoinForm({ nickname: "", roomName: "" });
 }

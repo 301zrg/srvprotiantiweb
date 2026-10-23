@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
+import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { communityLinks } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
 import { localizedWebsiteUrl } from "@/variant/websiteLink";
@@ -64,6 +65,16 @@ export const Component = () => {
                 Neos (DarkNeos/neos-ts)
               </a>
               {text.creditsThanks}
+            </p>
+            <p>
+              {clientRevisionMessages(language).sourceIntro}{" "}
+              <a
+                href={communityLinks.source}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                srvprotiantiweb
+              </a>
             </p>
           </section>
 

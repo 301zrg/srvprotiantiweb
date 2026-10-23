@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { fetchCard, getCardImgUrl } from "@/api";
 import type { ReplayCard } from "@/replay/messages";
+import { CardInformationLayer } from "@/ui/Shared/CardInformation";
 
+import { sceneInformationCards } from "./cardInformation";
 import { concealReplayCard, positionLabel } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
 import { type SceneFrame, scenePoint, type Spot } from "./scene";
@@ -286,6 +288,10 @@ export function FieldBoard({
         ref={viewport}
         style={{ maxHeight: height }}
       >
+        <CardInformationLayer
+          root={viewport}
+          cards={sceneInformationCards(frame.cards, language, view, reveal)}
+        />
         <div
           className="replay-field-canvas"
           style={{ width: 1000 * scale, height: fieldHeight * scale }}
@@ -374,6 +380,7 @@ export function FieldBoard({
                 <ReplayCardTile
                   key={c.sceneId}
                   card={c}
+                  informationId={c.sceneId}
                   language={language}
                   reveal={reveal}
                   zoneLabel={label(c.location)}

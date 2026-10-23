@@ -4,6 +4,8 @@
   height: min(calc(var(--neos-adaptive-height, 100dvh) * 0.55), 420px);
   max-height: 100%;
 }
+.container.embedded { height: 100%; min-height: 0; }
+.embedded > button { align-self: flex-end; flex-shrink: 0; }
 
 .input {
   display: flex;

@@ -13,18 +13,19 @@ const folder = `.audit-tmp/mobile-duel-ui/${
 }`;
 const outDir = `${folder}/web-dist`;
 const fixtureCode = `
-import { initUIContainer as initFixture } from "@/container/compat";
+import { initUIContainer as initFixture, getUIContainer as fixtureContainer } from "@/container/compat";
 import { roomStore as roomFixture, matStore as matFixture, cardStore as cardFixture, RoomStage as RoomFixtureStage, InteractType as FixtureInteract } from "@/stores";
 import { fetchCard as fixtureCard, ygopro as fixtureProtocol } from "@/api";
 import { showCardModal as fixtureDetail } from "@/ui/Duel/Message/CardModal";
 import { displayCardListModal as fixtureList } from "@/ui/Duel/Message/CardListModal";
 import { displaySimpleSelectCardsModal as fixtureSelect } from "@/ui/Duel/Message/SimpleSelectCardsModal";
 import { displaySelectActionsModal as fixtureMulti } from "@/ui/Duel/Message/SelectActionsModal";
+import {beginActionRequest as fixtureBeginAction} from "@/service/duel/actionRequest";
 const makeCard = (zone,sequence,code,position=fixtureProtocol.CardPosition.FACEUP_ATTACK,controller=0) => ({uuid:"touch-"+zone+"-"+sequence,code,meta:fixtureCard(code),location:{controller,zone,sequence,position,is_overlay:false},idleInteractivities:zone===fixtureProtocol.CardZone.HAND?[{interactType:FixtureInteract.SUMMON,response:13}]:[],counters:{1:3},isToken:false,targeted:false,status:0,selectInfo:{selectable:false,selected:false}});
 window.__mobileTest = {
   lobby(mode = 0) {
     window.__mobilePackets = [];
-    initFixture({ws:{readyState:1,send(payload){
+    initFixture({signal:new AbortController().signal,ws:{readyState:1,send(payload){
       const packet = Array.from(new Uint8Array(payload));
       window.__mobilePackets.push(packet);
       if ([2,34,35].includes(packet[2])) setTimeout(() => {
@@ -41,6 +42,7 @@ window.__mobileTest = {
   opponentReady() { roomFixture.players[1] = {name:"A long opponent fixture name",state:fixtureProtocol.StocHsPlayerChange.State.READY,isMe:false}; },
   tagReady() { roomFixture.players = Array.from({length:4},(_,i)=>({name:"Tag fixture "+i,state:fixtureProtocol.StocHsPlayerChange.State.READY,isMe:i===0})); },
   duel() {
+    fixtureBeginAction(fixtureContainer());
     matFixture.initInfo.me.life = 8000; matFixture.initInfo.op.life = 8000;
     matFixture.selfType = 1; matFixture.currentPlayer = 0;
     matFixture.phase.currentPhase = fixtureProtocol.StocGameMessage.MsgNewPhase.PhaseType.MAIN1;
@@ -241,7 +243,7 @@ try {
           const r = el
             .closest(".ant-drawer-content-wrapper")
             .getBoundingClientRect();
-          return { height: r.height, width: r.width, y: r.y, bottom: r.bottom };
+          return { height: r.height, width: r.width, x: r.x, y: r.y, bottom: r.bottom };
         });
       await page.screenshot({
         path: `${folder}/${profile.name}-${lang}-detail.png`,
@@ -350,10 +352,14 @@ try {
         ]);
         if (mobile) {
           const menu = await page.getByTestId("duel-menu").boundingBox();
-          assert.ok(
-            detail.bottom <= menu.y + 1,
-            "Detail overlaps duel toolbar",
-          );
+          if (profile.width > profile.height) {
+            const board = await page.getByTestId("duel-board-viewport").boundingBox();
+            const controls = await page.getByTestId("duel-sidebar").locator(":scope > div").first().boundingBox();
+            assert.ok(detail.x >= board.x + board.width, "Wide details cover the board");
+            if (profile.height > 600) assert.ok(detail.y >= controls.y + controls.height - 1, "Wide details cover visible controls");
+          } else {
+            assert.ok(detail.bottom <= menu.y + 1, "Detail overlaps duel toolbar");
+          }
           if (profile.height > profile.width)
             assert.ok(detail.height <= profile.height * 0.4);
           const close = page.getByTestId("duel-card-panel-close");

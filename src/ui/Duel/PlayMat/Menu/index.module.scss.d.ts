@@ -5,5 +5,8 @@ declare const classNames: {
   readonly "select-manager": "select-manager";
   readonly btn: "btn";
   readonly cancle: "cancle";
+  readonly contents: "contents";
+  readonly sidebar: "sidebar";
+  readonly primary: "primary";
 };
 export = classNames;

@@ -99,6 +99,7 @@ export const PositionModal = () => {
 
   const onSummit = (position: ygopro.CardPosition) => {
     sendSelectPositionResponse(container.conn, position);
+    container.context.matStore.hint.msg = "";
     rs();
   };
 

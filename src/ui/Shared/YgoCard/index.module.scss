@@ -1,4 +1,5 @@
 .ygo-card {
+  position: relative;
   color: white;
   aspect-ratio: var(--card-ratio);
   display: flex;
@@ -12,6 +13,21 @@
   background-image: var(--src);
   background-size: contain;
   text-align: center;
+}
+
+.targetFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border: 3px solid #45f3ff;
+  box-shadow: inset 0 0 8px #45f3ff;
+  animation: target-flash 0.8s ease-out both;
+}
+
+@keyframes target-flash {
+  0%, 40% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .targeted {

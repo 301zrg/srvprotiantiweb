@@ -35,7 +35,8 @@ assert.equal(retryDelayMs(limited.replace("code: 971", "code: 429"), 1), 31000);
 for (const mode of ["preview", "deploy"]) {
   const command = wranglerInvocation(mode, "C:/Program Files/node/npm-cli.js");
   assert.equal(command.shell, false);
-  assert.equal(command.args.at(-1), mode);
+  if (mode === "preview") assert.deepEqual(command.args.slice(-3), [mode, "--name", "codex-client-preview-20261019"]);
+  else assert.equal(command.args.at(-1), mode);
   assert.ok(command.args.includes(`--package=wrangler@${WRANGLER_VERSION}`));
   assert.equal(command.args[0], "C:/Program Files/node/npm-cli.js");
   const calls = [],

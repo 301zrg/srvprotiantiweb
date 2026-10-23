@@ -6,12 +6,14 @@ import { useSnapshot } from "valtio";
 import { ygopro } from "@/api";
 import { useEnv } from "@/hook";
 import { matStore, type Player, roomStore } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
+import { displayPlayerId } from "@/variant/playerIds";
 
 import styles from "./index.module.scss";
 
 const LIFE_ANIMATION_DURATION = 500;
 
-function spectatorName(
+export function spectatorName(
   players: readonly (Readonly<Player> | undefined)[],
   tag: boolean,
   controller: number,
@@ -27,7 +29,7 @@ function spectatorName(
   return players[seat]?.name ?? "?";
 }
 
-export const LifeBar: React.FC = () => {
+export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
   const snapInitInfo = useSnapshot(matStore.initInfo);
   const snapPlayer = useSnapshot(roomStore);
   const { currentPlayer, selfType, observerView, observerSwapped } =
@@ -78,7 +80,7 @@ export const LifeBar: React.FC = () => {
   }, [currentPlayer]);
 
   return (
-    <div className={styles.container}>
+    <div className={classNames(styles.container, { [styles.sidebar]: docked })}>
       <LifeBarItem
         active={
           observing
@@ -133,6 +135,7 @@ const LifeBarItem: React.FC<{
   isMe: boolean;
   controller: number;
 }> = ({ active, name, life, timeLimit, isMe, controller }) => {
+  const { hidePlayerIds } = useSnapshot(settingStore);
   const animatedLife = useAnimatedLifeNumber(life);
   const mm = Math.floor(timeLimit / 60);
   const ss = timeLimit % 60;
@@ -160,7 +163,7 @@ const LifeBarItem: React.FC<{
         })}
       >
         <div className={styles.name} data-testid="duel-player-name">
-          {name}
+          {displayPlayerId(name, hidePlayerIds)}
         </div>
         <div
           className={styles.life}

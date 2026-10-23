@@ -1,4 +1,9 @@
 declare const classNames: {
+  readonly targetCandidate: "targetCandidate";
+  readonly targetSelected: "targetSelected";
+  readonly targetFocused: "targetFocused";
+  readonly targetLabel: "targetLabel";
+
   readonly "mat-card": "mat-card";
   readonly "img-wrap": "img-wrap";
   readonly cover: "cover";
@@ -13,5 +18,6 @@ declare const classNames: {
   readonly dropdown: "dropdown";
   readonly "ant-dropdown-menu": "ant-dropdown-menu";
   readonly "dropdown-disabled": "dropdown-disabled";
+  readonly materialCount: "materialCount";
 };
 export = classNames;

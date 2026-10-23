@@ -8,7 +8,12 @@ import { proxy, useSnapshot } from "valtio";
 
 import { sendSelectOptionResponse } from "@/api";
 import { getUIContainer } from "@/container/compat";
+import { notifyRpsPlayed } from "@/service/mora/feedback";
+import { RpsRequest } from "@/service/mora/request";
+import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
+import { RandomRpsControls } from "@/ui/WaitRoom/RandomRpsControls";
+import { connectionStore } from "@/variant/connection";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 
 import { NeosModal } from "../NeosModal";
@@ -21,9 +26,15 @@ const defaultStore = {
   isOpen: false,
   active: false,
   min: 1,
+  requestId: 0,
+  randomRps: false,
+  rpsId: 0,
   options: [] satisfies Options as Options,
 };
 const store = proxy(defaultStore);
+const rpsRequest = new RpsRequest();
+let requestConn: ReturnType<typeof getUIContainer>["conn"] | undefined;
+let requestEpoch = 0;
 
 // 一页最多4个选项
 const MAX_NUM_PER_PAGE = 4;
@@ -33,29 +44,65 @@ export const OptionModal = () => {
   const { language } = useI18N();
   const text = duelInteractionMessages(language);
   const snap = useSnapshot(store);
-  const { title, isOpen, min, options, active } = snap;
+  const { title, isOpen, min, options, active, requestId, randomRps, rpsId } =
+    snap;
+  const { randomRpsMode } = useSnapshot(settingStore);
+  const { epoch, state } = useSnapshot(connectionStore);
   // options可能太多，因此分页展示
   const [page, setPage] = useState(0);
   const maxPage = Math.ceil(options.length / MAX_NUM_PER_PAGE);
   const [selecteds, setSelecteds] = useState<number[][]>([]);
   const grouped = chunk(options, MAX_NUM_PER_PAGE);
+  const submitCurrent = (response: number) => {
+    // eslint-disable-next-line valtio/state-snapshot-rule -- Reject a click retained from an older render.
+    if (store.requestId !== requestId) return false;
+    if (
+      store.randomRps &&
+      (!requestConn ||
+        getUIContainer().conn !== requestConn ||
+        requestConn.ws.readyState !== 1 ||
+        connectionStore.epoch !== requestEpoch)
+    )
+      return false;
+    submit(response);
+    return true;
+  };
 
   const onSummit = () => {
     const responses = selecteds.flat();
     if (responses.length > 0) {
       const response = responses.reduce((res, current) => res | current, 0); // 多个选择求或
-      submit(response);
+      submitCurrent(response);
     }
   };
 
   useEffect(() => {
     setPage(0);
     setSelecteds(Array.from({ length: maxPage }).map((_) => []));
-  }, [options]);
+  }, [options, requestId, rpsId]);
+
+  useEffect(() => {
+    if (isOpen && randomRps && requestConn) {
+      store.rpsId = rpsRequest.begin(requestConn, requestEpoch, randomRpsMode);
+    }
+  }, [randomRpsMode, isOpen, randomRps, requestId]);
+
+  useEffect(() => {
+    if (
+      isOpen &&
+      randomRps &&
+      (epoch !== requestEpoch ||
+        state === "disconnected" ||
+        state === "connecting")
+    ) {
+      rpsRequest.invalidate();
+      rs(undefined);
+    }
+  }, [epoch, state, isOpen, randomRps]);
 
   const onQuickSelect = (response: number) => {
     if (store.min === 1) {
-      submit(response);
+      submitCurrent(response);
     }
   };
 
@@ -96,6 +143,18 @@ export const OptionModal = () => {
       }
     >
       <div data-testid="duel-option-modal" data-option-min={min}>
+        {randomRps && requestConn && (
+          <RandomRpsControls
+            request={rpsRequest}
+            requestId={rpsId}
+            owner={requestConn}
+            epoch={epoch}
+            testPrefix="effect"
+            onSelect={(hand) =>
+              submitCurrent(hand === 1 ? 2 : hand === 2 ? 1 : 3)
+            }
+          />
+        )}
         <Selector page={page} maxPage={maxPage} onChange={setPage as any} />
         {grouped.map(
           (options, i) =>
@@ -161,26 +220,55 @@ export const displayOptionModal = async (
   title: string,
   options: Options,
   min: number,
+  config?: { randomRps?: boolean },
 ) => {
+  const requestId = ++store.requestId;
+  store.randomRps = config?.randomRps === true;
   store.active = false;
   store.title = title;
   store.options = options;
   store.min = min;
   store.isOpen = true;
   const conn = getUIContainer().conn;
+  requestConn = conn;
+  requestEpoch = connectionStore.epoch;
+  store.rpsId = rpsRequest.begin(
+    conn,
+    requestEpoch,
+    settingStore.randomRpsMode,
+  );
   const response = await new Promise<number>((resolve) => {
     rs = (value) => {
-      if (value !== undefined) {
+      if (store.requestId !== requestId) return;
+      if (value !== undefined || config?.randomRps) {
         submit = () => {};
-        resolve(value);
+        rpsRequest.invalidate();
+        // Cancellation of effect RPS settles the old handler without a packet.
+        resolve(value ?? 0);
       }
     };
     submit = (value) => {
+      if (store.requestId !== requestId || !store.isOpen) return;
+      if (
+        config?.randomRps &&
+        (getUIContainer().conn !== conn ||
+          conn.ws?.readyState !== 1 ||
+          connectionStore.state === "disconnected" ||
+          connectionStore.state === "connecting" ||
+          !rpsRequest.consume(
+            store.rpsId,
+            conn,
+            connectionStore.epoch,
+            settingStore.randomRpsMode,
+          ))
+      )
+        return;
       sendSelectOptionResponse(conn, value);
+      if (config?.randomRps) notifyRpsPlayed(value);
       rs(value);
     };
   });
-  store.isOpen = false;
+  if (store.requestId === requestId) store.isOpen = false;
   return response;
 };
 
@@ -191,6 +279,9 @@ export const displayActiveOptionModal = (
   signal: AbortSignal,
 ) => {
   if (signal.aborted) return Promise.resolve(undefined);
+  store.requestId++;
+  store.randomRps = false;
+  rpsRequest.invalidate();
   store.title = title;
   store.options = options;
   store.min = 1;

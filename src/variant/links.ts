@@ -4,6 +4,7 @@ export const roomRulesUrl = "https://ygo233.com/usage";
 
 // Community invites from srvprotianti's public ladder website.
 export const communityLinks = {
+  source: "https://github.com/301zrg/srvprotiantiweb",
   upstream: "https://github.com/DarkNeos/neos-ts",
   website: resolveWebsiteBaseUrl(window.__SRVPRO_DUEL_CONFIG__?.websiteBaseUrl),
   discord: "https://discord.gg/mkRz8mWRdq",

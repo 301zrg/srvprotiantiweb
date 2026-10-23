@@ -1,4 +1,4 @@
-import { CopyOutlined } from "@ant-design/icons";
+import { CloseOutlined, CopyOutlined } from "@ant-design/icons";
 import { App, Button, Input } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,15 +19,18 @@ import {
   validateDuelWebSocketUrl,
 } from "@/variant";
 import { connectionStore } from "@/variant/connection";
-import { clearJoinForm, readJoinForm, saveJoinForm } from "@/variant/joinForm";
+import { readJoinForm, saveJoinForm } from "@/variant/joinForm";
 import { communityLinks, roomRulesUrl } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
+import { mobileMessages } from "@/variant/mobileMessages";
+import { previewMessages } from "@/variant/previewMessages";
 import {
   isRoomCommand,
   readRoomLink,
   type RoomLink,
   websiteObserverNickname,
 } from "@/variant/roomLink";
+import { webEntryMessages } from "@/variant/webEntryMessages";
 import { localizedWebsiteUrl } from "@/variant/websiteLink";
 
 import styles from "./index.module.scss";
@@ -58,7 +61,14 @@ function ReplayReceipt() {
   const { language } = useI18N();
   const status = useSnapshot(replayCaptureStatus),
     navigate = useNavigate();
-  if (status.state === "idle") return null;
+  const [dismissed, setDismissed] = useState("");
+  const receipt = `${status.state}:${status.notice}:${status.saved}:${status.detail}`;
+  useEffect(() => {
+    if (status.state === "idle" || status.state === "receiving") return;
+    const timer = setTimeout(() => setDismissed(receipt), 7000);
+    return () => clearTimeout(timer);
+  }, [receipt, status.state]);
+  if (status.state === "idle" || dismissed === receipt) return null;
   return (
     <div
       style={{
@@ -77,21 +87,38 @@ function ReplayReceipt() {
         justifyContent: "space-between",
       }}
       role="status"
+      data-testid="replay-receipt"
     >
-      <span>
+      <span style={{ flex: 1, minWidth: 0 }}>
         {t(`Replay${status.notice}`, {
           count: status.saved,
           detail: localizeReplayText(status.detail, language as Language),
         })}
       </span>
-      <Button onClick={() => navigate("/replays")}>
+      <Button style={{ flexShrink: 0 }} onClick={() => navigate("/replays")}>
         {siteMessages(language).replays}
       </Button>
+      <Button
+        data-testid="replay-receipt-close"
+        style={{ flexShrink: 0 }}
+        type="text"
+        icon={<CloseOutlined />}
+        aria-label={mobileMessages(language).close}
+        onClick={() => setDismissed(receipt)}
+      />
     </div>
   );
 }
 
-const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
+export const JoinRoomForm = ({
+  link,
+  autoConnect = false,
+  claimAutojoin,
+}: {
+  link?: RoomLink;
+  autoConnect?: boolean;
+  claimAutojoin?: () => boolean;
+}) => {
   const spectate = !!link?.spectate;
   const autoStarted = useRef(false);
   const [invalidLink, setInvalidLink] = useState(!!link?.invalid);
@@ -128,11 +155,6 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
       message.error({ content: text.copyFailed, key: "join-form-copy" });
     }
   }
-
-  useEffect(() => {
-    // A one-click spectator identity is temporary. Leaving it clears the form.
-    if (spectate) return clearJoinForm;
-  }, [spectate]);
 
   useEffect(() => {
     if (
@@ -200,6 +222,8 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
       return message.error(text.spectatorRoomCommand);
     if (!spectate) {
       saveJoinForm({ nickname, roomName });
+    } else if (nickname.includes("$")) {
+      saveJoinForm({ nickname, roomName: "" });
     }
     setConnecting(true);
     try {
@@ -216,10 +240,12 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
   }, [invalidLink, endpointError, nickname, roomName, spectate, message, text]);
 
   useEffect(() => {
-    if (!spectate || !link?.autojoin || autoStarted.current) return;
+    if ((!spectate && !autoConnect) || !link?.autojoin || autoStarted.current)
+      return;
     autoStarted.current = true;
+    if (claimAutojoin && !claimAutojoin()) return;
     void connect();
-  }, [spectate, link?.autojoin, connect]);
+  }, [spectate, autoConnect, link?.autojoin, claimAutojoin, connect]);
 
   return (
     <>
@@ -271,9 +297,7 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           }}
           autoComplete="off"
         />
-        <small>
-          {spectate ? text.spectatorNicknameHint : text.nicknameHint}
-        </small>
+        {!spectate && <small>{text.nicknameHint}</small>}
         <div className={styles.fieldHeading}>
           <label htmlFor="room-name">{text.room}</label>
           <Button
@@ -320,6 +344,13 @@ const JoinRoomForm = ({ link }: { link?: RoomLink }) => {
           )}
         </p>
         {invalidLink && <p role="alert">{text.invalidRoomLink}</p>}
+        <p data-testid="join-cache-help">
+          {spectate
+            ? nickname.includes("$")
+              ? webEntryMessages(language).spectatorCache
+              : previewMessages(language).spectatorRestore
+            : previewMessages(language).joinPersistence}
+        </p>
         {endpointError && <p role="alert">{endpointError}</p>}
         {connection.state === "disconnected" && (
           <p role="alert">{connection.detail}</p>

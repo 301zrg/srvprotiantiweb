@@ -1,0 +1,8 @@
+{
+  "name": "srvprotiantiweb-test-entry",
+  "main": "./worker.mjs",
+  "compatibility_date": "2026-10-08",
+  "compatibility_flags": ["global_fetch_strictly_public"],
+  "workers_dev": false,
+  "routes": [{ "pattern": "test.ocg1103nexus.com", "custom_domain": true }]
+}

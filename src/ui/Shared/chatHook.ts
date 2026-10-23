@@ -1,13 +1,15 @@
 // 聊天框的通用Hook
 
 import { OverlayScrollbarsComponentRef } from "overlayscrollbars-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
 import { sendChat } from "@/api";
 import { getUIContainer } from "@/container/compat";
 // TODO: access store via `Container`
 import { chatStore, isMe, roomStore } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
+import { displayPlayerId } from "@/variant/playerIds";
 
 interface ChatItem {
   name: string;
@@ -17,6 +19,7 @@ interface ChatItem {
 }
 
 export const useChat = (isDuel: boolean = false) => {
+  const { hidePlayerIds } = useSnapshot(settingStore);
   const container = getUIContainer();
   const [chatList, setChatList] = useState<ChatItem[]>([]);
   const [input, setInput] = useState<string | undefined>(undefined);
@@ -75,8 +78,18 @@ export const useChat = (isDuel: boolean = false) => {
     }
   }, [chat]);
 
+  const dialogs = useMemo(
+    () =>
+      chatList.map((item) => ({
+        ...item,
+        name: item.isServer
+          ? item.name
+          : displayPlayerId(item.name, hidePlayerIds),
+      })),
+    [chatList, hidePlayerIds],
+  );
   return {
-    dialogs: chatList,
+    dialogs,
     input,
     setInput,
     ref,

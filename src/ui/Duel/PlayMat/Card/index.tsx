@@ -1,3 +1,4 @@
+import { AimOutlined, CheckOutlined } from "@ant-design/icons";
 import { animated, to, useSpring } from "@react-spring/web";
 import { Dropdown, type MenuProps } from "antd";
 import classnames from "classnames";
@@ -7,6 +8,7 @@ import { useSnapshot } from "valtio";
 import { Region, sendSelectMultiResponse } from "@/api";
 import { fetchStrings, getCardStr, ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
+import { useMediaQuery, useMobileInterface } from "@/hook";
 import { eventbus, Task } from "@/infra";
 import {
   cardStore,
@@ -14,9 +16,22 @@ import {
   Interactivity,
   InteractType,
   isCardDisabled,
+  isMe,
 } from "@/stores";
+import {
+  fieldSelectionStore,
+  fieldSpotKey,
+  focusFieldSelection,
+  onlineFieldSpot,
+  toggleFieldSelection,
+} from "@/stores/fieldSelectionStore";
 import { showCardModal as displayCardModal } from "@/ui/Duel/Message/CardModal";
+import { useI18N } from "@/ui/I18N";
+import { replayCardWords } from "@/ui/Replay/cardState";
 import { YgoCard } from "@/ui/Shared";
+import { counterDescription } from "@/ui/Shared/CardInformation";
+import { fieldPosition, fieldPositionLabel } from "@/variant/fieldSelection";
+import { previewMessages } from "@/variant/previewMessages";
 
 import {
   displayActiveOptionModal,
@@ -29,6 +44,7 @@ import {
   interactTypeToIcon,
   interactTypeToString,
 } from "../../utils";
+import { visibleDeckCode } from "../deckVisibility";
 import styles from "./index.module.scss";
 import {
   attack,
@@ -39,12 +55,40 @@ import {
 } from "./springs";
 import type { FocusOptions, SpringApiProps } from "./springs/types";
 
-const { HAND, GRAVE, REMOVED, EXTRA, MZONE, SZONE, TZONE } = ygopro.CardZone;
+const { HAND, DECK, GRAVE, REMOVED, EXTRA, MZONE, SZONE, TZONE } =
+  ygopro.CardZone;
 
-export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
+export const Card: React.FC<{
+  idx: number;
+  overlayCount: number;
+  hostPosition?: ygopro.CardPosition;
+  deckReversed: boolean;
+}> = React.memo(({ idx, overlayCount, hostPosition, deckReversed }) => {
   const container = getUIContainer();
+  const portrait = useMediaQuery("(orientation: portrait)");
+  const mobile = useMobileInterface();
+  const actionFirst = portrait && mobile;
+  const { language } = useI18N();
+  const words = previewMessages(language);
   const card = cardStore.inner[idx];
   const snap = useSnapshot(card);
+  const fieldSnap = useSnapshot(fieldSelectionStore);
+  const fieldSpot = onlineFieldSpot(snap.location);
+  const fieldKey = fieldSpot ? fieldSpotKey(fieldSpot) : "";
+  const fieldEntry = fieldSnap.active
+    ? fieldSnap.entries.find((entry) => entry.key === fieldKey)
+    : undefined;
+  const fieldCandidate =
+    !!fieldEntry || snap.selectInfo.selectable || snap.selectInfo.selected;
+  const fieldChosen = fieldEntry?.selected || snap.selectInfo.selected;
+  const fieldFocused = !!fieldEntry && fieldSnap.focused === fieldKey;
+  const fieldPositionInfo =
+    fieldSpot && fieldPosition(fieldSpot, isMe(0) ? 0 : 1);
+  const fieldLabel = fieldSpot
+    ? fieldPositionLabel(fieldSpot, isMe(0) ? 0 : 1, language, (id) =>
+        fetchStrings(Region.System, id),
+      )
+    : "";
 
   const [spring, api] = useSpring<SpringApiProps>(
     () =>
@@ -116,7 +160,12 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     );
     // State may already contain catch-up messages received before this mount.
     void addToAnimation(() => move({ card, api }));
+    const relayout = () => {
+      void addToAnimation(() => move({ card, api }));
+    };
+    window.addEventListener("neos:duel-layout", relayout);
     return () => {
+      window.removeEventListener("neos:duel-layout", relayout);
       mounted.current = false;
       unregisterMove();
       unregisterFocus();
@@ -124,6 +173,22 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       api.stop(true);
     };
   }, []);
+
+  const materialLayoutMounted = useRef(false);
+  useEffect(() => {
+    if (
+      materialLayoutMounted.current &&
+      (card.location.is_overlay || card.location.zone === DECK)
+    )
+      void addToAnimation(() => move({ card, api }));
+    materialLayoutMounted.current = true;
+  }, [
+    overlayCount,
+    hostPosition,
+    deckReversed,
+    snap.deckReversed,
+    snap.location.position,
+  ]);
 
   // <<< 动画 <<<
 
@@ -160,7 +225,7 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
 
     if (!map.size) {
       setDropdownMenuDisabled(true);
-      return;
+      return false;
     } else {
       setDropdownMenuDisabled(false);
     }
@@ -306,8 +371,46 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       },
     };
     setDropdownMenu({
-      items: [...nonEffectItem, ...(hasEffect ? [effectItem] : [])],
+      items: [
+        ...nonEffectItem,
+        ...(hasEffect ? [effectItem] : []),
+        ...(!isField
+          ? [
+              ...(overlayCount && !card.location.is_overlay
+                ? [
+                    {
+                      key: "materials",
+                      label: `${
+                        replayCardWords(language).materials
+                      } (${overlayCount})`,
+                      onClick: (
+                        event: Parameters<NonNullable<MenuProps["onClick"]>>[0],
+                      ) => {
+                        event.domEvent.stopPropagation();
+                        displayCardListModal({ isZone: false, monster: card });
+                      },
+                    },
+                  ]
+                : []),
+              ...(actionFirst
+                ? [
+                    {
+                      key: "details",
+                      label: words.details,
+                      onClick: (
+                        event: Parameters<NonNullable<MenuProps["onClick"]>>[0],
+                      ) => {
+                        event.domEvent.stopPropagation();
+                        displayCardModal(card);
+                      },
+                    },
+                  ]
+                : []),
+            ]
+          : []),
+      ],
     });
+    return true;
   };
 
   const onClick = () => {
@@ -320,24 +423,14 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
         } else {
           console.error("card is selectable but the response is undefined!");
         }
+        setDropdownMenuDisabled(true);
+        return;
       }
-
-      // 中央弹窗展示选中卡牌信息
-      // TODO: 同一张卡片，是否重复点击会关闭CardModal？
-      displayCardModal(card);
-      handleDropdownMenu([card], false);
-
-      // 侧边栏展示超量素材信息
-      const overlayMaterials = cardStore.findOverlay(
-        card.location.zone,
-        card.location.controller,
-        card.location.sequence,
-      );
-      if (overlayMaterials.length > 0) {
-        displayCardListModal({
-          isZone: false,
-          monster: card,
-        });
+      const hasActions = handleDropdownMenu([card], false);
+      if (!hasActions || !actionFirst) {
+        if (overlayCount && !card.location.is_overlay) {
+          displayCardListModal({ isZone: false, monster: card });
+        } else displayCardModal(card);
       }
     };
 
@@ -354,13 +447,19 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
 
     if ([MZONE, SZONE, HAND].includes(card.location.zone)) {
       onCardClick(card);
-    } else if ([EXTRA, GRAVE, REMOVED].includes(card.location.zone)) {
+    } else if ([DECK, EXTRA, GRAVE, REMOVED].includes(card.location.zone)) {
       onFieldClick(card);
     }
   };
   // <<< 效果 <<<
 
   const location = snap.location;
+  const shownCode =
+    location.zone === DECK
+      ? visibleDeckCode(snap, deckReversed)
+      : snap.code === 0
+      ? snap.meta.id
+      : snap.code;
   const disabled = isCardDisabled(snap as CardType);
   const idleActions = snap.idleInteractivities
     .map(({ interactType }) => InteractType[interactType])
@@ -385,7 +484,10 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
     <animated.div
       data-testid="duel-card"
       data-card-uuid={snap.uuid}
-      data-card-code={snap.code}
+      data-card-info-host={
+        !location.is_overlay && fieldSpot ? snap.uuid : undefined
+      }
+      data-card-code={location.zone === DECK ? shownCode : snap.code}
       data-card-controller={location.controller}
       data-card-zone={ygopro.CardZone[location.zone]}
       data-card-zone-value={location.zone}
@@ -393,6 +495,8 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       data-card-position={ygopro.CardPosition[location.position]}
       data-card-position-value={location.position}
       data-card-is-overlay={location.is_overlay}
+      title={location.is_overlay ? snap.meta.text.name : undefined}
+      data-material-count={location.is_overlay ? undefined : overlayCount}
       data-card-overlay-sequence={location.overlay_sequence}
       data-card-is-token={snap.isToken}
       data-card-status={snap.status}
@@ -400,6 +504,8 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       data-card-selected={snap.selectInfo.selected}
       data-card-targeted={snap.targeted}
       data-card-disabled={disabled}
+      data-field-selected={fieldCandidate ? !!fieldChosen : undefined}
+      data-field-focused={fieldCandidate ? fieldFocused : undefined}
       data-card-idle-actions={idleActions}
       data-card-idle-responses={idleActionResponses}
       data-card-idle-response-sources={idleActionSources}
@@ -408,6 +514,9 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
         /* 有可操作选项或者已被选中*/
         [styles.glowing]: glowing || snap.selectInfo.selected,
         [styles.shining]: snap.selectInfo.selectable, // 可以被选中
+        [styles.targetCandidate]: fieldCandidate,
+        [styles.targetSelected]: fieldCandidate && fieldChosen,
+        [styles.targetFocused]: fieldFocused,
       })}
       style={
         {
@@ -428,7 +537,56 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
         } as any as CSSProperties
       }
       onClick={onClick}
+      onClickCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          event.target.closest("button, a, input, select, textarea")
+        )
+          return;
+        if (fieldEntry && toggleFieldSelection(fieldKey)) {
+          event.preventDefault();
+          event.stopPropagation();
+          setDropdownMenuDisabled(true);
+        }
+      }}
+      onMouseEnter={() => {
+        if (fieldEntry) focusFieldSelection(fieldKey);
+      }}
+      role={fieldSpot ? "button" : undefined}
+      tabIndex={fieldSpot ? 0 : undefined}
+      aria-label={fieldSpot ? fieldLabel : undefined}
+      aria-pressed={fieldEntry ? !!fieldChosen : undefined}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (fieldEntry && ["Enter", " "].includes(event.key)) {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleFieldSelection(fieldKey);
+        } else if (fieldSpot && ["Enter", " "].includes(event.key)) {
+          event.preventDefault();
+          event.currentTarget
+            .querySelector<HTMLElement>('[data-testid="duel-card-trigger"]')
+            ?.click();
+        }
+      }}
     >
+      {fieldCandidate && fieldPositionInfo && (
+        <animated.span
+          className={styles.targetLabel}
+          data-testid="duel-field-marker"
+          data-slot={fieldPositionInfo.slot}
+          title={fieldLabel}
+          style={{
+            transform: spring.rz.to(
+              (rz) =>
+                `translateZ(2px) rotate(calc(-${rz}deg - var(--duel-view-rotation, 0deg)))`,
+            ),
+          }}
+        >
+          {fieldChosen && <CheckOutlined />}
+          {fieldPositionInfo.slot ?? <AimOutlined />}
+        </animated.span>
+      )}
       <div className={styles.focus} />
       <div className={styles.shadow} />
       <Dropdown
@@ -442,18 +600,51 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       >
         <div
           data-testid="duel-card-trigger"
+          data-card-info-id={
+            !location.is_overlay && fieldSpot ? snap.uuid : undefined
+          }
+          title={counterDescription(snap.counters) || undefined}
           className={classnames(styles["img-wrap"], {
             [styles.focusing]: classFocus,
           })}
         >
           <YgoCard
             className={styles.cover}
-            code={snap.code === 0 ? snap.meta.id : snap.code}
+            code={shownCode}
             disabled={disabled}
+            targetFlash={snap.targetFlash}
           />
           <YgoCard className={styles.back} isBack />
         </div>
       </Dropdown>
+      {!location.is_overlay && overlayCount > 0 && (
+        <button
+          type="button"
+          className={styles.materialCount}
+          data-testid="duel-material-count"
+          style={{
+            transform: `translateZ(1px) rotate(calc(-${
+              (isMe(location.controller) ? 0 : 180) +
+              ([
+                ygopro.CardPosition.DEFENSE,
+                ygopro.CardPosition.FACEUP_DEFENSE,
+                ygopro.CardPosition.FACEDOWN_DEFENSE,
+              ].includes(location.position)
+                ? 90
+                : 0)
+            }deg - var(--duel-view-rotation, 0deg)))`,
+          }}
+          aria-label={`${
+            replayCardWords(language).materials
+          } (${overlayCount})`}
+          onClick={(event) => {
+            event.stopPropagation();
+            displayCardListModal({ isZone: false, monster: card });
+          }}
+        >
+          {overlayCount}
+        </button>
+      )}
       {snap.targeted ? <div className={styles.streamer} /> : <></>}
     </animated.div>
   );

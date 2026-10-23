@@ -13,6 +13,11 @@ const requests = new WeakMap<Container, Request>();
 export function invalidateActionRequest(container: Container) {
   requests.get(container)?.cancellation.abort();
   requests.delete(container);
+  const phase = container.context?.matStore?.phase;
+  if (phase) {
+    phase.command = undefined;
+    phase.enableBp = phase.enableM2 = phase.enableEp = false;
+  }
 }
 
 export function beginActionRequest(
@@ -26,6 +31,8 @@ export function beginActionRequest(
     busy: false,
     submitted: false,
   });
+  if (container.context?.matStore?.phase)
+    container.context.matStore.phase.command = source;
 }
 
 /** Covers both candidate windows and confirmation, including repeated taps. */
@@ -55,6 +62,8 @@ export function claimActionRequest(container: Container) {
       if (!valid() || request.submitted) return false;
       // Consume before dispatch so a second tap cannot send a second response.
       request.submitted = true;
+      if (container.context?.matStore?.phase)
+        container.context.matStore.phase.command = undefined;
       send();
       return true;
     },

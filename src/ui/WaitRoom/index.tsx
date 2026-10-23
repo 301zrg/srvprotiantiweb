@@ -45,16 +45,19 @@ import {
   sideStore,
 } from "@/stores";
 import { activeDeck, selectActiveDeck } from "@/stores/deckSelection";
+import { settingStore } from "@/stores/settingStore";
 import { I18NSelector, useI18N } from "@/ui/I18N";
 import { requireSession } from "@/ui/requireSession";
 import { Background, IconFont, useChat } from "@/ui/Shared";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { deckMessages } from "@/variant/deckMessages";
+import { displayPlayerId } from "@/variant/playerIds";
 import { roomMessages } from "@/variant/roomMessages";
 
 import { Chat } from "./Chat";
 import styles from "./index.module.scss";
 import { Mora, MoraPopover, Tp, TpPopover } from "./Popover";
+import { RoomSettingsButton } from "./RoomSettingsButton";
 
 const NeosConfig = useConfig();
 
@@ -71,6 +74,7 @@ export const Component: React.FC = () => {
   const { language } = useI18N();
   const text = roomMessages(language);
   const mobile = useMobileInterface();
+  const { controlPanelSide } = useSnapshot(settingStore);
   const chat = useChat();
   const { user } = useSnapshot(accountStore);
   const [collapsed, setCollapsed] = useState(false);
@@ -139,6 +143,7 @@ export const Component: React.FC = () => {
   return (
     <div
       data-testid="waitroom"
+      data-control-side={controlPanelSide}
       className={classNames(styles.container, {
         [styles.collapsed]: collapsed,
       })}
@@ -156,6 +161,7 @@ export const Component: React.FC = () => {
           onClose={() => setMobileChatOpen(false)}
           title={text.chat}
           testId="waitroom-chat-panel"
+          followControlSide
           bodyClassName={styles.chatPanelBody}
         >
           <Chat controller={chat} />
@@ -279,7 +285,7 @@ export const Component: React.FC = () => {
             )}
             <ActionButton
               onMoraSelect={(mora) => {
-                sendHandResult(container.conn, mora);
+                sendHandResult(getUIContainer().conn, mora);
                 roomStore.stage = RoomStage.HAND_SELECTED;
               }}
               onTpSelect={(tp) => {
@@ -300,6 +306,8 @@ const PlayerZone: React.FC<{
   avatar?: string;
   label: string;
 }> = ({ seat, player, avatar, label }) => {
+  const { hidePlayerIds } = useSnapshot(settingStore);
+  const name = displayPlayerId(player?.name ?? "?", hidePlayerIds);
   const { language } = useI18N();
   const text = roomMessages(language);
   const occupied = !!player && player.state !== PlayerState.LEAVE;
@@ -308,7 +316,7 @@ const PlayerZone: React.FC<{
     <div
       data-testid={`waitroom-player-${player?.isMe ? "me" : "op"}`}
       data-player-seat={seat}
-      data-player-name={occupied ? player.name : ""}
+      data-player-name={occupied ? name : ""}
       data-player-ready={ready}
       className={classNames(styles.player, {
         [styles.ready]: ready,
@@ -326,8 +334,8 @@ const PlayerZone: React.FC<{
       />
       <div className={styles.identity}>
         <div className={styles.playerLabel}>{label}</div>
-        <div className={styles.name} title={occupied ? player.name : undefined}>
-          {occupied ? player.name : text.emptySeat}
+        <div className={styles.name} title={occupied ? name : undefined}>
+          {occupied ? name : text.emptySeat}
         </div>
       </div>
       <span
@@ -411,6 +419,7 @@ const SideButtons: React.FC<{
   const expanded = mobile ? chatOpen : !collapsed;
   return (
     <div className={styles.sideButtons}>
+      <RoomSettingsButton />
       <Button
         data-testid="waitroom-chat-toggle"
         aria-expanded={expanded}

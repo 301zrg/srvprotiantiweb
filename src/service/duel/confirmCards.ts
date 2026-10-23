@@ -6,7 +6,7 @@ import { settingStore } from "@/stores/settingStore";
 import { callCardFocus, callCardMove } from "@/ui/Duel/PlayMat/Card";
 import { getRevealHoldDuration } from "@/variant/duelAnimation";
 
-const { MZONE, SZONE, HAND } = ygopro.CardZone;
+const { MZONE, SZONE, HAND, DECK } = ygopro.CardZone;
 const { FACEUP_ATTACK, FACEDOWN_ATTACK, FACEDOWN_DEFENSE, FACEDOWN } =
   ygopro.CardPosition;
 
@@ -52,6 +52,8 @@ export default async (
 
       context.historyStore.putConfirmed(context, meta.id, target.location);
       try {
+        if (zone === DECK && card.code !== 0)
+          target.confirmedDeckCode = card.code;
         // 动画
         if (
           (zone === MZONE || zone === SZONE) &&
@@ -83,6 +85,7 @@ export default async (
           });
         }
       } finally {
+        delete target.confirmedDeckCode;
         target.location.position = position;
         // A confirmation grants a temporary view, not permanent hand identity.
         if (wasHidden) {

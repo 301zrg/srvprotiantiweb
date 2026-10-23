@@ -1,8 +1,13 @@
 import { Gunzip } from "fflate";
 
 import { inspectReplay, parseReplayBody, type ReplayBody } from "./format";
-import { sha256 } from "./hash";
 import { parseQuery, type ReplayCard, splitCoreMessages } from "./messages";
+import {
+  loadReplayResource,
+  loadReplayRuntime,
+  type ReplayProfile,
+  type ReplayRuntime,
+} from "./runtime";
 
 export interface ReplayFrame {
   names: string[];
@@ -16,17 +21,6 @@ export interface ReplayFrame {
   consumed: number;
   total: number;
   end?: "complete" | "partial";
-}
-interface Module {
-  HEAPU8: Uint8Array;
-  UTF8ToString(p: number): string;
-  [key: string]: any;
-}
-interface Profile {
-  revision: string;
-  unpackedScriptBytes: number;
-  cardCount: number;
-  files: Record<string, { bytes: number; sha256: string }>;
 }
 // Locked native ReplayMode::ReplayAnalyze reads a replay response only for
 // selection/declaration messages. PROCESSOR_WAITING is also emitted for
@@ -66,7 +60,7 @@ export class ReplayEngine {
   private elapsed = 0;
   private ended: ReplayFrame["end"];
   private hints = new Map<string, number>();
-  constructor(private core: Module) {}
+  constructor(private core: ReplayRuntime) {}
   private alloc(bytes: Uint8Array) {
     const p = this.core._malloc(bytes.length || 1);
     if (!p) throw new Error("录像内存不足");
@@ -280,7 +274,7 @@ export class ReplayEngine {
             this.handle,
             player,
             location,
-            0xf03ff,
+            0xfcfff,
             buffer,
             0,
           );
@@ -323,88 +317,16 @@ export class ReplayEngine {
 
 export async function loadReplayEngine(
   base: string,
-  profile: Profile,
+  profile: ReplayProfile,
   status: (text: string) => void,
 ): Promise<ReplayEngine> {
-  const file = async (name: string) => {
-    const record = profile.files[name];
-    if (!record || record.bytes > 16 * 1024 * 1024)
-      throw new Error("播放资源清单异常");
-    const url = new URL(name, base).href;
-    status(`正在加载 ${name}`);
-    let cache: Cache | undefined;
-    try {
-      cache = await caches.open("srvpro-replay-706-v1");
-    } catch {
-      /* Storage may be disabled. */
-    }
-    let response = await cache?.match(url);
-    const read = async (r: Response) => {
-      if (!r.ok) throw new Error(`播放资源请求失败：${r.status}`);
-      const reader = r.body?.getReader();
-      if (!reader) throw new Error("资源流不可用");
-      const parts = [];
-      let size = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.length;
-        if (size > record.bytes) {
-          await reader.cancel();
-          throw new Error("播放资源超限");
-        }
-        parts.push(value);
-      }
-      const bytes = new Uint8Array(size);
-      let p = 0;
-      for (const part of parts) {
-        bytes.set(part, p);
-        p += part.length;
-      }
-      if (size !== record.bytes || (await sha256(bytes)) !== record.sha256)
-        throw new Error("播放资源校验失败");
-      return bytes;
-    };
-    if (response) {
-      try {
-        return await read(response);
-      } catch {
-        await cache?.delete(url);
-      }
-    }
-    response = await fetch(url, { cache: "no-store" });
-    const bytes = await read(response);
-    try {
-      await cache?.put(url, new Response(bytes));
-    } catch {
-      /* Playback does not require caching. */
-    }
-    return bytes;
-  };
-  const [js, wasm, cards, compressed] = await Promise.all([
-    file("ocgcore.js"),
-    file("ocgcore.wasm"),
-    file("cards.data"),
-    file("scripts.data"),
+  const [core, cards, compressed] = await Promise.all([
+    loadReplayRuntime(base, profile, status),
+    loadReplayResource(base, profile, "cards.data", status),
+    loadReplayResource(base, profile, "scripts.data", status),
   ]);
-  const moduleUrl = URL.createObjectURL(
-    new Blob([js], { type: "text/javascript" }),
-  );
-  try {
-    const factory = (await import(/* @vite-ignore */ moduleUrl)).default;
-    const core = await factory({
-      wasmBinary: wasm,
-      locateFile: (name: string) => new URL(name, base).href,
-      printErr: () => {},
-    });
-    status("正在初始化旧裁定脚本");
-    const engine = new ReplayEngine(core);
-    engine.install(
-      cards,
-      unpackScripts(compressed, profile.unpackedScriptBytes),
-    );
-    return engine;
-  } finally {
-    URL.revokeObjectURL(moduleUrl);
-  }
+  status("正在初始化旧裁定脚本");
+  const engine = new ReplayEngine(core);
+  engine.install(cards, unpackScripts(compressed, profile.unpackedScriptBytes));
+  return engine;
 }

@@ -39,7 +39,8 @@ form = load(local, session); // Fresh module/document, same tab storage.
 assert.deepEqual(plain(form.readJoinForm()), input, "A refresh retains both passwords and exact input");
 assert.equal(local.getItem("playerNickname"), "玩家");
 assert.equal(local.getItem("playerRoomName"), " M#房间");
-assert.ok(!JSON.stringify([...local.values]).includes("dummy"));
+assert.deepEqual(plain(load(local, store()).readJoinForm()), input,
+  "Closing the tab/browser retains complete ordinary inputs");
 form.saveJoinForm({ roomName: "New$other" });
 form = load(local, session);
 assert.deepEqual(plain(form.readJoinForm()), { nickname: input.nickname, roomName: "New$other" });
@@ -48,7 +49,7 @@ assert.deepEqual(plain(load(local, session).readJoinForm()), { nickname: "", roo
 form.saveJoinForm(input);
 form.clearJoinForm();
 assert.deepEqual(plain(load(local, session).readJoinForm()), { nickname: "", roomName: "" });
-assert.ok(!JSON.stringify([...session.values]).includes("dummy"), "Spectator cleanup removes stored credentials");
+assert.deepEqual(plain(load(local, store()).readJoinForm()), { nickname: "", roomName: "" }, "Intentional clearing survives browser reopen");
 
 const tabs = [store(), store()];
 const names = ["TabA$testA", "TabB$testB"];
@@ -70,7 +71,20 @@ load(blocked, privateOnly).clearJoinForm();
 assert.deepEqual(plain(load(blocked, privateOnly).readJoinForm()), { nickname: "", roomName: "" });
 
 // A legacy tab without a session draft keeps the existing public defaults.
-assert.equal(load(local, store()).readJoinForm().nickname, "玩家");
+assert.equal(load(local, store()).readJoinForm().nickname, input.nickname);
+const legacyLocal = store(), legacySession = store();
+legacyLocal.setItem("playerNickname", "Legacy");
+legacyLocal.setItem("playerRoomName", "TT");
+assert.deepEqual(plain(load(legacyLocal, legacySession).readJoinForm()), {nickname:"Legacy",roomName:"TT"});
+legacySession.setItem("joinFormDraft", JSON.stringify(input));
+assert.deepEqual(plain(load(legacyLocal, legacySession).readJoinForm()), input);
+assert.deepEqual(plain(load(legacyLocal, store()).readJoinForm()), input,
+  "Existing complete tab draft migrates once to durable storage");
+// Merely reading an older tab must not overwrite the latest browser draft.
+const other = store();
+load(legacyLocal, other).saveJoinForm({ nickname: "Newer$secret", roomName: "Other$room" });
+load(legacyLocal, legacySession).readJoinForm();
+assert.equal(load(legacyLocal, store()).readJoinForm().nickname, "Newer$secret");
 const toyCode = await compile("bilitoy");
 const toyLocal = store(), toySession = store();
 load(toyLocal, toySession, toyCode, "/toy/square/example-v1/index.html").saveJoinForm(input);
@@ -79,6 +93,6 @@ assert.deepEqual(plain(load(toyLocal, toySession, toyCode, "/toy/square/other-v1
 const sessionKey = [...toySession.values.keys()][0];
 for (const damaged of ["{", "null", "[]", '{"nickname":1,"roomName":"x"}', '{"nickname":"x"}']) {
   toySession.setItem(sessionKey, damaged);
-  assert.deepEqual(plain(load(toyLocal, toySession, toyCode, "/toy/square/example-v2/index.html").readJoinForm()), { nickname: "玩家", roomName: " M#房间" });
+  assert.deepEqual(plain(load(toyLocal, toySession, toyCode, "/toy/square/example-v2/index.html").readJoinForm()), input);
 }
-console.log("PASS join-form cache: refresh, exact inputs, partial edits, tab isolation, clearing, legacy defaults, namespaces and storage failure fallback");
+console.log("PASS join-form cache: browser reopen, exact inputs, migration, tab isolation, clearing, namespaces and blocked-storage fallback");

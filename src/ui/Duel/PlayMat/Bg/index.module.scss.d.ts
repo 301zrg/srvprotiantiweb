@@ -13,6 +13,7 @@ declare const classNames: {
   readonly graveyard: "graveyard";
   readonly deck: "deck";
   readonly "extra-deck": "extra-deck";
+  readonly count: "count";
   readonly "disabled-cross": "disabled-cross";
   readonly show: "show";
   readonly glowing: "glowing";

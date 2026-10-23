@@ -8,19 +8,20 @@ import {
   SwapOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
-import { Alert, App, Button, Input, message, Tooltip } from "antd";
+import { Alert, App, Button, Input, message, Switch, Tooltip } from "antd";
 import { HTML5toTouch } from "rdndmb-html5-to-touch";
 import { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd-multi-backend";
 import { useTranslation } from "react-i18next";
-import { LoaderFunction } from "react-router-dom";
+import { LoaderFunction, useNavigate } from "react-router-dom";
 import { proxy, useSnapshot } from "valtio";
 import { subscribeKey } from "valtio/utils";
 
-import { type CardMeta, fetchCard } from "@/api";
+import { type CardMeta, fetchCard, forbidden } from "@/api";
 import { isExtraDeckCard } from "@/common";
 import { useMobileInterface } from "@/hook";
 import { AudioActionType, changeScene } from "@/infra/audio";
+import { setPracticeDeck } from "@/practice/session";
 import { deckStore, emptyDeck, type IDeck, initStore } from "@/stores";
 import { activeDeck, selectActiveDeck } from "@/stores/deckSelection";
 import { useI18N } from "@/ui/I18N";
@@ -37,6 +38,7 @@ import { deckImportMessages } from "@/variant/deckImportMessages";
 import { deckMessages } from "@/variant/deckMessages";
 import { storageKey } from "@/variant/deployment";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { previewMessages } from "@/variant/previewMessages";
 
 import { CardDetail } from "./CardDetail";
 import { DeckDatabase } from "./DeckDatabase";
@@ -106,6 +108,8 @@ function storedEditingDeck() {
 const selectedDeck = proxy<{ deck: IDeck }>({
   deck: storedEditingDeck() ?? deckStore.decks.at(0) ?? emptyDeck,
 });
+
+let practiceEditorSource: string | undefined;
 
 export const setSelectedDeck = (deck: IDeck) => {
   selectedDeck.deck = deck;
@@ -283,14 +287,40 @@ export const DeckEditor: React.FC<{
   onReset: () => void;
   onSave: () => void;
 }> = ({ deck, onClear, onReset, onSave, onShuffle, onSort }) => {
+  const navigate = useNavigate();
   const snapEditDeck = useSnapshot(editDeckStore);
   const { language } = useI18N();
   const [deckName, setDeckName] = useState(editDeckStore.deckName);
   const mobile = useMobileInterface();
   const [reorderMode, setReorderMode] = useState(false);
   const text = deckMessages(language);
+  const preview = previewMessages(language);
+  const bannedCounts = new Map<number, number>();
+  for (const card of [
+    ...snapEditDeck.main,
+    ...snapEditDeck.extra,
+    ...snapEditDeck.side,
+  ]) {
+    const key = card.data.alias || card.id;
+    bannedCounts.set(key, (bannedCounts.get(key) ?? 0) + 1);
+  }
+  const violatesBanlist = [
+    ...snapEditDeck.main,
+    ...snapEditDeck.extra,
+    ...snapEditDeck.side,
+  ].some(
+    (card) =>
+      (bannedCounts.get(card.data.alias || card.id) ?? 0) >
+      Math.min(3, forbidden.get(card) ?? 3),
+  );
 
   useEffect(() => {
+    // Practice copies the draft; returning must keep its unsaved name/order.
+    if (practiceEditorSource === deck.deckName) {
+      practiceEditorSource = undefined;
+      return;
+    }
+    practiceEditorSource = undefined;
     iDeckToEditingDeck(deck).then(editDeckStore.set);
     setDeckName(deck.deckName);
     setReorderMode(false);
@@ -377,6 +407,35 @@ export const DeckEditor: React.FC<{
           />
         </div>
         <div className={styles.editorActions}>
+          <Tooltip title={preview.ignoreBanlistHelp}>
+            <label
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                minHeight: 44,
+              }}
+            >
+              <Switch
+                data-testid="deck-ignore-banlist"
+                checked={snapEditDeck.ignoreBanlist}
+                onChange={(value) => {
+                  editDeckStore.ignoreBanlist = value;
+                }}
+              />
+              {preview.ignoreBanlist}
+            </label>
+          </Tooltip>
+          <Button
+            data-testid="deck-practice"
+            onClick={() => {
+              practiceEditorSource = deck.deckName;
+              setPracticeDeck(editingDeckToIDeck(editDeckStore));
+              navigate("/practice");
+            }}
+          >
+            {preview.practice}
+          </Button>
           {mobile && (
             <Button
               data-testid="deck-reorder-toggle"
@@ -437,6 +496,14 @@ export const DeckEditor: React.FC<{
       </div>
       {mobile && reorderMode && (
         <p className={styles.orderHelp}>{text.orderHelp}</p>
+      )}
+      {!snapEditDeck.ignoreBanlist && violatesBanlist && (
+        <Alert
+          type="warning"
+          message={preview.banlistWarning}
+          showIcon
+          style={{ flexShrink: 0 }}
+        />
       )}
       <ScrollableArea
         className={styles["deck-zone"]}

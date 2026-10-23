@@ -85,3 +85,16 @@
     width: 64px !important;
   }
 }
+
+@media (orientation: landscape) and (min-width: 480px) {
+  :global(body:has([data-duel-sidebar="true"])) {
+    .container { height: auto; overflow-wrap: anywhere; }
+    .overview { gap: 8px !important; }
+    .overview > :global(.ant-space-item) { min-width: 0; width: 100%; }
+    .overview > :global(.ant-space-item):first-child > div { width: min(110px, 100%) !important; }
+    .info { width: 100%; }
+    .atkLine { flex-direction: row !important; flex-wrap: wrap; }
+    .atkLine .number { font-size: 22px; line-height: 1.25; }
+    .attline :global(.ant-tag) { white-space: normal; }
+  }
+}

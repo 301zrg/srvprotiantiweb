@@ -13,6 +13,7 @@ interface Props {
   isBack?: boolean;
   code?: number;
   targeted?: boolean;
+  targetFlash?: number;
   disabled?: boolean;
   // cardName?: string;
   style?: CSSProperties;
@@ -28,6 +29,7 @@ export const YgoCard: React.FC<Props> = (props) => {
     // cardName,
     isBack = false,
     targeted = false,
+    targetFlash,
     disabled = false,
     width,
     style,
@@ -52,6 +54,14 @@ export const YgoCard: React.FC<Props> = (props) => {
       >
         {/* 暂时不能这么写...但如果用onload的话来判断可能又很消耗性能，再看看吧 */}
         {/* {cardName} */}
+        {!!targetFlash && (
+          <div
+            key={targetFlash}
+            className={styles.targetFlash}
+            data-testid="card-target-flash"
+            aria-hidden="true"
+          />
+        )}
         {targeted ? (
           <div className={styles.targeted}>
             <img src={`${assetsPath}/targeted.png`} />
@@ -68,6 +78,17 @@ export const YgoCard: React.FC<Props> = (props) => {
         )}
       </div>
     ),
-    [code, targeted, disabled],
+    [
+      code,
+      isBack,
+      targeted,
+      targetFlash,
+      disabled,
+      className,
+      width,
+      style,
+      onClick,
+      onLoad,
+    ],
   );
 };

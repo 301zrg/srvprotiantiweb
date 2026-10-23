@@ -16,3 +16,8 @@
     left: 50%;
   }
 }
+
+@media (orientation: landscape) and (min-width: 480px) {
+  .container .me { right: calc(50% - var(--control-board-center-offset)); }
+  .container .op { left: calc(50% + var(--control-board-center-offset)); }
+}

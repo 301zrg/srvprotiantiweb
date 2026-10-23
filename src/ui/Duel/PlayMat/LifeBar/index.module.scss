@@ -58,6 +58,37 @@
   }
 }
 
+.container.sidebar {
+  position: relative;
+  inset: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 6px;
+  > div {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+  .life-bar { padding: 4px; gap: 2px; }
+  .name { font-size: 12px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .life { font-size: 24px; }
+  .timer-container { position: static; padding: 0 5px; background: none; font-size: 11px; gap: 3px; }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .container.sidebar {
+    .life-bar { padding: 3px; gap: 1px; }
+    .life { font-size: 20px; }
+    .name { font-size: 11px; }
+    .timer-container { font-size: 10px; line-height: 12px; }
+  }
+}
+
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
   .container {
     top: max(6px, env(safe-area-inset-top));

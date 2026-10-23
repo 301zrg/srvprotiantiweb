@@ -13,7 +13,7 @@ export default async (container: Container, selectCard: MsgSelectCard) => {
 
   // TODO: handle release_param
 
-  if (!cancelable && cards.length === 1) {
+  if (!cancelable && min === 1 && max === 1 && cards.length === 1) {
     // auto send
     sendSelectMultiResponse(conn, [cards[0].response]);
     return;

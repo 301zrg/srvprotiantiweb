@@ -13,8 +13,10 @@ import MsgAnnounceNumber from "./announceNumber";
 import MsgAnnounceRace from "./announceRace";
 import MsgAttack from "./attack";
 import MsgCardHintAdapter from "./cardHint";
+import { cardRelationMessage } from "./cardRelation";
 import MsgConfirmCardsAdapter from "./confirmCards";
 import MsgDamage from "./damage";
+import { deckVisibilityMessage } from "./deckVisibility";
 import MsgDrawAdapter from "./draw";
 import MsgFieldDisabledAdapter from "./fieldDisabled";
 import MsgHandResultAdapter from "./handResult";
@@ -70,6 +72,14 @@ export default class GameMsgAdapter implements StocAdapter {
 
     const func = dataView.getUint8(0);
     const gameData = exData.slice(1);
+    if ([93, 95, 96, 97].includes(func))
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: cardRelationMessage(func, gameData),
+      });
+    if (func === 37 || func === 38)
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: deckVisibilityMessage(func, gameData),
+      });
     if (func === GAME_MSG.MSG_CARD_HINT) {
       return new ygopro.YgoStocMsg({
         stoc_game_msg: MsgCardHintAdapter(gameData),

@@ -28,6 +28,13 @@ try {
     });
     await context.addInitScript(() => {
       localStorage.setItem("language", "cn");
+      // Exercise real replay audio with sound explicitly enabled; the shared
+      // product default stays muted, independently covered by settings tests.
+      if (!localStorage.getItem("__neo_setting_config__"))
+        localStorage.setItem(
+          "__neo_setting_config__",
+          JSON.stringify({ audio: { enableSoundEffects: true, soundEffectsVolume: 0.7 } }),
+        );
       window.replayAudioAudit = {
         created: 0,
         started: 0,

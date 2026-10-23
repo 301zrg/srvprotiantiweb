@@ -77,6 +77,20 @@
   white-space: pre-wrap;
 }
 
+.container.embedded {
+  height: auto;
+  .timeline { margin-top: 0; gap: 10px; }
+  .timeline .history { align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .timeline .history .card-container { align-items: center; gap: 6px; }
+  .timeline .history .card-container .card { width: 40px; }
+  .timeline .history .card-container .location { margin: 0; }
+  .timeline .history .op-container { margin: 0; gap: 4px; align-items: center; }
+  .timeline .history .op-container .op-text { margin: 0; }
+  .timeline .history .op-container .op-icon { width: 24px; }
+  .timeline .history .target { margin: 0; }
+  .announcement { padding: 6px; gap: 6px; font-size: 12px; }
+}
+
 @media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
   .container .timeline {
     margin-top: 0;

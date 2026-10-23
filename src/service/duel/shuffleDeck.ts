@@ -12,6 +12,9 @@ export default (
   for (const card of context.cardStore.at(ygopro.CardZone.DECK, player)) {
     // 把数据抹掉就好了
     card.code = 0;
+    card.deckReversed = false;
+    card.deckPublicCode = undefined;
+    card.location.position = ygopro.CardPosition.FACEDOWN;
     card.meta = { id: 0, data: {}, text: {} };
   }
 };
