@@ -182,6 +182,11 @@ export interface ReplayCard {
   player: number;
   attack: number;
   defense: number;
+  baseAttack?: number;
+  baseDefense?: number;
+  currentCode?: number;
+  attribute?: number;
+  race?: number;
   type: number;
   level: number;
   rank: number;
@@ -244,6 +249,7 @@ export function parseQuery(
       } else {
         const n = u32();
         if (bit === 1) card.code = n;
+        if (bit === 4) card.currentCode = n;
         if (bit === 2) {
           card.position = n >>> 24;
           card.sequence = (n >>> 16) & 255;
@@ -251,8 +257,12 @@ export function parseQuery(
         if (bit === 8) card.type = n;
         if (bit === 16) card.level = n;
         if (bit === 32) card.rank = n;
+        if (bit === 64) card.attribute = n;
+        if (bit === 128) card.race = n;
         if (bit === 256) card.attack = n | 0;
         if (bit === 512) card.defense = n | 0;
+        if (bit === 1024) card.baseAttack = n | 0;
+        if (bit === 2048) card.baseDefense = n | 0;
         if (bit === 0x4000)
           card.equipLocation = (n >>> 8) & 255 ? unpackQueryLocation(n) : null;
         if (bit === 0x40000) card.owner = n;

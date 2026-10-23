@@ -37,6 +37,13 @@ export function sceneInformationCards(
       counters: card.counters,
       equipTarget: card.equipTarget,
       cardTargets: card.cardTargets,
+      stats:
+        !hidden &&
+        card.location === 4 &&
+        !!(card.position & 5) &&
+        !!(card.type & 1)
+          ? { ...card, hasDefense: !(card.type & 0x4000000) }
+          : undefined,
     };
   });
 }

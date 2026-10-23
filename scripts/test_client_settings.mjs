@@ -23,6 +23,9 @@ const load = async (config) => {
 };
 try {
   const fresh = await load();
+  assert.equal(fresh.replaySpeed, 1, "Fresh replay speed is 1x");
+  assert.equal(fresh.replayAutoPlay, true, "New replays start automatically by default");
+  assert.equal(fresh.controlPanelSide, "left", "All control panels start on the left");
   assert.equal(fresh.showZoneCounts, true, "Zone counts are visible by default");
   assert.equal(fresh.hidePlayerIds, false, "Player IDs remain visible by default");
   assert.equal(fresh.serverMessageMode, "auto", "A fresh user needs adaptive message display");
@@ -44,6 +47,9 @@ try {
   configured.serverMessageMode = "record";
   configured.showZoneCounts = false;
   configured.hidePlayerIds = true;
+  configured.replaySpeed = 4;
+  configured.replayAutoPlay = false;
+  configured.controlPanelSide = "right";
   await new Promise(resolve => setTimeout(resolve, 0));
   const reopened = await load(JSON.parse(saved));
   assert.equal(reopened.audio.enableSoundEffects, false, "Main mute must survive reopening the browser");
@@ -51,6 +57,9 @@ try {
   assert.equal(reopened.serverMessageMode, "record");
   assert.equal(reopened.showZoneCounts, false, "Hiding zone badges persists after reopening");
   assert.equal(reopened.hidePlayerIds, true, "ID masking persists after reopening");
+  assert.equal(reopened.replaySpeed, 4, "Replay speed survives reopening");
+  assert.equal(reopened.replayAutoPlay, false, "Explicit autoplay opt-out survives reopening");
+  assert.equal(reopened.controlPanelSide, "right", "Panel side survives reopening");
 
   const damaged = await load({ chainSetting: 99, randomRpsMode: "auto-send", serverMessageMode: "bad", audio: { enableSoundEffects: "true", soundEffectsVolume: 90 } });
   assert.equal(damaged.chainSetting, 2);
@@ -58,6 +67,13 @@ try {
   assert.equal(damaged.serverMessageMode, "auto");
   assert.equal(damaged.audio.enableSoundEffects, false);
   assert.equal(damaged.audio.soundEffectsVolume, 1);
+  const invalidSide = await load({ controlPanelSide: "bottom" });
+  assert.equal(invalidSide.controlPanelSide, "left");
+  for (const replaySpeed of [0, -1, 3, "2", null]) {
+    const invalidReplay = await load({ replaySpeed, replayAutoPlay: "false" });
+    assert.equal(invalidReplay.replaySpeed, 1);
+    assert.equal(invalidReplay.replayAutoPlay, true);
+  }
   globalThis.localStorage.getItem = () => { throw new Error("Storage blocked"); };
   const { settingStore: blocked } = await server.ssrLoadModule("/src/stores/settingStore/index.ts?storage-blocked");
   assert.equal(blocked.randomRpsMode, "suggest");

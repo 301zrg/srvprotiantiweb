@@ -93,9 +93,14 @@ flowchart LR
   Native["原生 93 / 95 / 96 / 97 与查询"] --> Adapter["在线 adapter / service"]
   Adapter --> Online["CardStore UUID"]
   Core["独立 Worker Core 查询 / 事件"] --> Scene["练习 / 录像 sceneId"]
-  Online --> Presentation["共享关联列表 / 视口标记 / 逐类指示物"]
+  Online --> Presentation["共享关联列表 / 视口标记 / 逐类指示物 / 攻守与身份对照"]
   Scene --> Presentation
+  Printed["只读卡面数据库"] --> Presentation
 ```
+
+攻守／身份的当前值、原本攻守与卡面资料保持独立，查询省略不覆盖既有原本值；未知值不由卡面猜测。三个模式共用详情格式与桌面空间测量层，效果正文保持卡面原文，协议能力边界见 [当前值与卡面值](duel-results.md#当前值与卡面值客户端测试版)。
+
+操作面板左右位置、录像倍速与首次自动播放由 `settingStore` 规范化并持久保存。左右设置沿布局 CSS 变量和抽屉 placement 生效，不触碰联机连接或 Core 请求；倍速与播放页双向同步，首次自动播放使用一次性标志，不能复活暂停或后台状态，详见 [面板位置](mobile-ui.md#操作面板左右位置客户端测试版) 和 [录像偏好](replay-usage.md#录像播放偏好客户端测试版)。
 
 ## 在线消息、会话与录像收尾
 

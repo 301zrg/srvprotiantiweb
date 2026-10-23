@@ -18,6 +18,6 @@
 }
 
 @media (orientation: landscape) and (min-width: 480px) {
-  .container .me { right: calc(50% + var(--duel-sidebar-width, 280px) / 2); }
-  .container .op { left: calc(50% - var(--duel-sidebar-width, 280px) / 2); }
+  .container .me { right: calc(50% - var(--control-board-center-offset)); }
+  .container .op { left: calc(50% + var(--control-board-center-offset)); }
 }

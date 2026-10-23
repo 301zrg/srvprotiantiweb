@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { fetchCard, getCardImgUrl } from "@/api";
 import type { ReplayCard } from "@/replay/messages";
 import { counterDescription } from "@/ui/Shared/CardInformation";
+import { CompactCardStats } from "@/ui/Shared/CardStats";
 
 import {
   concealReplayCard,
@@ -64,14 +65,19 @@ export function ReplayCardTile({
           {t.slot} {card.sequence + 1}
         </small>
       )}
-      {card.location === 4 && (
-        <small>
-          {card.attack}/{card.defense}
-          {card.overlay.length
-            ? ` · ${t.materials} ${card.overlay.length}`
-            : ""}
-        </small>
-      )}
+      {!hidden &&
+        card.location === 4 &&
+        !!(card.position & 5) &&
+        !!(card.type & 1) && (
+          <small>
+            <CompactCardStats
+              stats={{ ...card, hasDefense: !(card.type & 0x4000000) }}
+            />
+            {card.overlay.length
+              ? ` · ${t.materials} ${card.overlay.length}`
+              : ""}
+          </small>
+        )}
       {!!counters.length && (
         <small className="replay-counter-count">
           {counterDescription(card.counters)}

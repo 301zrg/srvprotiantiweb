@@ -7,13 +7,22 @@ import { fieldPositionLabel } from "@/variant/fieldSelection";
 
 type OnlineInformationSource = Pick<
   CardType,
-  "uuid" | "code" | "counters" | "equipTarget" | "cardTargets"
+  | "uuid"
+  | "code"
+  | "counters"
+  | "equipTarget"
+  | "cardTargets"
+  | "baseAttack"
+  | "baseDefense"
 > & {
   location: Pick<
     CardType["location"],
     "controller" | "zone" | "sequence" | "position" | "is_overlay"
   >;
-  meta: { text: { name?: string } };
+  meta: {
+    text: { name?: string };
+    data?: { type?: number; atk?: number; def?: number };
+  };
 };
 
 export function onlineInformationCards(
@@ -51,6 +60,24 @@ export function onlineInformationCards(
         equipTarget: card.equipTarget,
         cardTargets: card.cardTargets,
         counters: card.counters,
+        stats:
+          !hidden &&
+          card.location.zone === ygopro.CardZone.MZONE &&
+          !!((card.meta.data?.type ?? 0) & 1) &&
+          [
+            ygopro.CardPosition.ATTACK,
+            ygopro.CardPosition.FACEUP_ATTACK,
+            ygopro.CardPosition.DEFENSE,
+            ygopro.CardPosition.FACEUP_DEFENSE,
+          ].includes(card.location.position)
+            ? {
+                attack: card.meta.data?.atk,
+                defense: card.meta.data?.def,
+                baseAttack: card.baseAttack,
+                baseDefense: card.baseDefense,
+                hasDefense: !((card.meta.data?.type ?? 0) & 0x4000000),
+              }
+            : undefined,
       };
     });
 }

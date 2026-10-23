@@ -1,0 +1,129 @@
+.card-stat-number {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: inherit;
+}
+.card-stat-number[data-trend="higher"] {
+  color: #ffff00;
+}
+.card-stat-number[data-trend="lower"] {
+  color: #ff2090;
+}
+.card-stats-compact {
+  display: block;
+  padding: 0 4px;
+  box-sizing: border-box;
+  font:
+    700 12px/18px system-ui,
+    sans-serif;
+  white-space: nowrap;
+  color: #fff;
+  background: #101b29ec;
+  border-radius: 3px;
+  text-align: center;
+  pointer-events: none;
+}
+.card-stats-details {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 360px;
+  margin: 4px 0 10px;
+  color: #e4e9ef;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: right;
+}
+.card-stats-details th {
+  font-weight: 500;
+}
+.card-stats-details th:first-child {
+  text-align: left;
+  padding-right: 10px;
+  white-space: nowrap;
+}
+.card-stats-details td,
+.card-stats-details th {
+  padding: 3px 5px;
+}
+.card-stats-details thead {
+  color: #bbc8d8;
+  font-size: 13px;
+}
+.card-stats-details tr[data-stat-row="current"] td {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+.card-identity-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 14px;
+  color: #e4e9ef;
+}
+.card-identity-details > div {
+  display: flex;
+  gap: 10px;
+}
+.card-identity-details > div > strong {
+  flex: 0 0 auto;
+  color: #becbdd;
+  font-weight: 500;
+}
+.card-identity-details > div > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.card-identity-details span {
+  display: inline-block;
+  margin: 4px 4px 0 0;
+  padding: 1px 4px;
+  border: 1px solid #526076;
+  border-radius: 3px;
+}
+.card-printed-description-label {
+  display: block;
+  margin: 12px 0 4px;
+  color: #becbdd;
+  font-size: 14px;
+  font-weight: 500;
+}
+.card-stat-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px;
+}
+.card-stat-overview > :first-child {
+  flex: 0 0 auto;
+  width: 100px !important;
+  max-width: 100px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.card-stat-overview > :last-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.card-stat-overview > img {
+  width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  margin-top: 0;
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .card-stat-overview {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card-stat-overview > :first-child {
+    width: 96px !important;
+    max-width: 96px;
+    margin-inline: auto;
+  }
+  .card-stat-overview > :last-child {
+    width: 100%;
+    flex-basis: auto;
+  }
+}

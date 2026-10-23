@@ -206,7 +206,7 @@ export class PracticeEngine {
             this.handle,
             player,
             location,
-            0xfc3ff,
+            0xfcfff,
             buffer,
             0,
           );

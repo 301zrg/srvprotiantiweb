@@ -66,6 +66,7 @@ export const ActionHistory: React.FC = () => {
   if (wide) return null;
   return (
     <DuelPanel
+      followControlSide
       open={isOpen}
       placement="right"
       onClose={() => (store.isOpen = false)}

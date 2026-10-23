@@ -4,16 +4,34 @@ import { useSnapshot } from "valtio";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
+import { controlPanelMessages } from "@/variant/controlPanelMessages";
 import { previewMessages } from "@/variant/previewMessages";
 
 export const MessageSetting = () => {
-  const { serverMessageMode, showZoneCounts, hidePlayerIds } =
+  const { serverMessageMode, showZoneCounts, hidePlayerIds, controlPanelSide } =
     useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
   const revision = clientRevisionMessages(language);
+  const panel = controlPanelMessages(language);
   return (
     <>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.position}</legend>
+        <Radio.Group
+          value={controlPanelSide}
+          onChange={(event) => {
+            settingStore.controlPanelSide = event.target.value;
+          }}
+        >
+          <Radio data-testid="setting-control-left" value="left">
+            {panel.left}
+          </Radio>
+          <Radio data-testid="setting-control-right" value="right">
+            {panel.right}
+          </Radio>
+        </Radio.Group>
+      </fieldset>
       <Checkbox
         data-testid="setting-zone-counts"
         checked={showZoneCounts}
