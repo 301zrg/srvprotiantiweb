@@ -1,8 +1,165 @@
 # 当前架构与数据流
 
-更新：2026-10-22。本轮候选以生产提交 `7b636941` 为基线，新增本地练习和录像卡组提取；仅测试预览。
+更新：2026-10-26。共享牌桌审查基线为 `cc678b662b279283b99d28039f3a9ba755662df4`，
+已通过 GitHub 核对 `deploy/cloudflare`，与本地 `874871b9` 的文件树一致。
+以下“共享牌桌重构方案”是待实施设计；其余章节描述现有实现，不能把设计图当成已经完成的架构。
 本文描述源码边界，不断言正式站点今天的部署版本。功能和测试状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，
 设计理由见 [设计文档](../YGOPro_706_Web_Client_Design.md)。
+
+## 共享牌桌重构方案
+
+状态：阶段一审查与设计已完成，等待用户确认；尚未修改产品代码或部署。2026-10-26 用户明确要求先交付文档，确认后再改代码。目标是相同的展示行为只有一个维护入口，
+不以文件数量或代码行数作为验收。2026-10-25 用户明确选择：**录像也改为与联机相同的牌桌外观**。
+录像的播放工具、列表视图、检查时暂停、缩放和视角功能继续保留。
+
+### 基线与并行工作边界
+
+- 原 `srvprotiantiweb` 工作树在 `codex/retain-join-passwords` / `6e0085d8`，包含大量未提交修改；不能用它代表当前全部功能，也不能清理或覆盖。
+- 历史 `codex/client-preview-20261019` / `6ec3f013`、`codex/replay-phase2` / `2f3cb950` 只用于溯源；新方案基于已核对的 `cc678b66`。
+- 本任务独立分支 `codex/shared-duel-board-20261025`，工作树位于 `F:/MyCardLibrary/srvpro/.audit-tmp/web-shared-board-20261025`。
+- `xyz-side-repair-20261024` 另有未提交的换备和素材样式修复，不复制、不提交进本批。正式合入前须检查它届时的合入状态和冲突；需要的已完成修复应按明确提交集成，不能扫描所有脏文件。
+- 仅授权完成后的固定测试预览。正式分支合入、正式发布、服务器配置、业务数据、进程重启不属于本任务。
+
+### 当前三个模式的真实关系
+
+| 维度 | 联机与观战 | 录像 | 本地练习 |
+| --- | --- | --- | --- |
+| 裁定与数据 | 服务端 Core；WSS 原生包经 adapter/service 更新在线 Valtio stores | 独立 Replay Worker/Core 回灌录制响应，返回 `ReplayFrame` | 独立 Practice Worker/Core，`PracticeFrame` 当前扩展 `ReplayFrame`，额外携带请求 |
+| 状态与身份 | Container + `cardStore` UUID、`matStore`、`placeStore`、请求所有权 | 页面播放状态、`SceneCard.sceneId`、单批步骤队列、播放代次 | `usePracticeSession`、独立请求 id/玩家/Worker 代次、场面及选择草稿 |
+| 消息节奏 | `stream → executor → onSocketMessage → gameMsg → handler → eventbus → springs` 保序等待；到包计时确认和录像捕获独立 | `ReplayEngine.next` 后用 `sceneSteps` 逐步呈现，批末完整查询校准；暂停/单步/跳转改变控制器节奏 | `presentation` 已复用 `sceneSteps/seedScene`，`materials` 增加素材收集步骤；用户响应只送本地 Worker |
+| 场地与手牌 | `Mat/Bg` + SCSS；Card springs 内计算卡片目标坐标、手牌扇形、堆叠和旋转 | `FieldBoard` + `scenePoint` 独立固定坐标，桌面行坐标换算、直排手牌、CSS 动画 | `Board.point` 重算扇形、区域、镜像和旋转；已借在线 `matConfig`、Bg 样式、`materialOffset` |
+| 卡图/状态 | `YgoCard`，在线 Card 动画与交互外壳 | 场地和列表使用 `ReplayCardTile`，独立 img/状态外壳 | `YgoCard`，本地按钮/菜单/选择外壳 |
+| 素材 | 单独在线卡片 UUID，宿主位置 + overlay sequence | 当前主要数量、详情和场面数据，尚无在线等效的逐张素材外壳 | 已有素材 fan，保留宿主实例和独立 overlay index；素材逐张收集、宿主最后出现 |
+| 装备/对象/指示物 | 在线消息按 UUID 更新，`onlineInformationCards` 负责可见性投影 | `sceneInformationCards` 投影 sceneId 与查询/事件关系 | 与录像共用 scene 信息层及取对象生命周期 |
+| 输入与选择 | Card/Bg 可触发 CTOS；`actionRequest` 保护确认/过期/单次提交；观战限制独立 | 只检查卡片/牌堆并暂停，无用户规则响应 | Core 合法候选经 `interactions` 与 `Choices` 路由，双方请求由用户处理 |
+| 详情/历史/阶段 | CardModal 订阅在线 liveCard；historyStore；PhaseBar | 页面 Drawer 组装详情；原始事件历史；播放进度/阶段展示 | 页面 Drawer 重复部分详情；最近 500 条 SceneAction 历史；已复用 PhaseBar |
+| 手机/桌面 | Mat 测量、CSS media query、DuelPanel 与操作栏 | 自有可用高度/一屏适配/缩放/滚动与 Drawer | 自有测量/缩放/侧栏及竖屏动作优先，部分规则与联机相同 |
+
+关键源码入口：[在线 Mat](../src/ui/Duel/PlayMat/Mat/index.tsx)、[在线 Card](../src/ui/Duel/PlayMat/Card/index.tsx)、
+[在线几何](../src/ui/Duel/PlayMat/css.ts)、[在线手牌](../src/ui/Duel/PlayMat/Card/springs/moveToHand.ts)、
+[录像场地](../src/ui/Replay/FieldBoard.tsx)、[录像 scene](../src/ui/Replay/scene.ts)、
+[练习场地](../src/ui/Practice/Board.tsx)、[练习展示](../src/ui/Practice/presentation.ts)、
+[练习会话](../src/ui/Practice/usePracticeSession.ts)。
+
+目录名称不是重复的证据。已经共享的 `InformationCard/CardInformationLayer`、`CardStats/CardIdentity`、
+`FieldSelectionGrid`、`PhaseBar`、`materialOffset`、固定资源加载器与 scene 步骤应继续使用。
+`PracticeFrame extends ReplayFrame` 是现有类型复用，不表示两者可共享请求或 Worker 生命周期。
+
+### 重复清单与收益评估
+
+| 可共享能力 | 已核实问题/收益 | 复杂度/风险 | 本次处理 |
+| --- | --- | --- | --- |
+| 布局参数、卡位、手牌和素材几何 | 在线 springs 与 Practice.point 重复公式；Replay 再维护一套坐标。改一处应同时作用三个模式 | 中/高：远端镜像、守备、素材层级、MR4+ 区域 | 提取纯几何，以在线牌桌为基准，三个模式全部接入 |
+| 场地缩放和测量 | 三处 ResizeObserver/尺寸计算；练习调用 `updateMatLayout` 还会写全局 `matConfig` 与 body CSS | 中/中：横竖屏、短窗口、同屏隔离 | 共享测量和 fit 算法；可用空间与录像 zoom 留给页面容器 |
+| 区域背景、牌堆角标、卡面与通用状态 | 同义渲染分散；Replay 仍直接 img，难同步 YgoCard 的目标/失效标记 | 中/中：点击区域、44px 控件、保密与叠层 | 共享无状态组件，迁移三种入口；模式控制器只传数据与回调 |
+| 装备/目标/指示物/攻守层 | 已有中立 `InformationCard` 和纯展示层 | 低/高：保密字段、实例对应、定位 | 沿用现有层，补适配契约与回归，不建立第二套状态 |
+| 详情内容 | Replay/Practice 重复卡图、身份、攻守、正文及关联组装；在线有相同内容但 liveCard 订阅不同 | 中/中：隐藏卡/里侧、语言刷新 | 抽公共内容，保持三个打开/关闭/跟踪控制器 |
+| 选择框、阶段栏 | 已有共享网格/PhaseBar，实际差异是在线请求和本地请求 | 低收益/高风险（若合并控制器） | 延用共享显示；不合并提交、取消、确认和草稿寿命 |
+| 历史 | 在线公开事件、录像原始事件、练习 SceneAction 的来源与回溯含义不同 | 中/高 | 维持各自存储及格式路径，复用已有卡名/详情展示，不强行统一历史模型 |
+| 动画 | 在线 react-spring 的完成承诺与离线 CSS/scene 时间控制不同 | 高/高 | 共享目标 pose、卡面、素材及标记；保留动画驱动与完成/取消边界 |
+
+### 方案取舍
+
+1. 直接统一在线 Mat/Card/handler：需要拆出其全局 store、WSS、请求与取消依赖，容易改变观战和玩家等待；不采用。
+2. 共享底层展示，暂留录像旧布局参数：风险较低，但用户已选择录像也统一为联机外观，本次不保留第二套录像布局。
+3. **采用：共同牌桌几何和组件 + 独立模式适配器/控制器。** UI 层逐段迁移，运行机制不变；录像改用同一牌桌，播放壳继续独立。不是一个包含大量 `mode === ...` 的巨型组件。
+
+### 目标依赖与契约
+
+下面是待实现图，不替代后文的当前运行时图：
+
+```mermaid
+flowchart TB
+  Online[在线 service / stores / 观战权限] --> OA[在线展示与动作适配器]
+  Replay[Replay Worker / 播放控制器 / scene] --> RA[录像展示与检查适配器]
+  Practice[Practice Worker / 请求控制器 / scene] --> PA[练习展示与合法动作适配器]
+  OA --> Geometry[Shared/DuelBoard 纯几何 / 视角 / 尺寸]
+  RA --> Geometry
+  PA --> Geometry
+  OA --> Parts[共同区域 / 卡面 / 素材 / 状态与详情组件]
+  RA --> SceneBoard[离线场面渲染组合]
+  PA --> SceneBoard
+  SceneBoard --> Geometry
+  SceneBoard --> Parts
+  Geometry --> Parts
+  OA --> Motion[在线 springs / eventbus / 原连接取消]
+  Motion --> Parts
+  SceneBoard --> OfflineMotion[离线 CSS 动画 / 当前展示步骤]
+  OfflineMotion --> Parts
+  Parts --> Intent[检查 / 点卡 / 点区域回调]
+  Intent --> OA
+  Intent --> RA
+  Intent --> PA
+```
+
+实现位置优先为 `src/ui/Shared/DuelBoard/`（命名可由实现者细化），不新增第三套业务 store。
+
+- **几何：** 输入只含规则、布局尺寸、玩家/区域/原始 sequence、视角、手牌数量、姿态及素材序号；输出 x/y、宽高、旋转和层级。中心坐标、CSS 变量和区域边框必须来自同一份几何。在线枚举与 Core 位掩码由适配器转换，不能直接混用数字枚举。
+- **单一布局：** 以现有在线 `matConfig` 和区域规则为基准，保留其横竖屏布局及 MR4+ 额外怪兽区支持；Replay/Practice 使用实际固定 profile 的 MR2。不借本次扩大可播放格式或规则支持。移除 Replay 的 `scenePoint`/桌面 rows 专用视觉算法以及 Practice 的本地扇形计算。
+- **实例隔离：** 纯布局计算不读 store、不写 DOM；每个牌桌根节点应用自己的变量。现有全局常量可保留给非牌桌卡图，但离线测量不得修改在线可变几何。若暂保在线 `matConfig` 兼容包装，只允许在线适配器更新；所有目标 pose 仍委托共享函数，不再保留副本公式。
+- **展示投影：** 复用 `InformationCard`、`FieldSpot` 等现有概念，仅新增渲染所需的稳定 id、卡位、可见卡号/卡背、姿态、素材和已格式化标签/动作可用性。它不是统一裁定状态，不包含 socket、Core、响应编码或请求处理器。UUID/sceneId 由来源适配器提供；素材用宿主实例 + overlay index 区分，同名卡不合并。
+- **可见性：** 在线适配器在进入共享层前执行既有手牌/盖牌/翻转牌顶策略；不向 DOM 属性、可访问名称、title 或详情传入未知身份。录像沿用 reveal，练习双方可见。点击共享组件本身不能提升信息权限或产生规则响应。
+- **事件：** 通用组件仅回调卡片实例/原始区域地址。在线回调继续走 `actionRequest`；练习继续校验 Worker 代次、请求对象/id 和真实玩家；录像只检查/暂停。视角仅改变画面，不重写原始 response index/控制者。
+- **动画：** 在线保留原连接 signal、挂载队列、全部 spring controller 完成等待与逐消息 await；不加队列跳帧或取消玩家等待。离线保留一批 scene 步骤、批末 Core 查询校准、稳定实例和素材收集时序；跳转/重开清掉旧步骤和展示标记。先共享目标位置和视觉构件，不替换动画引擎。
+- **布局容器：** 牌桌区域/卡面相同；联机聊天及选择栏、练习操作栏、录像进度/工具栏继续独立。录像保留 1×/1.5×/2× 缩放、恢复大小、主动放大后的滚动、列表回退和点击暂停；默认适配时完整显示牌桌。
+- **详情/语言：** 公共内容接收已获准查看的卡片、当前四语资料、动态攻守/身份/关系；弹层开关和实时跟踪不进入公共内容。切语言不重连、不重开 Worker、不重置待选草稿。优先现有文案，本次不扩展设置或玩法。
+
+不要求所有模式使用同一个顶层 React 组件。必须共享真正的坐标计算、区域样式/构件、卡面与状态内容；
+不能只包一层公共组件，内部仍保留三份算法。离线 SceneBoard 可以复用现有练习渲染拆出的组合，
+但不能导入 Practice 请求解析，也不能使用在线 Card/Bg 的有副作用入口。
+
+### 实施顺序与可回滚边界
+
+1. **基线与回归约束。** 记录已有失败；修复有证据的测试契约偏差，再保存在线/练习原有布局及交互断言。录像旧像素断言按已确认的新外观替换，播放行为断言保留。
+2. **共享几何。** 从现有在线公式提取纯布局/坐标/素材函数，在线 springs 委托，练习去掉复制的 point；移除离线写 body/在线可变配置的路径。保持在线视觉与时序。
+3. **共享区域及卡片内容。** 从现有 Bg/YgoCard/练习按钮抽无状态构件，保留在线和练习动作包装器；把详情公共内容接入已有三种弹层。每次抽取后跑受影响回归。
+4. **录像接入同桌。** 用同一几何与场面构件替换 FieldBoard 的独立卡位/卡面，保留播放壳、步骤、动画方向、视角、reveal、缩放、牌堆检查及列表视图。仅移动确属公共的场面展示类型/函数，必要的旧导出可短期兼容，不能复制实现。
+5. **整体验证与测试发布。** 类型/lint/构建、Core、浏览器矩阵通过后提交明确文件集，更新固定预览，核验部署元数据和用户可见行为。按几何、构件、录像迁移划分提交，便于定位与回退。
+
+本次必须交付第 2–4 步的共同维护入口。未统一的动画引擎、历史控制器、模式 shell 均有上述机制理由；
+不能只完成参数提取就宣称三个模式的共享架构验收通过。若实测证明某一步回归成本超出边界，先报告证据和缩减方案。
+
+### 风险与验收矩阵
+
+| 风险/验收内容 | 自动化证据要求 | 人工补充 |
+| --- | --- | --- |
+| 同一处修改影响三模式 | 新增共同样例挂载在线/录像/练习，核对相同规则/尺寸/视角下区域和 pose；只调整共享几何夹具，验证三者同时变化且状态互不污染 | 三入口并排比较卡位/手牌/牌堆/素材外观 |
+| 在线完整流程与隐私 | 本地 WSS/合成包验证创建房、入场、召唤/盖放/翻转/连锁、选择、观战、Match/换备；`test:animation-lifecycle`、`test:animation-ui`、`test:duel-action-request`、`test:side-ui`、房间/选择脚本 | 使用专门测试身份完成双人 Match、换备、观战及重连，不用真实玩家账号进行副作用操作 |
+| 动画阻塞/取消 | 旧连接取消、卸载/重挂载、多个 spring 完成、玩家输入等待，保持 `test:duel-animation` 等断言 | 手机后台/恢复、较慢设备长队列的连续播放 |
+| Replay 完整查询与播放 | 四份脱敏原生样本跑 `test:replay-runtime`、`test:replay-scene`；真实 Worker 的加载/播放/暂停/单步/跳转/重开，另跑 field/state/confirmation/extract UI、倍速偏好和视角检查 | 已支持原件格式与真实录像观看；不把未知格式升级为支持 |
+| Practice 真正合法动作 | `test:practice`、`test_practice_chain_xyz`、presentation、place/interactions/chain；真实 Worker 的召唤/发动/双方响应/重试和新种子 | 实际卡组操作、触摸选择和连锁确认 |
+| 状态与实例 | card_information、card_stats、chain_target_presentation、material_layers 和目标选择脚本；同名卡、取素材 index、离区清理、牌堆顺序、隐藏卡 DOM/详情不可泄露 | 装备、多目标、指示物、素材较多的实际局面 |
+| 语言/响应式 | 中英日韩 × 桌面 1280×800、1920×1080、竖屏 390×844、窄屏 320×640、横屏 844×390；鼠标/模拟触屏；录像额外测短桌面/缩放，布局调整不丢草稿 | iOS Safari 与 Android 真机的点按、滚动、旋转、弹层关闭 |
+| 会话隔离 | 三模式往返、同时挂载测试，离线零 WSS、在线 store/布局不被离线写入、旧 Worker 回包无效、语言切换保留请求 | 保留卡组草稿与浏览器原件，刷新/返回后的正常体验 |
+
+仅已有测试脚本存在，不代表本轮通过。2026-10-25 在原样 `cc678b66` 隔离树执行
+`node scripts/test_replay_scene.mjs`：首次被沙箱子进程 `spawn EPERM` 阻断，获工具审批后执行，
+在 `Every batch settles to exact full Core query` 断言失败；首个差异为展示层新增的
+`targeted/targetFlash/equipTarget/cardTargets`。现断言只剥离 `sceneId`，与 `scene.ts` 的投影不匹配。
+实施时应明确比较完整 Core 字段并独立断言展示关系/目标生命周期；不能删掉这些展示字段或宽泛跳过断言。
+随后仅在忽略目录生成诊断副本，明确剥离上述四个展示字段及 `sceneId`，保持原测试和产品源码不变；
+四份脱敏录像的 2,090 批、2,923 个展示步骤通过完整查询比较、既有帧不变及既有动作断言。
+这支持“测试混淆 Core 字段与展示字段”的原因判断，不表示原回归已修复，也不证明全部展示状态正确。
+正式修改仍需保留所有 Core 字段比较，并单独验证对象/关系等展示字段。尚未执行本轮完整构建/浏览器回归。
+
+文档本身已检查本地文件链接与 `git diff --check`；独立实施者审查未发现影响制定施工计划的关键缺项。
+
+### 固定测试发布与交付
+
+复用 [现有发布链](cloudflare-ci.md#固定测试入口与-wss)；目标为 `https://test.ocg1103nexus.com/`，
+上游固定预览名 `codex-client-preview-20261019`。成功发布会覆盖先前测试预览，发布必须串行。
+
+- 记录更新前测试版 `sourceCommit`，从本任务清洁提交构建；`SRVPRO_BUILD_TARGET=preview` + `build:cloudflare`，随后仅 `preview:cloudflare`。不得用 `deploy:cloudflare`，不推送或合并正式分支。
+- 预览构建可读取正式站公开 `deployment-info.json` 中 WSS；不读私密配置、不修改游戏网关，不将静态预览成功称为完整联机验收。
+- 等测试域名元数据报告目标 commit，再核对首页资源、录像/练习真实 Worker 和规定视口。需要联机人工验证时使用测试身份/房间，不影响正式玩家。
+- 发布失败时保留可部署产物、来源 SHA 和配置要求；如需恢复，重新发布记录的前一测试提交到同一固定预览，不清理 IndexedDB 或玩家数据。
+- 最终报告共同维护入口、仍独立的控制器及原因、自动化结果、基线失败处理、实际部署 SHA、手工清单与未知项。正式合入前重新审查其他开发分支的进展及冲突，并获得正式发布授权。
+
+### 本轮交付与待确认内容
+
+本轮只交付本节设计和状态页，原工作树及其他任务源码保持原样。用户已确认录像外观统一；
+待确认的是整份施工范围：共同几何/区域/卡面/详情内容、保留三种控制器与动画驱动、
+按上述顺序修复基线回归并迁移，最后仅发布固定测试预览。获得本次文档确认后才进入产品代码修改。
 
 ## 组件与数据归属
 
