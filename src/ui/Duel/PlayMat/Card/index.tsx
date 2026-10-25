@@ -113,26 +113,25 @@ export const Card: React.FC<{
   const [classFocus, setClassFocus] = useState(false);
 
   // >>> 动画 >>>
-  /** 动画序列的promise */
-  const animationQueue = useRef(Promise.resolve());
-  const mounted = useRef(false);
-
-  const addToAnimation = (p: () => Promise<void>) => {
-    const next = animationQueue.current.then(() =>
-      mounted.current ? p() : undefined,
-    );
-    // Preserve the error for this caller without poisoning later animations.
-    animationQueue.current = next.catch(() => {});
-    return next;
-  };
+  const relayoutCard = useRef<() => void>(() => {});
 
   useEffect(() => {
-    mounted.current = true;
+    const lifetime = new AbortController();
+    const signal = lifetime.signal;
+    const connectionSignal = container.conn.signal;
+    let animationQueue = Promise.resolve();
+    const addToAnimation = (p: () => Promise<void>) => {
+      const next = animationQueue.then(() =>
+        signal.aborted ? undefined : p(),
+      );
+      animationQueue = next.catch(() => {});
+      return next;
+    };
     const unregisterMove = eventbus.register(
       Task.Move,
       card.uuid,
       async (options?: MoveOptions) => {
-        await addToAnimation(() => move({ card, api, options }));
+        await addToAnimation(() => move({ card, api, options, signal }));
       },
     );
 
@@ -143,9 +142,9 @@ export const Card: React.FC<{
         await addToAnimation(async () => {
           setClassFocus(true);
           try {
-            await focus({ card, api, options });
+            await focus({ card, api, options, signal });
           } finally {
-            if (mounted.current) setClassFocus(false);
+            if (!signal.aborted) setClassFocus(false);
           }
         });
       },
@@ -155,23 +154,31 @@ export const Card: React.FC<{
       Task.Attack,
       card.uuid,
       async (options: AttackOptions) => {
-        await addToAnimation(() => attack({ card, api, options }));
+        await addToAnimation(() => attack({ card, api, options, signal }));
       },
     );
     // State may already contain catch-up messages received before this mount.
-    void addToAnimation(() => move({ card, api }));
     const relayout = () => {
-      void addToAnimation(() => move({ card, api }));
+      void addToAnimation(() => move({ card, api, signal })).catch(() => {
+        if (import.meta.env.DEV) console.warn("Card placement failed.");
+      });
     };
+    relayoutCard.current = relayout;
+    relayout();
     window.addEventListener("neos:duel-layout", relayout);
-    return () => {
+    const cleanup = () => {
+      lifetime.abort();
       window.removeEventListener("neos:duel-layout", relayout);
-      mounted.current = false;
+      if (relayoutCard.current === relayout) relayoutCard.current = () => {};
       unregisterMove();
       unregisterFocus();
       unregisterAttack();
       api.stop(true);
+      connectionSignal?.removeEventListener("abort", cleanup);
     };
+    connectionSignal?.addEventListener("abort", cleanup, { once: true });
+    if (connectionSignal?.aborted) cleanup();
+    return cleanup;
   }, []);
 
   const materialLayoutMounted = useRef(false);
@@ -180,7 +187,7 @@ export const Card: React.FC<{
       materialLayoutMounted.current &&
       (card.location.is_overlay || card.location.zone === DECK)
     )
-      void addToAnimation(() => move({ card, api }));
+      relayoutCard.current();
     materialLayoutMounted.current = true;
   }, [
     overlayCount,
