@@ -12,7 +12,7 @@ export enum Task {
 
 interface AnimationHandler {
   run: (...args: any[]) => Promise<unknown>;
-  disposed: Promise<void>;
+  pending: Set<() => void>;
   dispose: () => void;
 }
 
@@ -26,12 +26,13 @@ const register = <T extends unknown[]>(
 ) => {
   const handlers = animations.get(task) ?? new Map<string, AnimationHandler>();
   animations.set(task, handlers);
-  let dispose!: () => void;
-  const disposed = new Promise<void>((resolve) => (dispose = resolve));
+  const pending = new Set<() => void>();
   const owner: AnimationHandler = {
     run: (...args) => fn(...(args as T)),
-    disposed,
-    dispose,
+    pending,
+    dispose: () => {
+      for (const finish of pending) finish();
+    },
   };
   handlers.get(target)?.dispose();
   handlers.set(target, owner);
@@ -47,7 +48,24 @@ const register = <T extends unknown[]>(
 const call = async (task: Task, target: string, ...args: any[]) => {
   const handler = animations.get(task)?.get(target);
   if (!handler) return;
-  await Promise.race([handler.run(...args), handler.disposed]);
+  // A shared, never-settled disposal Promise would retain a reaction for every
+  // completed animation until unmount. Keep only calls that are still pending.
+  await new Promise<void>((resolve, reject) => {
+    const finish = () => {
+      handler.pending.delete(finish);
+      resolve();
+    };
+    const fail = (error: unknown) => {
+      handler.pending.delete(finish);
+      reject(error);
+    };
+    handler.pending.add(finish);
+    try {
+      Promise.resolve(handler.run(...args)).then(finish, fail);
+    } catch (error) {
+      fail(error);
+    }
+  });
 };
 
 export const eventbus = {

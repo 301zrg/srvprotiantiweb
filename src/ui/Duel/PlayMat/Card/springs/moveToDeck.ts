@@ -17,7 +17,7 @@ export const moveToDeck: MoveFunc = async (props) => {
     DECK_ROTATE_Z,
     DECK_CARD_HEIGHT,
   } = matConfig;
-  const { card, api } = props;
+  const { card, api, signal } = props;
   // report
   const { location } = card;
   const { controller, zone, sequence } = location;
@@ -35,7 +35,10 @@ export const moveToDeck: MoveFunc = async (props) => {
   rz += isMe(controller) ? 0 : 180;
   const z = sequence;
 
-  await asyncStart(api)({
+  await asyncStart(
+    api,
+    signal,
+  )({
     x,
     y,
     z,
