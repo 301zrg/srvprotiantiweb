@@ -2,11 +2,11 @@ import { useSnapshot } from "valtio";
 
 import { fetchCard } from "@/api";
 import { settingStore } from "@/stores/settingStore";
+import { replayFieldWords } from "@/ui/Shared/DuelBoard/sceneWords";
 import { corePhaseKey } from "@/variant/duelPhases";
 import { formatDuelResult } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
 
-import { replayFieldWords } from "../Replay/FieldBoard";
 import { practiceZoneName } from "./Board";
 import type { PracticeHistoryEntry } from "./presentation";
 

@@ -136,6 +136,8 @@ try {
       } else {
         await expect(page.locator(".ant-notification-notice")).toContainText("Ordinary system notice");
       }
+      // Let earlier toasts (e.g. the RPS "Played" notice) expire first.
+      await expect(page.locator(".ant-message-notice")).toHaveCount(0, { timeout: 10000 });
       await page.evaluate(() => { window.__settingsTest.matStore.phase.currentPhase = 4; });
       await page.waitForTimeout(100);
       await expect(page.locator(".ant-message-notice")).toHaveCount(0);

@@ -1,4 +1,4 @@
-import classnames from "classnames";
+import { useLayoutEffect, useReducer } from "react";
 import { type INTERNAL_Snapshot as Snapshot, useSnapshot } from "valtio";
 
 import { fetchStrings, Region, sendSelectPlaceResponse, ygopro } from "@/api";
@@ -14,9 +14,16 @@ import {
 } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { BgChain, type ChainMarker, type ChainProps } from "@/ui/Shared";
+import { type ZoneRect, zoneRect } from "@/ui/Shared/DuelBoard/geometry";
+import {
+  ZoneBlock,
+  ZoneCount,
+  ZoneLayer,
+} from "@/ui/Shared/DuelBoard/ZoneBlock";
 
 import { displayCardListModal } from "../../Message/CardListModal";
-import styles from "./index.module.scss";
+import { onlineSpot } from "../boardSpot";
+import { matConfig } from "../css";
 
 const { DECK, MZONE, SZONE, EXTRA, GRAVE, REMOVED } = ygopro.CardZone;
 
@@ -35,35 +42,26 @@ const toChainMarkers = (
     index,
   }));
 
+const rectOf = (controller: number, zone: ygopro.CardZone, sequence: number) =>
+  zoneRect(matConfig, onlineSpot({ controller, zone, sequence })!);
+
 const BgBlock: React.FC<
-  React.HTMLProps<HTMLDivElement> & {
+  React.HTMLAttributes<HTMLDivElement> & {
+    rect: ZoneRect;
     disabled?: boolean;
     highlight?: boolean;
     glowing?: boolean;
     chains: ChainProps;
+    [data: `data-${string}`]: unknown;
   }
-> = ({
-  disabled = false,
-  highlight = false,
-  glowing = false,
-  className,
-  chains,
-  children,
-  ...rest
-}) => (
-  <div
-    {...rest}
-    className={classnames(styles.block, className, {
-      [styles.highlight]: highlight,
-      [styles.glowing]: glowing,
-    })}
-  >
+> = ({ chains, children, ...rest }) => (
+  <ZoneBlock {...rest}>
     {children}
-    {<DisabledCross disabled={disabled} />}
-    {<BgChain {...chains} />}
-  </div>
+    <BgChain {...chains} />
+  </ZoneBlock>
 );
 
+/** Extra monster zones: each slot is shared by both players. */
 const BgExtraRow: React.FC<{
   meSnap: Snapshot<BlockState[]>;
   opSnap: Snapshot<BlockState[]>;
@@ -73,10 +71,11 @@ const BgExtraRow: React.FC<{
   const opController = getController(true);
 
   return (
-    <div className={classnames(styles.row)}>
+    <>
       {Array.from({ length: 2 }).map((_, i) => (
         <BgBlock
           key={i}
+          rect={rectOf(meController, MZONE, i + 5)}
           data-testid="duel-zone"
           data-zone={ygopro.CardZone[MZONE]}
           data-zone-value={MZONE}
@@ -85,7 +84,6 @@ const BgExtraRow: React.FC<{
           data-place-selectable={
             !!meSnap[i].interactivity || !!opSnap[1 - i].interactivity
           }
-          className={styles.extra}
           onClick={() => {
             onBlockClick(container, meSnap[i].interactivity);
             onBlockClick(container, opSnap[1 - i].interactivity);
@@ -108,7 +106,7 @@ const BgExtraRow: React.FC<{
           }}
         />
       ))}
-    </div>
+    </>
   );
 };
 
@@ -122,17 +120,17 @@ const BgRow: React.FC<{
   const zone = szone ? SZONE : MZONE;
 
   return (
-    <div className={classnames(styles.row, { [styles.opponent]: opponent })}>
+    <>
       {Array.from({ length: 5 }).map((_, i) => (
         <BgBlock
           key={i}
+          rect={rectOf(controller, zone, i)}
           data-testid="duel-zone"
           data-zone={ygopro.CardZone[zone]}
           data-zone-value={zone}
           data-controller={controller}
           data-sequence={i}
           data-place-selectable={!!snap[i].interactivity}
-          className={classnames({ [styles.szone]: szone })}
           onClick={() => onBlockClick(container, snap[i].interactivity)}
           disabled={snap[i].disabled}
           highlight={!!snap[i].interactivity}
@@ -142,10 +140,11 @@ const BgRow: React.FC<{
               zone,
               sequence: i,
             }),
+            op: opponent,
           }}
         />
       ))}
-    </div>
+    </>
   );
 };
 
@@ -168,44 +167,40 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
   const extra = op ? snap[EXTRA].op : snap[EXTRA].me;
 
   const getN = (zone: ygopro.CardZone) => cardStore.at(zone, controller).length;
-  const pileProps = (zone: ygopro.CardZone) => ({
-    role: "button",
-    tabIndex: 0,
-    "aria-label": `${fetchStrings(
-      Region.System,
-      (
-        {
-          [DECK]: 1000,
-          [EXTRA]: 1006,
-          [GRAVE]: 1004,
-          [REMOVED]: 1005,
-        } as Record<number, number>
-      )[zone],
-    )} (${getN(zone)})`,
-    "data-card-count": getN(zone),
-    onClick: () => displayCardListModal({ isZone: true, zone, controller }),
-    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        displayCardListModal({ isZone: true, zone, controller });
-      }
-    },
-    children: showZoneCounts ? (
-      <span
-        data-testid="zone-count-badge"
-        className={styles.count}
-        style={
+  const pileProps = (zone: ygopro.CardZone) => {
+    const rect = rectOf(controller, zone, 0);
+    return {
+      rect,
+      role: "button",
+      tabIndex: 0,
+      "aria-label": `${fetchStrings(
+        Region.System,
+        (
           {
-            "--zone-count-depth": `${
-              zone === DECK || zone === EXTRA ? getN(zone) + 2 : 4
-            }px`,
-          } as React.CSSProperties
+            [DECK]: 1000,
+            [EXTRA]: 1006,
+            [GRAVE]: 1004,
+            [REMOVED]: 1005,
+          } as Record<number, number>
+        )[zone],
+      )} (${getN(zone)})`,
+      "data-card-count": getN(zone),
+      onClick: () => displayCardListModal({ isZone: true, zone, controller }),
+      onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          displayCardListModal({ isZone: true, zone, controller });
         }
-      >
-        {getN(zone)}
-      </span>
-    ) : undefined,
-  });
+      },
+      children: showZoneCounts ? (
+        <ZoneCount
+          count={getN(zone)}
+          rect={rect}
+          depth={zone === DECK || zone === EXTRA ? getN(zone) + 2 : 4}
+        />
+      ) : undefined,
+    };
+  };
 
   const genChains = (states: Snapshot<BlockState[]>, zone: ygopro.CardZone) => {
     const chains: ChainMarker[] = states.flatMap((state, sequence) =>
@@ -221,7 +216,7 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
   };
 
   return (
-    <div className={classnames(styles["other-blocks"], { [styles.op]: op })}>
+    <>
       <BgBlock
         {...pileProps(REMOVED)}
         data-testid="duel-zone"
@@ -229,7 +224,6 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
         data-zone-value={REMOVED}
         data-controller={controller}
         data-place-selectable={false}
-        className={styles.banish}
         glowing={!op && glowingBanish}
         chains={{
           chains: genChains(removed, REMOVED),
@@ -244,7 +238,6 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
         data-zone-value={GRAVE}
         data-controller={controller}
         data-place-selectable={false}
-        className={styles.graveyard}
         glowing={!op && glowingGraveyard}
         chains={{
           chains: genChains(grave, GRAVE),
@@ -253,13 +246,13 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
         }}
       />
       <BgBlock
+        rect={rectOf(controller, SZONE, 5)}
         data-testid="duel-zone"
         data-zone={ygopro.CardZone[SZONE]}
         data-zone-value={SZONE}
         data-controller={controller}
         data-sequence={5}
         data-place-selectable={!!field.interactivity}
-        className={styles.field}
         onClick={() => onBlockClick(container, field.interactivity)}
         disabled={field.disabled}
         highlight={!!field.interactivity}
@@ -279,7 +272,6 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
         data-zone-value={DECK}
         data-controller={controller}
         data-place-selectable={false}
-        className={styles.deck}
         chains={{ chains: [] }}
       />
       <BgBlock
@@ -289,7 +281,6 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
         data-zone-value={EXTRA}
         data-controller={controller}
         data-place-selectable={false}
-        className={classnames(styles.deck, styles["extra-deck"])}
         glowing={!op && glowingExtra}
         chains={{
           chains: genChains(extra, EXTRA),
@@ -297,15 +288,22 @@ const BgOtherBlocks: React.FC<{ op?: boolean }> = ({ op }) => {
           nBelow: getN(EXTRA),
         }}
       />
-    </div>
+    </>
   );
 };
 
 export const Bg: React.FC = () => {
   const snap = useSnapshot(placeStore.inner);
   const { hostInfo } = useSnapshot(roomStore);
+  // Zone rects read the live geometry; re-render when the Mat re-lays out.
+  // A layout effect, so it is registered before the parent Mat's first update.
+  const [, relayout] = useReducer((n: number) => n + 1, 0);
+  useLayoutEffect(() => {
+    window.addEventListener("neos:duel-layout", relayout);
+    return () => window.removeEventListener("neos:duel-layout", relayout);
+  }, []);
   return (
-    <div className={styles["mat-bg"]}>
+    <ZoneLayer>
       <BgRow snap={snap[SZONE].op} szone opponent />
       <BgRow snap={snap[MZONE].op} opponent />
       {(hostInfo?.duelRule ?? 2) >= 4 && (
@@ -318,7 +316,7 @@ export const Bg: React.FC = () => {
       <BgRow snap={snap[SZONE].me} szone />
       <BgOtherBlocks />
       <BgOtherBlocks op />
-    </div>
+    </ZoneLayer>
   );
 };
 
@@ -340,11 +338,3 @@ const onBlockClick = (
     }
   }
 };
-
-const DisabledCross: React.FC<{ disabled: boolean }> = ({ disabled }) => (
-  <div
-    className={classnames(styles["disabled-cross"], {
-      [styles.show]: disabled,
-    })}
-  ></div>
-);

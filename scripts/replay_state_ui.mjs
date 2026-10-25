@@ -27,6 +27,12 @@ try {
     );
     await context.addInitScript(() => {
       localStorage.setItem("language", "cn");
+      // Inspect the opening frame; first-open autoplay has its own test.
+      if (!localStorage.getItem("__neo_setting_config__"))
+        localStorage.setItem(
+          "__neo_setting_config__",
+          JSON.stringify({ replayAutoPlay: false }),
+        );
       const card = (location, sequence, position, extra = {}) => ({
         code: 89631139,
         type: 1,
@@ -148,14 +154,17 @@ try {
       /card_back\.jpg$/,
     );
     await expect(at(8, 0)).toContainText("盖放");
-    await expect(at(8, 0)).toContainText("指示物 3");
+    await expect(at(8, 0)).toContainText("魔力指示物 × 3");
     await expect(at(8, 0)).toContainText("效果无效");
     await expect(at(4, 0, 1)).toContainText("素材 2");
     await expect(at(4, 0, 1).locator(".replay-negated")).toHaveCount(0);
     await at(8, 0).click();
-    await expect(page.locator(".ant-drawer-open")).toContainText(
-      "魔力指示物 × 3",
-    );
+    // Shared detail content lists counters like the online panel.
+    await expect(
+      page
+        .locator(".ant-drawer-open")
+        .locator('[data-testid="card-counter-detail"][data-counter-count="3"]'),
+    ).toContainText("魔力指示物");
     await expect(page.locator(".ant-drawer-open")).toContainText("宣言卡片");
     await page
       .locator(".ant-drawer-open")
@@ -169,7 +178,7 @@ try {
         .evaluate((el) => getComputedStyle(el).transform),
       "none",
     );
-    await expect(at(8, 0)).toContainText("指示物 1");
+    await expect(at(8, 0)).toContainText("魔力指示物 × 1");
     await page
       .getByRole("button", { name: "查看里侧卡片", exact: true })
       .click();

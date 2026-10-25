@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 const vite = await createServer({ server: { middlewareMode: true, watch: null }, optimizeDeps: { disabled: true }, logLevel: 'error' });
 try {
-  const { seedScene } = await vite.ssrLoadModule('/src/ui/Replay/scene.ts');
+  const { seedScene } = await vite.ssrLoadModule('/src/ui/Shared/DuelBoard/scene.ts');
   const { advancePracticeScene } = await vite.ssrLoadModule('/src/ui/Practice/presentation.ts');
   const card = (location, sequence, player = 0) => ({ code: 46986414, player, location, sequence, position: 1, type: 1, attack: 1000, defense: 1000, level: 4, rank: 0, overlay: [], counters: [] });
   const frame = { step: 0, consumed: 0, total: 0, events: [], cards: [card(16, 0), card(16, 1), card(4, 2, 1)], lp: [8000, 8000], names: ['A', 'B'], turn: 1, phase: 4, turnPlayer: 0 };

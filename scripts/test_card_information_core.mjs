@@ -16,7 +16,7 @@ for(const id of [25924653,76515293,50078509]) {
 const vite=await createServer({server:{middlewareMode:true,watch:null},optimizeDeps:{disabled:true},logLevel:'error'});
 try {
  const {PracticeEngine}=await vite.ssrLoadModule('/src/practice/engine.ts');
- const {seedScene}=await vite.ssrLoadModule('/src/ui/Replay/scene.ts');
+ const {seedScene}=await vite.ssrLoadModule('/src/ui/Shared/DuelBoard/scene.ts');
  const {advancePracticeScene}=await vite.ssrLoadModule('/src/ui/Practice/presentation.ts');
  const create=(await import(pathToFileURL(resolve('public/replay/706-v1/ocgcore.js')))).default;
  const core=await create({wasmBinary:readFileSync('public/replay/706-v1/ocgcore.wasm'),printErr:text=>console.error(text)});

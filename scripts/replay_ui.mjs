@@ -30,10 +30,15 @@ try {
       localStorage.setItem("language", "cn");
       // Exercise real replay audio with sound explicitly enabled; the shared
       // product default stays muted, independently covered by settings tests.
+      // First-open autoplay (default on) is covered by card_stats_playback_ui;
+      // this flow opens paused and starts playback by an explicit gesture.
       if (!localStorage.getItem("__neo_setting_config__"))
         localStorage.setItem(
           "__neo_setting_config__",
-          JSON.stringify({ audio: { enableSoundEffects: true, soundEffectsVolume: 0.7 } }),
+          JSON.stringify({
+            audio: { enableSoundEffects: true, soundEffectsVolume: 0.7 },
+            replayAutoPlay: false,
+          }),
         );
       window.replayAudioAudit = {
         created: 0,

@@ -27,6 +27,12 @@ try {
     );
     await context.addInitScript(() => {
       localStorage.setItem("language", "cn");
+      // Steps are driven explicitly; first-open autoplay has its own test.
+      if (!localStorage.getItem("__neo_setting_config__"))
+        localStorage.setItem(
+          "__neo_setting_config__",
+          JSON.stringify({ replayAutoPlay: false }),
+        );
       const card = (player, location, sequence, position, extra = {}) => ({
         code: 46986414,
         type: 1,
@@ -142,7 +148,7 @@ try {
         .locator(".replay-field-viewport")
         .evaluate((el) => {
           const board = el
-            .querySelector(".replay-field-canvas")
+            .querySelector(".scene-board-canvas")
             .getBoundingClientRect();
           const player = el.closest(".replay-player");
           return {
@@ -151,7 +157,7 @@ try {
             viewportWidth: innerWidth,
             viewportHeight: innerHeight,
             availableWidth: el.clientWidth,
-            availableHeight: parseFloat(el.style.maxHeight),
+            availableHeight: parseFloat(el.style.height),
             scrollWidth: el.scrollWidth,
             scrollHeight: el.scrollHeight,
             clientHeight: el.clientHeight,
@@ -305,7 +311,8 @@ try {
     const monster = page.locator(
       '.replay-field-card[data-player="0"][data-location="4"][data-sequence="1"]',
     );
-    await expect(monster).toContainText("守备表示");
+    // Shared board: defense is shown by rotation, as online.
+    await expect(monster).toHaveAttribute("data-position", /^(4|8)$/);
     await page.getByRole("button", { name: "继续播放", exact: true }).click();
     await page.getByRole("button", { name: "暂停", exact: true }).click();
     const pausedAction = await page
@@ -318,15 +325,15 @@ try {
       "Pause must stop queued visual actions",
     );
     await until("chain");
-    await expect(page.locator(".replay-field-chain")).toHaveCount(1);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(1);
     await page.getByRole("button", { name: "跳到回合", exact: true }).click();
-    await expect(page.locator(".replay-field-chain")).toHaveCount(0);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(0);
     await expect(page.locator(".replay-field-action")).toHaveAttribute(
       "data-action",
       "ready",
     );
     await until("chain");
-    await expect(page.locator(".replay-field-chain")).toHaveCount(1);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(1);
     await until("attack");
     await expect(page.locator(".replay-field-arrows line")).toHaveCount(1);
     const before = await page
@@ -343,12 +350,18 @@ try {
     );
     await page.getByRole("button", { name: "切换视角", exact: true }).click();
     await until("counter");
-    await expect(monster).toContainText("指示物 2");
+    const counterBadge = page.locator(
+      '[data-testid="card-counter-badge"][data-counter-count="2"]',
+    );
+    await expect(counterBadge).toBeVisible();
     await page.getByRole("button", { name: "继续播放", exact: true }).click();
     await monster.click();
-    await expect(page.locator(".ant-drawer-open")).toContainText(
-      "魔力指示物 × 2",
-    );
+    // Shared detail content lists counters like the online panel.
+    await expect(
+      page
+        .locator(".ant-drawer-open")
+        .locator('[data-testid="card-counter-detail"][data-counter-count="2"]'),
+    ).toContainText("魔力指示物");
     const inspectedAction = await page
       .locator(".replay-field-action")
       .getAttribute("data-action");
@@ -363,24 +376,37 @@ try {
       .getByRole("button", { name: "关闭", exact: true })
       .click();
     await until("chainEnd");
-    await expect(page.locator(".replay-field-chain")).toHaveCount(0);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(0);
     await page.getByRole("button", { name: "单步", exact: true }).click();
     await expect(page.locator(".replay-field-player").first()).toContainText(
       "LP 7000",
     );
-    await expect(
-      page.locator('.replay-field-pile[data-pile="32"][data-player="0"] img'),
-    ).toHaveAttribute("src", /card_back\.jpg$/);
+    assert.match(
+      await page
+        .locator('.replay-field-pile[data-pile="32"][data-player="0"] .scene-board-face')
+        .evaluate((el) => el.style.getPropertyValue("--src")),
+      /card_back\.jpg/,
+    );
     const pile = page.locator(
       '.replay-field-pile[data-player="0"][data-pile="32"]',
     );
+    await pile.scrollIntoViewIfNeeded();
+    // Small piles keep a 44 px wide touch target; vertically they reach the
+    // neighbouring pile's gap but never overlap it.
     assert.ok(
-      (await pile.boundingBox()).height >= 43,
-      "Pile controls preserve physical touch height",
-    );
-    assert.ok(
-      (await pile.boundingBox()).width >= 43,
-      "Pile controls preserve physical touch width",
+      await pile.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2,
+          cy = r.top + r.height / 2;
+        const reach = Math.max(r.height / 2 - 1, Math.min(21, r.height / 2 + 1));
+        return [
+          [cx - 21, cy],
+          [cx + 21, cy],
+          [cx, cy - reach],
+          [cx, cy + reach],
+        ].every(([x, y]) => el.contains(document.elementFromPoint(x, y)));
+      }),
+      "Pile controls preserve a physical touch target",
     );
     await pile.click();
     await expect(page.locator(".ant-drawer-open")).toContainText("除外");
@@ -428,11 +454,11 @@ try {
       "chainEnd",
     ])
       assert.ok(actions.includes(kind), `16× must still display ${kind}`);
-    await expect(monster).toContainText("指示物 2");
+    await expect(counterBadge).toBeVisible();
     await expect(page.locator(".replay-field-player").first()).toContainText(
       "LP 7000",
     );
-    await expect(page.locator(".replay-field-chain")).toHaveCount(0);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(0);
     await page.getByRole("button", { name: /放大场地/ }).click();
     assert.ok(
       await page

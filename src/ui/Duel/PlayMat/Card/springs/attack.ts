@@ -2,19 +2,15 @@
 import { easings } from "@react-spring/web";
 
 import { isMe } from "@/stores";
+import { zoneRect } from "@/ui/Shared/DuelBoard/geometry";
 
+import { onlineSpot } from "../../boardSpot";
 import { matConfig } from "../../css";
 import type { AttackFunc } from "./types";
 import { asyncStart } from "./utils";
 
 export const attack: AttackFunc = async (props) => {
-  const {
-    BLOCK_WIDTH,
-    BLOCK_HEIGHT_M,
-    BLOCK_HEIGHT_S,
-    COL_GAP,
-    MONSTER_ROW_Y,
-  } = matConfig;
+  const { BLOCK_HEIGHT_M, BLOCK_HEIGHT_S } = matConfig;
   const { card, api, options, signal } = props;
   const current = api.current[0].get();
 
@@ -30,20 +26,7 @@ export const attack: AttackFunc = async (props) => {
     }
   } else if (options?.target) {
     // 攻击`target`
-    const { controller, sequence } = options.target;
-    if (sequence > 4) {
-      // 额外怪兽区
-      x = (sequence > 5 ? 1 : -1) * (BLOCK_WIDTH + COL_GAP);
-      y = 0;
-    } else {
-      x = (sequence - 2) * (BLOCK_WIDTH + COL_GAP);
-      y = MONSTER_ROW_Y;
-    }
-
-    if (!isMe(controller)) {
-      x = -x;
-      y = -y;
-    }
+    ({ x, y } = zoneRect(matConfig, onlineSpot(options.target)!));
 
     rz += -Math.atan((x - current.x) / (y - current.y)) / (Math.PI / 180);
   } else {

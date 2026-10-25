@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
-import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
+import { fetchCard } from "@/api";
 import { useMobileInterface } from "@/hook";
 import type { ReplayFrame } from "@/replay/engine";
 import { MAX_REPLAY_BYTES } from "@/replay/format";
@@ -40,22 +40,26 @@ import type { ReplayCard } from "@/replay/messages";
 import { type HistoryOrder, settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
-import { RelatedCards } from "@/ui/Shared/CardInformation";
-import { CardStatsDetails } from "@/ui/Shared/CardStats";
-import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
+import { CardDetailContent } from "@/ui/Shared/DuelBoard/CardDetail";
+import {
+  concealReplayCard,
+  positionLabel,
+  replayCardWords,
+} from "@/ui/Shared/DuelBoard/cardState";
+import {
+  type SceneFrame,
+  sceneSteps,
+  seedScene,
+} from "@/ui/Shared/DuelBoard/scene";
+import { sceneInformationCards } from "@/ui/Shared/DuelBoard/sceneInformation";
 import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { type Language, languageLocales } from "@/variant";
 import { previewMessages } from "@/variant/previewMessages";
-import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { ReplayAudio } from "./audio";
-import { sceneInformationCards } from "./cardInformation";
-import { concealReplayCard } from "./cardState";
-import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
 import { DeckExtract } from "./DeckExtract";
 import { FieldBoard, replayFieldWords } from "./FieldBoard";
-import { type SceneFrame, sceneSteps, seedScene } from "./scene";
 
 const extraWords = {
   cn: {
@@ -1023,55 +1027,45 @@ function Player({ id, text }: { id: string; text: string[] }) {
           <Button onClick={() => setCard(undefined)}>{text[23]}</Button>
         )}
         {currentCard && (
-          <>
-            <div className="card-stat-overview">
-              <img
-                className="replay-detail-image"
-                src={getCardImgUrl(currentCard.code)}
-                alt=""
-              />
-              {!!((currentCard.type | (selected?.data.type ?? 0)) & 1) && (
-                <CardStatsDetails
-                  language={language}
-                  live={
-                    [4, 8].includes(currentCard.location) &&
-                    !!(currentCard.position & 5) &&
-                    !!(currentCard.type & 1)
-                  }
-                  stats={{
+          <CardDetailContent
+            code={currentCard.code}
+            language={language}
+            imageClassName="replay-detail-image"
+            descriptionClassName="replay-description"
+            stats={
+              (currentCard.type | (selected?.data.type ?? 0)) & 1
+                ? {
                     ...currentCard,
                     printedAttack: selected?.data.atk,
                     printedDefense: selected?.data.def,
                     hasDefense: !(currentCard.type & 0x4000000),
-                  }}
-                />
-              )}
-            </div>
-            <CardIdentityDetails
-              code={currentCard.code}
-              current={selectedIdentity}
-              language={language}
-            />
+                  }
+                : undefined
+            }
+            live={
+              [4, 8].includes(currentCard.location) &&
+              !!(currentCard.position & 5) &&
+              !!(currentCard.type & 1)
+            }
+            counters={currentCard.counters}
+            identity={selectedIdentity}
+            related={{
+              id: currentCard.sceneId,
+              cards: sceneInformationCards(
+                frame?.cards ?? [],
+                language,
+                view,
+                reveal,
+              ),
+              onLocate: () => setCard(undefined),
+            }}
+            description={selected?.text.desc}
+          >
             <p>{positionLabel(currentCard, language)}</p>
             {!!((currentCard.status || 0) & 1) && <p>{stateText.disabled}</p>}
             {!!((currentCard.status || 0) & 0x4000000) && (
               <p>{stateText.forbidden}</p>
             )}
-            <strong className="card-printed-description-label">
-              {statsPlaybackMessages(language).printed}
-            </strong>
-            <p className="replay-description">{selected?.text.desc}</p>
-            <RelatedCards
-              id={currentCard.sceneId}
-              cards={sceneInformationCards(
-                frame?.cards ?? [],
-                language,
-                view,
-                reveal,
-              )}
-              language={language}
-              onLocate={() => setCard(undefined)}
-            />
             {currentCard.declared && (
               <p>
                 {stateText.declared}：
@@ -1087,23 +1081,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
                   .join("、")}
               </p>
             )}
-            {!!replayCounters(currentCard).length && (
-              <p>
-                {stateText.counters}：
-                {replayCounters(currentCard)
-                  .map(({ type, count }) => {
-                    const name = fetchStrings(
-                      Region.Counter,
-                      `0x${type.toString(16)}`,
-                    );
-                    return `${
-                      name === "?" ? `0x${type.toString(16)}` : name
-                    } × ${count}`;
-                  })
-                  .join("、")}
-              </p>
-            )}
-          </>
+          </CardDetailContent>
         )}
       </Drawer>
       <Drawer

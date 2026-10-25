@@ -17,6 +17,9 @@ import {
   type PracticeChoice,
   type PracticeRequest,
 } from "@/practice/prompts";
+import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
+import type { SceneCard } from "@/ui/Shared/DuelBoard/scene";
+import { replayFieldWords } from "@/ui/Shared/DuelBoard/sceneWords";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import {
   fieldPosition,
@@ -27,9 +30,6 @@ import {
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import { FieldSelectionGrid } from "../Duel/FieldSelection";
-import { replayCardWords } from "../Replay/cardState";
-import { replayFieldWords } from "../Replay/FieldBoard";
-import type { SceneCard } from "../Replay/scene";
 import { YgoCard } from "../Shared";
 import { practiceEffectText } from "./presentation";
 

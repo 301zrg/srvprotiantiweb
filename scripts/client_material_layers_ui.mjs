@@ -350,8 +350,23 @@ try {
                       '"]',
                   )
                   .boundingBox();
+                // Shared layering: consecutive by index (inner covers outer),
+                // all below the host card.
+                const host = page.locator(
+                  '.practice-positioned-card[data-player="' +
+                    player +
+                    '"][data-location="4"][data-sequence="2"]',
+                );
+                // Detached materials are staged before their host exists.
+                const hostLayer = (await host.count())
+                  ? Number(await host.evaluate((el) => el.style.zIndex))
+                  : Infinity;
                 for (const m of hit) {
-                  assert.equal(Number(m.zIndex), m.index + 1);
+                  assert.equal(
+                    Number(m.zIndex) - Number(hit[0].zIndex),
+                    m.index - hit[0].index,
+                  );
+                  assert.ok(Number(m.zIndex) < hostLayer, "Materials stay under their host");
                   assert.equal(
                     m.code,
                     m.index % 2 ? 46986414 : 26202165,
@@ -429,13 +444,20 @@ try {
               hit,
             });
             assert.ok(hit.every((m) => m.point));
-            await expect(
-              page.locator('.practice-positioned-card[data-location="4"]'),
-            ).toHaveCSS("z-index", String(Math.max(4, count + 1)));
+            // Shared layering: host above its materials, hand above the field.
+            const hostLayer = Number(
+              await page
+                .locator('.practice-positioned-card[data-location="4"]')
+                .evaluate((el) => getComputedStyle(el).zIndex),
+            );
+            assert.ok(hit.every((m) => Number(m.zIndex) < hostLayer));
             for (const hand of await page
               .locator('.practice-positioned-card[data-location="2"]')
               .all())
-              await expect(hand).toHaveCSS("z-index", "20");
+              assert.ok(
+                Number(await hand.evaluate((el) => getComputedStyle(el).zIndex)) >
+                  hostLayer,
+              );
             for (const m of hit) await page.mouse.click(m.point.x, m.point.y);
             assert.deepEqual(
               await page.evaluate(() => window.__round4.inspected),

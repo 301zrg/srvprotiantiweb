@@ -1,6 +1,10 @@
 import type { PracticeRequest } from "@/practice/prompts";
 import type { ReplayFrame } from "@/replay/engine";
-import { type SceneAction, sceneSteps, seedScene } from "@/ui/Replay/scene";
+import {
+  type SceneAction,
+  sceneSteps,
+  seedScene,
+} from "@/ui/Shared/DuelBoard/scene";
 import type { DuelResult } from "@/variant/duelResults";
 
 import { practiceMaterialFrames, type PracticeSceneFrame } from "./materials";

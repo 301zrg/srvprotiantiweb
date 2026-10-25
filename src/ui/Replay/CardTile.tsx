@@ -4,7 +4,6 @@ import { fetchCard, getCardImgUrl } from "@/api";
 import type { ReplayCard } from "@/replay/messages";
 import { counterDescription } from "@/ui/Shared/CardInformation";
 import { CompactCardStats } from "@/ui/Shared/CardStats";
-
 import {
   concealReplayCard,
   isDefense,
@@ -12,7 +11,7 @@ import {
   positionLabel,
   replayCardWords,
   replayCounters,
-} from "./cardState";
+} from "@/ui/Shared/DuelBoard/cardState";
 
 export function ReplayCardTile({
   card,

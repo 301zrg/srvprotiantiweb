@@ -11,8 +11,8 @@ const prior = readFileSync('scripts/client_round4_ui.mjs','utf8').match(/const f
 const fixture = base + prior + `
 import {showCardModal,closeCardModal} from '@/ui/Duel/Message/CardModal';
 import {RelatedCards,CardCounters} from '@/ui/Shared/CardInformation';
-import {sceneInformationCards} from '@/ui/Replay/cardInformation';
-import {seedScene} from '@/ui/Replay/scene';
+import {sceneInformationCards} from '@/ui/Shared/DuelBoard/sceneInformation';
+import {seedScene} from '@/ui/Shared/DuelBoard/scene';
 window.__info={
  online(){window.__round4.online();const c=(...args)=>window.__round4.card(...args);const m=c(10002346,2,2,1),e=c(56747793,3,0),t=c(76515293,3,1),s=c(46986414,3,2,1);s.location.position=3;m.counters={1:3,2:2,65534:1};stores.cardStore.inner=[m,e,t,s,c(26202165,2,2,1,true,0),c(46986414,2,2,1,true,1)];this.ids=stores.cardStore.inner.map(c=>c.uuid);window.__round4.packet([93,0,8,0,1,1,4,2,1]);window.__round4.packet([96,0,8,1,1,1,4,2,1]);window.__round4.packet([96,0,8,1,1,1,8,2,8]);window.__followup.sent.length=0;},
  detail(index){showCardModal(stores.cardStore.inner[index]);},close(){closeCardModal();},

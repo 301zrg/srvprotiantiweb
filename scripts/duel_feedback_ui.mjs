@@ -120,31 +120,35 @@ try {
       assert.equal(state.announcementLogged, true, "Public announcement missing from history");
       assert.equal(unobscured, true, "Disconnected banner hidden by open drawer");
       if (!touch) assert.equal(coversLife, false, "Docked card details cover life points");
-      await expect(page.locator('[data-testid="duel-card-stat"][data-stat="ATK"]')).toHaveAttribute("data-stat-value", "2300");
+      await expect(page.getByTestId("card-stats-details").locator('[data-stat-row="current"] [data-stat="ATK"]')).toContainText("2300");
       await page.evaluate(async () => {
         const { send, u32 } = window.__feedback;
         await send(7, [1, 4, 0, ...u32(12), ...u32(0x100), ...u32(2400)]);
       });
-      await expect(page.locator('[data-testid="duel-card-stat"][data-stat="ATK"]')).toHaveAttribute("data-stat-value", "2400");
+      await expect(page.getByTestId("card-stats-details").locator('[data-stat-row="current"] [data-stat="ATK"]')).toContainText("2400");
     }
     await page.getByTestId("duel-card-panel-close").click();
     await page.evaluate(() => window.__feedback.showCardModal(window.__feedback.spell));
     await expect(page.getByTestId("duel-card-detail")).toBeVisible();
     if (!baseline) {
       await expect(page.getByTestId("duel-card-hint")).toContainText("青眼白龙");
-      await expect(page.getByTestId("duel-card-stats")).toHaveCount(0);
+      await expect(page.getByTestId("card-stats-details")).toHaveCount(0);
     }
     await page.waitForTimeout(350); // Settle the drawer transition for the review image.
     await page.screenshot({ path: `${folder}/${baseline ? "before" : "after"}-${name}-prohibition.png` });
     await page.getByTestId("duel-card-panel-close").click();
     await page.evaluate(() => window.__feedback.displayActionHistory());
-    await expect(page.getByTestId("duel-history-panel")).toBeVisible();
-    if (!baseline) await expect(page.getByTestId("duel-history-panel")).toContainText("青眼白龙");
+    // Wide layouts embed the history in the sidebar instead of a drawer.
+    const sidebarHistory = (await page.getByTestId("duel-sidebar").count()) > 0;
+    const history = page.getByTestId(sidebarHistory ? "duel-history-content" : "duel-history-panel");
+    await expect(history).toBeVisible();
+    if (!baseline) await expect(history).toContainText("青眼白龙");
     await page.waitForTimeout(350);
     await page.screenshot({ path: `${folder}/${baseline ? "before" : "after"}-${name}-history.png` });
     if (!baseline) {
       // Authoritative zero count removes materials; absent fields preserve stats.
-      await page.getByTestId("duel-history-panel-close").click();
+      // The disconnect banner from the earlier step overlays the drawer header.
+      if (!sidebarHistory) await page.getByTestId("duel-history-panel-close").dispatchEvent("click");
       await page.evaluate(async () => {
         const { displayCardListModal } = await import("/src/ui/Duel/Message/CardListModal/index.tsx");
         displayCardListModal({ isZone: false, monster: window.__feedback.monster });
@@ -191,6 +195,10 @@ try {
         const publicOne = page.locator('[data-testid="duel-card"][data-card-uuid="observer-1"]');
         await expect.poll(async () => (await publicZero.boundingBox()).y - (await publicOne.boundingBox()).y).toBeGreaterThan(0);
         const identity = await page.evaluate(() => ({ selfType: window.__feedback.matStore.selfType, cards: window.__feedback.cardStore.inner.map(c => [c.uuid, c.location.controller, c.code]) }));
+        // Short landscape expands the log over the controls after the history
+        // step; collapse it to reach the menu again.
+        const expandLogs = page.getByTestId("duel-expand-logs");
+        if ((await expandLogs.count()) && (await expandLogs.getAttribute("aria-expanded")) === "true") await expandLogs.click();
         await page.getByTestId("duel-switch-view").click();
         await expect(page.getByTestId("duel-board-viewport")).toHaveAttribute("data-view-controller", "1");
         await expect(near).toHaveAttribute("data-life", "7200");
@@ -217,7 +225,7 @@ try {
         openSettingPanel({ defaultKey: "language" });
       });
       for (const [label, code] of [["English", "en"], ["简体中文", "cn"]]) {
-        await page.locator(".ant-modal:visible .ant-select").click();
+        await page.locator(".ant-modal:visible [data-testid=\"settings-section-language\"] .ant-select").click();
         await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: label }).click();
         await expect.poll(() => page.evaluate(() => localStorage.getItem("language"))).toBe(code);
         assert.equal(await page.evaluate(() => window.__feedback.cardStore.inner.find(card => card.uuid === "observer-0").meta.data.atk), 1234);

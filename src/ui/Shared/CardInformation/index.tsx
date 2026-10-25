@@ -233,13 +233,13 @@ export function CardInformationLayer({
         };
         const obstacles = Array.from(
           element.querySelectorAll<HTMLElement>(
-            "[data-card-info-id], [data-card-uuid], .practice-field-card, .replay-card",
+            "[data-card-info-id], [data-card-uuid], .scene-board-card, .practice-field-card, .replay-card",
           ),
         ).map((node) => node.getBoundingClientRect());
         const desktop = window.matchMedia(roomyStatsQuery).matches;
         const columns = Array.from(
           element.querySelectorAll<HTMLElement>(
-            '[data-testid="duel-zone"][data-zone="MZONE"], .practice-field-slot[data-location="4"], .replay-field-slot[data-location="4"]',
+            '[data-testid="duel-zone"][data-zone="MZONE"], .scene-board-slot[data-location="4"]',
           ),
         ).map((node) => node.getBoundingClientRect());
         const next = Array.from(
@@ -309,7 +309,40 @@ export function CardInformationLayer({
         frame = 0;
         last = time;
         measure();
+        // CSS-driven card moves (offline boards) change no attributes while
+        // they run, so keep following them until they finish.
+        for (const [key, started] of moving)
+          if (time - started > 2000) moving.delete(key);
+        if (moving.size) schedule();
       });
+    };
+    const moving = new Map<EventTarget, number>();
+    const cardMotion = (event: TransitionEvent | AnimationEvent) => {
+      const target = event.target;
+      if (
+        !(target instanceof Element) ||
+        !target.closest(
+          "[data-card-info-id], [data-card-uuid], .scene-board-card",
+        )
+      )
+        return undefined;
+      if (
+        "animationName" in event &&
+        getComputedStyle(target).animationIterationCount.includes("infinite")
+      )
+        return undefined;
+      return target;
+    };
+    const motionStart = (event: TransitionEvent | AnimationEvent) => {
+      const target = cardMotion(event);
+      if (!target) return;
+      moving.set(target, performance.now());
+      schedule();
+    };
+    const motionEnd = (event: TransitionEvent | AnimationEvent) => {
+      const target = cardMotion(event);
+      if (target) moving.delete(target);
+      schedule();
     };
     scheduleMeasure.current = schedule;
     const mutations = new MutationObserver(schedule);
@@ -321,8 +354,12 @@ export function CardInformationLayer({
     });
     const resize = new ResizeObserver(schedule);
     resize.observe(element);
-    element.addEventListener("transitionend", schedule);
-    element.addEventListener("animationend", schedule);
+    element.addEventListener("transitionrun", motionStart);
+    element.addEventListener("animationstart", motionStart);
+    element.addEventListener("transitionend", motionEnd);
+    element.addEventListener("transitioncancel", motionEnd);
+    element.addEventListener("animationend", motionEnd);
+    element.addEventListener("animationcancel", motionEnd);
     window.addEventListener("resize", schedule);
     window.addEventListener("neos:duel-layout", schedule);
     document.addEventListener("visibilitychange", schedule);
@@ -333,8 +370,12 @@ export function CardInformationLayer({
       clearTimeout(timer);
       mutations.disconnect();
       resize.disconnect();
-      element.removeEventListener("transitionend", schedule);
-      element.removeEventListener("animationend", schedule);
+      element.removeEventListener("transitionrun", motionStart);
+      element.removeEventListener("animationstart", motionStart);
+      element.removeEventListener("transitionend", motionEnd);
+      element.removeEventListener("transitioncancel", motionEnd);
+      element.removeEventListener("animationend", motionEnd);
+      element.removeEventListener("animationcancel", motionEnd);
       window.removeEventListener("resize", schedule);
       window.removeEventListener("neos:duel-layout", schedule);
       document.removeEventListener("visibilitychange", schedule);

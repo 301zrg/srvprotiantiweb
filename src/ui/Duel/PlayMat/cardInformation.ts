@@ -1,8 +1,8 @@
 import { fetchStrings, Region, ygopro } from "@/api";
 import type { CardType } from "@/stores";
 import { onlineFieldSpot } from "@/stores/fieldSelectionStore";
-import { replayCardWords } from "@/ui/Replay/cardState";
 import type { InformationCard } from "@/ui/Shared/CardInformation";
+import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
 import { fieldPositionLabel } from "@/variant/fieldSelection";
 
 type OnlineInformationSource = Pick<

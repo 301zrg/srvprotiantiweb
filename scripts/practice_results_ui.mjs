@@ -62,7 +62,7 @@ try {
       await expect(result).toContainText('1');
       if (width === 1280) for (const [language, label, title] of [['en', 'English', 'Declared number'], ['ja', '日本語', '宣言した数値'], ['ko', '한국어', '선언한 수치']]) {
         await page.locator('.ant-drawer-close:visible').click();await page.getByTestId('practice-settings').click();await page.getByTestId('settings-navigation').getByRole('button').last().click();
-        await page.locator('.ant-modal:visible .ant-select').click();
+        await page.locator('.ant-modal:visible [data-testid="settings-section-language"] .ant-select').click();
         await page.locator('.ant-select-dropdown:visible .ant-select-item-option').filter({ hasText: label }).click();
         await expect.poll(() => page.evaluate(() => localStorage.getItem('language'))).toBe(language);
         await page.getByTestId('settings-close').click();

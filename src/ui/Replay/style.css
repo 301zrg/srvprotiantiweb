@@ -165,7 +165,7 @@
   padding-bottom: 4px;
   min-height: 12px;
 }
-.replay-card {
+.replay-card:not(.scene-board-card) {
   flex: 0 0 104px;
   width: 104px;
   padding: 3px;
@@ -185,14 +185,14 @@
 .replay-defense .replay-card-image img {
   transform: rotate(90deg);
 }
-.replay-card img {
+.replay-card:not(.scene-board-card) img {
   width: 62px;
   height: 90px;
   object-fit: contain;
   display: block;
   margin: auto;
 }
-.replay-card span {
+.replay-card:not(.scene-board-card) span {
   font-size: 11px;
   display: block;
   white-space: nowrap;
@@ -200,7 +200,7 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.replay-card small {
+.replay-card:not(.scene-board-card) small {
   font-size: 10px;
   display: block;
   line-height: 1.5;
@@ -266,7 +266,7 @@
   .replay-controls .ant-input {
     min-height: 44px;
   }
-  .replay-card {
+  .replay-card:not(.scene-board-card) {
     flex-basis: 104px;
   }
   .replay-header h1 {
@@ -293,11 +293,11 @@
   .replay-controls {
     position: static;
   }
-  .replay-card img {
+  .replay-card:not(.scene-board-card) img {
     height: 72px;
     width: 50px;
   }
-  .replay-card {
+  .replay-card:not(.scene-board-card) {
     flex-basis: 90px;
     width: 90px;
   }

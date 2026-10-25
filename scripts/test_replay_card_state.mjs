@@ -7,7 +7,7 @@ const server = await createServer({
 });
 try {
   const { parseQuery } = await server.ssrLoadModule("/src/replay/messages.ts");
-  const state = await server.ssrLoadModule("/src/ui/Replay/cardState.ts");
+  const state = await server.ssrLoadModule("/src/ui/Shared/DuelBoard/cardState.ts");
   const flags =
     1 | 2 | 8 | 0x100 | 0x200 | 0x10000 | 0x20000 | 0x40000 | 0x80000;
   const data = [
