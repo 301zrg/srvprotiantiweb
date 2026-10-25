@@ -4,10 +4,10 @@ import { OverlayScrollbarsComponentRef } from "overlayscrollbars-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
-import { sendChat, ygopro } from "@/api";
+import { sendChat } from "@/api";
 import { getUIContainer } from "@/container/compat";
 // TODO: access store via `Container`
-import { chatStore, isMe, matStore, roomStore } from "@/stores";
+import { chatStore, isMe, roomStore } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { displayPlayerId } from "@/variant/playerIds";
 
@@ -45,32 +45,20 @@ export const useChat = (isDuel: boolean = false) => {
 
   // 获取消息发送者的名字
   const getSenderName = (sender: number) => {
-    if (sender < 4) {
+    if (sender < roomStore.players.length) {
       if (isDuel) {
-        // Like YGOPro's ChatLocalPlayer/OppositePlayer: duel IDs follow Core
-        // order; the roster follows room seats. A view flip changes neither.
-        const teamBit = roomStore.hostInfo?.mode === 2 ? 2 : 1;
-        let swapped = matStore.observerSwapped;
-        if (
-          matStore.selfType !==
-          ygopro.StocGameMessage.MsgStart.PlayerType.Observer
-        ) {
-          const selfSeat = roomStore.players.findIndex(
-            (player) => player?.isMe,
-          );
-          if (selfSeat < 0) return;
-          swapped = (selfSeat & teamBit) !== (isMe(0) ? 0 : teamBit);
+        // 决斗内和决斗外场景sender是不一样的
+        if (isMe(sender)) {
+          return roomStore.getMePlayer()?.name;
+        } else {
+          return roomStore.getOpPlayer()?.name;
         }
-        return roomStore.players[sender ^ (swapped ? teamBit : 0)]?.name;
       } else {
         return roomStore.players[sender]?.name;
       }
-    } else if (sender === 8 || (sender >= 11 && sender <= 19)) {
+    } else if (sender <= 8 || (sender >= 11 && sender <= 19)) {
       return "System";
     }
-    // Native STOC_CHAT uses a hidden-name prefix for watchers/unknown sources.
-    // SRVPro may already include a watcher nickname in the message body.
-    return "********";
   };
 
   useEffect(() => {
@@ -83,7 +71,7 @@ export const useChat = (isDuel: boolean = false) => {
           name: name,
           time: formatTimeToHHMMSS(),
           content: chatStore.message,
-          isServer: sender === 8 || (sender >= 11 && sender <= 19),
+          isServer: sender === 8 || sender >= 10,
         },
       ]);
       scrollToBottom();
