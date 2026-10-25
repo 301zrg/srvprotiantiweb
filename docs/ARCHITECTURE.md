@@ -156,33 +156,12 @@ WSS 上传输 `uint16LE length + uint8 opcode + payload`，length 包含 opcode�
 **累计队列保持现状：** `stream.ts` 入队，`onSocketMessage.ts` 保序等待处理。
 单次消息 2 MiB 和半包缓冲 65,537 字节限制不限制累计队列。
 用户于 2026-10-10 决定暂不实施 B，保留连续动画，接受长时间后台／慢消费的积压；
-累计队列上限与历史演出策略保持不变，连接确认时序独立于展示队列。这个决定与只读录像展示队列是不同事项。
+本次没有改变队列、在线封包或动画。这个决定与只读录像展示队列是不同事项。
 
 在线手牌确认后的临时身份由 `CardType.confirmedHandCode` 持有，只有选卡元数据读取它；
 场地仍按服务器 `code`／`meta` 展示。洗手牌、移动、连锁结束与回合切换清理，场面重建
 丢弃旧卡片实例，不落入浏览器存储或 Replay 状态。消息顺序及 UI／service／store 关系
 沿用上图，具体选卡与隐藏边界见 [在线结果](duel-results.md)。
-
-卡片动画仍是保序 service 的展示等待，取消范围属于卡片当次挂载及其原连接：
-
-```mermaid
-flowchart LR
-  Handler[保序游戏消息] --> Call[按 Task 和卡片 UUID 调用]
-  Call --> Queue[当次挂载的卡片动画队列]
-  Queue --> Spring[等待本段全部 spring controller]
-  Spring --> Next[继续下一段或下一条消息]
-  Deadline[前台单段超时或引擎失败] --> Snap[停止动画并提交本段终态]
-  Snap --> Next
-  Cancel[卡片卸载或原连接取消] --> Abort[中止本次挂载的 signal]
-  Abort --> Release[注销处理器并释放在途等待]
-  Abort --> Stop[后续动画段不再启动]
-```
-
-`eventbus.ts` 只保留未完成调用的释放函数，完成或失败立即移除；缺失卡片立即返回，
-同类动画各自完成，不共享结束事件。`Card/springs/utils.ts` 保留前台单段 3 秒截止和后台暂停；
-引擎异常只降级当前展示，终态提交也失败则交给传输错误边界关闭连接，不继续应用不确定状态。
-玩家选择弹窗仍按原协议等待输入；本机制不为交互添加截止、不替玩家提交响应。
-具体复现和验证边界见 [动画稳定性排查](connection-stability.md#动画与消息等待审计2026-10-25)。
 
 ## 离线录像重演
 

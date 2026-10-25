@@ -27,7 +27,6 @@ export type SpringApi = SpringRef<SpringApiProps>;
 type OptionsToFunc<Options> = (props: {
   card: CardType;
   api: SpringApi;
-  signal?: AbortSignal;
   options?: Options;
 }) => Promise<void>;
 

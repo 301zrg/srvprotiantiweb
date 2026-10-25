@@ -4,11 +4,9 @@ import { getUIContainer } from "@/container/compat";
 import { waitForDuelForeground } from "@/service/duel/presentation";
 import { settingStore } from "@/stores/settingStore";
 
-export const asyncStart = <T extends {}>(
-  api: SpringRef<T>,
-  signal = getUIContainer().conn.signal,
-) => {
+export const asyncStart = <T extends {}>(api: SpringRef<T>) => {
   return async (p: Partial<T> & { config?: SpringConfig }) => {
+    const signal = getUIContainer().conn.signal;
     await waitForDuelForeground(signal);
     if (signal?.aborted) return;
     return new Promise<void>((resolve, reject) => {
@@ -19,51 +17,49 @@ export const asyncStart = <T extends {}>(
         document.removeEventListener("visibilitychange", onVisibility);
         signal?.removeEventListener("abort", onAbort);
       };
-      const finish = (snap: boolean, stop = false) => {
+      const finish = (snap: boolean) => {
         if (settled) return;
         settled = true;
         cleanup();
-        try {
-          if (snap || stop) api.stop(true);
-          if (snap && !signal?.aborted) {
-            const { config: _config, ...values } = p;
-            api.set(values as Partial<T>);
-          }
-          resolve();
-        } catch (error) {
-          // A failed fallback must reject to the transport's error boundary,
-          // never leave the serial consumer waiting on an unsettled Promise.
-          reject(error);
+        if (snap) {
+          api.stop(true);
+          const { config: _config, ...values } = p;
+          api.set(values as Partial<T>);
         }
-      };
-      const onFailure = () => {
-        if (settled) return;
-        if (import.meta.env.DEV)
-          console.warn("Card animation failed; applying its final state.");
-        finish(true);
+        resolve();
       };
       const onVisibility = () => {
         clearTimeout(timer);
-        try {
-          if (document.hidden) api.pause();
-          else {
-            api.resume();
-            timer = setTimeout(() => finish(true), 3000);
-          }
-        } catch {
-          onFailure();
+        if (document.hidden) api.pause();
+        else {
+          api.resume();
+          timer = setTimeout(() => finish(true), 3000);
         }
       };
-      const onAbort = () => finish(false, true);
+      const onAbort = () => {
+        api.stop(true);
+        finish(false);
+      };
       // Only a stalled foreground animation gets a deadline. Message backlog
       // and background suspension never fast-forward spectator history.
       timer = setTimeout(() => finish(true), 3000);
       document.addEventListener("visibilitychange", onVisibility);
       signal?.addEventListener("abort", onAbort, { once: true });
       try {
-        void Promise.all(api.start(p)).then(() => finish(false), onFailure);
-      } catch {
-        onFailure();
+        void Promise.all(
+          api.start({ ...p, onResolve: () => finish(false) }),
+        ).then(
+          () => finish(false),
+          (error) => {
+            settled = true;
+            cleanup();
+            reject(error);
+          },
+        );
+      } catch (error) {
+        settled = true;
+        cleanup();
+        reject(error);
       }
     });
   };

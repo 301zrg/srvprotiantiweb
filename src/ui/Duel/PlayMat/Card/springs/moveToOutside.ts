@@ -17,7 +17,7 @@ export const moveToOutside: MoveFunc = async (props) => {
     BLOCK_OUTSIDE_OFFSET_X,
     CARD_RATIO,
   } = matConfig;
-  const { card, api, signal } = props;
+  const { card, api } = props;
   const { zone, controller, position, sequence } = card.location;
 
   let x =
@@ -31,10 +31,7 @@ export const moveToOutside: MoveFunc = async (props) => {
     x = -x;
     y = -y;
   }
-  await asyncStart(
-    api,
-    signal,
-  )({
+  await asyncStart(api)({
     x,
     y,
     z: 0,
@@ -48,5 +45,5 @@ export const moveToOutside: MoveFunc = async (props) => {
       clamp: true,
     },
   });
-  if (!signal?.aborted) api.set({ subZ: 0 });
+  api.set({ subZ: 0 });
 };

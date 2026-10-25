@@ -15,7 +15,7 @@ export const attack: AttackFunc = async (props) => {
     COL_GAP,
     MONSTER_ROW_Y,
   } = matConfig;
-  const { card, api, options, signal } = props;
+  const { card, api, options } = props;
   const current = api.current[0].get();
 
   let x = current.x;
@@ -52,27 +52,18 @@ export const attack: AttackFunc = async (props) => {
   }
 
   // 先浮空
-  await asyncStart(
-    api,
-    signal,
-  )({
+  await asyncStart(api)({
     z: 200,
   });
   // 后撤半个卡位，并调整倾斜角
-  await asyncStart(
-    api,
-    signal,
-  )({
+  await asyncStart(api)({
     y:
       current.y +
       (BLOCK_HEIGHT_M / 2) * (isMe(card.location.controller) ? 1 : -1),
     rz,
   });
   // 加速前冲
-  await asyncStart(
-    api,
-    signal,
-  )({
+  await asyncStart(api)({
     x,
     y,
     config: {
@@ -80,10 +71,7 @@ export const attack: AttackFunc = async (props) => {
     },
   });
   // 减速归位
-  await asyncStart(
-    api,
-    signal,
-  )({
+  await asyncStart(api)({
     x: current.x,
     y: current.y,
     z: current.z,

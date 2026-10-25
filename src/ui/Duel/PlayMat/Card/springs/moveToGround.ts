@@ -22,7 +22,7 @@ export const moveToGround: MoveFunc = async (props) => {
     BLOCK_OUTSIDE_OFFSET_X,
     CARD_HEIGHT_O,
   } = matConfig;
-  const { card, api, options, signal } = props;
+  const { card, api, options } = props;
 
   const { location } = card;
 
@@ -111,10 +111,7 @@ export const moveToGround: MoveFunc = async (props) => {
       height: 0,
     });
   } else {
-    await asyncStart(
-      api,
-      signal,
-    )({
+    await asyncStart(api)({
       x,
       y,
       height,
@@ -129,10 +126,7 @@ export const moveToGround: MoveFunc = async (props) => {
     });
   }
 
-  await asyncStart(
-    api,
-    signal,
-  )({
+  await asyncStart(api)({
     height,
     z: 0,
     subZ: isToken ? 100 : 0,
@@ -143,5 +137,5 @@ export const moveToGround: MoveFunc = async (props) => {
       clamp: true,
     },
   });
-  if (isToken && !signal?.aborted) api.set({ subZ: 0 });
+  if (isToken) api.set({ subZ: 0 });
 };

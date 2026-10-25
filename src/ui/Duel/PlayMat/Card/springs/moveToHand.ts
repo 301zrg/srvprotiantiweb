@@ -18,7 +18,7 @@ export const moveToHand: MoveFunc = async (props) => {
     HAND_CIRCLE_CENTER_OFFSET_Y,
     HAND_MAT_OFFSET_Y,
   } = matConfig;
-  const { card, api, signal } = props;
+  const { card, api } = props;
   const { sequence, controller } = card.location;
   // 手卡会有很复杂的计算...
   const hand_circle_center_x = 0;
@@ -45,10 +45,7 @@ export const moveToHand: MoveFunc = async (props) => {
 
   const _rz = (angle * 180) / Math.PI;
 
-  await asyncStart(
-    api,
-    signal,
-  )({
+  await asyncStart(api)({
     x: isMe(controller) ? x : -x,
     y: isMe(controller) ? y : -y,
     z: sequence + 5,
