@@ -113,18 +113,28 @@
   background: var(--shadow-color) !important;
   border-radius: 5px;
   transform: translateZ(calc((var(--z)) * 1px + 0.1px));
-  animation: shadow-fadding 2s infinite ease-in-out;
+  // Animating box-shadow repaints every selectable card each frame for as long
+  // as the player is deciding; fade a static shadow on the compositor instead.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow:
+      0 0 4px 0 var(--shadow-color),
+      0 0 25px 2px #0099ff87;
+    pointer-events: none;
+    animation: shadow-fadding 2s infinite ease-in-out;
+  }
 }
 
 @keyframes shadow-fadding {
-  0% {
-    box-shadow: 0 0 4px 0 var(--shadow-color), 0 0 25px 2px #0099ff87;
+  0%,
+  100% {
+    opacity: 1;
   }
   50% {
-    box-shadow: none;
-  }
-  100% {
-    box-shadow: 0 0 4px 0 var(--shadow-color), 0 0 25px 2px #0099ff87;
+    opacity: 0;
   }
 }
 

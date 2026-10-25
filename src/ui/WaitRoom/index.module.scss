@@ -255,7 +255,9 @@
   background: #1b2433;
   border-color: #ffffff10;
 }
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .content {
     padding: max(10px, env(safe-area-inset-top))
       max(12px, env(safe-area-inset-right)) 0

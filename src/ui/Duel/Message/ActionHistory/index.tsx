@@ -101,14 +101,16 @@ export const ActionHistoryContent = ({
   );
 };
 
-const HistoryItem: React.FC<History> = ({
+// Memoized: the list stays mounted (sidebar, or drawer after first open) and
+// grows all match long, so a new entry must not re-render every earlier one.
+const HistoryItem: React.FC<History> = React.memo(function HistoryItem({
   card,
   currentLocation,
   operation,
   target,
   player,
   result,
-}) => {
+}) {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
   const { selfType } = useSnapshot(matStore);
@@ -192,7 +194,7 @@ const HistoryItem: React.FC<History> = ({
       {target && <div className={styles.target}>{`${zone2Text(target)}`}</div>}
     </div>
   );
-};
+});
 
 function zone2Text(zone: ygopro.CardZone): string {
   return fetchStrings(Region.System, zone + 1000);

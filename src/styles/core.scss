@@ -19,8 +19,8 @@ html {
     font-size: 14px;
   }
 }
-/* Mobile */
-@media screen and (max-width: 1080px) {
+/* Mobile, and touch tablets that share the touch layout */
+@media screen and (max-width: 1080px), (hover: none) and (pointer: coarse) {
   html {
     font-size: 16px;
   }
@@ -53,7 +53,9 @@ body {
   }
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   // Keep dialogs, dropdowns, and form controls readable and tappable.
   :is(button, input, textarea, select) {
     touch-action: manipulation;
