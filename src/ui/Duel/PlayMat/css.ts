@@ -1,3 +1,5 @@
+import { roomyStatsQuery } from "@/variant/cardStats";
+
 // 此文件目的是在js和CSS之间共享一些变量，并且这些变量是0运行时的。
 type CSSConfig = [string, [number, UNIT]][];
 
@@ -90,6 +92,13 @@ export function updateMatLayout(wide: boolean, masterRule: number) {
     ...compact,
   } as typeof matConfig;
   if (wide && masterRule >= 4) next.BOARD_HEIGHT = 760;
+  // PC and iPad (either orientation) leave room under monsters for the
+  // ATK/DEF line; phones keep the tight rows.
+  if (window.matchMedia(roomyStatsQuery).matches) {
+    const gap = wide ? 26 : 30;
+    next.BOARD_HEIGHT += (gap - next.ROW_GAP) * 3;
+    next.ROW_GAP = gap;
+  }
   next.MONSTER_ROW_Y =
     masterRule >= 4
       ? next.BLOCK_HEIGHT_M + next.ROW_GAP

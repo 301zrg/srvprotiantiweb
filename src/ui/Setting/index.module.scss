@@ -3,7 +3,13 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.layout { display: flex; gap: 24px; min-height: 250px; }
+// Fixed height: switching groups must not resize or re-center the modal,
+// or a touch lands on (and sticky-hovers) a neighbouring tab.
+.layout {
+  display: flex;
+  gap: 24px;
+  height: min(calc(70vh - 16px), 520px);
+}
 .navigation {
   flex: 0 0 170px;
   display: flex;
@@ -12,9 +18,14 @@
   align-items: stretch;
   border-right: 1px solid #555;
   padding-right: 16px;
-  :global(.ant-btn) { height: auto; min-height: 44px; white-space: normal; text-align: left; }
+  overflow-y: auto;
+  :global(.ant-btn) { flex: none; height: auto; min-height: 44px; white-space: normal; text-align: left; }
 }
-.groups { min-width: 0; flex: 1; }
+// Touch browsers keep :hover on the last tapped spot; only the pressed tab is highlighted.
+@media (hover: none) {
+  .navigation :global(.ant-btn-text:not(:disabled):hover) { background: transparent; }
+}
+.groups { min-width: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 .section {
   min-width: 0;
   h3 { margin: 0 0 20px; font-size: 16px; }
@@ -22,7 +33,8 @@
   :global(.ant-radio-wrapper) { min-height: 36px; align-items: center; }
 }
 @media (max-width: 600px) {
-  .layout { display: block; }
+  .layout { display: block; height: auto; }
+  .groups { overflow: visible; }
   .section + .section { border-top: 1px solid #555; margin-top: 24px; padding-top: 24px; }
   .modal :global(.ant-modal-body) { max-height: 65vh; }
 }

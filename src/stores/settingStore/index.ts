@@ -9,7 +9,7 @@ import { AnimationConfig } from "./animation";
 import { AudioConfig } from "./audio";
 import { normalizeSetting, SettingConfig } from "./config";
 
-export type { RandomRpsMode, ServerMessageMode } from "./config";
+export type { HistoryOrder, RandomRpsMode, ServerMessageMode } from "./config";
 
 /** 将设置保存到本地 */
 const NEO_SETTING_CONFIG = storageKey("__neo_setting_config__");
@@ -48,6 +48,7 @@ class SettingStore implements NeosStore {
   replaySpeed = defaultSetting.replaySpeed;
   replayAutoPlay = defaultSetting.replayAutoPlay;
   controlPanelSide = defaultSetting.controlPanelSide;
+  historyOrder = defaultSetting.historyOrder;
 
   /** Compatibility for older callers; persistence uses serverMessageMode only. */
   get showServerMessages() {
@@ -83,6 +84,7 @@ class SettingStore implements NeosStore {
     this.replaySpeed = defaultSetting.replaySpeed;
     this.replayAutoPlay = defaultSetting.replayAutoPlay;
     this.controlPanelSide = defaultSetting.controlPanelSide;
+    this.historyOrder = defaultSetting.historyOrder;
     this.confirmOperations = defaultSetting.confirmOperations;
   }
 }
@@ -108,6 +110,7 @@ subscribe(settingStore, () => {
             "replaySpeed",
             "replayAutoPlay",
             "controlPanelSide",
+            "historyOrder",
             "confirmOperations",
           ]),
         ),

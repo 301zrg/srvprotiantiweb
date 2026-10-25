@@ -4,6 +4,7 @@ import { AudioConfig, defaultAudioConfig } from "./audio";
 
 export type RandomRpsMode = "off" | "suggest" | "play";
 export type ServerMessageMode = "auto" | "popup" | "record";
+export type HistoryOrder = "oldest" | "newest";
 export const replaySpeeds = [0.5, 1, 2, 4, 8, 16] as const;
 
 export interface SettingConfig {
@@ -18,6 +19,7 @@ export interface SettingConfig {
   replaySpeed: number;
   replayAutoPlay: boolean;
   controlPanelSide: "left" | "right";
+  historyOrder: HistoryOrder;
 }
 
 /** Normalize old browser settings without letting the old replay flag unmute. */
@@ -52,6 +54,7 @@ export function normalizeSetting(value: unknown): SettingConfig {
       : 1,
     replayAutoPlay: config.replayAutoPlay !== false,
     controlPanelSide: config.controlPanelSide === "right" ? "right" : "left",
+    historyOrder: config.historyOrder === "newest" ? "newest" : "oldest",
     chainSetting: [
       ChainSetting.CHAIN_ALL,
       ChainSetting.CHAIN_IGNORE,

@@ -77,6 +77,7 @@ const initialState: Omit<MatState, "reset"> = {
     enableBp: false, // 允许进入战斗阶段
     enableM2: false, // 允许进入M2阶段
     enableEp: false, // 允许回合结束
+    enableShuffle: false, // 允许洗切手牌
   },
   unimplemented: 0,
   handResults: {
@@ -139,6 +140,7 @@ export class MatStore implements MatState, NeosStore {
       enableBp: false, // 允许进入战斗阶段
       enableM2: false, // 允许进入M2阶段
       enableEp: false, // 允许回合结束
+      enableShuffle: false, // 允许洗切手牌
     };
     this.unimplemented = 0;
     this.handResults.me = 0;

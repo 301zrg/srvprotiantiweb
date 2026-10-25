@@ -1,13 +1,4 @@
 declare const classNames: {
-  readonly optionLocation: "optionLocation";
-  readonly targetTag: "targetTag";
-  readonly spatialGroup: "spatialGroup";
-  readonly fieldOption: "fieldOption";
-  readonly fieldCover: "fieldCover";
-  readonly fieldImage: "fieldImage";
-  readonly fieldCheck: "fieldCheck";
-  readonly selectionSummary: "selectionSummary";
-
   readonly container: "container";
   readonly btns: "btns";
   readonly "ant-pro-checkcard": "ant-pro-checkcard";
@@ -16,6 +7,16 @@ declare const classNames: {
   readonly "check-card": "check-card";
   readonly opponent: "opponent";
   readonly card: "card";
+  readonly spatialGroup: "spatialGroup";
+  readonly fieldOption: "fieldOption";
+  readonly optionLocation: "optionLocation";
+  readonly chainTag: "chainTag";
+  readonly targetTag: "targetTag";
+  readonly fieldCheck: "fieldCheck";
+  readonly fieldCover: "fieldCover";
+  readonly fieldImage: "fieldImage";
   readonly preview: "preview";
+  readonly selectionSummary: "selectionSummary";
+  readonly miniCancel: "miniCancel";
 };
 export = classNames;

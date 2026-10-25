@@ -6,6 +6,7 @@ import {
   MessageFilled,
   PauseCircleFilled,
   PlayCircleFilled,
+  RetweetOutlined,
   SettingOutlined,
   StepForwardFilled,
   SwapOutlined,
@@ -25,7 +26,13 @@ import { cloneElement, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
-import { sendSelectSingleResponse, sendSurrender, ygopro } from "@/api";
+import {
+  fetchStrings,
+  Region,
+  sendSelectSingleResponse,
+  sendSurrender,
+  ygopro,
+} from "@/api";
 import {
   ChainSetting,
   DEFAULT_REPLAY_ADVANCE_MASK,
@@ -329,6 +336,7 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
       enableBp,
       enableM2,
       enableEp,
+      enableShuffle,
     },
   } = useSnapshot(matStore);
   const phaseBind = initialPhaseBind(language);
@@ -434,6 +442,8 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
   ].map((item, i) => ({ key: i, ...item }));
 
   const globalDisable = observing || !matStore.isMe(currentPlayer);
+  // As in ygopro: offered only while Core allows it in an idle command.
+  const showShuffle = !observing && command === "idle" && !!enableShuffle;
 
   return (
     <div
@@ -474,29 +484,69 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
             icon={<StepForwardFilled style={{ transform: "scale(1.5)" }} />}
             type="text"
             disabled={globalDisable}
+            aria-label={duelPhaseLabel(language, currentPhase, battleTiming)}
           >
-            {duelPhaseLabel(language, currentPhase, battleTiming)}
+            <span className={classNames({ [styles.phaseLabel]: showShuffle })}>
+              {duelPhaseLabel(language, currentPhase, battleTiming)}
+            </span>
           </Button>
         </DropdownWithTitle>
-        <DropdownWithTitle
-          menu={{
-            items: chainSettingItems,
-          }}
-        >
+        {/* Spectators never answer chains; the slot switches viewpoint. */}
+        {observing ? (
           <Button
-            data-testid="duel-chain-setting"
-            disabled={observing}
-            aria-label={
-              chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
-            }
-            data-chain-setting={chainSettingTestIds[chainSetting]}
-            icon={<ChainIcon chainSetting={chainSetting} />}
+            data-testid="duel-switch-view"
+            aria-label={text.switchView}
+            data-view-controller={observerView}
+            icon={<SwapOutlined />}
             type="text"
+            onClick={() => {
+              matStore.observerView = observerView === 0 ? 1 : 0;
+            }}
           >
-            {docked &&
-              chainSettingTexts.find(([key]) => key === chainSetting)?.[1]}
+            {text.switchView}
           </Button>
-        </DropdownWithTitle>
+        ) : (
+          <DropdownWithTitle
+            menu={{
+              items: chainSettingItems,
+            }}
+          >
+            <Button
+              data-testid="duel-chain-setting"
+              aria-label={
+                chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
+              }
+              data-chain-setting={chainSettingTestIds[chainSetting]}
+              icon={<ChainIcon chainSetting={chainSetting} />}
+              type="text"
+            >
+              {docked &&
+                chainSettingTexts.find(([key]) => key === chainSetting)?.[1]}
+            </Button>
+          </DropdownWithTitle>
+        )}
+        {showShuffle && (
+          <Button
+            data-testid="duel-shuffle-hand"
+            aria-label={fetchStrings(Region.System, 1297)}
+            title={fetchStrings(Region.System, 1297)}
+            icon={<RetweetOutlined />}
+            type="text"
+            onClick={() =>
+              void runActiveAction(container, () =>
+                matStore.phase.enableShuffle
+                  ? {
+                      response: 8,
+                      responseSource: "idle",
+                      label: fetchStrings(Region.System, 1297),
+                    }
+                  : undefined,
+              )
+            }
+          >
+            {docked && fetchStrings(Region.System, 1297)}
+          </Button>
+        )}
       </div>
       {!docked && (
         <>
@@ -535,18 +585,6 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
               {text.observerWaitSide}
             </span>
           )}
-          <Button
-            data-testid="duel-switch-view"
-            aria-label={text.switchView}
-            data-view-controller={observerView}
-            icon={<SwapOutlined />}
-            type="text"
-            onClick={() => {
-              matStore.observerView = observerView === 0 ? 1 : 0;
-            }}
-          >
-            {text.switchView}
-          </Button>
           <Button
             data-testid="duel-leave-spectating"
             aria-label={text.leaveSpectating}

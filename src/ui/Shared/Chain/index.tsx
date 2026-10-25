@@ -1,7 +1,10 @@
 import classnames from "classnames";
+import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
 import { useConfig } from "@/config";
+import { isMe, placeStore } from "@/stores";
+import { useI18N } from "@/ui/I18N";
 
 import styles from "./index.module.scss";
 
@@ -62,5 +65,40 @@ export const BgChain: React.FC<ChainProps> = ({ chains, nBelow = 1, op }) => {
         </div>
       )}
     </div>
+  );
+};
+
+const chainWords: Record<string, string> = {
+  cn: "连锁",
+  en: "Chain",
+  ja: "チェーン",
+  ko: "체인",
+};
+
+/** Names the pending chain link(s) started from this exact location, so
+ * same-name cards in a pile or selection can be told apart. */
+export const ChainTag: React.FC<{
+  location?: Pick<
+    ygopro.CardLocation,
+    "controller" | "zone" | "sequence" | "is_overlay"
+  >;
+  className?: string;
+}> = ({ location, className }) => {
+  const { inner } = useSnapshot(placeStore);
+  const { language } = useI18N();
+  if (!location || location.is_overlay) return null;
+  const indexes =
+    inner[location.zone]?.[isMe(location.controller) ? "me" : "op"]?.[
+      location.sequence
+    ]?.chainIndex ?? [];
+  if (!indexes.length) return null;
+  return (
+    <span
+      className={classnames(styles.tag, className)}
+      data-testid="duel-card-chain-tag"
+      data-chain-index={indexes.join(" ")}
+    >
+      {chainWords[language] ?? chainWords.en} {indexes.join(", ")}
+    </span>
   );
 };

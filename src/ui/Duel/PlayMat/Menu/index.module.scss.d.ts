@@ -8,5 +8,6 @@ declare const classNames: {
   readonly contents: "contents";
   readonly sidebar: "sidebar";
   readonly primary: "primary";
+  readonly phaseLabel: "phaseLabel";
 };
 export = classNames;

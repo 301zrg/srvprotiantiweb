@@ -62,6 +62,9 @@ export interface StatRect {
   height: number;
 }
 /** Screen-space placement keeps numbers upright and leaves the next card free. */
+/** Screens large enough (PC, iPad) to print ATK/DEF under monster cards. */
+export const roomyStatsQuery = "(min-width: 700px) and (min-height: 600px)";
+
 export function placeFieldStats(
   card: StatRect,
   obstacles: readonly StatRect[],

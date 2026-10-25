@@ -17,6 +17,7 @@ export function invalidateActionRequest(container: Container) {
   if (phase) {
     phase.command = undefined;
     phase.enableBp = phase.enableM2 = phase.enableEp = false;
+    phase.enableShuffle = false;
   }
 }
 

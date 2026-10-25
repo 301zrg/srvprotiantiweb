@@ -112,6 +112,7 @@ export interface PhaseState {
   enableBp: boolean; // 允许进入战斗阶段
   enableM2: boolean; // 允许进入M2阶段
   enableEp: boolean; // 允许回合结束
+  enableShuffle?: boolean; // 允许洗切手牌（仅主要阶段空闲指令）
 }
 
 export enum HandResult {

@@ -6,12 +6,12 @@ import { fetchStrings, Region, ygopro } from "@/api";
 import { cardStore, CardType } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { replayCardWords } from "@/ui/Replay/cardState";
-import { YgoCard } from "@/ui/Shared";
+import { ChainTag, YgoCard } from "@/ui/Shared";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { previewMessages } from "@/variant/previewMessages";
 
 import { deckCardFaceUp, visibleDeckCode } from "../../PlayMat/deckVisibility";
-import { showCardModal } from "../CardModal";
+import { closeCardModal, showCardModal } from "../CardModal";
 import styles from "./index.module.scss";
 
 const defaultStore = {
@@ -110,6 +110,7 @@ export const CardListModal = () => {
                 targeted={card.targeted}
                 width="100%"
               />
+              <ChainTag location={card.location} className={styles.chain} />
             </button>
           );
         })}
@@ -128,6 +129,9 @@ export const displayCardListModal = ({
   zone,
   controller,
 }: Partial<Omit<typeof defaultStore, "isOpen">>) => {
+  // A pile tap switches the panel to that list instead of stacking under an
+  // older card detail; details opened from the list still stack above it.
+  closeCardModal();
   store.isOpen = true;
   store.isZone = isZone ?? false;
   monster && (store.monster = monster);

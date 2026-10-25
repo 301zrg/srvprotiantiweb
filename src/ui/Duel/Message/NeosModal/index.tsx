@@ -1,7 +1,13 @@
 import { MinusOutlined, UpOutlined } from "@ant-design/icons";
 import { Modal, type ModalProps } from "antd";
 import classNames from "classnames";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { sleep } from "@/infra";
 
@@ -13,6 +19,90 @@ const updateReservedSpace = () =>
     "--duel-minimized-height",
     `${Math.max(0, ...minimizedHeights.values())}px`,
   );
+
+/** Title-bar dragging as in ygopro: each window keeps its own offset until the
+ * viewport is resized. Moves write the transform directly, never re-render. */
+function useTitleDrag(enabled: boolean) {
+  const frame = useRef<HTMLDivElement | null>(null);
+  const offset = useRef({ x: 0, y: 0 });
+  const active = useRef(enabled);
+  active.current = enabled;
+  const apply = () => {
+    if (frame.current)
+      frame.current.style.transform =
+        active.current && (offset.current.x || offset.current.y)
+          ? `translate(${offset.current.x}px, ${offset.current.y}px)`
+          : "";
+  };
+  useEffect(() => {
+    // Width only: an on-screen keyboard changes the height alone.
+    let width = window.innerWidth;
+    const reset = () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      offset.current = { x: 0, y: 0 };
+      apply();
+    };
+    window.addEventListener("resize", reset);
+    return () => window.removeEventListener("resize", reset);
+  }, []);
+  useEffect(() => apply(), [enabled]);
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const element = frame.current;
+    if (
+      !enabled ||
+      !element ||
+      event.button !== 0 ||
+      !(event.target instanceof Element) ||
+      !event.target.closest(".ant-modal-header") ||
+      event.target.closest("button, a, input, select, textarea")
+    )
+      return;
+    const box = element.getBoundingClientRect();
+    const header = element.querySelector(".ant-modal-header");
+    const bar = (header ?? element).getBoundingClientRect();
+    const origin = { ...offset.current };
+    // Keep the whole window (and so its buttons) on screen when it fits;
+    // otherwise keep enough title bar visible to drag it back.
+    const range = (start: number, end: number, size: number, keep: number) =>
+      end - start <= size
+        ? [-start, size - end]
+        : [keep - end, size - keep - start];
+    const [minX, maxX] =
+      box.width <= window.innerWidth
+        ? range(box.left, box.right, window.innerWidth, 0)
+        : range(
+            bar.left,
+            bar.right,
+            window.innerWidth,
+            Math.min(80, bar.width),
+          );
+    const [minY, maxY] =
+      box.height <= window.innerHeight
+        ? range(box.top, box.bottom, window.innerHeight, 0)
+        : [-bar.top, window.innerHeight - bar.bottom];
+    const clamp = (value: number, min: number, max: number) =>
+      Math.min(max, Math.max(min, value));
+    const target = event.currentTarget;
+    target.setPointerCapture(event.pointerId);
+    const move = (next: PointerEvent) => {
+      offset.current = {
+        x: origin.x + clamp(next.clientX - event.clientX, minX, maxX),
+        y: origin.y + clamp(next.clientY - event.clientY, minY, maxY),
+      };
+      apply();
+    };
+    const end = () => {
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", end);
+      target.removeEventListener("pointercancel", end);
+    };
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", end);
+    target.addEventListener("pointercancel", end);
+  };
+  return { frame, onPointerDown };
+}
 
 interface NeosModalProps extends ModalProps {
   minimized?: boolean;
@@ -29,6 +119,7 @@ export const NeosModal: React.FC<NeosModalProps> = ({
   const collapsed = minimized ?? mini;
   const identity = useRef(Symbol("minimized-modal"));
   const [content, setContent] = useState<HTMLDivElement | null>(null);
+  const drag = useTitleDrag(!collapsed);
   const changeMinimized = (value: boolean) => {
     setMini(value);
     onMinimizedChange?.(value);
@@ -75,6 +166,7 @@ export const NeosModal: React.FC<NeosModalProps> = ({
     <Modal
       className={classNames(styles.modal, {
         [styles["mini"]]: collapsed,
+        [styles.draggable]: !collapsed,
         [styles["hidden"]]: hidden,
       })}
       centered
@@ -87,7 +179,13 @@ export const NeosModal: React.FC<NeosModalProps> = ({
       closable={true}
       {...props}
       modalRender={(node) => (
-        <div ref={setContent}>
+        <div
+          ref={(element) => {
+            setContent(element);
+            drag.frame.current = element;
+          }}
+          onPointerDown={drag.onPointerDown}
+        >
           {props.modalRender ? props.modalRender(node) : node}
         </div>
       )}

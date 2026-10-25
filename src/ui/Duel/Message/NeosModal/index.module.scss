@@ -9,13 +9,17 @@
   height: fit-content;
   transition: 0.2s;
 }
-:global(html:not([data-control-side="right"])) .modal:not(.mini) {
-  margin-left: max(8px, env(safe-area-inset-left));
-  margin-right: auto;
+// As in ygopro, windows open centered over the board, beside the sidebar.
+:global(html:not([data-control-side="right"]) body:has([data-duel-sidebar="true"])) .modal:not(.mini) {
+  left: var(--duel-sidebar-width, 280px);
 }
-:global(html[data-control-side="right"]) .modal:not(.mini) {
-  margin-left: auto;
-  margin-right: max(8px, env(safe-area-inset-right));
+:global(html[data-control-side="right"] body:has([data-duel-sidebar="true"])) .modal:not(.mini) {
+  right: var(--duel-sidebar-width, 280px);
+}
+.draggable :global(.ant-modal-header) {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
 }
 
 .mini {

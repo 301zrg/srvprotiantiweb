@@ -143,8 +143,13 @@
       min-height: 44px;
       min-width: 44px;
     }
+    // Grow the select box itself so it stays centered with the links.
+    :global(.ant-select) {
+      height: 44px;
+      flex-shrink: 0;
+    }
     :global(.ant-select-selector) {
-      min-height: 44px;
+      height: 100% !important;
       align-items: center;
     }
     .settingsLabel {

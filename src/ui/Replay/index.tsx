@@ -37,7 +37,7 @@ import {
 } from "@/replay/library";
 import { localizeReplayText } from "@/replay/localizedText";
 import type { ReplayCard } from "@/replay/messages";
-import { settingStore } from "@/stores/settingStore";
+import { type HistoryOrder, settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
 import { RelatedCards } from "@/ui/Shared/CardInformation";
@@ -1115,17 +1115,20 @@ function Player({ id, text }: { id: string; text: string[] }) {
       >
         <Button onClick={() => setShowHistory(false)}>{text[23]}</Button>
         <ol className="replay-history">
-          {history
-            .flatMap((f) => describeEvents(f, t))
-            .map((line, i) => (
-              <li key={i}>{line}</li>
-            ))}
+          {orderHistory(
+            history
+              .flatMap((f) => describeEvents(f, t))
+              .map((line, i) => <li key={i}>{line}</li>),
+            settings.historyOrder,
+          )}
         </ol>
       </Drawer>
     </main>
   );
 }
 type ReplayHistoryFrame = Pick<ReplayFrame, "turn" | "names" | "events">;
+const orderHistory = <T,>(lines: T[], order: HistoryOrder) =>
+  order === "newest" ? lines.reverse() : lines;
 const phaseName = (phase: number, t: (key: string) => string) =>
   ({
     1: "DP",

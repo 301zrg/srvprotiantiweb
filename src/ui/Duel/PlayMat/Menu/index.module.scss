@@ -78,3 +78,9 @@
 @media (orientation: landscape) and (max-height: 600px) {
   .menu-container.sidebar button { min-height: 30px; height: 30px; padding: 2px; font-size: 11px; }
 }
+
+// Phone portrait: while shuffle is offered (main phase only, which the phase
+// bar already shows) the phase button goes icon-only to keep one row.
+@media (orientation: portrait) and (max-width: 479px) {
+  .menu-container:not(.sidebar) .phaseLabel { display: none; }
+}

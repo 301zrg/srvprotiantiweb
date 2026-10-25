@@ -19,7 +19,7 @@ import {
 } from "@/stores/fieldSelectionStore";
 import { FieldSelectionGrid } from "@/ui/Duel/FieldSelection";
 import { useI18N } from "@/ui/I18N";
-import { ScrollableArea, YgoCard } from "@/ui/Shared";
+import { ChainTag, ScrollableArea, YgoCard } from "@/ui/Shared";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { duelResultMessages } from "@/variant/duelResultMessages";
 import { type DuelTiming, formatChainContext } from "@/variant/duelTiming";
@@ -283,6 +283,11 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
     }
   };
 
+  const submit = () => {
+    closeCardModal();
+    onSubmit([...mustSelects, ...result.map(([_, v]) => v).flat()]);
+  };
+
   const renderOption = (card: Snapshot<Option>, j = 0) => {
     const spot = address(card);
     const position = spot && fieldPosition(spot, viewPlayer);
@@ -358,6 +363,10 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
               {label(card)}
             </span>
           )}
+          <ChainTag
+            location={card.location as ygopro.CardLocation | undefined}
+            className={styles.chainTag}
+          />
           {targeted && (
             <span
               className={styles.targetTag}
@@ -438,14 +447,40 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
           <Button data-testid="duel-chain-continue" onClick={onCancel}>
             {submitText}
           </Button>
-        ) : spatial ? (
-          <Button
-            data-testid="duel-field-selection-back"
-            onClick={() => setInspecting(false)}
-          >
-            {fieldWords.back}
-          </Button>
-        ) : undefined
+        ) : (
+          // Minimized: board taps keep editing the choice, so it can be
+          // confirmed (or cancelled) without reopening the window.
+          <>
+            {spatial && (
+              <Button
+                data-testid="duel-field-selection-back"
+                onClick={() => setInspecting(false)}
+              >
+                {fieldWords.back}
+              </Button>
+            )}
+            {cancelable && (
+              <Button
+                className={styles.miniCancel}
+                data-testid="duel-select-mini-cancel"
+                onClick={() => {
+                  closeCardModal();
+                  onCancel();
+                }}
+              >
+                {cancelText}
+              </Button>
+            )}
+            <Button
+              type="primary"
+              data-testid="duel-select-mini-submit"
+              disabled={!submitable}
+              onClick={submit}
+            >
+              {submitText}
+            </Button>
+          </>
+        )
       }
       afterClose={() => {
         // Modal每次展示时都会消费`esHint`和`esSelectHint`，
@@ -505,10 +540,7 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
               data-testid="duel-select-card-submit"
               type="primary"
               disabled={!submitable}
-              onClick={() => {
-                closeCardModal();
-                onSubmit([...mustSelects, ...result.map(([_, v]) => v).flat()]);
-              }}
+              onClick={submit}
             >
               {submitText}
             </Button>

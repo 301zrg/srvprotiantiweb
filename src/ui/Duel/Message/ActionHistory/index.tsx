@@ -7,6 +7,7 @@ import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
 import { useConfig } from "@/config";
 import { useMediaQuery } from "@/hook";
 import { History, HistoryOp, historyStore, matStore } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
 import {
@@ -86,6 +87,10 @@ export const ActionHistoryContent = ({
   const { language } = useI18N();
   const text = mobileMessages(language);
   const { historys } = useSnapshot(historyStore);
+  const { historyOrder } = useSnapshot(settingStore);
+  // Keys stay the append index so reordering never re-renders memoized rows.
+  const entries = historys.map((history, idx) => [idx, history] as const);
+  if (historyOrder === "newest") entries.reverse();
   return (
     <div
       className={classNames(styles.container, { [styles.embedded]: embedded })}
@@ -93,7 +98,7 @@ export const ActionHistoryContent = ({
     >
       {!historys.length && <p>{text.emptyHistory}</p>}
       <div className={styles.timeline}>
-        {historys.map((history, idx) => (
+        {entries.map(([idx, history]) => (
           <HistoryItem key={idx} {...(history as History)} />
         ))}
       </div>

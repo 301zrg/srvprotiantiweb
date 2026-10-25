@@ -8,8 +8,13 @@ import { controlPanelMessages } from "@/variant/controlPanelMessages";
 import { previewMessages } from "@/variant/previewMessages";
 
 export const MessageSetting = () => {
-  const { serverMessageMode, showZoneCounts, hidePlayerIds, controlPanelSide } =
-    useSnapshot(settingStore);
+  const {
+    serverMessageMode,
+    showZoneCounts,
+    hidePlayerIds,
+    controlPanelSide,
+    historyOrder,
+  } = useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
   const revision = clientRevisionMessages(language);
@@ -31,6 +36,25 @@ export const MessageSetting = () => {
             {panel.right}
           </Radio>
         </Radio.Group>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.historyOrder}</legend>
+        <Radio.Group
+          value={historyOrder}
+          onChange={(event) => {
+            settingStore.historyOrder = event.target.value;
+          }}
+        >
+          <Radio data-testid="setting-history-oldest" value="oldest">
+            {panel.oldestFirst}
+          </Radio>
+          <Radio data-testid="setting-history-newest" value="newest">
+            {panel.newestFirst}
+          </Radio>
+        </Radio.Group>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {panel.historyOrderHelp}
+        </Typography.Paragraph>
       </fieldset>
       <Checkbox
         data-testid="setting-zone-counts"

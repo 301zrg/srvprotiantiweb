@@ -233,7 +233,8 @@
     width: 100%;
     flex-wrap: wrap;
     gap: 4px;
-    button {
+    // The label around the switch already provides the 44px target.
+    button:not(:global(.ant-switch)) {
       min-height: 44px;
       min-width: 44px;
       padding: 0 8px;

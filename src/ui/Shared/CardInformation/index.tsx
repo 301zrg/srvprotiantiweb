@@ -14,6 +14,7 @@ import {
 import {
   type CardStats,
   placeFieldStats,
+  roomyStatsQuery,
   type StatRect,
   statText,
 } from "@/variant/cardStats";
@@ -142,6 +143,9 @@ export function CardInformationLayer({
 }) {
   const latest = useRef(cards);
   latest.current = cards;
+  const scheduleMeasure = useRef<() => void>(() => {});
+  // New stats or links can change labels without any DOM movement.
+  useEffect(() => scheduleMeasure.current(), [cards]);
   const [hovered, setHovered] = useState<string>();
   const [pinned, setPinned] = useState<string>();
   const active = hovered ?? pinned;
@@ -197,13 +201,13 @@ export function CardInformationLayer({
     element.addEventListener("focusout", blur);
     window.addEventListener("neos:locate-card-link", locate);
     let frame = 0,
+      timer = 0,
       previous = "",
       last = 0;
     const context = document.createElement("canvas").getContext("2d");
     if (context) context.font = "700 12px system-ui, sans-serif";
-    const measure = (time: number) => {
-      if (time - last >= 30 && !document.hidden) {
-        last = time;
+    const measure = () => {
+      if (!document.hidden) {
         const linkedIds = new Set(
           relatedCardLinks(latest.current, active).flatMap((edge) => [
             edge.source,
@@ -232,9 +236,7 @@ export function CardInformationLayer({
             "[data-card-info-id], [data-card-uuid], .practice-field-card, .replay-card",
           ),
         ).map((node) => node.getBoundingClientRect());
-        const desktop = window.matchMedia(
-          "(min-width: 1024px) and (pointer: fine)",
-        ).matches;
+        const desktop = window.matchMedia(roomyStatsQuery).matches;
         const columns = Array.from(
           element.querySelectorAll<HTMLElement>(
             '[data-testid="duel-zone"][data-zone="MZONE"], .practice-field-slot[data-location="4"], .replay-field-slot[data-location="4"]',
@@ -289,11 +291,53 @@ export function CardInformationLayer({
           setClip(nextClip);
         }
       }
-      frame = requestAnimationFrame(measure);
     };
-    frame = requestAnimationFrame(measure);
+    // Measure only after something moved, at most every 30 ms; an idle board
+    // costs nothing. Spring animations write inline styles each frame, so
+    // they keep being tracked while they play.
+    const schedule = () => {
+      if (frame || timer) return;
+      const wait = last + 30 - performance.now();
+      if (wait > 0) {
+        timer = window.setTimeout(() => {
+          timer = 0;
+          schedule();
+        }, wait);
+        return;
+      }
+      frame = requestAnimationFrame((time) => {
+        frame = 0;
+        last = time;
+        measure();
+      });
+    };
+    scheduleMeasure.current = schedule;
+    const mutations = new MutationObserver(schedule);
+    mutations.observe(element, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["style", "class"],
+    });
+    const resize = new ResizeObserver(schedule);
+    resize.observe(element);
+    element.addEventListener("transitionend", schedule);
+    element.addEventListener("animationend", schedule);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("neos:duel-layout", schedule);
+    document.addEventListener("visibilitychange", schedule);
+    schedule();
     return () => {
+      scheduleMeasure.current = () => {};
       cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      mutations.disconnect();
+      resize.disconnect();
+      element.removeEventListener("transitionend", schedule);
+      element.removeEventListener("animationend", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("neos:duel-layout", schedule);
+      document.removeEventListener("visibilitychange", schedule);
       element.removeEventListener("pointerover", over);
       element.removeEventListener("pointerout", out);
       element.removeEventListener("pointerdown", down, true);
