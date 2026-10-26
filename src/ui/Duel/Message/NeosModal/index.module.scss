@@ -10,11 +10,17 @@
   transition: 0.2s;
 }
 // As in ygopro, windows open centered over the board, beside the sidebar.
-:global(html:not([data-control-side="right"]) body:has([data-duel-sidebar="true"])) .modal:not(.mini) {
-  left: var(--duel-sidebar-width, 280px);
-}
-:global(html[data-control-side="right"] body:has([data-duel-sidebar="true"])) .modal:not(.mini) {
-  right: var(--duel-sidebar-width, 280px);
+// Small landscape phones lack room beside it; there they cover the sidebar
+// so the whole window, including its buttons, stays on screen.
+@media (min-width: 820px) {
+  :global(html:not([data-control-side="right"]) body:has([data-duel-sidebar="true"])) .modal:not(.mini) {
+    left: var(--duel-sidebar-width, 280px);
+    max-width: calc(100vw - var(--duel-sidebar-width, 280px) - 16px);
+  }
+  :global(html[data-control-side="right"] body:has([data-duel-sidebar="true"])) .modal:not(.mini) {
+    right: var(--duel-sidebar-width, 280px);
+    max-width: calc(100vw - var(--duel-sidebar-width, 280px) - 16px);
+  }
 }
 .draggable :global(.ant-modal-header) {
   cursor: move;
