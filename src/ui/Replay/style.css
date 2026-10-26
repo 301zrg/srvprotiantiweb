@@ -311,3 +311,127 @@
 .replay-drawer .ant-drawer-content-wrapper {
   max-width: 100vw;
 }
+
+/* Playback uses the duel layout: sidebar / top life bars and bottom toolbar
+   come from the shared duel shell; this only fits the page and replay parts. */
+.replay-player.replay-duel {
+  position: relative;
+  height: var(--neos-adaptive-height, 100dvh);
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
+}
+.replay-duel .ant-btn {
+  min-height: 0;
+}
+.replay-duel-stage {
+  position: fixed;
+  inset: 0;
+}
+.replay-duel .replay-field-board {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.replay-duel .replay-field-viewport {
+  flex: 1;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.replay-duel .replay-board {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.replay-status {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.replay-status .replay-title {
+  margin: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.replay-status .replay-progress {
+  padding: 0;
+  color: #c9d6e8;
+}
+.replay-status .replay-progress strong {
+  color: #ffd27a;
+}
+.replay-status .replay-field-action {
+  min-height: 0;
+  margin: 4px 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.replay-status .replay-note,
+.replay-status .replay-error {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.replay-status .replay-error {
+  padding: 6px 8px;
+}
+/* Portrait: status sits under the top life bars; the board starts below it. */
+.replay-shell-strip {
+  position: fixed;
+  top: calc(92px + env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 960;
+  max-height: 84px;
+  overflow-y: auto;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #1d2330e6;
+}
+.replay-shell-strip .replay-title {
+  display: none;
+}
+.replay-shell-strip .replay-progress,
+.replay-shell-strip .replay-field-action {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (orientation: portrait), (max-width: 479px) {
+  .replay-duel-stage > div {
+    top: calc(182px + env(safe-area-inset-top));
+  }
+}
+/* Short landscape: keep the end state and errors, drop the title. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .replay-status .replay-title {
+    display: none;
+  }
+  .replay-status .replay-field-action {
+    margin: 2px 0;
+    padding: 2px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+/* Sidebar: names and LP stay visible while the controls scroll. */
+.replay-duel [data-testid="duel-sidebar-controls"] > :first-child {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #1d2330;
+}
+.replay-duel [data-testid="duel-sidebar-controls"] [data-testid="duel-menu"] > div {
+  position: static;
+}

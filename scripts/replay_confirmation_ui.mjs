@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { replayControl, replayJump } from "./replay_controls.mjs";
 import { chromium, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 const origin = process.env.SMOKE_URL || "http://127.0.0.1:4173";
@@ -52,8 +53,7 @@ try {
     ).toBeVisible({ timeout: 60000 });
     assert.equal(await page.locator(".replay-error").count(), 0);
     const finish = async () => {
-      await page.getByLabel("目标回合").fill("999");
-      await page.getByRole("button", { name: "跳到回合", exact: true }).click();
+      await replayJump(page, 999);
       await expect
         .poll(
           async () => {
@@ -78,11 +78,11 @@ try {
     };
     const first = await finish();
     await expect(page.locator(".replay-error")).toHaveCount(0);
-    await page.getByRole("button", { name: "重新开始", exact: true }).click();
+    await replayControl(page, "重新开始");
     await expect(page.locator(".replay-progress")).toContainText("步骤 0");
     const second = await finish();
     assert.deepEqual(second, first, "Restart must reach the same end state");
-    await page.getByRole("button", { name: "退出播放", exact: true }).click();
+    await replayControl(page, "退出播放");
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "下载", exact: true }).click();
     const download = await downloadPromise;

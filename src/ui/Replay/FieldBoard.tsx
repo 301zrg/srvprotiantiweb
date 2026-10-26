@@ -1,10 +1,10 @@
 import "./field.css";
 
-import { Button, Drawer } from "antd";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
 import { fetchCard } from "@/api";
+import { useMediaQuery } from "@/hook";
 import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { BoardCard } from "@/ui/Shared/DuelBoard/BoardCard";
@@ -20,6 +20,7 @@ import {
 } from "@/ui/Shared/DuelBoard/SceneBoard";
 import { sceneInformationCards } from "@/ui/Shared/DuelBoard/sceneInformation";
 import { replayFieldWords } from "@/ui/Shared/DuelBoard/sceneWords";
+import { DuelPanel } from "@/ui/Shared/DuelPanel";
 
 import { ReplayCardTile } from "./CardTile";
 
@@ -34,12 +35,15 @@ function centerField(el: HTMLDivElement | null | undefined) {
   el.scrollTop = Math.max(0, (el.scrollHeight - el.clientHeight) / 2);
   el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
 }
+/** Replay board on the shared duel board. The duel layout shell sizes it;
+ * zoom only scales the board inside its own scroll area. */
 export function FieldBoard({
   frame,
   view,
   reveal,
   language,
   text,
+  zoom,
   onInspect,
   onPause,
 }: {
@@ -48,69 +52,23 @@ export function FieldBoard({
   reveal: boolean;
   language: string;
   text: string[];
+  zoom: number;
   onInspect: (card: ReplayCard) => void;
   onPause: () => void;
 }) {
   const t = replayFieldWords(language),
     cardWords = replayCardWords(language),
-    board = useRef<SceneBoardHandle>(null),
-    heading = useRef<HTMLDivElement>(null),
-    footer = useRef<HTMLDivElement>(null);
+    board = useRef<SceneBoardHandle>(null);
   const { showZoneCounts } = useSnapshot(settingStore);
-  const [height, setHeight] = useState(540),
-    [desktop, setDesktop] = useState(false),
-    [zoom, setZoom] = useState(1),
-    [pile, setPile] = useState<Spot>();
-  // The page shell decides how much height the board may use; the shared
-  // board fits itself inside it, and zoom scrolls beyond it.
+  const desktop = useMediaQuery("(min-width: 1024px) and (min-height: 600px)");
+  const [pile, setPile] = useState<Spot>();
   useEffect(() => {
-    const el = board.current?.element;
-    if (!el) return;
-    const update = () => {
-      const wide = window.innerWidth >= 1024 && window.innerHeight >= 600;
-      setDesktop(wide);
-      const player = el.closest(".replay-player");
-      const top = el.getBoundingClientRect().top + (player?.scrollTop || 0);
-      const bottom = Math.min(
-        window.innerHeight,
-        player?.getBoundingClientRect().bottom ?? window.innerHeight,
-      );
-      const footerHeight = footer.current?.getBoundingClientRect().height ?? 36;
-      const bottomPadding = player
-        ? parseFloat(getComputedStyle(player).paddingBottom) || 0
-        : 0;
-      setHeight(
-        wide
-          ? Math.max(1, bottom - top - footerHeight - bottomPadding - 2)
-          : Math.max(320, window.innerHeight - 380),
-      );
-    };
-    const observer = new ResizeObserver(update);
-    el
-      .closest(".replay-player")
-      ?.querySelectorAll(".replay-header, .replay-controls, .replay-progress")
-      .forEach((part) => observer.observe(part));
-    if (heading.current) observer.observe(heading.current);
-    if (footer.current) observer.observe(footer.current);
-    update();
-    window.addEventListener("resize", update);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", update);
-    };
-  }, [language, reveal]);
-  useEffect(() => {
-    if (desktop) centerField(board.current?.element);
-  }, [desktop, height, zoom]);
+    // Keep a zoomed board centred; reset scrolls back to the full field.
+    centerField(board.current?.element);
+  }, [zoom]);
   const label = (location: number) =>
     text[16 + locations.indexOf(location)] || "";
   const action = frame.action;
-  const actionName = action
-    ? t[action.kind as keyof typeof t] || action.kind
-    : "";
-  const actionCode = action?.code
-    ? fetchCard(action.code).text.name || action.code
-    : "";
   const focus = (c: Spot) =>
     action?.to &&
     c.player === action.to.player &&
@@ -129,50 +87,10 @@ export function FieldBoard({
       "--replay-from-y": `${from.y - to.y}px`,
     }) as CSSProperties;
   return (
-    <section
-      className={`replay-field-board ${desktop ? "replay-field-desktop" : ""}`}
-    >
-      <div className="replay-field-heading" ref={heading}>
-        <div className="replay-field-toolbar">
-          <div className="replay-field-tools">
-            <Button onClick={() => setZoom((z) => (z >= 2 ? 1 : z + 0.5))}>
-              {t.zoom} {zoom}×
-            </Button>
-            <Button
-              onClick={() => {
-                setZoom(1);
-                if (desktop) centerField(board.current?.element);
-              }}
-            >
-              {t.reset}
-            </Button>
-          </div>
-          <div
-            className="replay-field-action"
-            role="status"
-            data-action={action?.kind || "ready"}
-          >
-            {actionName || t.ready} {actionCode}{" "}
-            {action?.amount !== undefined ? `· ${action.amount}` : ""}
-          </div>
-        </div>
-        <div className="replay-field-player">
-          <strong>{frame.names[1 - view]}</strong>
-          <span>
-            {desktop &&
-              `${label(2)} ${
-                frame.cards.filter(
-                  (c) => c.player === 1 - view && c.location === 2,
-                ).length
-              } · `}
-            LP {frame.lp[1 - view]}
-          </span>
-        </div>
-      </div>
+    <section className="replay-field-board">
       <SceneBoard
         handle={board}
         className="replay-field-viewport"
-        style={{ height }}
         cards={frame.cards}
         chains={frame.chains}
         view={view}
@@ -322,27 +240,16 @@ export function FieldBoard({
           );
         }}
       />
-      <div className="replay-field-player" ref={footer}>
-        <strong>{frame.names[view]}</strong>
-        <span>
-          {desktop &&
-            `${label(2)} ${
-              frame.cards.filter((c) => c.player === view && c.location === 2)
-                .length
-            } · `}
-          LP {frame.lp[view]}
-        </span>
-      </div>
-      <Drawer
-        rootClassName="replay-drawer"
+      <DuelPanel
+        open={!!pile}
+        onClose={() => setPile(undefined)}
         title={
           pile ? `${frame.names[pile.player]} · ${label(pile.location)}` : ""
         }
-        open={!!pile}
-        onClose={() => setPile(undefined)}
-        width={450}
+        testId="replay-pile-panel"
+        compact
+        desktopWidth="220px"
       >
-        <Button onClick={() => setPile(undefined)}>{t.close}</Button>
         <div className="replay-field-pile-list">
           {pile &&
             frame.cards
@@ -363,7 +270,7 @@ export function FieldBoard({
                 />
               ))}
         </div>
-      </Drawer>
+      </DuelPanel>
     </section>
   );
 }

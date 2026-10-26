@@ -3,6 +3,7 @@ declare const classNames: {
   readonly "life-bar": "life-bar";
   readonly name: "name";
   readonly life: "life";
+  readonly extra: "extra";
   readonly "timer-container": "timer-container";
   readonly "timer-text": "timer-text";
   readonly sidebar: "sidebar";

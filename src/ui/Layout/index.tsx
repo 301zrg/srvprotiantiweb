@@ -108,7 +108,7 @@ export const Component = () => {
     document.documentElement.dataset.controlSide = controlPanelSide;
   }, [controlPanelSide]);
   const { t } = useTranslation("ClientUI");
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigation = useNavigation();
   const capture = useSnapshot(replayCaptureStatus);
   // HUD and portal overlays always retain their physical touch target sizes.
@@ -118,7 +118,12 @@ export const Component = () => {
     designHeight: 620,
     minScale: 1,
   });
-  const hideHeader = ["/waitroom", "/duel", "/side"].includes(pathname);
+  // The replay library and player share /replays; only the player (?id=)
+  // uses the full-screen duel layout.
+  const replayPlaying =
+    pathname === "/replays" && new URLSearchParams(search).has("id");
+  const hideHeader =
+    ["/waitroom", "/duel", "/side"].includes(pathname) || replayPlaying;
   const connection = useSnapshot(connectionStore);
   const { language } = useI18N();
   const text = siteMessages(language);
@@ -176,11 +181,14 @@ export const Component = () => {
           </Button>
         </nav>
       )}
-      {hideHeader && pathname !== "/duel" && pathname !== "/waitroom" && (
-        <div className={styles.localeFloating}>
-          <I18NSelector />
-        </div>
-      )}
+      {hideHeader &&
+        pathname !== "/duel" &&
+        pathname !== "/waitroom" &&
+        !replayPlaying && (
+          <div className={styles.localeFloating}>
+            <I18NSelector />
+          </div>
+        )}
       <main
         className={styles.main}
         data-environment={environmentId}

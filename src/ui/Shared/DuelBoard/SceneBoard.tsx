@@ -135,10 +135,19 @@ export function SceneBoard({
 }) {
   const host = useRef<HTMLDivElement>(null);
   useImperativeHandle(handle, () => ({ element: host.current }), []);
+  // Same responsive rules as the online board, held per board: offline
+  // boards never write the online board's live geometry. Read up front so
+  // cards do not slide from a default layout on first paint.
+  const currentGeometry = () =>
+    boardGeometry({
+      wide: window.matchMedia(wideBoardQuery).matches,
+      masterRule,
+      roomy: window.matchMedia(roomyStatsQuery).matches,
+    });
   const [layout, setLayout] = useState(() => ({
     width: 1,
     height: 1,
-    geometry: boardGeometry({ wide: false, masterRule, roomy: false }),
+    geometry: currentGeometry(),
   }));
   useLayoutEffect(() => {
     const element = host.current;
@@ -147,13 +156,7 @@ export function SceneBoard({
       setLayout({
         width: element.clientWidth,
         height: element.clientHeight,
-        // Same responsive rules as the online board, held per board: offline
-        // boards never write the online board's live geometry.
-        geometry: boardGeometry({
-          wide: window.matchMedia(wideBoardQuery).matches,
-          masterRule,
-          roomy: window.matchMedia(roomyStatsQuery).matches,
-        }),
+        geometry: currentGeometry(),
       });
     const observer = new ResizeObserver(update);
     observer.observe(element);

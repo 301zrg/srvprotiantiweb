@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { replayControl, replayControlPressed } from "./replay_controls.mjs";
 import { chromium, expect } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 const origin = process.env.SMOKE_URL || "http://127.0.0.1:4174";
@@ -123,7 +124,7 @@ try {
     await expect(
       page.locator('.replay-card[data-player="0"] .replay-negated'),
     ).toHaveCount(1);
-    await page.getByRole("button", { name: "列表视图", exact: true }).click();
+    await replayControl(page, "列表视图");
     await expect(page.locator(".replay-board")).toBeVisible();
     const at = (location, sequence, player = 0) =>
       page.locator(
@@ -179,17 +180,13 @@ try {
       "none",
     );
     await expect(at(8, 0)).toContainText("魔力指示物 × 1");
-    await page
-      .getByRole("button", { name: "查看里侧卡片", exact: true })
-      .click();
+    await replayControl(page, "查看里侧卡片");
     await expect(at(32, 0)).toContainText("里侧 · 除外");
     await expect(at(32, 0).locator("img")).not.toHaveAttribute(
       "src",
       /card_back\.jpg$/,
     );
-    await expect(
-      page.getByRole("button", { name: "查看里侧卡片", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
+    assert.equal(await replayControlPressed(page, "查看里侧卡片"), "true");
     assert.ok(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth + 1,
@@ -200,7 +197,7 @@ try {
       path: `.audit-tmp/replay-state-ui/${name}.png`,
       fullPage: true,
     });
-    await page.getByRole("link", { name: "录像列表", exact: true }).click();
+    await replayControl(page, "退出播放");
     await expect(page.locator(".replay-page")).toBeVisible();
     assert.equal(sockets, 0);
     await context.close();

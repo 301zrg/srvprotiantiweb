@@ -22,7 +22,7 @@ import {
   Tooltip,
 } from "antd";
 import classNames from "classnames";
-import { cloneElement, useEffect, useRef } from "react";
+import { cloneElement, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
@@ -44,6 +44,7 @@ import {
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
 import { IconFont } from "@/ui/Shared";
+import styles from "@/ui/Shared/DuelShell/menu.module.scss";
 import {
   onlinePhaseKey,
   phaseAction,
@@ -55,12 +56,12 @@ import { mobileMessages } from "@/variant/mobileMessages";
 import { previewMessages } from "@/variant/previewMessages";
 
 import { PhaseBar } from "../../PhaseBar";
-import styles from "./index.module.scss";
 import PhaseType = ygopro.StocGameMessage.MsgNewPhase.PhaseType;
 import { useTranslation } from "react-i18next";
 
 import { getUIContainer } from "@/container/compat";
 import { useMobileInterface } from "@/hook";
+import { MenuFrame } from "@/ui/Shared/DuelShell/MenuFrame";
 
 import { displayActionHistory, runActiveAction } from "../../Message";
 import { clearSelectInfo } from "../../utils";
@@ -296,31 +297,6 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
   const navigate = useNavigate();
   const text = mobileMessages(language);
   const preview = previewMessages(language);
-  const menu = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const element = menu.current;
-    if (!element) return;
-    let frame = 0;
-    let previous = "";
-    const update = () => {
-      const next = `${element.getBoundingClientRect().height}px`;
-      if (next !== previous) {
-        previous = next;
-        document.documentElement.style.setProperty("--duel-menu-height", next);
-      }
-    };
-    const observer = new ResizeObserver(() => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(update);
-    });
-    observer.observe(element);
-    update();
-    return () => {
-      observer.disconnect();
-      cancelAnimationFrame(frame);
-      document.documentElement.style.removeProperty("--duel-menu-height");
-    };
-  }, []);
   const container = getUIContainer();
   const { stage: sideStage } = useSnapshot(sideStore);
   const { t: i18n } = useTranslation("Menu");
@@ -446,108 +422,109 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
   const showShuffle = !observing && command === "idle" && !!enableShuffle;
 
   return (
-    <div
-      className={classNames(styles["menu-container"], {
-        [styles.sidebar]: docked,
-      })}
-      ref={menu}
-      data-testid="duel-menu"
-      role="toolbar"
-      aria-label={text.settings}
-    >
-      <PhaseBar
-        current={onlinePhaseKey(currentPhase)}
-        turnOwner={ownTurn ? "self" : "opponent"}
-        actions={phaseButtons}
-        labels={Object.fromEntries(
-          phaseBind
-            .filter(([, , , show]) => show)
-            .map(([phase, label]) => [
-              onlinePhaseKey(phase),
-              onlinePhaseKey(phase) === onlinePhaseKey(currentPhase)
-                ? duelPhaseLabel(language, currentPhase, battleTiming)
-                : label,
-            ]),
-        )}
-      />
-      <div className={docked ? styles.primary : styles.contents}>
-        {!observing && <SelectManager />}
-        <ReplayControl />
-        <DropdownWithTitle
-          title={i18n("SelectPhase")}
-          menu={{ items: phaseSwitchItems }}
-          disabled={globalDisable}
-        >
-          <Button
-            data-testid="duel-phase-select"
-            data-current-phase={phaseTestId(currentPhase)}
-            icon={<StepForwardFilled style={{ transform: "scale(1.5)" }} />}
-            type="text"
-            disabled={globalDisable}
-            aria-label={duelPhaseLabel(language, currentPhase, battleTiming)}
-          >
-            <span className={classNames({ [styles.phaseLabel]: showShuffle })}>
-              {duelPhaseLabel(language, currentPhase, battleTiming)}
-            </span>
-          </Button>
-        </DropdownWithTitle>
-        {/* Spectators never answer chains; the slot switches viewpoint. */}
-        {observing ? (
-          <Button
-            data-testid="duel-switch-view"
-            aria-label={text.switchView}
-            data-view-controller={observerView}
-            icon={<SwapOutlined />}
-            type="text"
-            onClick={() => {
-              matStore.observerView = observerView === 0 ? 1 : 0;
-            }}
-          >
-            {text.switchView}
-          </Button>
-        ) : (
+    <MenuFrame
+      docked={docked}
+      label={text.settings}
+      phaseBar={
+        <PhaseBar
+          current={onlinePhaseKey(currentPhase)}
+          turnOwner={ownTurn ? "self" : "opponent"}
+          actions={phaseButtons}
+          labels={Object.fromEntries(
+            phaseBind
+              .filter(([, , , show]) => show)
+              .map(([phase, label]) => [
+                onlinePhaseKey(phase),
+                onlinePhaseKey(phase) === onlinePhaseKey(currentPhase)
+                  ? duelPhaseLabel(language, currentPhase, battleTiming)
+                  : label,
+              ]),
+          )}
+        />
+      }
+      primary={
+        <>
+          {!observing && <SelectManager />}
+          <ReplayControl />
           <DropdownWithTitle
-            menu={{
-              items: chainSettingItems,
-            }}
+            title={i18n("SelectPhase")}
+            menu={{ items: phaseSwitchItems }}
+            disabled={globalDisable}
           >
             <Button
-              data-testid="duel-chain-setting"
-              aria-label={
-                chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
-              }
-              data-chain-setting={chainSettingTestIds[chainSetting]}
-              icon={<ChainIcon chainSetting={chainSetting} />}
+              data-testid="duel-phase-select"
+              data-current-phase={phaseTestId(currentPhase)}
+              icon={<StepForwardFilled style={{ transform: "scale(1.5)" }} />}
               type="text"
+              disabled={globalDisable}
+              aria-label={duelPhaseLabel(language, currentPhase, battleTiming)}
             >
-              {docked &&
-                chainSettingTexts.find(([key]) => key === chainSetting)?.[1]}
+              <span
+                className={classNames({ [styles.phaseLabel]: showShuffle })}
+              >
+                {duelPhaseLabel(language, currentPhase, battleTiming)}
+              </span>
             </Button>
           </DropdownWithTitle>
-        )}
-        {showShuffle && (
-          <Button
-            data-testid="duel-shuffle-hand"
-            aria-label={fetchStrings(Region.System, 1297)}
-            title={fetchStrings(Region.System, 1297)}
-            icon={<RetweetOutlined />}
-            type="text"
-            onClick={() =>
-              void runActiveAction(container, () =>
-                matStore.phase.enableShuffle
-                  ? {
-                      response: 8,
-                      responseSource: "idle",
-                      label: fetchStrings(Region.System, 1297),
-                    }
-                  : undefined,
-              )
-            }
-          >
-            {docked && fetchStrings(Region.System, 1297)}
-          </Button>
-        )}
-      </div>
+          {/* Spectators never answer chains; the slot switches viewpoint. */}
+          {observing ? (
+            <Button
+              data-testid="duel-switch-view"
+              aria-label={text.switchView}
+              data-view-controller={observerView}
+              icon={<SwapOutlined />}
+              type="text"
+              onClick={() => {
+                matStore.observerView = observerView === 0 ? 1 : 0;
+              }}
+            >
+              {text.switchView}
+            </Button>
+          ) : (
+            <DropdownWithTitle
+              menu={{
+                items: chainSettingItems,
+              }}
+            >
+              <Button
+                data-testid="duel-chain-setting"
+                aria-label={
+                  chainSettingTexts.find(([key]) => key === chainSetting)?.[1]
+                }
+                data-chain-setting={chainSettingTestIds[chainSetting]}
+                icon={<ChainIcon chainSetting={chainSetting} />}
+                type="text"
+              >
+                {docked &&
+                  chainSettingTexts.find(([key]) => key === chainSetting)?.[1]}
+              </Button>
+            </DropdownWithTitle>
+          )}
+          {showShuffle && (
+            <Button
+              data-testid="duel-shuffle-hand"
+              aria-label={fetchStrings(Region.System, 1297)}
+              title={fetchStrings(Region.System, 1297)}
+              icon={<RetweetOutlined />}
+              type="text"
+              onClick={() =>
+                void runActiveAction(container, () =>
+                  matStore.phase.enableShuffle
+                    ? {
+                        response: 8,
+                        responseSource: "idle",
+                        label: fetchStrings(Region.System, 1297),
+                      }
+                    : undefined,
+                )
+              }
+            >
+              {docked && fetchStrings(Region.System, 1297)}
+            </Button>
+          )}
+        </>
+      }
+    >
       {!docked && (
         <>
           <Tooltip title={i18n("History")} open={mobile ? false : undefined}>
@@ -619,7 +596,7 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
       >
         {docked && text.settings}
       </Button>
-    </div>
+    </MenuFrame>
   );
 };
 

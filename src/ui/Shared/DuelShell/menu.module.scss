@@ -84,3 +84,16 @@
 @media (orientation: portrait) and (max-width: 479px) {
   .menu-container:not(.sidebar) .phaseLabel { display: none; }
 }
+
+// Replay controls in the sidebar grid: speed fills its cell, the turn jump
+// takes a full row.
+.menu-container.sidebar :global(.ant-select) { width: 100%; min-height: 44px; }
+.menu-container.sidebar :global(.ant-select-selector) { height: 100% !important; align-items: center; }
+.replayJump { grid-column: 1 / -1; display: flex; gap: 4px; }
+.replayJump :global(.ant-input-number) { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; }
+.replayJump button { width: auto !important; flex: none; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .menu-container.sidebar :global(.ant-select) { min-height: 30px; }
+}
+.replayMore { display: flex; flex-direction: column; gap: 6px; }
+.replayMore button { min-height: 44px; justify-content: flex-start; text-align: left; }

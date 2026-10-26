@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { expectReplayControl, replayControl, replayJump } from "./replay_controls.mjs";
 import { chromium, expect } from "@playwright/test";
 import { readFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -141,9 +142,7 @@ try {
     if (await page.locator(".replay-error").count())
       throw new Error(await page.locator(".replay-error").innerText());
     await expect(page.locator(".replay-negated")).toHaveCount(0);
-    await expect(
-      page.getByRole("button", { name: "音效：开", exact: true }),
-    ).toBeVisible();
+    await expectReplayControl(page, "音效：开");
     assert.equal(
       await page.evaluate(() => window.replayAudioAudit.created),
       0,
@@ -152,29 +151,26 @@ try {
     assert.equal(ws, 0, "Offline replay must not create a WebSocket");
     assert.deepEqual(
       await page
-        .locator(".replay-field-player strong,.replay-side h2")
+        .locator('[data-testid="duel-player-name"]')
         .allTextContents(),
       ["ReplayFixtureA", "ReplayFixtureB"],
     );
-    await page.getByRole("button", { name: "切换视角", exact: true }).click();
+    await replayControl(page, "切换视角");
     assert.deepEqual(
       await page
-        .locator(".replay-field-player strong,.replay-side h2")
+        .locator('[data-testid="duel-player-name"]')
         .allTextContents(),
       ["ReplayFixtureB", "ReplayFixtureA"],
     );
     await page.getByRole("button", { name: "单步", exact: true }).click();
     await expect(page.locator(".replay-progress")).toContainText("步骤 1");
     await page.locator(".replay-card").first().click();
-    await expect(page.locator(".ant-drawer-open")).toBeVisible();
-    await page
-      .locator(".ant-drawer-open")
-      .getByRole("button", { name: "关闭", exact: true })
-      .click();
-    await expect(page.locator(".ant-drawer-open")).toHaveCount(0);
-    await expect(
-      page.locator(".replay-drawer .ant-drawer-content-wrapper").first(),
-    ).toBeHidden();
+    // Card details dock like the online duel's card panel.
+    await expect(page.getByTestId("replay-card-detail")).toBeVisible();
+    await page.getByTestId("replay-card-detail-close").click();
+    await expect(page.getByTestId("replay-card-detail")).toBeHidden();
+    // Let the closing panel return focus before opening the speed list.
+    await page.waitForTimeout(400);
     await page.locator('.ant-select[aria-label="播放速度"]').click();
     await page
       .locator(".ant-select-item-option")
@@ -216,7 +212,7 @@ try {
       "Audio resume must be inside the user's click",
     );
     const soundCount = audio.started;
-    await page.getByRole("button", { name: "音效：开", exact: true }).click();
+    await replayControl(page, "音效：开");
     await page.getByRole("button", { name: "单步", exact: true }).click();
     await page.waitForTimeout(300);
     assert.equal(
@@ -224,10 +220,9 @@ try {
       soundCount,
       "Muted single step must be silent",
     );
-    await page.getByRole("button", { name: "重新开始", exact: true }).click();
+    await replayControl(page, "重新开始");
     await expect(page.locator(".replay-progress")).toContainText("步骤 0");
-    await page.getByLabel("目标回合").fill("4");
-    await page.getByRole("button", { name: "跳到回合", exact: true }).click();
+    await replayJump(page, 4);
     await expect(page.locator(".replay-progress")).toContainText("回合 4", {
       timeout: 30000,
     });
@@ -236,16 +231,18 @@ try {
       soundCount,
       "Restart and seek must not play skipped events",
     );
+    // History: a sidebar tab when docked, a panel on portrait phones.
     await page.getByRole("button", { name: "操作记录", exact: true }).click();
-    await expect(page.locator(".ant-drawer-open")).toBeVisible();
-    await page
-      .locator(".ant-drawer-open")
-      .getByRole("button", { name: "关闭", exact: true })
-      .click();
-    await expect(page.locator(".ant-drawer-open")).toHaveCount(0);
-    await expect(
-      page.locator(".replay-drawer .ant-drawer-content-wrapper").last(),
-    ).toBeHidden();
+    const historyClose = page.getByTestId("replay-history-panel-close");
+    await historyClose
+      .waitFor({ state: "visible", timeout: 1500 })
+      .catch(() => {});
+    await expect(page.locator(".replay-history")).toBeVisible();
+    if (await historyClose.isVisible()) {
+      await historyClose.click();
+      await expect(historyClose).toBeHidden();
+      await page.waitForTimeout(300);
+    }
     if (name === "desktop") {
       await page.waitForTimeout(11000);
       await expect(page.locator(".replay-error")).toHaveCount(0);
@@ -264,13 +261,11 @@ try {
       path: `.audit-tmp/replay-ui/${name}.png`,
       fullPage: true,
     });
-    await page.getByRole("button", { name: "退出播放", exact: true }).click();
+    await replayControl(page, "退出播放");
     await expect(page.locator(".replay-entry")).toHaveCount(1);
     await page.getByRole("button", { name: "播放", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "音效：关", exact: true }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "退出播放", exact: true }).click();
+    await expectReplayControl(page, "音效：关");
+    await replayControl(page, "退出播放");
     assert.equal(ws, 0);
     if (name === "desktop") {
       const second = await context.newPage();
