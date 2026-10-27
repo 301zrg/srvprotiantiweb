@@ -4,6 +4,8 @@ export interface AudioConfig {
   enableMusic?: boolean;
   /** 是否开启音效 */
   enableSoundEffects?: boolean;
+  /** @deprecated Ignored during migration; all playback uses enableSoundEffects. */
+  enableReplaySoundEffects?: boolean;
   /** 音乐音量大小 */
   musicVolume?: number;
   /** 音效音量大小 */

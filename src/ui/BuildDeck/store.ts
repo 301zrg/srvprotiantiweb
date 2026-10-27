@@ -24,7 +24,8 @@ const messages: Record<
 > = {
   en: {
     cardTypeNotMatch: "The Card Type does not match",
-    exceedsNumberCardsSameName: "The number of Extra Deck should be 0-15",
+    exceedsNumberCardsSameName:
+      "Exceeds the number of cards with the same name",
     limitCards: "Limit of cards",
     exceedsLimit: "Exceeds the limit",
     cannotAddTokens: "Cannot add tokens",
@@ -92,25 +93,43 @@ export const editDeckStore = proxy({
 
   // 标脏
   edited: false,
+  ignoreBanlist: false,
 
   // 方法
   add(type: Type, card: CardMeta) {
     editDeckStore[type].push(card);
-    editDeckStore[type].sort(compareCards);
     editDeckStore.edited = true;
   },
-  remove(type: Type, card: CardMeta) {
-    const index = editDeckStore[type].findIndex((item) => item.id === card.id);
-    if (index !== -1) {
+  remove(type: Type, card: CardMeta, position?: number) {
+    const index =
+      position ?? editDeckStore[type].findIndex((item) => item.id === card.id);
+    if (index >= 0 && editDeckStore[type][index]?.id === card.id) {
       editDeckStore[type].splice(index, 1);
       editDeckStore.edited = true;
     }
   },
+  reorder(type: Type, from: number, to: number) {
+    const cards = editDeckStore[type];
+    if (
+      !Number.isInteger(from) ||
+      !Number.isInteger(to) ||
+      from === to ||
+      from < 0 ||
+      to < 0 ||
+      from >= cards.length ||
+      to >= cards.length
+    )
+      return;
+    const [card] = cards.splice(from, 1);
+    cards.splice(to, 0, card);
+    editDeckStore.edited = true;
+  },
   set(deck: EditingDeck) {
     editDeckStore.deckName = deck.deckName;
-    editDeckStore.main = deck.main;
-    editDeckStore.extra = deck.extra.sort(compareCards);
-    editDeckStore.side = deck.side.sort(compareCards);
+    // Loading an imported deck must not reorder its original zones.
+    editDeckStore.main = [...deck.main];
+    editDeckStore.extra = [...deck.extra];
+    editDeckStore.side = [...deck.side];
     editDeckStore.edited = false;
   },
   clear() {
@@ -175,7 +194,9 @@ export const editDeckStore = proxy({
       result = false;
       reason = cardTypeNotMatch;
     }
-    const max = Math.min(3, forbidden.get(card) ?? 3);
+    const max = editDeckStore.ignoreBanlist
+      ? 3
+      : Math.min(3, forbidden.get(card) ?? 3);
     const canonicalId = (value: CardMeta) => value.data.alias || value.id;
     const numOfSameCards =
       editDeckStore

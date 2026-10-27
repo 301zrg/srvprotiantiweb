@@ -2,6 +2,10 @@
 
 现有 `121.4.34.71:7911` 是原生 YGOPro TCP 入口，浏览器不能直接连接。网页和四语卡池继续由外部 HTTPS 静态站点托管；SRVPro 只承担对战连接和现有天梯逻辑。站方通过 `duel-config.js` 或构建变量 `VITE_DUEL_WS_URL=wss://...` 固定入口，玩家只填写昵称和房名：`TT` 进天梯，其他房名进普通房。
 
+## 联机交互编号
+
+706 猜拳的原始编号统一为剪刀 `1`、石头 `2`、布 `3`，房间 `CTOS_HAND_RESULT`、卡片效果响应与 `MSG_HAND_RES` 显示必须一致。随机控件内部的手势顺序只用于 UI，在提交边界转换；回归入口为 `scripts/test_rps_mapping.mjs` 和 `scripts/client_revision_ui.mjs`。阶段 UI 同样区分 Core 位标志与 protobuf 阶段枚举，并且只使用当前 idle／battle 请求给出的可进入标志，具体状态边界见 [架构](ARCHITECTURE.md)。
+
 ## 服务端源码如何提供 WSS
 
 `srvprotianti/data/default_config.json` 中 `modules.neos.enabled` 默认是 `false`，端口默认 `7977`。`ygopro-server.coffee` 在它开启时创建独立 Neos WebSocket 服务；当 `modules.http.ssl.enabled=true` 时，Neos 监听器使用 `modules.http.ssl.cert` 和 `key` 创建 HTTPS，也就是直接提供 WSS。普通 HTTP 端口 `7922`、HTTPS 端口 `7923`、Neos 端口 `7977` 各自独立，7911 始终是原生 TCP。
@@ -41,6 +45,8 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 也可以让现有反向代理终止 TLS：SRVPro 开启 `modules.neos.enabled`，保持 `modules.http.ssl.enabled=false`，代理将公开的 `wss://` 路径转发到服务端 `ws://127.0.0.1:7977`。当前 Neos 源码只按端口监听，没有单独的监听地址配置；必须用防火墙限制 7977 的直接访问。代理应透传 WebSocket Upgrade，将 `X-Forwarded-For` **覆盖**为真实客户端 IP。源码读取的是 `modules.neos.trusted_proxy_header`，而默认配置写的是 `ip_header`；若使用代理，需明确设置 `trusted_proxy_header: "x-forwarded-for"`，并将代理的确切地址加入 `modules.trusted_proxies`。不要信任任意客户端自报的转发头。当前源码未对 Neos Upgrade 实施 Origin 白名单、握手限流或专门的消息大小限制；公开入口应在代理层落实这些边界，或先在服务端补齐。
 
 ## 已完成的本机测试
+
+2026-10-09 新增 `npm run test:room-languages`：使用同样的隔离 SRVPro 和四语客户端，检查每次收到 `STOC_JOIN_GAME` 后只发送一次相应语言聊天指令，服务器返回对应语言的切换确认，再退出并首次重入房复验。中文 `/zh`、英文 `/en`、日文 `/ja`、韩文 `/ko` 均已通过，两次入房仍保持未准备状态，无需输入语言命令。指令对应服务器 `config/tips.json` 及语言命令处理逻辑；本轮不修改服务器配置或源码。
 
 手动试玩：在 `srvprotiantiweb` 运行 `npm run play:local-wss`，等待构建完成后会自动打开带临时证书例外的独立 Edge 窗口，同时在终端打印网页地址和临时 WSS 地址。打开第二个标签页访问同一网页地址；两名玩家填写**不同昵称**、相同普通房名即可进入同一房。测试天梯时两名玩家分别填写 `昵称$密码`，房间名都填 `TT`。测试结束后回终端按 Ctrl+C。该命令保持本地隔离实例运行，不使用实际服务器私密配置，也无需手动改 `.env.local`。如果只运行 `npm run dev`，仍须先在 `.env.local` 配置已经可用且受浏览器信任的 `VITE_DUEL_WS_URL=wss://...`。
 

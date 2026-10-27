@@ -27,11 +27,16 @@ export type SpringApi = SpringRef<SpringApiProps>;
 type OptionsToFunc<Options> = (props: {
   card: CardType;
   api: SpringApi;
+  signal?: AbortSignal;
   options?: Options;
 }) => Promise<void>;
 
 export interface MoveOptions {
   fromZone?: ygopro.CardZone;
+}
+export interface FocusOptions {
+  holdMs?: number;
+  signal?: AbortSignal;
 }
 export type MoveFunc = OptionsToFunc<MoveOptions>;
 

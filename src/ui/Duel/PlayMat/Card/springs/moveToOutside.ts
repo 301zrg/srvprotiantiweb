@@ -5,20 +5,19 @@ import { matConfig } from "../../css";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
-const {
-  BLOCK_WIDTH,
-  BLOCK_HEIGHT_M,
-  COL_GAP,
-  ROW_GAP,
-  CARD_HEIGHT_O,
-  BLOCK_OUTSIDE_OFFSET_X,
-  CARD_RATIO,
-} = matConfig;
-
 const { REMOVED } = ygopro.CardZone;
 
 export const moveToOutside: MoveFunc = async (props) => {
-  const { card, api } = props;
+  const {
+    BLOCK_WIDTH,
+    SPELL_ROW_Y,
+    COL_GAP,
+    ROW_GAP,
+    CARD_HEIGHT_O,
+    BLOCK_OUTSIDE_OFFSET_X,
+    CARD_RATIO,
+  } = matConfig;
+  const { card, api, signal } = props;
   const { zone, controller, position, sequence } = card.location;
 
   let x =
@@ -26,13 +25,16 @@ export const moveToOutside: MoveFunc = async (props) => {
       COL_GAP * 2 +
       BLOCK_OUTSIDE_OFFSET_X +
       CARD_HEIGHT_O * CARD_RATIO * 0.5,
-    y = ROW_GAP + BLOCK_HEIGHT_M + (BLOCK_HEIGHT_M - CARD_HEIGHT_O) / 2;
+    y = SPELL_ROW_Y;
   if (zone === REMOVED) y -= ROW_GAP + CARD_HEIGHT_O;
   if (!isMe(controller)) {
     x = -x;
     y = -y;
   }
-  await asyncStart(api)({
+  await asyncStart(
+    api,
+    signal,
+  )({
     x,
     y,
     z: 0,
@@ -46,5 +48,5 @@ export const moveToOutside: MoveFunc = async (props) => {
       clamp: true,
     },
   });
-  api.set({ subZ: 0 });
+  if (!signal?.aborted) api.set({ subZ: 0 });
 };

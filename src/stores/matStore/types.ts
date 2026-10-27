@@ -11,6 +11,8 @@ export interface BothSide<T> {
 
 export interface MatState {
   selfType: number;
+  observerSwapped: boolean; // Room seats differ from core controller order.
+  observerView: 0 | 1; // Presentation only; never changes protocol identity.
 
   initInfo: BothSide<InitInfo> & {
     set: (controller: number, obj: Partial<InitInfo>) => void;
@@ -99,20 +101,24 @@ export interface HintState {
   code: number;
   msg?: string;
   esHint?: string;
+  esHintSource?: { originMsg: string | number; cardID?: number };
   esSelectHint?: string;
 }
 
 export interface PhaseState {
+  battleTiming?: number | "attack";
+  command?: "idle" | "battle";
   currentPhase: ygopro.StocGameMessage.MsgNewPhase.PhaseType;
   enableBp: boolean; // 允许进入战斗阶段
   enableM2: boolean; // 允许进入M2阶段
   enableEp: boolean; // 允许回合结束
+  enableShuffle?: boolean; // 允许洗切手牌（仅主要阶段空闲指令）
 }
 
 export enum HandResult {
   UNKNOWN = 0,
-  ROCK = 1,
-  SCISSOR = 2,
+  ROCK = 2,
+  SCISSOR = 1,
   PAPER = 3,
 }
 

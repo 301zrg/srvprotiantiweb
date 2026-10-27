@@ -1,3 +1,5 @@
+import { roomyStatsQuery } from "@/variant/cardStats";
+
 // 此文件目的是在js和CSS之间共享一些变量，并且这些变量是0运行时的。
 type CSSConfig = [string, [number, UNIT]][];
 
@@ -22,7 +24,12 @@ enum UNIT {
   NONE = "",
 }
 
-const _matConfigWithUnit: Record<string, [number, UNIT]> = {
+const _matConfigWithUnit = {
+  BOARD_WIDTH: [1000, UNIT.PX],
+  BOARD_HEIGHT: [920, UNIT.PX],
+  MONSTER_ROW_Y: [130, UNIT.PX],
+  SPELL_ROW_Y: [255, UNIT.PX],
+  DECK_ROW_Y: [340, UNIT.PX],
   PERSPECTIVE: [1500, UNIT.PX],
   PLANE_ROTATE_X: [0, UNIT.DEG],
   BLOCK_WIDTH: [120, UNIT.PX],
@@ -41,7 +48,7 @@ const _matConfigWithUnit: Record<string, [number, UNIT]> = {
   DECK_CARD_HEIGHT: [120, UNIT.PX],
   CARD_HEIGHT_O: [100, UNIT.PX], // 场地魔法/墓地/除外的卡片高度
   BLOCK_OUTSIDE_OFFSET_X: [15, UNIT.PX],
-};
+} satisfies Record<string, [number, UNIT]>;
 
 const matConfigWithUnit = Object.entries(
   _matConfigWithUnit,
@@ -61,3 +68,59 @@ export const matConfig = matConfigWithUnit.reduce(
   }),
   {} as Record<keyof typeof _matConfigWithUnit, number>,
 );
+
+/** CSS and animation coordinates share the same responsive geometry. */
+export function updateMatLayout(wide: boolean, masterRule: number) {
+  const compact = wide
+    ? {
+        BLOCK_HEIGHT_M: 88,
+        BLOCK_HEIGHT_S: 88,
+        ROW_GAP: 8,
+        COL_GAP: 8,
+        CARD_HEIGHT_O: 86,
+        HAND_CARD_HEIGHT: 120,
+        HAND_MAT_OFFSET_Y: 68,
+        DECK_OFFSET_X: 132,
+        DECK_OFFSET_Y: 8,
+        DECK_ROTATE_Z: 0,
+        DECK_CARD_HEIGHT: 100,
+        BOARD_HEIGHT: 680,
+      }
+    : {};
+  const next = {
+    ...Object.fromEntries(matConfigWithUnit.map(([k, [v]]) => [k, v])),
+    ...compact,
+  } as typeof matConfig;
+  if (wide && masterRule >= 4) next.BOARD_HEIGHT = 760;
+  // PC and iPad (either orientation) leave room under monsters for the
+  // ATK/DEF line; phones keep the tight rows.
+  if (window.matchMedia(roomyStatsQuery).matches) {
+    const gap = wide ? 26 : 30;
+    next.BOARD_HEIGHT += (gap - next.ROW_GAP) * 3;
+    next.ROW_GAP = gap;
+  }
+  next.MONSTER_ROW_Y =
+    masterRule >= 4
+      ? next.BLOCK_HEIGHT_M + next.ROW_GAP
+      : (next.BLOCK_HEIGHT_M + next.ROW_GAP) / 2;
+  next.SPELL_ROW_Y =
+    next.MONSTER_ROW_Y +
+    (next.BLOCK_HEIGHT_M + next.BLOCK_HEIGHT_S) / 2 +
+    next.ROW_GAP;
+  next.DECK_ROW_Y =
+    next.SPELL_ROW_Y +
+    next.CARD_HEIGHT_O / 2 +
+    next.DECK_CARD_HEIGHT / 2 +
+    next.ROW_GAP;
+  const changed = Object.keys(next).some(
+    (k) => next[k as keyof typeof next] !== matConfig[k as keyof typeof next],
+  );
+  Object.assign(matConfig, next);
+  for (const [key, [, unit]] of matConfigWithUnit) {
+    document.body.style.setProperty(
+      `--${key.toLowerCase().replaceAll("_", "-")}`,
+      `${matConfig[key as keyof typeof matConfig]}${unit}`,
+    );
+  }
+  return changed;
+}

@@ -1,3 +1,4 @@
+import { loadResource } from "@/infra/resource";
 import { getEnvironmentFile, getLanguage, type Language } from "@/variant";
 
 import { fetchCard, getCardStr } from "./cards";
@@ -6,14 +7,19 @@ export const DESCRIPTION_LIMIT = 10000;
 let strings = new Map<string, string>();
 
 export async function loadStrings(language: Language) {
-  const response = await fetch(getEnvironmentFile("strings.conf", language));
-  if (!response.ok) throw new Error(`strings.conf: HTTP ${response.status}`);
-  const next = new Map<string, string>();
-  for (const line of (await response.text()).split(/\r?\n/)) {
-    const match = line.match(/^(!\S+)\s+(\S+)\s+(.*)$/);
-    if (match) next.set(`${match[1]}_${match[2]}`, match[3]);
-  }
-  return next;
+  return loadResource(
+    getEnvironmentFile("strings.conf", language),
+    async (response) => {
+      const next = new Map<string, string>();
+      for (const line of (await response.text()).split(/\r?\n/)) {
+        const match = line.match(/^(!\S+)\s+(\S+)\s+(.*)$/);
+        if (match) next.set(`${match[1]}_${match[2]}`, match[3]);
+      }
+      if (!next.has("!system_1000"))
+        throw new Error("Invalid strings resource");
+      return next;
+    },
+  );
 }
 
 export function activateStrings(next: Map<string, string>) {
@@ -38,7 +44,7 @@ export function getStrings(description: number): string {
   if (description < DESCRIPTION_LIMIT) {
     return fetchStrings(Region.System, description);
   }
-  const code = description >> 4;
+  const code = description >>> 4;
   const index = description & 0xf;
   return getCardStr(fetchCard(code), index) ?? "[?]";
 }

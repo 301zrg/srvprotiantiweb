@@ -1,46 +1,194 @@
+import { CloseOutlined, CopyOutlined } from "@ant-design/icons";
 import { App, Button, Input } from "antd";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
+import { ygopro } from "@/api";
 import { AudioActionType, changeScene } from "@/infra/audio";
-import { resetUniverse, roomStore } from "@/stores";
+import { replayCaptureStatus } from "@/replay/capture";
+import { localizeReplayText } from "@/replay/localizedText";
+import { resetUniverse, RoomStage, roomStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { Background } from "@/ui/Shared";
-import { duelWebSocketUrl, validateDuelWebSocketUrl } from "@/variant";
+import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
+import {
+  duelWebSocketUrl,
+  type Language,
+  validateDuelWebSocketUrl,
+} from "@/variant";
 import { connectionStore } from "@/variant/connection";
+import { readJoinForm, saveJoinForm } from "@/variant/joinForm";
+import { communityLinks, roomRulesUrl } from "@/variant/links";
 import { siteMessages } from "@/variant/messages";
+import { mobileMessages } from "@/variant/mobileMessages";
+import { previewMessages } from "@/variant/previewMessages";
+import {
+  isRoomCommand,
+  readRoomLink,
+  type RoomLink,
+  websiteObserverNickname,
+} from "@/variant/roomLink";
+import { webEntryMessages } from "@/variant/webEntryMessages";
+import { localizedWebsiteUrl } from "@/variant/websiteLink";
 
 import styles from "./index.module.scss";
-import { connectSrvpro, disconnectSrvpro } from "./util";
+import { connectSrvpro, disconnectSrvpro, finishSrvproReplays } from "./util";
 
-const joinFormDraft: { nickname?: string; roomName?: string } = {};
-
-export const loader = () => {
-  disconnectSrvpro();
+export const loader = async () => {
+  await finishSrvproReplays();
   resetUniverse();
   changeScene(AudioActionType.BGM_MENU);
   return null;
 };
 
 export const Component = () => {
+  const { search } = useLocation();
+  return (
+    <>
+      <ReplayReceipt />
+      <JoinRoomForm
+        key={search}
+        link={readRoomLink(new URLSearchParams(search))}
+      />
+    </>
+  );
+};
+
+function ReplayReceipt() {
+  const { t } = useTranslation("ClientUI");
+  const { language } = useI18N();
+  const status = useSnapshot(replayCaptureStatus),
+    navigate = useNavigate();
+  const [dismissed, setDismissed] = useState("");
+  const receipt = `${status.state}:${status.notice}:${status.saved}:${status.detail}`;
+  useEffect(() => {
+    if (status.state === "idle" || status.state === "receiving") return;
+    const timer = setTimeout(() => setDismissed(receipt), 7000);
+    return () => clearTimeout(timer);
+  }, [receipt, status.state]);
+  if (status.state === "idle" || dismissed === receipt) return null;
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: 12,
+        left: 12,
+        right: 12,
+        zIndex: 20,
+        background: "#17212b",
+        color: "#fff",
+        padding: "8px 12px",
+        borderRadius: 8,
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+      role="status"
+      data-testid="replay-receipt"
+    >
+      <span style={{ flex: 1, minWidth: 0 }}>
+        {t(`Replay${status.notice}`, {
+          count: status.saved,
+          detail: localizeReplayText(status.detail, language as Language),
+        })}
+      </span>
+      <Button style={{ flexShrink: 0 }} onClick={() => navigate("/replays")}>
+        {siteMessages(language).replays}
+      </Button>
+      <Button
+        data-testid="replay-receipt-close"
+        style={{ flexShrink: 0 }}
+        type="text"
+        icon={<CloseOutlined />}
+        aria-label={mobileMessages(language).close}
+        onClick={() => setDismissed(receipt)}
+      />
+    </div>
+  );
+}
+
+export const JoinRoomForm = ({
+  link,
+  autoConnect = false,
+  claimAutojoin,
+}: {
+  link?: RoomLink;
+  autoConnect?: boolean;
+  claimAutojoin?: () => boolean;
+}) => {
+  const spectate = !!link?.spectate;
+  const autoStarted = useRef(false);
+  const [invalidLink, setInvalidLink] = useState(!!link?.invalid);
   const [nickname, setNickname] = useState(
     () =>
-      joinFormDraft.nickname ?? localStorage.getItem("playerNickname") ?? "",
+      link?.nickname ??
+      (spectate ? websiteObserverNickname : readJoinForm().nickname),
   );
-  const [roomName, setRoomName] = useState(() => joinFormDraft.roomName ?? "");
+  const [roomName, setRoomName] = useState(
+    () => link?.room ?? (spectate ? "" : readJoinForm().roomName),
+  );
   const [connecting, setConnecting] = useState(false);
-  const { joined, errorMsg } = useSnapshot(roomStore);
+  const { joined, errorMsg, selfType, stage } = useSnapshot(roomStore);
   const connection = useSnapshot(connectionStore);
   const { message } = App.useApp();
   const navigate = useNavigate();
   const { language } = useI18N();
   const text = siteMessages(language);
   const endpointError = validateDuelWebSocketUrl(language);
+  const roomListUrl = localizedWebsiteUrl(
+    communityLinks.website,
+    language,
+    "rooms.html",
+  );
+
+  async function copyPublicValue(value: string) {
+    // Sharing the public identity must never include account or room passwords.
+    const publicValue = value.split("$")[0];
+    if (!publicValue.trim()) return;
+    try {
+      await navigator.clipboard.writeText(publicValue);
+      message.success({ content: text.copied, key: "join-form-copy" });
+    } catch {
+      message.error({ content: text.copyFailed, key: "join-form-copy" });
+    }
+  }
 
   useEffect(() => {
-    if (joined) navigate("/waitroom");
-  }, [joined, navigate]);
+    if (
+      joined &&
+      (!spectate || selfType === ygopro.StocTypeChange.SelfType.OBSERVER)
+    )
+      navigate(stage === RoomStage.DUEL_START ? "/duel" : "/waitroom", {
+        replace: !!link,
+      });
+  }, [joined, selfType, stage, spectate, link, navigate]);
+
+  useEffect(() => {
+    if (
+      !spectate ||
+      !connecting ||
+      !joined ||
+      selfType === ygopro.StocTypeChange.SelfType.OBSERVER
+    )
+      return;
+    const timer = window.setTimeout(() => {
+      disconnectSrvpro();
+      resetUniverse();
+      setConnecting(false);
+      message.error(text.spectatorNotAccepted);
+    }, 10000);
+    return () => window.clearTimeout(timer);
+  }, [
+    spectate,
+    connecting,
+    joined,
+    selfType,
+    message,
+    text.spectatorNotAccepted,
+  ]);
 
   useEffect(() => {
     if (errorMsg) {
@@ -54,7 +202,8 @@ export const Component = () => {
     if (connection.state === "disconnected") setConnecting(false);
   }, [connection.state]);
 
-  const connect = async () => {
+  const connect = useCallback(async () => {
+    if (invalidLink) return message.error(text.invalidRoomLink);
     if (endpointError) return message.error(endpointError);
     const nicknameParts = nickname.split("$");
     if (
@@ -69,20 +218,34 @@ export const Component = () => {
     if (!roomName.trim() || roomName.length > 19 || /[\0\r\n]/.test(roomName)) {
       return message.error(text.invalidRoom);
     }
-    if (nickname.includes("$")) localStorage.removeItem("playerNickname");
-    else localStorage.setItem("playerNickname", nickname);
+    if (spectate && isRoomCommand(roomName))
+      return message.error(text.spectatorRoomCommand);
+    if (!spectate) {
+      saveJoinForm({ nickname, roomName });
+    } else if (nickname.includes("$")) {
+      saveJoinForm({ nickname, roomName: "" });
+    }
     setConnecting(true);
     try {
       await connectSrvpro({
         ip: duelWebSocketUrl,
         player: nickname,
         passWd: roomName,
+        spectate,
       });
     } catch (error) {
       setConnecting(false);
       message.error(error instanceof Error ? error.message : String(error));
     }
-  };
+  }, [invalidLink, endpointError, nickname, roomName, spectate, message, text]);
+
+  useEffect(() => {
+    if ((!spectate && !autoConnect) || !link?.autojoin || autoStarted.current)
+      return;
+    autoStarted.current = true;
+    if (claimAutojoin && !claimAutojoin()) return;
+    void connect();
+  }, [spectate, autoConnect, link?.autojoin, claimAutojoin, connect]);
 
   return (
     <>
@@ -100,35 +263,111 @@ export const Component = () => {
           borderRadius: 12,
         }}
       >
-        <h1>{text.connect}</h1>
-        <label htmlFor="player-nickname">{text.nickname}</label>
+        <div className={styles.pageHeading}>
+          <h1>{spectate ? text.spectate : text.connect}</h1>
+          <MobileHomeLink />
+        </div>
+        {spectate && connecting && (
+          <p role="status">{text.spectatorLinkHint}</p>
+        )}
+        {spectate && !link?.autojoin && <p>{text.spectatorManualHint}</p>}
+        <div className={styles.fieldHeading}>
+          <label htmlFor="player-nickname">{text.nickname}</label>
+          <Button
+            className={styles.copyButton}
+            size="small"
+            icon={<CopyOutlined />}
+            aria-label={text.copyNickname}
+            title={text.copyNickname}
+            data-testid="copy-nickname"
+            disabled={!nickname.split("$")[0].trim()}
+            onClick={() => void copyPublicValue(nickname)}
+          >
+            {text.copy}
+          </Button>
+        </div>
         <Input
           id="player-nickname"
           value={nickname}
           maxLength={19}
           onChange={(event) => {
             setNickname(event.target.value);
-            joinFormDraft.nickname = event.target.value;
+            setInvalidLink(false);
+            if (!spectate) saveJoinForm({ nickname: event.target.value });
           }}
           autoComplete="off"
         />
-        <small>{text.nicknameHint}</small>
-        <label htmlFor="room-name">{text.room}</label>
+        {!spectate && <small>{text.nicknameHint}</small>}
+        <div className={styles.fieldHeading}>
+          <label htmlFor="room-name">{text.room}</label>
+          <Button
+            className={styles.copyButton}
+            size="small"
+            icon={<CopyOutlined />}
+            aria-label={text.copyRoom}
+            title={text.copyRoom}
+            data-testid="copy-room-name"
+            disabled={!roomName.split("$")[0].trim()}
+            onClick={() => void copyPublicValue(roomName)}
+          >
+            {text.copy}
+          </Button>
+        </div>
         <Input
           id="room-name"
+          aria-describedby="room-hint"
           value={roomName}
           maxLength={19}
           onChange={(event) => {
             setRoomName(event.target.value);
-            joinFormDraft.roomName = event.target.value;
+            setInvalidLink(false);
+            if (!spectate) saveJoinForm({ roomName: event.target.value });
           }}
           onPressEnter={connect}
         />
-        <p>{text.roomHint}</p>
+        <p id="room-hint">
+          {spectate ? (
+            text.spectatorRoomCommand
+          ) : (
+            <>
+              {text.roomHintBefore}
+              <a
+                className={styles.roomRulesLink}
+                href={roomRulesUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {text.roomRules}
+              </a>
+              {text.roomHintAfter}
+            </>
+          )}
+        </p>
+        {invalidLink && <p role="alert">{text.invalidRoomLink}</p>}
+        <p data-testid="join-cache-help">
+          {spectate
+            ? nickname.includes("$")
+              ? webEntryMessages(language).spectatorCache
+              : previewMessages(language).spectatorRestore
+            : previewMessages(language).joinPersistence}
+        </p>
         {endpointError && <p role="alert">{endpointError}</p>}
         {connection.state === "disconnected" && (
           <p role="alert">{connection.detail}</p>
         )}
+        <div className={styles.roomDirectory}>
+          <a
+            className={styles.roomRulesLink}
+            data-testid="room-list"
+            href={roomListUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span>{text.roomList}:</span>
+            <span>{roomListUrl}</span>
+          </a>
+          <p>{text.roomListHint}</p>
+        </div>
         <Button
           data-testid="connect-submit"
           type="primary"
@@ -137,8 +376,11 @@ export const Component = () => {
           disabled={!!endpointError}
           onClick={connect}
         >
-          {text.join}
+          {spectate ? text.spectate : text.join}
         </Button>
+        {link && (
+          <Button onClick={() => navigate("/match")}>{text.back}</Button>
+        )}
         <Button onClick={() => navigate("/build")}>{text.edit}</Button>
       </div>
     </>

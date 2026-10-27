@@ -4,6 +4,7 @@ export class NeosAudioContext extends EventEmitter<AudioScheduledSourceNodeEvent
   private _musicAudioContext = new AudioContext();
   private _gainNode = this._musicAudioContext.createGain();
   private _isClosed = false;
+  private _autoPlay?: () => void;
 
   constructor(volume = 1) {
     super();
@@ -25,8 +26,10 @@ export class NeosAudioContext extends EventEmitter<AudioScheduledSourceNodeEvent
     if (this.state === "suspended") {
       const autoPlay = () => {
         document.removeEventListener("click", autoPlay);
-        this.resume();
+        this._autoPlay = undefined;
+        if (!this.closed) void this.resume();
       };
+      this._autoPlay = autoPlay;
       document.addEventListener("click", autoPlay);
     }
   }
@@ -59,8 +62,10 @@ export class NeosAudioContext extends EventEmitter<AudioScheduledSourceNodeEvent
    * @param audio 音频数据
    */
   public async play(audio: ArrayBuffer) {
+    if (this.closed) return;
     const source = this._musicAudioContext.createBufferSource();
     const buffer = await this._musicAudioContext.decodeAudioData(audio);
+    if (this.closed) return;
     source.buffer = buffer;
 
     source.connect(this._gainNode).connect(this._musicAudioContext.destination);
@@ -82,6 +87,8 @@ export class NeosAudioContext extends EventEmitter<AudioScheduledSourceNodeEvent
   public close() {
     if (this._isClosed) return;
     this._isClosed = true;
+    if (this._autoPlay) document.removeEventListener("click", this._autoPlay);
+    this._autoPlay = undefined;
     return this._musicAudioContext.close();
   }
 

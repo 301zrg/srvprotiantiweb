@@ -1,0 +1,94 @@
+import type { CSSProperties } from "react";
+
+import { fetchCard, getCardImgUrl } from "@/api";
+import type { ReplayCard } from "@/replay/messages";
+import { counterDescription } from "@/ui/Shared/CardInformation";
+import { CompactCardStats } from "@/ui/Shared/CardStats";
+
+import {
+  concealReplayCard,
+  isDefense,
+  isFaceDown,
+  positionLabel,
+  replayCardWords,
+  replayCounters,
+} from "./cardState";
+
+export function ReplayCardTile({
+  card,
+  language,
+  reveal,
+  zoneLabel,
+  onInspect,
+  className = "",
+  style,
+  informationId,
+}: {
+  card: ReplayCard;
+  language: string;
+  reveal: boolean;
+  zoneLabel: string;
+  onInspect: (card: ReplayCard) => void;
+  className?: string;
+  style?: CSSProperties & Record<`--${string}`, string | number>;
+  informationId?: string;
+}) {
+  const t = replayCardWords(language);
+  const hidden = concealReplayCard(card, reveal);
+  const name = hidden
+    ? t.facedown
+    : fetchCard(card.code).text.name || String(card.code);
+  const counters = replayCounters(card);
+  return (
+    <button
+      className={`replay-card ${isFaceDown(card) ? "replay-facedown" : ""} ${
+        isDefense(card) ? "replay-defense" : ""
+      } ${className}`}
+      style={style}
+      data-player={card.player}
+      data-location={card.location}
+      data-sequence={card.sequence}
+      data-position={card.position}
+      data-card-info-id={informationId}
+      title={counterDescription(card.counters) || undefined}
+      data-materials={card.overlay.length}
+      onClick={() => onInspect(card)}
+      aria-label={`${name}，${zoneLabel}，${positionLabel(card, language)}`}
+    >
+      <div className="replay-card-image">
+        <img src={getCardImgUrl(card.code, hidden)} loading="lazy" alt={name} />
+      </div>
+      <span>{name}</span>
+      <span className="replay-position">{positionLabel(card, language)}</span>
+      {(card.location === 4 || card.location === 8) && (
+        <small>
+          {t.slot} {card.sequence + 1}
+        </small>
+      )}
+      {!hidden &&
+        card.location === 4 &&
+        !!(card.position & 5) &&
+        !!(card.type & 1) && (
+          <small>
+            <CompactCardStats
+              stats={{ ...card, hasDefense: !(card.type & 0x4000000) }}
+            />
+            {card.overlay.length
+              ? ` · ${t.materials} ${card.overlay.length}`
+              : ""}
+          </small>
+        )}
+      {!!counters.length && (
+        <small className="replay-counter-count">
+          {counterDescription(card.counters)}
+        </small>
+      )}
+      {!!((card.status || 0) & 1) && (
+        <small className="replay-negated">{t.disabled}</small>
+      )}
+      {!!((card.status || 0) & 0x4000000) && (
+        <small className="replay-negated">{t.forbidden}</small>
+      )}
+    </button>
+  );
+}

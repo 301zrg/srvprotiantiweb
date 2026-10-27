@@ -24,13 +24,29 @@
 .info {
   justify-content: space-between;
   position: relative;
-  height: 15rem; // TODO - fix this
+  min-width: 0;
+  gap: 8px;
+}
+
+.hint {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #537eaa;
+  border-radius: 8px;
+  background: #223247;
+  overflow-wrap: anywhere;
+  strong { color: #a8d4ff; }
 }
 
 .overview {
   align-items: flex-start;
 }
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .container {
     height: auto;
   }
@@ -42,6 +58,9 @@
   }
   .overview > :global(.ant-space-item):first-child {
     flex: none;
+    > div {
+      width: 72px !important;
+    }
   }
   .overview > :global(.ant-space-item):last-child {
     flex: 1;
@@ -65,6 +84,19 @@
 }
 @media (orientation: landscape) and (max-height: 600px) {
   .overview > :global(.ant-space-item):first-child > div {
-    width: 96px !important;
+    width: 64px !important;
+  }
+}
+
+@media (orientation: landscape) and (min-width: 480px) {
+  :global(body:has([data-duel-sidebar="true"])) {
+    .container { height: auto; overflow-wrap: anywhere; }
+    .overview { gap: 8px !important; }
+    .overview > :global(.ant-space-item) { min-width: 0; width: 100%; }
+    .overview > :global(.ant-space-item):first-child > div { width: min(110px, 100%) !important; }
+    .info { width: 100%; }
+    .atkLine { flex-direction: row !important; flex-wrap: wrap; }
+    .atkLine .number { font-size: 22px; line-height: 1.25; }
+    .attline :global(.ant-tag) { white-space: normal; }
   }
 }

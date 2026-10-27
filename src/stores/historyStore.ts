@@ -2,6 +2,7 @@ import { proxy } from "valtio";
 
 import { ygopro } from "@/api";
 import { Context } from "@/container";
+import type { DuelResult } from "@/variant/duelResults";
 
 import { NeosStore } from "./shared";
 
@@ -15,6 +16,8 @@ export enum HistoryOp {
   SP_SUMMON = 7,
   FLIP_SUMMON = 8,
   SET = 9,
+  ANNOUNCE = 10,
+  RESULT = 11,
 }
 
 export interface History {
@@ -23,10 +26,24 @@ export interface History {
   currentLocation?: ygopro.CardLocation;
   operation: HistoryOp;
   target?: ygopro.CardZone;
+  player?: number;
+  result?: DuelResult;
+  source?: "server" | "response";
 }
 
 export class HistoryStore implements NeosStore {
   historys: History[] = [];
+  declaration?: { serial: number; result: DuelResult };
+  private declarationSerial = 0;
+
+  private notifyDeclaration(result: DuelResult) {
+    if (
+      ["option", "race", "attribute", "number", "zone", "card"].includes(
+        result.kind,
+      )
+    )
+      this.declaration = { serial: ++this.declarationSerial, result };
+  }
 
   putMove(
     context: Context,
@@ -51,6 +68,61 @@ export class HistoryStore implements NeosStore {
       currentLocation: location,
       operation: HistoryOp.EFFECT,
     });
+  }
+
+  putAnnounce(
+    context: Context,
+    card: number,
+    player: number,
+    source: "server" | "response" = "server",
+  ) {
+    const last = this.historys.at(-1);
+    if (
+      source === "server" &&
+      last?.source === "response" &&
+      last.operation === HistoryOp.ANNOUNCE &&
+      last.player === player &&
+      last.card === card
+    ) {
+      last.source = "server";
+      return;
+    }
+    this.historys.push({
+      card,
+      opponent: !context.matStore.isMe(player),
+      operation: HistoryOp.ANNOUNCE,
+      player,
+      source,
+    });
+  }
+
+  putResult(
+    context: Context,
+    result: DuelResult,
+    player: number,
+    card = 0,
+    source: "server" | "response" = "server",
+  ) {
+    const last = this.historys.at(-1);
+    if (
+      source === "server" &&
+      last?.source === "response" &&
+      last.operation === HistoryOp.RESULT &&
+      last.player === player &&
+      JSON.stringify(last.result) === JSON.stringify(result)
+    ) {
+      last.source = "server";
+      return;
+    }
+    this.historys.push({
+      card,
+      opponent: !context.matStore.isMe(player),
+      operation: HistoryOp.RESULT,
+      player,
+      result,
+      source,
+    });
+    this.notifyDeclaration(result);
   }
 
   putTargeted(context: Context, card: number, location: ygopro.CardLocation) {
@@ -106,6 +178,7 @@ export class HistoryStore implements NeosStore {
 
   reset(): void {
     this.historys = [];
+    this.declaration = undefined;
   }
 }
 

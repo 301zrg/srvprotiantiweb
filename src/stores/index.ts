@@ -18,6 +18,7 @@ import { accountStore } from "./accountStore";
 import { cardStore } from "./cardStore";
 import { chatStore } from "./chatStore";
 import { deckStore } from "./deckStore";
+import { clearFieldSelection } from "./fieldSelectionStore";
 import { historyStore } from "./historyStore";
 import { initStore } from "./initStore";
 import { matStore } from "./matStore";
@@ -41,6 +42,7 @@ devtools(sideStore, { name: "side", enabled: DEV });
 
 // 重置`Store`
 export const resetUniverse = () => {
+  clearFieldSelection();
   roomStore.reset();
   cardStore.reset();
   chatStore.reset();
@@ -54,6 +56,7 @@ export const resetUniverse = () => {
 
 // 重置决斗相关的`Store`
 export const resetDuel = () => {
+  clearFieldSelection();
   cardStore.reset();
   matStore.reset();
   placeStore.reset();

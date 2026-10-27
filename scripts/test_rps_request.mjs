@@ -1,0 +1,23 @@
+import assert from "node:assert/strict";
+import { RpsRequest } from "../src/service/mora/request.ts";
+
+const request = new RpsRequest();
+const owner = {};
+const replacement = {};
+let id = request.begin(owner, 1, "suggest");
+assert.equal(request.random(id, owner, 1, "suggest", () => 0.5), 2, "Suggest returns a hand for the current request");
+assert.equal(request.consume(id, owner, 1, "suggest"), true, "A manual choice remains available after suggesting");
+assert.equal(request.consume(id, owner, 1, "suggest"), false, "Double clicks cannot submit twice");
+id = request.begin(owner, 1, "play");
+assert.equal(request.random(id, owner, 1, "play", () => 0.99), 3);
+const tied = request.begin(owner, 1, "play");
+assert.equal(request.consume(id, owner, 1, "play"), false, "A tie invalidates the old request");
+assert.equal(request.consume(tied, replacement, 1, "play"), false, "A replacement transport cannot use an old response");
+assert.equal(request.consume(tied, owner, 2, "play"), false, "Reconnect epochs invalidate old clicks");
+assert.equal(request.consume(tied, owner, 1, "suggest"), false, "Mode changes invalidate old clicks");
+request.invalidate();
+assert.equal(request.consume(tied, owner, 1, "play"), false, "Closing or restarting invalidates the response");
+id = request.begin(owner, 2, "off");
+assert.equal(request.random(id, owner, 2, "off", () => 0), undefined, "Off offers no random response");
+assert.equal(request.consume(id, owner, 2, "off"), true, "Manual hands still work when random is off");
+console.log("RPS request: suggest/manual, play once, tie, mode, owner, reconnect, close and off passed.");

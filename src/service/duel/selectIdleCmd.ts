@@ -53,6 +53,7 @@ export default async (
 
   context.matStore.phase.enableBp = selectIdleCmd.enable_bp;
   context.matStore.phase.enableEp = selectIdleCmd.enable_ep;
+  context.matStore.phase.enableShuffle = selectIdleCmd.enable_shuffle;
 };
 
 function idleTypeToInteractType(

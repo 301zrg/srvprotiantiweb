@@ -32,6 +32,14 @@ import { ygopro } from "../idl/ocgcore";
 import { BufferReaderExt } from "./bufferIO";
 import MsgUpdateData = ygopro.StocGameMessage.MsgUpdateData;
 
+// Native queries omit unchanged fields; protobuf scalar defaults cannot express
+// this distinction. Keep the mask on the in-memory action (never sent on wire).
+export type QueryUpdateAction = MsgUpdateData.Action & {
+  clear?: boolean;
+  updatesPosition?: boolean;
+  queryFlags?: number;
+};
+
 export const UTF16_BUFFER_MAX_LEN = 20;
 const FILLING_TOKEN: number = 0xcccc;
 
@@ -296,7 +304,7 @@ export function readUpdateAction(
   const flag = reader.inner.readInt32();
   if (flag === 0) {
     const action = new MsgUpdateData.Action({});
-    (action as MsgUpdateData.Action & { clear?: boolean }).clear = true;
+    (action as QueryUpdateAction).clear = true;
     return action;
   }
 
@@ -435,9 +443,8 @@ export function readUpdateAction(
     rscale,
     link,
   });
-  (
-    action as MsgUpdateData.Action & { updatesPosition?: boolean }
-  ).updatesPosition = updatesPosition;
+  (action as QueryUpdateAction).updatesPosition = updatesPosition;
+  (action as QueryUpdateAction).queryFlags = flag;
 
   return action;
 }

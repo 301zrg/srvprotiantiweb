@@ -1,6 +1,7 @@
 declare const classNames: {
   readonly "deck-select": "deck-select";
   readonly item: "item";
+  readonly deckName: "deckName";
   readonly hover: "hover";
   readonly selected: "selected";
   readonly btns: "btns";

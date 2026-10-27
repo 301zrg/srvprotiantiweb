@@ -60,6 +60,7 @@ export class RoomStore implements NeosStore {
     this.players = [];
     this.observerCount = 0;
     this.isHost = false;
+    this.selfType = SelfType.UNKNOWN;
     this.stage = RoomStage.WAITING;
     this.errorMsg = undefined;
   }

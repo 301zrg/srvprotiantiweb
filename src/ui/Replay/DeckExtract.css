@@ -1,0 +1,58 @@
+.replay-extract-shell .ant-modal-body {
+  max-height: calc(100dvh - 150px);
+  overflow-y: auto;
+}
+.replay-extract-shell .ant-drawer-body {
+  padding: 16px;
+}
+.replay-deck-extract {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.replay-extract-help {
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+.replay-extracted-deck {
+  padding: 14px;
+  border: 1px solid var(--replay-extract-border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.replay-extracted-deck h3 {
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+.replay-extracted-deck p {
+  margin: 6px 0;
+}
+.replay-extract-name {
+  color: var(--replay-extract-secondary);
+  font-size: 13px;
+}
+.replay-extract-actions,
+.replay-extract-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.replay-extract-actions {
+  margin-top: 12px;
+}
+.replay-extract-footer {
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.replay-extract-saved {
+  color: var(--replay-extract-success);
+}
+.replay-extract-error {
+  color: var(--replay-extract-error);
+}
+@media (max-width: 800px), (pointer: coarse) {
+  .replay-deck-extract .ant-btn {
+    min-height: 44px;
+    height: auto;
+    white-space: normal;
+  }
+}

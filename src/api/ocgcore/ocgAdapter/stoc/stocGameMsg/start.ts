@@ -46,7 +46,7 @@ export default (data: Uint8Array) => {
   const extraSize2 = dataView.getInt16(offset, LITTLE_ENDIAN);
   offset += INT16_BYTE_OFFSET;
 
-  return new ygopro.StocGameMessage.MsgStart({
+  const msg = new ygopro.StocGameMessage.MsgStart({
     playerType,
     life1,
     life2,
@@ -55,4 +55,8 @@ export default (data: Uint8Array) => {
     extraSize1,
     extraSize2,
   });
+  (
+    msg as ygopro.StocGameMessage.MsgStart & { observerSwapped?: boolean }
+  ).observerSwapped = (pT & 0xf) !== 0;
+  return msg;
 };

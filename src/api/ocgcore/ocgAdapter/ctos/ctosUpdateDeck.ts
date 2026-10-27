@@ -47,6 +47,9 @@ export default class CtosUpdateDeck extends YgoProPacket {
       offset += 1;
     }
 
-    super(exDataLen + 3, CTOS_UPDATE_DECK, exData);
+    // The uint16 prefix excludes itself: one protocol byte + the body.
+    // Two trailing padding bytes make SRVPro's exact reconnect comparison
+    // reject the identical deck sent by a native YGOPro client.
+    super(exDataLen + 1, CTOS_UPDATE_DECK, exData);
   }
 }

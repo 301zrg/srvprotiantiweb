@@ -60,7 +60,40 @@
   }
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+.announcement {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #537eaa;
+  border-radius: 8px;
+  background: #223247;
+  overflow-wrap: anywhere;
+  strong { display: block; color: #a8d4ff; margin-bottom: 4px; }
+}
+
+.resultText {
+  min-width: 0;
+  white-space: pre-wrap;
+}
+
+.container.embedded {
+  height: auto;
+  .timeline { margin-top: 0; gap: 10px; }
+  .timeline .history { align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .timeline .history .card-container { align-items: center; gap: 6px; }
+  .timeline .history .card-container .card { width: 40px; }
+  .timeline .history .card-container .location { margin: 0; }
+  .timeline .history .op-container { margin: 0; gap: 4px; align-items: center; }
+  .timeline .history .op-container .op-text { margin: 0; }
+  .timeline .history .op-container .op-icon { width: 24px; }
+  .timeline .history .target { margin: 0; }
+  .announcement { padding: 6px; gap: 6px; font-size: 12px; }
+}
+
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .container .timeline {
     margin-top: 0;
     gap: 12px;

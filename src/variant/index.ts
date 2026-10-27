@@ -1,11 +1,41 @@
+import { publishedResourceName, siteStorage } from "./deployment";
+import {
+  type Language,
+  languageLocales,
+  languages,
+  readLanguageLink,
+  updateLanguageLink,
+} from "./languageLink";
+
+export { type Language, languageLocales, languages } from "./languageLink";
+
 declare global {
   interface Window {
-    __SRVPRO_DUEL_CONFIG__?: { duelWebSocketUrl?: unknown };
+    __SRVPRO_DUEL_CONFIG__?: {
+      duelWebSocketUrl?: unknown;
+      deckImportOrigins?: unknown;
+      websiteBaseUrl?: unknown;
+    };
   }
 }
 
 /** The operator fixes the endpoint; players cannot edit it in the UI. */
 const publicConfig = window.__SRVPRO_DUEL_CONFIG__;
+const configuredDeckImportOrigins = publicConfig?.deckImportOrigins;
+/** A link's origin parameter can choose from this list, never expand it. */
+export const deckImportOrigins: string[] = (
+  Array.isArray(configuredDeckImportOrigins)
+    ? configuredDeckImportOrigins
+    : ["http://121.4.34.71:7922", "https://duel.ygomatch.xyz"]
+).filter((origin): origin is string => {
+  if (typeof origin !== "string") return false;
+  try {
+    const url = new URL(origin);
+    return ["http:", "https:"].includes(url.protocol) && url.origin === origin;
+  } catch {
+    return false;
+  }
+});
 export const duelWebSocketUrl =
   publicConfig &&
   Object.prototype.hasOwnProperty.call(publicConfig, "duelWebSocketUrl")
@@ -21,17 +51,18 @@ export const basePath = import.meta.env.BASE_URL.endsWith("/")
 export const environmentPath = `${basePath}environment/${environmentId}`;
 export const assetsPath = `${basePath}neos-assets`;
 
-export const languages = ["cn", "en", "ja", "ko"] as const;
-export type Language = (typeof languages)[number];
-export const languageLocales: Record<Language, string> = {
-  cn: "zh-CN",
-  en: "en-US",
-  ja: "ja-JP",
-  ko: "ko-KR",
-};
+// Capture once, before import/room routing rewrites the URL. Later changes are
+// explicit UI choices; re-reading the original parameter would undo them.
+let currentLanguage = readLanguageLink(new URL(window.location.href));
 
 export function getLanguage(): Language {
-  const stored = localStorage.getItem("language");
+  if (currentLanguage) return currentLanguage;
+  let stored: string | null = null;
+  try {
+    stored = siteStorage.getItem("language");
+  } catch {
+    // Private/restricted storage must not prevent opening a language link.
+  }
   const selected = languages.find((language) => language === stored);
   if (selected) return selected;
   for (const preferred of navigator.languages) {
@@ -44,14 +75,30 @@ export function getLanguage(): Language {
   return "en";
 }
 
+export function setLanguagePreference(language: Language): void {
+  currentLanguage = language;
+  try {
+    siteStorage.setItem("language", language);
+  } catch {
+    // Keep the choice for this tab when persistent storage is unavailable.
+  }
+  const updated = updateLanguageLink(new URL(window.location.href), language);
+  if (updated.href !== window.location.href)
+    window.history.replaceState(window.history.state, "", updated);
+}
+
 export function getEnvironmentFile(
   file: "cards.cdb" | "strings.conf",
   language = getLanguage(),
 ) {
-  return `${environmentPath}/${languageLocales[language]}/${file}`;
+  return `${environmentPath}/${
+    languageLocales[language]
+  }/${publishedResourceName(file)}`;
 }
 
-export const banlistUrl = `${environmentPath}/lflist.conf`;
+export const banlistUrl = `${environmentPath}/${publishedResourceName(
+  "lflist.conf",
+)}`;
 
 export function serverLanguageCommand(language: Language): string {
   return language === "cn" ? "/zh" : `/${language}`;

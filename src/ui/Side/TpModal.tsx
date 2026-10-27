@@ -1,5 +1,6 @@
 import { Button, Modal } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 
 import { sendTpResult } from "@/api";
@@ -9,6 +10,7 @@ import { SideStage, sideStore } from "@/stores";
 import styles from "./TpModal.module.scss";
 
 export const TpModal: React.FC = () => {
+  const { t } = useTranslation("ClientUI");
   const container = getUIContainer();
   const { stage } = useSnapshot(sideStore);
 
@@ -27,7 +29,7 @@ export const TpModal: React.FC = () => {
             sideStore.stage = SideStage.TP_SELECTED;
           }}
         >
-          先手
+          {t("First")}
         </Button>
         <Button
           onClick={() => {
@@ -35,7 +37,7 @@ export const TpModal: React.FC = () => {
             sideStore.stage = SideStage.TP_SELECTED;
           }}
         >
-          后手
+          {t("Second")}
         </Button>
       </div>
     </Modal>

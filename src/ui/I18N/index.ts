@@ -12,33 +12,34 @@ import translationChinese from "./Source/Chinese/translation.json";
 import translationEnglish from "./Source/English/translation.json";
 import translationFrench from "./Source/French/translation.json";
 import translationJapanese from "./Source/Japanese/translation.json";
+import translationKorean from "./Source/Korean/translation.json";
 import translationPortuguese from "./Source/Portuguese/translation.json";
 import translationSpanish from "./Source/Spanish/translation.json";
 
 const resources = {
-  // Upstream has no Korean UI catalog yet; English keys remain readable while
-  // Korean card text and system strings come from the reviewed Korean CDB.
   ko: {
-    Header: translationEnglish.Header,
-    Start: translationEnglish.Start,
-    Match: translationEnglish.Match,
-    BuildDeck: translationEnglish.BuildDeck,
-    Filter: translationEnglish.Filter,
-    CardDetails: translationEnglish.CardDetails,
-    WaitRoom: translationEnglish.WaitRoom,
-    CustomRoomContent: translationEnglish.CustomRoomContent,
-    WatchContent: translationEnglish.WatchContent,
-    DeckSelect: translationEnglish.DeckSelect,
-    Chat: translationEnglish.Chat,
-    MatchModal: translationEnglish.MatchModal,
-    ReplayModal: translationEnglish.ReplayModal,
-    Popover: translationEnglish.Popover,
-    Menu: translationEnglish.Menu,
-    SelectCardModal: translationEnglish.SelectCardModal,
-    SystemSettings: translationEnglish.SystemSettings,
-    DeckResults: translationEnglish.DeckResults,
+    ClientUI: translationKorean.ClientUI,
+    Header: translationKorean.Header,
+    Start: translationKorean.Start,
+    Match: translationKorean.Match,
+    BuildDeck: translationKorean.BuildDeck,
+    Filter: translationKorean.Filter,
+    CardDetails: translationKorean.CardDetails,
+    WaitRoom: translationKorean.WaitRoom,
+    CustomRoomContent: translationKorean.CustomRoomContent,
+    WatchContent: translationKorean.WatchContent,
+    DeckSelect: translationKorean.DeckSelect,
+    Chat: translationKorean.Chat,
+    MatchModal: translationKorean.MatchModal,
+    ReplayModal: translationKorean.ReplayModal,
+    Popover: translationKorean.Popover,
+    Menu: translationKorean.Menu,
+    SelectCardModal: translationKorean.SelectCardModal,
+    SystemSettings: translationKorean.SystemSettings,
+    DeckResults: translationKorean.DeckResults,
   },
   cn: {
+    ClientUI: translationChinese.ClientUI,
     Header: translationChinese.Header,
     Start: translationChinese.Start,
     Match: translationChinese.Match,
@@ -59,6 +60,7 @@ const resources = {
     DeckResults: translationChinese.DeckResults,
   },
   en: {
+    ClientUI: translationEnglish.ClientUI,
     Header: translationEnglish.Header,
     Start: translationEnglish.Start,
     Match: translationEnglish.Match,
@@ -119,6 +121,7 @@ const resources = {
     DeckResults: translationFrench.DeckResults,
   },
   ja: {
+    ClientUI: translationJapanese.ClientUI,
     Header: translationJapanese.Header,
     Start: translationJapanese.Start,
     Match: translationJapanese.Match,

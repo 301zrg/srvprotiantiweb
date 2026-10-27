@@ -25,7 +25,7 @@ export default async (
 
   const count = from_locations.length;
 
-  Promise.all(
+  await Promise.all(
     Array.from({ length: count }).map(async (_, i) => {
       const from = from_locations[i];
       const target = context.cardStore.at(

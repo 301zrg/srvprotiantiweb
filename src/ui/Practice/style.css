@@ -1,0 +1,255 @@
+.practice-page {
+  height: calc(100dvh - var(--header-height, 48px));
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: auto;
+  padding: 16px;
+  color: #e9edf5;
+  background: #111a29;
+}
+
+.practice-session { --practice-rail:280px; position:relative; width:100%; height:calc(100dvh - var(--header-height,48px)); min-height:0; overflow:hidden; color:#edf2fa; background:radial-gradient(ellipse at center,#24424f,#141f30 70%); }
+.practice-mat-viewport { position:absolute; inset:8px calc(var(--practice-rail) + 16px) 8px 8px; overflow:hidden; min-width:0; min-height:0; }
+.practice-board-plane { position:absolute; top:50%; left:50%; transform-origin:center; }
+.practice-field-slot,.practice-field-pile { position:absolute; transform:translate(-50%,-50%); box-sizing:border-box; border:1px solid #5b788c; background:#ffffff15; border-radius:4px; padding:0; }
+.practice-field-slot:disabled { opacity:1; cursor:default; }
+.practice-field-slot[data-selectable="true"] { background:#497ed987; border:3px solid #90e8ff; cursor:pointer; }
+.practice-field-slot[data-selected="true"] { background:#d6aa2180; border-color:#ffe693; }
+.practice-field-pile { color:#d1e4f5; cursor:pointer; }
+.practice-field-pile > div { pointer-events:none; height:100%; }
+.practice-pile-label { position:absolute; top:3px; left:2px; right:2px; border-radius:3px; background:#152333e6; font-size:13px; line-height:19px; text-align:center; }
+.practice-pile-count { position:absolute; right:3px; bottom:3px; z-index:5; min-width:22px; padding:1px 4px; border:1px solid #94d1f5; border-radius:5px; background:#111d30ed; font-size:16px; line-height:20px; }
+.practice-field-card { appearance:none; box-sizing:border-box; border:0; border-radius:4px; padding:0; background:#26364a; cursor:pointer; color:white; }
+.practice-positioned-card { position:absolute; transition:left .15s,top .15s,transform .15s; }
+.practice-field-card > div { height:100%; pointer-events:none; }
+.practice-field-card[data-actionable="true"] { outline:3px solid #56d5ff; box-shadow:0 0 12px #40bafa; }
+.practice-field-card[data-selectable="true"] { outline:3px dashed #56d5ff; }
+.practice-field-card[data-selected="true"] { outline:5px solid #ffe08a; box-shadow:0 0 16px #eacb43; }
+.practice-field-card[data-located="true"] { outline:4px solid #fff; box-shadow:0 0 18px #fff; }
+.practice-selection-badge { position:absolute; top:2px; left:2px; z-index:8; min-width:20px; box-sizing:border-box; padding:1px 3px; border:1px solid #9bedff; border-radius:4px; background:#123141f5; color:#d4f8ff; font:bold 12px/18px sans-serif; pointer-events:none; }
+[data-selected="true"] > .practice-selection-badge { border-color:#ffe08a; background:#51431af5; color:#fff0b0; }
+.practice-field-card[data-facedown="true"] { border:2px dashed #9fe3e5; }
+.practice-field-card:focus-visible,.practice-field-pile:focus-visible { outline:4px solid #fff; }
+.practice-card-power { position:absolute; bottom:-23px; left:0; right:0; background:#152333ed; font-size:15px; line-height:21px; pointer-events:none; white-space:nowrap; }
+.practice-play-area { position:absolute; inset:36px 0 0; overflow:hidden; }
+.practice-life-bars { position:absolute; top:0; left:0; right:0; height:28px; display:flex; gap:8px; justify-content:space-between; pointer-events:none; font-size:12px; }
+.practice-life-bars span { max-width:48%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; background:#172436e6; padding:4px 6px; border-radius:5px; box-sizing:border-box; }
+.practice-life-bars span[data-turn="true"] { border:1px solid #8bddff; }
+.practice-material-count { position:absolute; right:-4px; bottom:-4px; min-width:24px; padding:2px 4px; border:1px solid #ffd978; border-radius:5px; background:#29231af5; color:#fff0bb; font:bold 17px/20px sans-serif; pointer-events:none; }
+.practice-history { padding-left:22px; }
+.practice-history li { margin-bottom:12px; line-height:1.5; overflow-wrap:anywhere; }
+.practice-history-card { border:0; padding:0; background:none; color:#9cd8ff; font:inherit; text-align:left; text-decoration:underline; cursor:pointer; }
+.practice-session .practice-feedback { top:calc(var(--header-height,48px) + 16px); left:auto; right:18px; width:calc(var(--practice-rail) - 20px); height:28px; pointer-events:none; }
+.practice-session .practice-session-rail { padding-top:42px; }
+.practice-session-rail { position:absolute; top:8px; bottom:8px; right:8px; width:var(--practice-rail); box-sizing:border-box; overflow:auto; padding:10px; border:1px solid #526274; border-radius:8px; background:#1d293beF; display:flex; flex-direction:column; gap:12px; }
+.practice-session-title { display:flex; gap:6px; align-items:center; justify-content:space-between; }
+.practice-session-title h1 { margin:0; font-size:18px; }
+.practice-session-title button { min-width:44px; min-height:44px; }
+.practice-session-state { font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.practice-session-state strong { display:block; color:#a8deff; }
+.practice-session-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.practice-session-controls .ant-btn,.practice-response-tools .ant-btn { min-width:0; min-height:44px; height:auto; padding:5px; white-space:normal; overflow-wrap:anywhere; font-size:12px; }
+.practice-response-tools { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.practice-response-tools .ant-btn { flex:1; }
+.practice-pile-cards { display:flex; flex-wrap:wrap; gap:12px; max-height:60vh; overflow:auto; padding:8px; }
+.practice-pile-cards .practice-field-card { width:90px; height:131px; }
+.practice-setup { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+@media (orientation:landscape) and (max-width:1024px) { .practice-session { --practice-rail:220px; } .practice-session-rail { padding:6px; gap:6px; } .practice-session-title h1 { font-size:15px; } }
+@media (orientation:landscape) and (min-width:480px) {
+  .practice-session[data-control-side="left"] .practice-session-rail { left:8px; right:auto; }
+  .practice-session[data-control-side="left"] .practice-mat-viewport { left:calc(var(--practice-rail) + 16px); right:8px; }
+  .practice-session[data-control-side="left"] .practice-feedback { left:18px; right:auto; }
+}
+@media (orientation:portrait), (max-width:479px) {
+  .practice-session { display:flex; flex-direction:column; gap:4px; padding:4px; padding-top:calc(36px + var(--duel-minimized-height,0px)); box-sizing:border-box; }
+  .practice-session .practice-feedback { top:calc(var(--header-height,48px) + var(--duel-minimized-height,0px) + 4px); left:8px; right:8px; width:auto; }
+  .practice-session .practice-session-rail { padding-top:6px; }
+  .practice-mat-viewport { position:relative; inset:auto; flex:1; width:100%; }
+  .practice-session-rail { position:relative; inset:auto; width:100%; flex:0 1 auto; max-height:37%; padding:6px; gap:5px; }
+  .practice-session-title h1 { font-size:15px; }
+  .practice-session-title button { min-height:36px; }
+  .practice-session-controls { grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
+  .practice-session-controls .ant-btn { font-size:11px; }
+  .practice-session .duel-phase-bar .ant-btn { min-height:36px; }
+  .practice-session-state { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px; }
+}
+.practice-page p {
+  line-height: 1.5;
+  margin: 8px 0;
+}
+.practice-header,
+.practice-toolbar,
+.practice-setup,
+.practice-choice-footer {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.practice-header {
+  justify-content: space-between;
+}
+.practice-header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+.practice-setup {
+  padding: 12px;
+  border: 1px solid #41516c;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.practice-setup label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.practice-setup .ant-select {
+  min-width: 200px;
+  max-width: 320px;
+}
+.practice-toolbar {
+  margin: 12px 0;
+}
+.practice-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+.practice-choices {
+  padding: 12px;
+  margin: 12px 0;
+  background: #1c2b40;
+  border: 1px solid #6c92c4;
+  border-radius: 8px;
+}
+.practice-choices h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.practice-choices p { white-space:pre-line; }
+.practice-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+  max-height: 40vh;
+  overflow: auto;
+}
+.practice-choice-list .practice-choice {
+  height: auto;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  gap: 8px;
+  max-width: 100%;
+  text-align: left;
+}
+.practice-choice span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.practice-choice img {
+  height: 58px;
+  width: 40px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.practice-choice-option { position:relative; min-width:0; max-width:100%; }
+.practice-choice-artwork { width:44px; flex-shrink:0; }
+.practice-choice-grid .practice-choice-artwork { width:min(76px,100%); }
+.practice-selection-location { display:block; white-space:normal; overflow-wrap:anywhere; font-size:12px; line-height:1.4; }
+.practice-targeted-label { display:block; color:#ffb4cd; border:1px solid #e56d97; border-radius:3px; padding:2px; font-size:11px; }
+.practice-choice-grid .field-selection-fallback > .field-selection-option { width:min(220px,100%); }
+.practice-choice-grid .practice-choice-option { display:flex; flex-direction:column; align-items:stretch; gap:4px; width:100%; }
+.practice-choice-grid .practice-choice { position:relative; width:100%; flex-direction:column; align-items:center; padding:5px; font-size:12px; }
+.practice-choice-grid .practice-choice[data-field-option="true"] { border:2px dashed #56d5ff; }
+.practice-choice-grid .practice-choice[data-selected="true"] { border:2px solid #ffe08a; background:#51431a; }
+.practice-choice-grid .practice-choice img { max-width:100%; }
+.practice-choice-grid .practice-choice-label { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; width:100%; line-height:1.4; }
+.practice-choice-grid .practice-selection-badge { font-size:11px; }
+.practice-locate-card.ant-btn { padding:4px 2px; height:auto; font-size:11px; line-height:1.3; }
+.practice-selected-positions,.practice-board-selected-positions { width:100%; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.practice-counter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+}
+.practice-choice-footer .ant-btn {
+  min-height: 44px;
+}
+.practice-page .replay-field-viewport {
+  min-height: 400px;
+}
+.practice-state {
+  font-weight: 600;
+}
+.practice-game {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.practice-board {
+  min-width: 0;
+}
+@media (min-width: 1024px) and (min-height: 600px) {
+  .practice-game {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+  .practice-game .practice-choices {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+  .practice-board {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .practice-game .practice-choice {
+    width: 100%;
+  }
+  .practice-game .practice-choice-list {
+    max-height: 40vh;
+  }
+}
+.practice-detail-image {
+  display: block;
+  max-width: 100%;
+  max-height: 50vh;
+  margin: auto;
+}
+.practice-description {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+@media (max-width: 600px) {
+  .practice-page {
+    padding: 10px;
+  }
+  .practice-setup {
+    align-items: stretch;
+  }
+  .practice-setup label {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .practice-setup .ant-select {
+    flex: 1;
+    min-width: 0;
+    max-width: 70%;
+  }
+  .practice-header h1 {
+    font-size: 20px;
+  }
+  .practice-choice-list {
+    max-height: 45vh;
+  }
+  .practice-choice-list .practice-choice {
+    width: 100%;
+  }
+}

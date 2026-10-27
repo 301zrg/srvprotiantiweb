@@ -5,6 +5,7 @@
  *
  * */
 import { WebSocketStream } from "@/infra";
+import { markActionSent } from "@/variant/duelDiagnostics";
 
 import handleSocketOpen from "../service/onSocketOpen";
 
@@ -16,14 +17,22 @@ export function initSocket(initInfo: {
   customOnConnected?: (conn: WebSocketStream) => void;
 }): WebSocketStream {
   const { ip, player, passWd, customOnConnected } = initInfo;
-  return new WebSocketStream(ip, (conn, _event) => {
-    handleSocketOpen(conn, ip, player, passWd);
-    customOnConnected && customOnConnected(conn);
-  });
+  return new WebSocketStream(
+    ip,
+    (conn, _event) => {
+      handleSocketOpen(conn, ip, player, passWd);
+      customOnConnected && customOnConnected(conn);
+    },
+    { room: passWd, nickname: player },
+  );
 }
 
 export function sendSocketData(conn: WebSocketStream, payload: Uint8Array) {
+  // Freeze the last confirmed G1 upload; side-deck uploads must not replace it.
+  if (payload[2] === 2 && !conn.duelStarted)
+    conn.initialDeckPayload = payload.slice();
   conn.ws.send(payload);
+  if (payload[2] === 1) markActionSent(conn);
 }
 
 export function closeSocket(conn: WebSocketStream) {

@@ -10,6 +10,7 @@ export default async (
   attack: ygopro.StocGameMessage.MsgAttack,
 ) => {
   const context = container.context;
+  context.matStore.phase.battleTiming = "attack";
   fetchEsHintMeta({
     context,
     originMsg: "「[?]」攻击时",

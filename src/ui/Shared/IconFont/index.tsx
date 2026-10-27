@@ -1,7 +1,14 @@
 import { createFromIconfontCN } from "@ant-design/icons";
 
+import { basePath } from "@/variant";
+import { isBiliToy } from "@/variant/deployment";
+
 const _IconFont = createFromIconfontCN({
-  scriptUrl: ["//at.alicdn.com/t/c/font_4188978_m65y344sn8h.js"],
+  scriptUrl: [
+    isBiliToy
+      ? `${basePath}bilitoy-iconfont.js`
+      : "//at.alicdn.com/t/c/font_4188978_m65y344sn8h.js",
+  ],
 });
 
 export const IconFont: React.FC<{

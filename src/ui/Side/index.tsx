@@ -1,5 +1,5 @@
 import { CheckOutlined, UndoOutlined } from "@ant-design/icons";
-import { App, Button, Space } from "antd";
+import { App, Button } from "antd";
 import { HTML5toTouch } from "rdndmb-html5-to-touch";
 import React, { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd-multi-backend";
@@ -10,17 +10,21 @@ import { CardMeta, fetchCard, sendUpdateDeck } from "@/api";
 import { isExtraDeckCard } from "@/common";
 import { getUIContainer } from "@/container/compat";
 import { AudioActionType, changeScene } from "@/infra/audio";
-import { IDeck, roomStore, SideStage, sideStore } from "@/stores";
+import { IDeck, matStore, roomStore, SideStage, sideStore } from "@/stores";
+import { requireSession } from "@/ui/requireSession";
 import { deckMessages } from "@/variant/deckMessages";
 
 import { CardDetail } from "../BuildDeck/CardDetail";
+import { EndModal } from "../Duel/Message/EndModal";
 import { useI18N } from "../I18N";
-import { Background, DeckZone, ScrollableArea, Type, useChat } from "../Shared";
+import { Background, DeckZone, Type, useChat } from "../Shared";
 import { Chat } from "../WaitRoom/Chat";
 import styles from "./index.module.scss";
 import { TpModal } from "./TpModal";
 
 export const loader: LoaderFunction = async () => {
+  const redirected = requireSession();
+  if (redirected) return redirected;
   // 更新场景
   changeScene(AudioActionType.BGM_DECK);
   return null;
@@ -32,11 +36,15 @@ export const Component: React.FC = () => {
   const text = deckMessages(language);
   const container = getUIContainer();
   const { message } = App.useApp();
-  const initialDeck = sideStore.getSideDeck();
+  const [initialDeck] = useState(() => sideStore.getSideDeck());
   const { stage } = useSnapshot(sideStore);
   const { errorMsg } = useSnapshot(roomStore);
+  const { duelEnd } = useSnapshot(matStore);
   const [deck, setDeck] = useState<IDeck>(initialDeck);
   const [selectedCard, setSelectedCard] = useState(0);
+  const [feedback, setFeedback] = useState<
+    "resetDone" | "sideInvalid" | "sideChanged"
+  >();
   const navigate = useNavigate();
   const canAdd = (card: CardMeta, type: Type, _source: Type | "search") => {
     const cardType = card.data.type ?? 0;
@@ -54,6 +62,8 @@ export const Component: React.FC = () => {
     source: Type | "search",
     destination: Type,
   ) => {
+    if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
+    setFeedback(undefined);
     setDeck((prev) => {
       const deck = {
         ...prev,
@@ -73,15 +83,17 @@ export const Component: React.FC = () => {
     });
   };
   const onReset = () => {
+    if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
     setDeck({
       ...initialDeck,
       main: [...initialDeck.main],
       extra: [...initialDeck.extra],
       side: [...initialDeck.side],
     });
-    message.info(text.resetDone);
+    setFeedback("resetDone");
   };
   const onSummit = () => {
+    if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
     const original = [
       ...initialDeck.main,
       ...initialDeck.extra,
@@ -96,22 +108,31 @@ export const Component: React.FC = () => {
       deck.extra.length > 15 ||
       deck.side.length > 15
     ) {
-      message.error(text.sideInvalid);
+      setFeedback("sideInvalid");
       return;
     }
     sendUpdateDeck(container.conn, deck);
     sideStore.setSideDeck(deck);
+    sideStore.stage = SideStage.SIDE_CHANGED;
   };
 
   useEffect(() => {
+    if (stage === SideStage.SIDE_CHANGING) {
+      // CHANGE_SIDE is authoritative and reopens editing, including its hint.
+      setFeedback(undefined);
+    }
     if (stage === SideStage.SIDE_CHANGED) {
-      message.info(text.sideChanged);
+      setFeedback("sideChanged");
     }
     if (stage === SideStage.DUEL_START) {
       // 决斗开始，跳转
       navigate("/duel");
     }
   }, [stage]);
+  useEffect(() => {
+    // A final opponent disconnect may end the match during Side too.
+    if (duelEnd) navigate("/match");
+  }, [duelEnd, navigate]);
   useEffect(() => {
     if (errorMsg !== undefined && errorMsg !== "") {
       message.error(errorMsg);
@@ -122,19 +143,24 @@ export const Component: React.FC = () => {
   return (
     <DndProvider options={HTML5toTouch}>
       <Background />
-      <div className={styles.container} data-language={language}>
+      <div
+        className={styles.container}
+        data-testid="side-page"
+        data-language={language}
+      >
         <div className={styles.sider}>
           <Chat controller={chat} />
         </div>
         <div className={styles.content}>
           <div className={styles["deck-container"]}>
-            <Space className={styles.title}>
-              <div>{text.sideTitle}</div>
-              <Space style={{ marginRight: 6 }}>
+            <div className={styles.title}>
+              <h2>{text.sideTitle}</h2>
+              <div className={styles.actions}>
                 <Button
-                  type="text"
+                  data-testid="side-reset"
                   size="small"
                   icon={<UndoOutlined />}
+                  disabled={stage !== SideStage.SIDE_CHANGING}
                   onClick={onReset}
                 >
                   {text.reset}
@@ -144,25 +170,60 @@ export const Component: React.FC = () => {
                   data-testid="side-confirm"
                   size="small"
                   icon={<CheckOutlined />}
-                  disabled={stage > SideStage.SIDE_CHANGING}
+                  disabled={stage !== SideStage.SIDE_CHANGING}
                   onClick={onSummit}
                 >
                   {text.confirm}
                 </Button>
-              </Space>
-            </Space>
-            <ScrollableArea
-              className={styles["deck-zone"]}
-              hostClassName={styles.scrollHost}
-            >
+              </div>
+            </div>
+            <div className={styles.help}>
+              <div className={styles.counts} data-testid="side-counts">
+                <span>
+                  {text.mainShort}: {deck.main.length}
+                </span>
+                <span>
+                  {text.extraShort}: {deck.extra.length}
+                </span>
+                <span>
+                  {text.sideShort}: {deck.side.length}
+                </span>
+              </div>
+              <p>{text.sideHelp}</p>
+              {feedback && (
+                <div
+                  className={styles.feedback}
+                  data-testid="side-feedback"
+                  role={feedback === "sideInvalid" ? "alert" : "status"}
+                >
+                  {text[feedback]}
+                </div>
+              )}
+            </div>
+            <div data-testid="side-scroll-area" className={styles["deck-zone"]}>
               {(["main", "extra", "side"] as const).map((type) => (
                 <DeckZone
                   key={type}
+                  compact
                   type={type}
                   cards={[...deck[type]].map((id) => fetchCard(id))}
                   canAdd={canAdd}
                   onChange={onChange}
                   onElementMouseUp={(event) => setSelectedCard(event.card.id)}
+                  getMoveLabel={(card, source) =>
+                    source === "side"
+                      ? isExtraDeckCard(card.data.type ?? 0)
+                        ? text.moveToExtra
+                        : text.moveToMain
+                      : text.moveToSide
+                  }
+                  getMoveShortLabel={(card, source) =>
+                    source === "side"
+                      ? isExtraDeckCard(card.data.type ?? 0)
+                        ? text.extraShort
+                        : text.mainShort
+                      : text.sideShort
+                  }
                   onMoveCard={(card, source) => {
                     const target =
                       source === "side"
@@ -174,7 +235,7 @@ export const Component: React.FC = () => {
                   }}
                 />
               ))}
-            </ScrollableArea>
+            </div>
           </div>
         </div>
         <div className={styles["detail-container"]}>
@@ -185,6 +246,7 @@ export const Component: React.FC = () => {
           />
         </div>
       </div>
+      <EndModal />
       <TpModal />
     </DndProvider>
   );

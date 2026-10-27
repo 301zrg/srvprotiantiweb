@@ -1,11 +1,15 @@
 import { fetchStrings, Region, type ygopro } from "@/api";
 import { CardMeta, fetchCard } from "@/api/cards";
+import type { Container } from "@/container";
 import { displayYesNoModal } from "@/ui/Duel/Message";
 
 type MsgSelectEffectYn = ygopro.StocGameMessage.MsgSelectEffectYn;
 
 // 这里改成了 async 不知道有没有影响
-export default async (selectEffectYn: MsgSelectEffectYn) => {
+export default async (
+  container: Container,
+  selectEffectYn: MsgSelectEffectYn,
+) => {
   const code = selectEffectYn.code;
   const location = selectEffectYn.location;
   const effect_description = selectEffectYn.effect_description;
@@ -36,5 +40,12 @@ export default async (selectEffectYn: MsgSelectEffectYn) => {
     effect_description === 0 ? 200 : effect_description,
   );
   const meta = fetchCard(code);
-  await displayYesNoModal(textGenerator(desc, meta, location));
+  const accepted = await displayYesNoModal(textGenerator(desc, meta, location));
+  container.context.historyStore.putResult(
+    container.context,
+    { kind: "effectDecision", value: effect_description, accepted },
+    selectEffectYn.player,
+    code,
+    "response",
+  );
 };

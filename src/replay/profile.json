@@ -1,0 +1,36 @@
+{
+  "revision": "706-v1",
+  "core": "e04144d62499c17d0cfa8313f9742434ef99c3a7",
+  "baseScripts": "5864b6f6e58d49738e0996b94e96655b51f420bf",
+  "overrides": "d6008e9832e5666e665a84dca2e8e59810b3cdfa",
+  "cardDatabaseSha256": "fd5931455abab8cdf38febc00f2ef4296de4bb69f0b9bb702f5ff37412fddc83",
+  "cardCount": 5267,
+  "baseUtilitySha256": "41dc88c1c8580435b9d3093b77b5943ace7047d5551db8114c416fced38300dc",
+  "specialSha256": "32b9580d09d7151d8123769fa826c21974c0d6d0b43e64f0088fc660e6efc356",
+  "bootstrapSha256": "e271049430e0f980d4ef3e5f55d92b0778ff82696bbe1fd6a5f49b64f7ce968b",
+  "scriptCount": 13542,
+  "unpackedScriptBytes": 34772440,
+  "provenance": "fixed-local-server-candidate; imported replay provenance is unknown",
+  "files": {
+    "ocgcore.js": {
+      "sha256": "9c291b96611b22a18f971a005284e51b0a9b757c9945f63d1fc1e5a00f090e86",
+      "bytes": 21380
+    },
+    "ocgcore.wasm": {
+      "sha256": "61b29d631ff145c71ff7303311b49a61ed7985172cc226743756b809135c7dca",
+      "bytes": 1011601
+    },
+    "scripts.data": {
+      "bytes": 5451027,
+      "sha256": "0f5164122d3be0c82d5a432daecee4598f7419eba0c62af2a61549dea5b3eadd"
+    },
+    "cards.data": {
+      "bytes": 421360,
+      "sha256": "6e3701ff8e5998938c8659f332a1a32ea573e761e73b8b97c86a10cde5457cb9"
+    },
+    "scripts-LICENSE.md": {
+      "bytes": 18431,
+      "sha256": "189b1af95d661151e054cea10c91b3d754e4de4d3fecfb074c1fb29476f7167b"
+    }
+  }
+}

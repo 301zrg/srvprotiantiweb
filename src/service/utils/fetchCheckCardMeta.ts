@@ -1,4 +1,4 @@
-import type { ygopro } from "@/api";
+import { ygopro } from "@/api";
 import { fetchCard, getCardStr } from "@/api/cards";
 import { Context } from "@/container";
 import { isCardDisabled } from "@/stores";
@@ -27,18 +27,19 @@ const helper = async (
   selected?: boolean,
   mustSelect?: boolean,
 ) => {
-  const { controller, zone, sequence } = location;
-  const target = context.cardStore.at(zone, controller, sequence);
+  const { zone } = location;
+  const target = context.cardStore.find(location);
 
-  // 这里可能直接用target.meta即可，不用再查一遍DB
-  // 但是ygopro后端传回来了code，感觉这里会有些坑，因此求稳这样写
+  // Zero-code choices can follow a hand confirmation before its final shuffle.
+  // Explicit server identity wins; confirmation never exposes the board itself.
   const newID =
     code !== 0
       ? code
       : target !== undefined
       ? target.code !== 0
         ? target.code
-        : target.meta.id
+        : target.meta.id ||
+          (zone === ygopro.CardZone.HAND ? target.confirmedHandCode ?? 0 : 0)
       : 0;
   const meta = fetchCard(newID);
 

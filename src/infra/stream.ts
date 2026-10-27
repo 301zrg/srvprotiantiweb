@@ -4,20 +4,60 @@
 // 因此封装了一个`WebSocketStream`类，当每次Websocket连接中有消息到达时，往流中添加event，
 
 // 同时执行器会不断地从流中获取event进行处理。
+import { YgoProPacketFramer } from "@/api/ocgcore/ocgAdapter/packet";
+import {
+  CTOS_TIME_CONFIRM,
+  STOC_DUEL_END,
+} from "@/api/ocgcore/ocgAdapter/protoDecl";
+import { ReplayCapture } from "@/replay/capture";
 import { getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
+import { markMessageArrival } from "@/variant/duelDiagnostics";
 import { siteMessages } from "@/variant/messages";
+
+import { ConnectionControl } from "./connectionControl";
 
 const manuallyClosed = new WeakSet<WebSocketStream>();
 
 export class WebSocketStream {
   public ws: WebSocket;
   stream: ReadableStream;
+  pendingMessages = 0;
+  pendingPackets = 0;
+  private cancellation = new AbortController();
+  public replayCapture: ReplayCapture;
+  joinedRoom = false;
+  duelStarted = false;
+  endedRoom = false;
+  protocolFailed = false;
+  disconnectedAt?: number;
+  receivedMessages = 0;
+  initialDeckPayload?: Uint8Array;
+  resuming = false;
+  onUnexpectedClose?: () => void;
+  private opened = false;
+  private control = new ConnectionControl();
+  private createdAt = Date.now();
+  private lastReceivedAt = this.createdAt;
+
+  get confirmsTimeLimitsOnArrival() {
+    return this.control.confirmsTimeLimitsOnArrival;
+  }
+
+  get signal() {
+    return this.cancellation.signal;
+  }
+
+  get cancelled() {
+    return manuallyClosed.has(this);
+  }
 
   constructor(
     ip: string,
     onWsOpen?: (conn: WebSocketStream, ev: Event) => any,
+    replayMeta?: { room: string; nickname: string },
   ) {
+    this.replayCapture = new ReplayCapture(replayMeta);
     connectionStore.state = "connecting";
     connectionStore.detail = "";
     connectionStore.pendingJoinMessage = "";
@@ -28,36 +68,85 @@ export class WebSocketStream {
     if (onWsOpen) {
       this.ws.onopen = (e) => {
         window.clearTimeout(timer);
-        connectionStore.state = "connected";
+        if (this.cancelled) {
+          this.ws.close();
+          return;
+        }
+        this.opened = true;
+        connectionStore.state = this.resuming ? "recovering" : "connected";
         onWsOpen(this, e);
       };
     }
     this.ws.onerror = () => {
       if (!manuallyClosed.has(this))
-        connectionStore.detail ||= siteMessages(getLanguage()).connectionFailed;
+        connectionStore.detail ||= this.opened
+          ? siteMessages(getLanguage()).connectionClosed
+          : siteMessages(getLanguage()).connectionFailed;
     };
 
     const ws = this.ws;
     const owner = this;
+    const lifecycle = new YgoProPacketFramer();
     this.stream = new ReadableStream({
       start(controller) {
         // 当Websocket有数据到达时，加入队列
         ws.onmessage = (event) => {
+          if (owner.cancelled) return;
+          owner.receivedMessages++;
+          markMessageArrival(owner, event);
+          owner.lastReceivedAt = Date.now();
+          // Capture raw replay packets before slow UI animations consume the
+          // stream; this independent framer never changes the online packets.
+          if (event.data instanceof ArrayBuffer) {
+            owner.replayCapture.receive(event.data);
+            try {
+              // The result dialog may block the UI queue. Record DUEL_END at
+              // arrival so a normal finished match never starts a recovery.
+              for (const packet of lifecycle.push(event.data)) {
+                if (packet.proto === STOC_DUEL_END) owner.endedRoom = true;
+                if (
+                  owner.control.receive(packet) &&
+                  ws.readyState === WebSocket.OPEN
+                )
+                  ws.send(Uint8Array.of(1, 0, CTOS_TIME_CONFIRM));
+              }
+            } catch {
+              owner.protocolFailed = true;
+            }
+          }
+          owner.pendingMessages++;
           controller.enqueue(event);
         };
         ws.onclose = (ev) => {
+          owner.replayCapture.stop();
           window.clearTimeout(timer);
           ws.onmessage = null;
           if (!manuallyClosed.has(owner)) {
+            owner.disconnectedAt = Date.now();
             connectionStore.state = "disconnected";
             connectionStore.detail ||= `${
               siteMessages(getLanguage()).connectionClosed
             } (${ev.code})`;
           }
           // 后续可能根据断线原因做处理，先暴露出来
-          console.info("Websocket closed.", ev);
+          // Useful for correlating transport loss with a stalled presentation;
+          // never include identity, room/password, packet contents or close reason.
+          console.info("Websocket closed.", {
+            code: ev.code,
+            clean: ev.wasClean,
+            lifetimeMs: Date.now() - owner.createdAt,
+            quietForMs: Date.now() - owner.lastReceivedAt,
+            pendingMessages: owner.pendingMessages,
+            pendingPackets: owner.pendingPackets,
+            hidden: document.hidden,
+            online: navigator.onLine,
+            protocolFailed: owner.protocolFailed,
+            resuming: owner.resuming,
+            manual: owner.cancelled,
+          });
           // 下面这行注释掉，因为虽然websocket关掉了，但是已经收到的数据可能还在处理中
           controller.close();
+          if (!owner.cancelled) owner.onUnexpectedClose?.();
         };
       },
       pull(_) {
@@ -76,10 +165,12 @@ export class WebSocketStream {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done || this.cancelled) break;
+        this.pendingMessages--;
         await onMessage(value);
       }
     } catch (error) {
+      this.protocolFailed = true;
       if (!manuallyClosed.has(this))
         connectionStore.detail = `${
           siteMessages(getLanguage()).packetFailed
@@ -92,7 +183,9 @@ export class WebSocketStream {
 
   // 关闭流
   close() {
+    this.replayCapture.stop();
     manuallyClosed.add(this);
+    this.cancellation.abort();
     connectionStore.state = "idle";
     connectionStore.detail = "";
     this.ws.close();

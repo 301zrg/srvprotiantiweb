@@ -2,6 +2,7 @@ import { proxy } from "valtio";
 
 import { CardMeta, ygopro } from "@/api";
 import { STATUS_DISABLED, STATUS_FORBIDDEN } from "@/common";
+import type { CardLinks } from "@/variant/cardInformation";
 
 import type { Interactivity } from "./matStore/types";
 import { type NeosStore } from "./shared";
@@ -11,25 +12,38 @@ import { type NeosStore } from "./shared";
  *
  * TODO: use class
  */
-export interface CardType {
+export interface CardType extends CardLinks {
   uuid: string; // 一张卡的唯一标识
   code: number; // 卡号
   meta: CardMeta; // 卡片元数据
+  baseAttack?: number;
+  baseDefense?: number;
+  currentCode?: number;
+  rank?: number;
+  confirmedHandCode?: number; // 本次结算已展示的手牌，仅用于选卡。
+  confirmedDeckCode?: number; // Explicit identity displayed only during confirmation.
+  deckReversed?: boolean; // Native DECK_TOP individual reversal, independent of whole-deck reversal.
+  deckPublicCode?: number; // Explicit identity granted by DECK_TOP, not a cached hidden identity.
   location: ygopro.CardLocation;
+  /** Display-only origin while Core attaches materials to a host still in Extra. */
+  overlayOrigin?: ygopro.CardLocation;
   idleInteractivities: Interactivity<number>[]; // IDLE状态下的互动信息
   counters: { [type: number]: number }; // 指示器
   isToken: boolean; // 是否是token
   targeted: boolean; // 当前卡是否被选择成为效果的对象
+  targetFlash?: number; // A native selection hint also flashes outside a chain.
   selectInfo: {
     selectable: boolean; // 是否可以被选择
     selected: boolean; // 是否已经被选择
     response?: number; // 被选择时发送给服务器的值
   };
   status: number; // Current status, STATUS_DISABLED, etc.
+  hint?: { type: number; value: number }; // Server-owned persistent card hint.
 }
 
 export class CardStore implements NeosStore {
   inner: CardType[] = [];
+  deckReversed = false;
   at(zone: ygopro.CardZone, controller: number): CardType[];
   at(
     zone: ygopro.CardZone,
@@ -76,7 +90,12 @@ export class CardStore implements NeosStore {
     }
   }
   find(location: ygopro.CardLocation): CardType | undefined {
-    return this.at(location.zone, location.controller, location.sequence);
+    return this.at(
+      location.zone,
+      location.controller,
+      location.sequence,
+      location.is_overlay ? location.overlay_sequence : undefined,
+    );
   }
   // 获取特定位置下的所有超量素材
   findOverlay(
@@ -94,6 +113,7 @@ export class CardStore implements NeosStore {
   }
   reset(): void {
     this.inner = [];
+    this.deckReversed = false;
   }
 }
 

@@ -1,16 +1,28 @@
 import { ygopro } from "@/api";
+import { CardHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardHint";
+import { CardRelationGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/cardRelation";
+import { DeckVisibilityGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/deckVisibility";
+import { PlayerHintGameMessage } from "@/api/ocgcore/ocgAdapter/stoc/stocGameMsg/playerHint";
 import { Container } from "@/container";
+import { isUIContainer } from "@/container/compat";
 import { replayStore } from "@/stores";
+import { clearFieldSelection } from "@/stores/fieldSelectionStore";
 import { showWaiting } from "@/ui/Duel/Message";
+import { markNextPrompt } from "@/variant/duelDiagnostics";
 
+import { beginActionRequest, invalidateActionRequest } from "./actionRequest";
 import onAnnounce from "./announce";
 import onMsgAttack from "./attack";
 import onMsgAttackDisable from "./attackDisable";
 import onMsgBecomeTarget from "./becomeTarget";
+import onMsgCardHint from "./cardHint";
+import { updateCardRelation } from "./cardRelation";
+import { isObserver } from "./catchUp";
 import onMsgChainEnd from "./chainEnd";
 import onMsgChaining from "./chaining";
 import onMsgChainSolved from "./chainSolved";
 import onConfirmCards from "./confirmCards";
+import { updateDeckVisibility } from "./deckVisibility";
 import onMsgDraw from "./draw";
 import onMsgFieldDisabled from "./fieldDisabled";
 import onMsgFilpSummoned from "./flipSummoned";
@@ -21,7 +33,9 @@ import onLpUpdate from "./lpUpdate";
 import onMsgMove from "./move";
 import onMsgNewPhase from "./newPhase";
 import onMsgNewTurn from "./newTurn";
+import onMsgPlayerHint from "./playerHint";
 import onMsgPosChange from "./posChange";
+import { waitForDuelForeground } from "./presentation";
 import onMsgReloadField from "./reloadField";
 import onMsgRockPaperScissors from "./rockPaperScissors";
 import onMsgSelectBattleCmd from "./selectBattleCmd";
@@ -81,12 +95,55 @@ export default async function handleGameMsg(
   container: Container,
   pb: ygopro.YgoStocMsg,
 ): Promise<void> {
+  if (isUIContainer(container) && isObserver(container)) {
+    await waitForDuelForeground(container.conn.signal);
+    if (container.conn.cancelled) return;
+  }
   const msg = pb.stoc_game_msg;
+  if (msg instanceof CardRelationGameMessage) {
+    updateCardRelation(container, msg.relation);
+    return;
+  }
+  if (msg instanceof DeckVisibilityGameMessage) {
+    updateDeckVisibility(container, msg.deckVisibility);
+    return;
+  }
+  if (isUIContainer(container)) {
+    if (
+      ActiveList.includes(msg.gameMsg) ||
+      ["start", "reload_field", "new_turn", "new_phase", "win"].includes(
+        msg.gameMsg,
+      )
+    )
+      clearFieldSelection();
+    if (["select_idle_cmd", "select_battle_cmd"].includes(msg.gameMsg))
+      beginActionRequest(
+        container,
+        msg.gameMsg === "select_battle_cmd" ? "battle" : "idle",
+      );
+    else if (ActiveList.includes(msg.gameMsg))
+      invalidateActionRequest(container);
+    else if (
+      ["start", "reload_field", "new_turn", "new_phase", "win"].includes(
+        msg.gameMsg,
+      )
+    )
+      invalidateActionRequest(container);
+  }
+  if (msg instanceof CardHintGameMessage) {
+    onMsgCardHint(container, msg.cardHint);
+    return;
+  }
+  if (msg instanceof PlayerHintGameMessage) {
+    onMsgPlayerHint(container, msg.playerHint);
+    return;
+  }
 
   if (ActiveList.includes(msg.gameMsg)) {
+    markNextPrompt(container.conn);
     showWaiting(false);
 
-    if (replayStore.isReplay) return;
+    if (replayStore.isReplay || isObserver(container)) return;
   }
 
   switch (msg.gameMsg) {
@@ -140,7 +197,7 @@ export default async function handleGameMsg(
       break;
     }
     case "select_effect_yn": {
-      await onMsgSelectEffectYn(msg.select_effect_yn);
+      await onMsgSelectEffectYn(container, msg.select_effect_yn);
 
       break;
     }
@@ -175,7 +232,7 @@ export default async function handleGameMsg(
       break;
     }
     case "select_yes_no": {
-      await onMsgSelectYesNo(msg.select_yes_no);
+      await onMsgSelectYesNo(container, msg.select_yes_no);
 
       break;
     }
@@ -200,7 +257,7 @@ export default async function handleGameMsg(
       break;
     }
     case "reload_field": {
-      onMsgReloadField(container, msg.reload_field);
+      await onMsgReloadField(container, msg.reload_field);
 
       break;
     }
@@ -294,7 +351,7 @@ export default async function handleGameMsg(
       break;
     }
     case "announce": {
-      await onAnnounce(msg.announce);
+      await onAnnounce(container, msg.announce);
 
       break;
     }
@@ -313,7 +370,7 @@ export default async function handleGameMsg(
       break;
     }
     case "toss": {
-      onMsgToss(container, msg.toss);
+      await onMsgToss(container, msg.toss);
 
       break;
     }

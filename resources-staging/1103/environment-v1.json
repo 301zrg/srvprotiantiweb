@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "revision": "1103-201103-v1",
+  "inputs": {
+    "docs/1103-resource-audit.json": "823266731a721159db6b68e6c4ee6612c1813e5563534f147e6ab73f5363fc7e",
+    "scripts/build_environment_assets.py": "cc6ec8bcaef0ce19ead266b0f62ae403e8b589a4227ff5657d4fccf5769d540e",
+    "scripts/check_environment_assets.py": "0dd134d8b850c9ecbd1f5fc85cafb906f0c0932f4e4638b29d9bfd8963e758b1",
+    "resources-staging/1103/zh-CN/cards.cdb": "fd5931455abab8cdf38febc00f2ef4296de4bb69f0b9bb702f5ff37412fddc83",
+    "resources-staging/1103/zh-CN/strings.conf": "f387fb5904f9e2c6977470f1240bf2ef68bf1d453b9cffa4b4f7711767a08191",
+    "resources-staging/1103/en-US/cards.cdb": "da653c64b3eb344db42ae5a72127da4ae390ace20bdb256271576cf164c54ea8",
+    "resources-staging/1103/en-US/strings.conf": "726f9467495e8ed271035d712f2584b6e981539690cbf4237f50229d9b0bc823",
+    "resources-staging/1103/ja-JP/cards.cdb": "64b7c595d3ab765d89d85bfd1c6a3d55c7ecfda568ebcf647689a56728e7f90c",
+    "resources-staging/1103/ja-JP/strings.conf": "54718ad6eb701f2bbe1ec07fb0a52c09c4378a050a877857af555a1a1c77ef67",
+    "resources-staging/1103/ko-KR/cards.cdb": "c68e4052a79fcd539aec6eb7eda9824e019f6818242bf8b163a85072d2331074",
+    "resources-staging/1103/ko-KR/strings.conf": "2e7f725d7a6ba9db978a70cb738559a47de6a6f8e7bad11cc33fc9e1bfa2cf44",
+    "resources-staging/1103/lflist.conf": "ea375c0874c8674aac515e6020aa7db85b372608eebeb15e6896fc108143a1cc"
+  },
+  "archive": {
+    "file": "environment-v1.data",
+    "bytes": 1784386,
+    "sha256": "8ccbcf6204cedb1301a73515019c2266c1558ffdc8792ba6f8ef486844cc36e5",
+    "decodedBytes": 6927755
+  },
+  "files": [
+    {
+      "path": "current.json",
+      "bytes": 87,
+      "sha256": "ccd4d56335fd0b4f9bcc9d81284f333d9672b5d8cb3cee16f7b97930385904d1"
+    },
+    {
+      "path": "1103-201103-v1/manifest.json",
+      "bytes": 2380,
+      "sha256": "932b63920f16be166c83d18ef838e06851ad23ecd4e3e69dcf17083bdac861f1"
+    },
+    {
+      "path": "1103-201103-v1/lflist.conf",
+      "bytes": 1511,
+      "sha256": "ea375c0874c8674aac515e6020aa7db85b372608eebeb15e6896fc108143a1cc"
+    },
+    {
+      "path": "1103-201103-v1/zh-CN/cards.cdb",
+      "bytes": 1425408,
+      "sha256": "74d86a08815739ae2f5be0a0cd0a208f748129409e462fbdfc93a9f7704b749f"
+    },
+    {
+      "path": "1103-201103-v1/zh-CN/strings.conf",
+      "bytes": 47314,
+      "sha256": "f387fb5904f9e2c6977470f1240bf2ef68bf1d453b9cffa4b4f7711767a08191"
+    },
+    {
+      "path": "1103-201103-v1/en-US/cards.cdb",
+      "bytes": 1429504,
+      "sha256": "d2467aab14bce45b43849540bc56574a2d9a4858ab5ea7942d7f7312b419242d"
+    },
+    {
+      "path": "1103-201103-v1/en-US/strings.conf",
+      "bytes": 37743,
+      "sha256": "726f9467495e8ed271035d712f2584b6e981539690cbf4237f50229d9b0bc823"
+    },
+    {
+      "path": "1103-201103-v1/ja-JP/cards.cdb",
+      "bytes": 2048000,
+      "sha256": "944b10f9594dbf6effba2cd3c739d61853f4688ba2ca0fe41bdc2b329ac740dd"
+    },
+    {
+      "path": "1103-201103-v1/ja-JP/strings.conf",
+      "bytes": 49184,
+      "sha256": "54718ad6eb701f2bbe1ec07fb0a52c09c4378a050a877857af555a1a1c77ef67"
+    },
+    {
+      "path": "1103-201103-v1/ko-KR/cards.cdb",
+      "bytes": 1843200,
+      "sha256": "6863eadb4b646c78d70e614cdd1464b9e24671833d6d16214dee90780788627e"
+    },
+    {
+      "path": "1103-201103-v1/ko-KR/strings.conf",
+      "bytes": 43424,
+      "sha256": "2e7f725d7a6ba9db978a70cb738559a47de6a6f8e7bad11cc33fc9e1bfa2cf44"
+    }
+  ]
+}

@@ -35,5 +35,6 @@ export const fetchSelectHintMeta = ({
   } else {
     matStore.hint.esSelectHint = selectHintMeta;
     matStore.hint.esHint = esHint;
+    matStore.hint.esHintSource = undefined;
   }
 };

@@ -1,0 +1,1186 @@
+import "./style.css";
+
+import {
+  Button,
+  ConfigProvider,
+  Drawer,
+  Input,
+  message,
+  Modal,
+  Pagination,
+  Select,
+} from "antd";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSnapshot } from "valtio";
+
+import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
+import { useMobileInterface } from "@/hook";
+import type { ReplayFrame } from "@/replay/engine";
+import { MAX_REPLAY_BYTES } from "@/replay/format";
+import { sha256 } from "@/replay/hash";
+import {
+  canShareReplayFile,
+  deleteReplay,
+  downloadReplay,
+  getReplay,
+  listReplayOccurrences,
+  listReplays,
+  prepareReplayFile,
+  renameReplay,
+  type ReplayEntry,
+  type ReplayOccurrence,
+  saveReplay,
+  shareReplayFile,
+  subscribeReplays,
+} from "@/replay/library";
+import { localizeReplayText } from "@/replay/localizedText";
+import type { ReplayCard } from "@/replay/messages";
+import { type HistoryOrder, settingStore } from "@/stores/settingStore";
+import { useI18N } from "@/ui/I18N";
+import { disconnectSrvpro } from "@/ui/Match/util";
+import { RelatedCards } from "@/ui/Shared/CardInformation";
+import { CardStatsDetails } from "@/ui/Shared/CardStats";
+import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
+import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
+import { type Language, languageLocales } from "@/variant";
+import { previewMessages } from "@/variant/previewMessages";
+import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
+
+import { ReplayAudio } from "./audio";
+import { sceneInformationCards } from "./cardInformation";
+import { concealReplayCard } from "./cardState";
+import { positionLabel, replayCardWords, replayCounters } from "./cardState";
+import { ReplayCardTile } from "./CardTile";
+import { DeckExtract } from "./DeckExtract";
+import { FieldBoard, replayFieldWords } from "./FieldBoard";
+import { type SceneFrame, sceneSteps, seedScene } from "./scene";
+
+const extraWords = {
+  cn: {
+    soundOn: "音效：开",
+    soundOff: "音效：关",
+    shareTitle: "录像已准备好",
+    share: "分享文件",
+    fallback: "浏览器未允许分享，已改用文件下载",
+    cancel: "取消",
+  },
+  en: {
+    soundOn: "Sound: on",
+    soundOff: "Sound: off",
+    shareTitle: "Replay ready",
+    share: "Share file",
+    fallback: "Sharing unavailable; downloading the file instead",
+    cancel: "Cancel",
+  },
+  ja: {
+    soundOn: "効果音：オン",
+    soundOff: "効果音：オフ",
+    shareTitle: "リプレイの準備完了",
+    share: "ファイルを共有",
+    fallback: "共有できないためファイルをダウンロードします",
+    cancel: "キャンセル",
+  },
+  ko: {
+    soundOn: "효과음: 켜짐",
+    soundOff: "효과음: 꺼짐",
+    shareTitle: "리플레이 준비 완료",
+    share: "파일 공유",
+    fallback: "공유할 수 없어 파일을 다운로드합니다",
+    cancel: "취소",
+  },
+};
+const replayExtraWords = (language: string) =>
+  extraWords[language as keyof typeof extraWords] || extraWords.cn;
+
+const labels = {
+  cn: [
+    "录像库",
+    "导入录像",
+    "播放",
+    "下载",
+    "删除",
+    "改名",
+    "返回首页",
+    "暂停",
+    "继续播放",
+    "单步",
+    "重新开始",
+    "切换视角",
+    "退出播放",
+    "跳到回合",
+    "另存／分享",
+    "操作记录",
+    "手牌",
+    "怪兽区",
+    "魔法／陷阱区",
+    "主卡组",
+    "额外",
+    "墓地",
+    "除外",
+    "关闭",
+    "取消跳转",
+  ],
+  en: [
+    "Replays",
+    "Import",
+    "Play",
+    "Download",
+    "Delete",
+    "Rename",
+    "Home",
+    "Pause",
+    "Play",
+    "Step",
+    "Restart",
+    "Switch view",
+    "Exit",
+    "Go to turn",
+    "Save / share",
+    "History",
+    "Hand",
+    "Monsters",
+    "Spells / traps",
+    "Deck",
+    "Extra",
+    "Graveyard",
+    "Banished",
+    "Close",
+    "Cancel seek",
+  ],
+  ja: [
+    "リプレイ",
+    "インポート",
+    "再生",
+    "保存",
+    "削除",
+    "名前変更",
+    "ホーム",
+    "一時停止",
+    "再生",
+    "一手進む",
+    "最初から",
+    "視点切替",
+    "終了",
+    "ターンへ",
+    "保存／共有",
+    "履歴",
+    "手札",
+    "モンスター",
+    "魔法／罠",
+    "デッキ",
+    "EX",
+    "墓地",
+    "除外",
+    "閉じる",
+    "移動中止",
+  ],
+  ko: [
+    "리플레이",
+    "가져오기",
+    "재생",
+    "다운로드",
+    "삭제",
+    "이름 변경",
+    "홈",
+    "일시정지",
+    "재생",
+    "한 단계",
+    "다시 시작",
+    "시점 전환",
+    "종료",
+    "턴 이동",
+    "저장 / 공유",
+    "기록",
+    "패",
+    "몬스터",
+    "마법 / 함정",
+    "덱",
+    "엑스트라",
+    "묘지",
+    "제외",
+    "닫기",
+    "이동 취소",
+  ],
+};
+export function Component() {
+  useEffect(() => disconnectSrvpro(), []);
+  const { language } = useI18N();
+  const text = labels[language as keyof typeof labels] || labels.cn;
+  const [params] = useSearchParams();
+  const id = params.get("id");
+  return (
+    <ConfigProvider autoInsertSpaceInButton={false}>
+      {id ? <Player key={id} id={id} text={text} /> : <Library text={text} />}
+    </ConfigProvider>
+  );
+}
+function Library({ text }: { text: string[] }) {
+  const { t } = useTranslation("ClientUI");
+  const { language } = useI18N();
+  const preview = previewMessages(language);
+  const [extracting, setExtracting] = useState<string>();
+  const navigate = useNavigate();
+  const [entries, setEntries] = useState<ReplayEntry[]>([]),
+    [occurrences, setOccurrences] = useState<ReplayOccurrence[]>([]),
+    [search, setSearch] = useState(""),
+    [page, setPage] = useState(1),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [editing, setEditing] = useState<ReplayEntry>(),
+    [title, setTitle] = useState("");
+  const matching = entries.filter((e) =>
+    e.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+  );
+  const currentPage = Math.min(
+    page,
+    Math.max(1, Math.ceil(matching.length / 24)),
+  );
+  useEffect(() => {
+    let mounted = true;
+    const update = () =>
+      void Promise.all([listReplays(), listReplayOccurrences()])
+        .then(([items, associations]) => {
+          if (mounted) {
+            setEntries(items);
+            setOccurrences(associations);
+          }
+        })
+        .catch((e) => setError(String(e)));
+    update();
+    const off = subscribeReplays(update);
+    return () => {
+      mounted = false;
+      off();
+    };
+  }, []);
+  const run = async (fn: () => Promise<unknown>) => {
+    try {
+      await fn();
+    } catch (e) {
+      message.error(
+        localizeReplayText(
+          String(e instanceof Error ? e.message : e),
+          language as Language,
+        ),
+      );
+    }
+  };
+  return (
+    <main className="replay-page">
+      <header className="replay-header">
+        <h1>{text[0]}</h1>
+        <MobileHomeLink />
+      </header>
+      <div className="replay-tools">
+        <label className="replay-import">
+          {busy ? t("ReplayImporting") : text[1]}
+          <input
+            type="file"
+            accept=".yrp,.yrp3d"
+            multiple
+            disabled={busy}
+            onChange={async (e) => {
+              const files = Array.from(e.target.files || []);
+              e.target.value = "";
+              setBusy(true);
+              setError("");
+              try {
+                if (files.length > 20) throw new Error(t("ReplayImportLimit"));
+                for (const file of files) {
+                  if (file.size > MAX_REPLAY_BYTES)
+                    throw new Error(t("ReplayFileLimit", { file: file.name }));
+                  await saveReplay(
+                    new Uint8Array(await file.arrayBuffer()),
+                    file.name,
+                  );
+                }
+              } catch (e) {
+                setError(String(e instanceof Error ? e.message : e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        </label>
+        <Input
+          placeholder={t("ReplaySearch")}
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
+      </div>
+      <p className="replay-note">
+        {t("ReplayNote")}
+        <a
+          href={`${import.meta.env.BASE_URL}replay/NOTICE.md`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {" "}
+          {t("ReplayLicense")}
+        </a>
+      </p>
+      <p className="replay-note">
+        {t("ReplayCapacity", {
+          count: entries.length,
+          size: (entries.reduce((n, e) => n + e.bytes, 0) / 1048576).toFixed(2),
+        })}{" "}
+        <button
+          className="replay-link"
+          onClick={() =>
+            run(async () => {
+              message.info(
+                (await navigator.storage?.persist?.())
+                  ? t("ReplayPersistent")
+                  : t("ReplayNotPersistent"),
+              );
+            })
+          }
+        >
+          {t("ReplayRequestStorage")}
+        </button>
+      </p>
+      {error && (
+        <p className="replay-error" role="alert">
+          {localizeReplayText(error, language as Language)}
+        </p>
+      )}
+      {!entries.length && (
+        <div className="replay-empty">{t("ReplayEmpty")}</div>
+      )}
+      <section className="replay-list">
+        {matching
+          .slice((currentPage - 1) * 24, currentPage * 24)
+          .map((entry) => (
+            <article key={entry.id} className="replay-entry">
+              <div>
+                <h2>{entry.title}</h2>
+                <p>
+                  {new Date(entry.createdAt).toLocaleString(
+                    languageLocales[language as Language],
+                  )}{" "}
+                  · {(entry.bytes / 1024).toFixed(1)} KB · {entry.header.format}{" "}
+                  ·{" "}
+                  {entry.source === "duel"
+                    ? t("ReplayFromDuel")
+                    : t("ReplayLocalImport")}
+                </p>
+                {entry.temporary && <strong>{t("ReplayTemporary")}</strong>}
+                {entry.header.reason && (
+                  <p>
+                    {localizeReplayText(
+                      entry.header.reason,
+                      language as Language,
+                    )}
+                  </p>
+                )}
+                {!!occurrences.filter((o) => o.entry === entry.id).length && (
+                  <p>
+                    {t("ReplayAssociations")}
+                    {occurrences
+                      .filter((o) => o.entry === entry.id)
+                      .map(
+                        (o) =>
+                          `${o.room || t("ReplayNoRoom")} · ${new Date(
+                            o.receivedAt,
+                          ).toLocaleString(
+                            languageLocales[language as Language],
+                          )}`,
+                      )
+                      .join("；")}
+                  </p>
+                )}
+              </div>
+              <div className="replay-actions">
+                <Button onClick={() => setExtracting(entry.id)}>
+                  {preview.extractDecks}
+                </Button>
+                <Button
+                  type="primary"
+                  disabled={!entry.header.playable}
+                  onClick={() => navigate(`/replays?id=${entry.id}`)}
+                >
+                  {text[2]}
+                </Button>
+                <Button onClick={() => run(() => downloadReplay(entry.id))}>
+                  {text[3]}
+                </Button>
+                <Button
+                  onClick={() =>
+                    run(async () => {
+                      const { file, title } = await prepareReplayFile(entry.id);
+                      const words = replayExtraWords(language);
+                      const share = async () => {
+                        if (
+                          (await shareReplayFile(file, title)) === "downloaded"
+                        )
+                          message.info(words.fallback);
+                      };
+                      // File retrieval is asynchronous. A fresh confirmation tap
+                      // preserves the user activation required by iOS / Web Share.
+                      if (canShareReplayFile(file)) {
+                        Modal.confirm({
+                          title: words.shareTitle,
+                          content: file.name,
+                          okText: words.share,
+                          cancelText: words.cancel,
+                          onOk: share,
+                        });
+                      } else await share();
+                    })
+                  }
+                >
+                  {text[14]}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditing(entry);
+                    setTitle(entry.title);
+                  }}
+                >
+                  {text[5]}
+                </Button>
+                <Button
+                  danger
+                  onClick={() =>
+                    Modal.confirm({
+                      title: `${text[4]}：${entry.title}？`,
+                      content: t("ReplayDeleteWarning"),
+                      onOk: () => run(() => deleteReplay(entry.id)),
+                    })
+                  }
+                >
+                  {text[4]}
+                </Button>
+              </div>
+            </article>
+          ))}
+      </section>
+      {matching.length > 24 && (
+        <Pagination
+          style={{ marginTop: 16 }}
+          current={currentPage}
+          pageSize={24}
+          total={matching.length}
+          showSizeChanger={false}
+          onChange={setPage}
+        />
+      )}
+      <Modal
+        open={!!editing}
+        title={text[5]}
+        onCancel={() => setEditing(undefined)}
+        onOk={() =>
+          void run(async () => {
+            await renameReplay(editing!.id, title);
+            setEditing(undefined);
+          })
+        }
+      >
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={120}
+        />
+      </Modal>
+      {extracting && (
+        <DeckExtract
+          key={extracting}
+          replayId={extracting}
+          closeLabel={text[23]}
+          onClose={() => setExtracting(undefined)}
+        />
+      )}
+    </main>
+  );
+}
+
+function Player({ id, text }: { id: string; text: string[] }) {
+  const { t } = useTranslation("ClientUI");
+  const { language } = useI18N();
+  const mobile = useMobileInterface();
+  const stateText = replayCardWords(language);
+  const words = replayExtraWords(language);
+  const preview = previewMessages(language);
+  const [extracting, setExtracting] = useState(false);
+  const settings = useSnapshot(settingStore);
+  const soundEnabled = settings.audio.enableSoundEffects === true;
+  const audio = useRef<ReplayAudio>();
+  if (!audio.current) audio.current = new ReplayAudio();
+  const navigate = useNavigate();
+  const worker = useRef<Worker>();
+  const timer = useRef<number>();
+  const watchdog = useRef<number>();
+  const pending = useRef(false),
+    paused = useRef(true),
+    speed = useRef(settingStore.replaySpeed),
+    seek = useRef(0);
+  const scene = useRef<SceneFrame>();
+  const queue = useRef<SceneFrame[]>([]);
+  const requestedAuto = useRef(false);
+  const autoStartPending = useRef(false);
+  const [fieldView, setFieldView] = useState(true);
+  const [frame, setFrame] = useState<SceneFrame>(),
+    [working, setWorking] = useState(true),
+    [status, setStatus] = useState(t("ReplayOpening")),
+    [error, setError] = useState(""),
+    [playing, setPlaying] = useState(false),
+    [seeking, setSeeking] = useState(false),
+    [view, setView] = useState(0),
+    [target, setTarget] = useState("1"),
+    [card, setCard] = useState<ReplayCard>(),
+    [history, setHistory] = useState<ReplayHistoryFrame[]>([]),
+    [showHistory, setShowHistory] = useState(false),
+    [title, setTitle] = useState("");
+  const [reveal, setReveal] = useState(false);
+  const rate = settings.replaySpeed;
+  const stop = () => {
+    autoStartPending.current = false;
+    paused.current = true;
+    setPlaying(false);
+    clearTimeout(timer.current);
+    audio.current?.stop();
+  };
+  const updateFrame = (next: SceneFrame) => {
+    scene.current = next;
+    setFrame(next);
+  };
+  const advance = () => {
+    const next = queue.current.shift();
+    if (!next) return;
+    const action =
+      next.action !== scene.current?.action ? next.action : undefined;
+    if (action && !seek.current) audio.current?.play(action, speed.current);
+    updateFrame(next);
+    if (next.end) {
+      stop();
+      return;
+    }
+    if (!paused.current)
+      timer.current = window.setTimeout(() => request(), 600 / speed.current);
+  };
+  useEffect(() => {
+    audio.current?.configure(
+      soundEnabled,
+      settings.audio.soundEffectsVolume ?? 0.7,
+    );
+  }, [soundEnabled, settings.audio.soundEffectsVolume]);
+  const request = (type = "next") => {
+    if (pending.current || !worker.current) return;
+    if (type !== "next" || seek.current) queue.current = [];
+    if (type === "next" && queue.current.length) {
+      advance();
+      return;
+    }
+    pending.current = true;
+    setWorking(true);
+    clearTimeout(timer.current);
+    watchdog.current = window.setTimeout(() => {
+      worker.current?.terminate();
+      pending.current = false;
+      setWorking(false);
+      setError(t("ReplayUnresponsive"));
+      stop();
+    }, 10000);
+    worker.current.postMessage({ type, turn: seek.current });
+    requestedAuto.current = !paused.current;
+  };
+  const requestRef = useRef(request);
+  requestRef.current = request;
+  useEffect(() => {
+    speed.current = rate;
+    if (!paused.current && !pending.current && !seek.current) {
+      clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => requestRef.current(), 600 / rate);
+    }
+  }, [rate]);
+  useEffect(() => {
+    let disposed = false;
+    autoStartPending.current = settingStore.replayAutoPlay && !document.hidden;
+    paused.current = true;
+    setPlaying(false);
+    const loadingTimeout = window.setTimeout(() => {
+      if (disposed) return;
+      worker.current?.terminate();
+      setError(t("ReplayLoadTimeout"));
+    }, 120000);
+    void getReplay(id)
+      .then(async ({ entry, blob }) => {
+        if (!entry.header.playable) throw new Error(entry.header.reason);
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        if ((await sha256(bytes)) !== entry.hash)
+          throw new Error(t("ReplayHashError"));
+        if (disposed) return;
+        setTitle(entry.title);
+        const w = new Worker(
+          new URL("../../replay/worker.ts", import.meta.url),
+          { type: "module" },
+        );
+        worker.current = w;
+        w.onmessage = ({ data }) => {
+          if (disposed || worker.current !== w) return;
+          if (data.type === "status") {
+            setStatus(data.text);
+            return;
+          }
+          clearTimeout(loadingTimeout);
+          clearTimeout(timer.current);
+          clearTimeout(watchdog.current);
+          pending.current = false;
+          setWorking(false);
+          if (data.type === "error") {
+            setError(data.text);
+            stop();
+            return;
+          }
+          if (data.type !== "frame") return;
+          const startAuto = autoStartPending.current;
+          autoStartPending.current = false;
+          const next = data.frame as ReplayFrame;
+          setStatus("");
+          setHistory((old) =>
+            [
+              ...old,
+              ...(data.history || [next]).flatMap((f: ReplayHistoryFrame) =>
+                f.events
+                  .filter(
+                    (e) => describeEvents({ ...f, events: [e] }, t).length > 0,
+                  )
+                  .map((e) => ({
+                    turn: f.turn,
+                    names: f.names,
+                    events: [e],
+                  })),
+              ),
+            ].slice(-1000),
+          );
+          if (!seek.current && next.step > 0 && scene.current) {
+            queue.current = sceneSteps(scene.current, next);
+            if (!requestedAuto.current || !paused.current) advance();
+            return;
+          }
+          queue.current = [];
+          updateFrame(
+            seedScene(next, next.step === 0 ? undefined : scene.current),
+          );
+          if (next.end) {
+            stop();
+            setSeeking(false);
+            seek.current = 0;
+            return;
+          }
+          if (seek.current) {
+            if (next.turn < seek.current) {
+              timer.current = window.setTimeout(() => request(), 0);
+              return;
+            }
+            seek.current = 0;
+            setSeeking(false);
+            stop();
+            return;
+          }
+          if (startAuto && !document.hidden) {
+            audio.current?.unlock();
+            paused.current = false;
+            setPlaying(true);
+          }
+          if (!paused.current)
+            timer.current = window.setTimeout(
+              () => request(),
+              600 / speed.current,
+            );
+        };
+        w.onerror = () => {
+          if (disposed || worker.current !== w) return;
+          clearTimeout(loadingTimeout);
+          clearTimeout(watchdog.current);
+          pending.current = false;
+          setWorking(false);
+          setError(t("ReplayWorkerError"));
+          stop();
+        };
+        pending.current = true;
+        w.postMessage(
+          {
+            type: "open",
+            bytes: bytes.buffer,
+            base: new URL(
+              `${import.meta.env.BASE_URL}replay/706-v1/`,
+              document.baseURI,
+            ).href,
+          },
+          [bytes.buffer],
+        );
+      })
+      .catch((e) => {
+        if (disposed) return;
+        if (!disposed) setError(String(e instanceof Error ? e.message : e));
+        clearTimeout(loadingTimeout);
+        clearTimeout(watchdog.current);
+      });
+    const background = () => {
+      if (document.hidden) {
+        stop();
+        seek.current = 0;
+        setSeeking(false);
+      }
+    };
+    document.addEventListener("visibilitychange", background);
+    return () => {
+      disposed = true;
+      clearTimeout(loadingTimeout);
+      clearTimeout(watchdog.current);
+      clearTimeout(timer.current);
+      worker.current?.postMessage({ type: "close" });
+      worker.current?.terminate();
+      worker.current = undefined;
+      queue.current = [];
+      scene.current = undefined;
+      audio.current?.dispose();
+      document.removeEventListener("visibilitychange", background);
+    };
+  }, [id]);
+  const run = async (fn: () => Promise<unknown>) => {
+    try {
+      await fn();
+    } catch (e) {
+      message.error(
+        localizeReplayText(
+          String(e instanceof Error ? e.message : e),
+          language as Language,
+        ),
+      );
+    }
+  };
+  const currentCard =
+    card &&
+    frame?.cards.find(
+      (c) =>
+        c.player === card.player &&
+        c.location === card.location &&
+        c.sequence === card.sequence &&
+        c.code === card.code,
+    );
+  const selected = currentCard ? fetchCard(currentCard.code) : undefined;
+  const selectedIdentity =
+    currentCard &&
+    currentCard.currentCode !== undefined &&
+    !(currentCard.location & 128) &&
+    !concealReplayCard(currentCard, reveal)
+      ? currentCard
+      : undefined;
+  return (
+    <main
+      className={`replay-player ${fieldView ? "replay-player-field" : ""}`}
+      style={
+        {
+          "--replay-motion-ms": `${Math.min(300, 600 / rate)}ms`,
+        } as React.CSSProperties
+      }
+    >
+      <header className="replay-header">
+        <h1>{title || text[2]}</h1>
+        <Button onClick={() => navigate("/replays")}>{text[12]}</Button>
+      </header>
+      <div className="replay-controls">
+        <Button
+          type="primary"
+          disabled={!frame || !!frame.end || !!error || seeking}
+          onClick={() => {
+            if (playing) {
+              stop();
+              clearTimeout(timer.current);
+            } else {
+              audio.current?.unlock();
+              paused.current = false;
+              setPlaying(true);
+              request();
+            }
+          }}
+        >
+          {playing ? text[7] : text[8]}
+        </Button>
+        <Button
+          disabled={
+            !frame || !!frame.end || playing || !!error || seeking || working
+          }
+          onClick={() => {
+            audio.current?.unlock();
+            request();
+          }}
+        >
+          {text[9]}
+        </Button>
+        <Button
+          disabled={!frame || working || !!error}
+          onClick={() => {
+            stop();
+            seek.current = 0;
+            setSeeking(false);
+            setHistory([]);
+            request("restart");
+          }}
+        >
+          {text[10]}
+        </Button>
+        <Select
+          aria-label={t("ReplaySpeed")}
+          value={rate}
+          options={[0.5, 1, 2, 4, 8, 16].map((n) => ({
+            value: n,
+            label: `${n}×`,
+          }))}
+          onChange={(n) => {
+            settingStore.replaySpeed = n;
+          }}
+        />
+        <Button onClick={() => setView(1 - view)}>{text[11]}</Button>
+        <Button
+          aria-pressed={soundEnabled}
+          onClick={() => {
+            const enabled = !soundEnabled;
+            settingStore.saveAudioConfig({ enableSoundEffects: enabled });
+            audio.current?.configure(
+              enabled,
+              settingStore.audio.soundEffectsVolume ?? 0.7,
+            );
+            if (enabled) audio.current?.unlock();
+          }}
+        >
+          {soundEnabled ? words.soundOn : words.soundOff}
+        </Button>
+        <Input
+          aria-label={t("ReplayTarget")}
+          type="number"
+          min={1}
+          max={999}
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+        />
+        <Button
+          disabled={!frame || working || !!error}
+          onClick={() => {
+            const turn = Number(target);
+            if (!Number.isInteger(turn) || turn < 1 || turn > 999) return;
+            stop();
+            seek.current = turn;
+            setSeeking(true);
+            if (turn <= frame!.turn) {
+              setHistory([]);
+              request("restart");
+            } else request();
+          }}
+        >
+          {text[13]}
+        </Button>
+        {seeking && (
+          <Button
+            onClick={() => {
+              seek.current = 0;
+              setSeeking(false);
+              stop();
+            }}
+          >
+            {text[24]}
+          </Button>
+        )}
+        <Button onClick={() => setShowHistory(true)}>{text[15]}</Button>
+        <Button onClick={() => setFieldView(!fieldView)}>
+          {fieldView
+            ? replayFieldWords(language).list
+            : replayFieldWords(language).field}
+        </Button>
+        <Button aria-pressed={reveal} onClick={() => setReveal(!reveal)}>
+          {stateText.reveal}
+        </Button>
+        <Button onClick={() => run(() => downloadReplay(id))}>{text[3]}</Button>
+        <Button
+          onClick={() => {
+            stop();
+            setExtracting(true);
+          }}
+        >
+          {preview.extractDecks}
+        </Button>
+      </div>
+      {extracting && (
+        <DeckExtract
+          replayId={id}
+          closeLabel={text[23]}
+          onClose={() => setExtracting(false)}
+        />
+      )}
+      {reveal && <p className="replay-note">{stateText.revealNote}</p>}
+      {(status || seeking) && (
+        <p className="replay-note" role="status">
+          {seeking
+            ? t("ReplaySeeking", { turn: seek.current })
+            : localizeReplayText(status, language as Language)}
+        </p>
+      )}
+      {error && (
+        <p className="replay-error" role="alert">
+          {localizeReplayText(error, language as Language)}
+        </p>
+      )}
+      {frame && (
+        <>
+          <div className="replay-progress">
+            {t("ReplayTurn")} {frame.turn} · {phaseName(frame.phase, t)} ·{" "}
+            {frame.names[frame.turnPlayer]} · {t("ReplayStep")} {frame.step} ·{" "}
+            {t("ReplayResponse")} {frame.consumed}/{frame.total}
+            {frame.end && (
+              <strong>
+                {frame.end === "complete"
+                  ? ` · ${t("ReplayComplete")}`
+                  : ` · ${t("ReplayStopped")}`}
+              </strong>
+            )}
+          </div>
+          {fieldView ? (
+            <FieldBoard
+              frame={frame}
+              view={view}
+              reveal={reveal}
+              language={language}
+              text={text}
+              onPause={stop}
+              onInspect={(selectedCard) => {
+                stop();
+                setCard(selectedCard);
+              }}
+            />
+          ) : (
+            <div className="replay-board">
+              {[1 - view, view].map((player) => (
+                <section className="replay-side" key={player}>
+                  <header>
+                    <h2>{frame.names[player] || `Player ${player + 1}`}</h2>
+                    <strong>LP {frame.lp[player]}</strong>
+                  </header>
+                  {[2, 4, 8, 1, 64, 16, 32].map((location, i) => {
+                    const cards = frame.cards.filter(
+                      (c) => c.player === player && c.location === location,
+                    );
+                    return (
+                      <div className="replay-zone" key={location}>
+                        <h3>
+                          {text[16 + i]} <span>{cards.length}</span>
+                        </h3>
+                        <div>
+                          {cards.map((c) => (
+                            <ReplayCardTile
+                              key={c.sequence}
+                              card={c}
+                              language={language}
+                              reveal={reveal}
+                              zoneLabel={text[16 + i]}
+                              onInspect={(selectedCard) => {
+                                stop();
+                                clearTimeout(timer.current);
+                                setCard(selectedCard);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </section>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      <Drawer
+        rootClassName="replay-drawer"
+        title={
+          (selectedIdentity?.currentCode
+            ? fetchCard(selectedIdentity.currentCode).text.name
+            : selected?.text.name) || currentCard?.code
+        }
+        open={!!currentCard}
+        onClose={() => setCard(undefined)}
+        width={mobile ? "min(400px, 100vw)" : 400}
+        closable={!mobile}
+        extra={
+          mobile ? (
+            <Button
+              data-testid="replay-card-detail-close"
+              style={{ minWidth: 44, minHeight: 44 }}
+              onClick={() => setCard(undefined)}
+            >
+              {text[23]}
+            </Button>
+          ) : undefined
+        }
+      >
+        {!mobile && (
+          <Button onClick={() => setCard(undefined)}>{text[23]}</Button>
+        )}
+        {currentCard && (
+          <>
+            <div className="card-stat-overview">
+              <img
+                className="replay-detail-image"
+                src={getCardImgUrl(currentCard.code)}
+                alt=""
+              />
+              {!!((currentCard.type | (selected?.data.type ?? 0)) & 1) && (
+                <CardStatsDetails
+                  language={language}
+                  live={
+                    [4, 8].includes(currentCard.location) &&
+                    !!(currentCard.position & 5) &&
+                    !!(currentCard.type & 1)
+                  }
+                  stats={{
+                    ...currentCard,
+                    printedAttack: selected?.data.atk,
+                    printedDefense: selected?.data.def,
+                    hasDefense: !(currentCard.type & 0x4000000),
+                  }}
+                />
+              )}
+            </div>
+            <CardIdentityDetails
+              code={currentCard.code}
+              current={selectedIdentity}
+              language={language}
+            />
+            <p>{positionLabel(currentCard, language)}</p>
+            {!!((currentCard.status || 0) & 1) && <p>{stateText.disabled}</p>}
+            {!!((currentCard.status || 0) & 0x4000000) && (
+              <p>{stateText.forbidden}</p>
+            )}
+            <strong className="card-printed-description-label">
+              {statsPlaybackMessages(language).printed}
+            </strong>
+            <p className="replay-description">{selected?.text.desc}</p>
+            <RelatedCards
+              id={currentCard.sceneId}
+              cards={sceneInformationCards(
+                frame?.cards ?? [],
+                language,
+                view,
+                reveal,
+              )}
+              language={language}
+              onLocate={() => setCard(undefined)}
+            />
+            {currentCard.declared && (
+              <p>
+                {stateText.declared}：
+                {fetchCard(currentCard.declared).text.name ||
+                  currentCard.declared}
+              </p>
+            )}
+            {!!currentCard.overlay.length && (
+              <p>
+                {stateText.materials} {currentCard.overlay.length}：
+                {currentCard.overlay
+                  .map((n) => fetchCard(n).text.name || n)
+                  .join("、")}
+              </p>
+            )}
+            {!!replayCounters(currentCard).length && (
+              <p>
+                {stateText.counters}：
+                {replayCounters(currentCard)
+                  .map(({ type, count }) => {
+                    const name = fetchStrings(
+                      Region.Counter,
+                      `0x${type.toString(16)}`,
+                    );
+                    return `${
+                      name === "?" ? `0x${type.toString(16)}` : name
+                    } × ${count}`;
+                  })
+                  .join("、")}
+              </p>
+            )}
+          </>
+        )}
+      </Drawer>
+      <Drawer
+        rootClassName="replay-drawer"
+        title={text[15]}
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        width={380}
+      >
+        <Button onClick={() => setShowHistory(false)}>{text[23]}</Button>
+        <ol className="replay-history">
+          {orderHistory(
+            history
+              .flatMap((f) => describeEvents(f, t))
+              .map((line, i) => <li key={i}>{line}</li>),
+            settings.historyOrder,
+          )}
+        </ol>
+      </Drawer>
+    </main>
+  );
+}
+type ReplayHistoryFrame = Pick<ReplayFrame, "turn" | "names" | "events">;
+const orderHistory = <T,>(lines: T[], order: HistoryOrder) =>
+  order === "newest" ? lines.reverse() : lines;
+const phaseName = (phase: number, t: (key: string) => string) =>
+  ({
+    1: "DP",
+    2: "SP",
+    4: "MP1",
+    8: t("BattleStart"),
+    16: "BP",
+    32: t("DamageStep"),
+    64: t("DamageCalculation"),
+    128: t("BattleEnd"),
+    256: "MP2",
+    512: "EP",
+  })[phase] || String(phase);
+function describeEvents(frame: ReplayHistoryFrame, t: (key: string) => string) {
+  return frame.events.flatMap((e) => {
+    const v = new DataView(new Uint8Array(e).buffer),
+      code = (p: number) =>
+        fetchCard(v.getUint32(p, true)).text.name ||
+        String(v.getUint32(p, true)),
+      prefix = `T${frame.turn} `;
+    if (e[0] === 40)
+      return [`${prefix}${frame.names[e[1]]} ${t("TurnStarted")}`];
+    if (e[0] === 41) return [`${prefix}${phaseName(v.getUint16(1, true), t)}`];
+    if ([60, 62, 64].includes(e[0]))
+      return [
+        `${prefix}${code(1)} ${
+          e[0] === 60
+            ? t("Summon")
+            : e[0] === 62
+            ? t("SpecialSummon")
+            : t("FlipSummon")
+        }`,
+      ];
+    if (e[0] === 70) return [`${prefix}${t("Chain")}: ${code(1)}`];
+    if (e[0] === 50)
+      return [`${prefix}${code(1)} ${t("Move")} ${e[6]} → ${e[10]}`];
+    if (e[0] === 2 && [8, 10].includes(e[1]))
+      return [`${prefix}${t("DeclareHint")}: ${code(3)}`];
+    if (e[0] === 160 && e[5] === 2)
+      return [`${prefix}${t("DeclareCard")}: ${code(6)}`];
+    if ([91, 92, 100].includes(e[0]))
+      return [
+        `${prefix}${frame.names[e[1]]} ${
+          e[0] === 92 ? t("Recover") : t("Decrease")
+        } LP ${v.getUint32(2, true)}`,
+      ];
+    if (e[0] === 5)
+      return [
+        `${prefix}${e[1] < 2 ? frame.names[e[1]] : t("Draw")} · ${t(
+          "EndReason",
+        )} ${e[2]}`,
+      ];
+    return [];
+  });
+}

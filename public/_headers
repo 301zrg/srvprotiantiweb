@@ -1,5 +1,7 @@
 /duel-config.js
   Cache-Control: no-store
+/assets-manifest.json
+  Cache-Control: no-store
 /index.html
   Cache-Control: no-cache
 /

@@ -1,0 +1,31 @@
+.home {
+  display: none;
+}
+
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
+  .home {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    color: #91caff;
+    background: #91caff14;
+    border: 1px solid #91caff3d;
+    border-radius: 8px;
+    font-size: 20px;
+
+    &:hover {
+      color: #c4e2ff;
+      background: #91caff26;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #91caff;
+      outline-offset: 2px;
+    }
+  }
+}

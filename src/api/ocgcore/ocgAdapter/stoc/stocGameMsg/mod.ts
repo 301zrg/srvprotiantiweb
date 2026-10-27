@@ -12,8 +12,11 @@ import MsgAnnounceCard from "./announceCard";
 import MsgAnnounceNumber from "./announceNumber";
 import MsgAnnounceRace from "./announceRace";
 import MsgAttack from "./attack";
+import MsgCardHintAdapter from "./cardHint";
+import { cardRelationMessage } from "./cardRelation";
 import MsgConfirmCardsAdapter from "./confirmCards";
 import MsgDamage from "./damage";
+import { deckVisibilityMessage } from "./deckVisibility";
 import MsgDrawAdapter from "./draw";
 import MsgFieldDisabledAdapter from "./fieldDisabled";
 import MsgHandResultAdapter from "./handResult";
@@ -21,6 +24,7 @@ import MsgHintAdapter from "./hint";
 import MsgNewPhaseAdapter from "./newPhase";
 import MsgNewTurnAdapter from "./newTurn";
 import PENETRATE from "./penetrate";
+import MsgPlayerHintAdapter from "./playerHint";
 import MsgRecover from "./recover";
 import MsgReloadFieldAdapter from "./reloadField";
 import MsgRemoveCounter from "./removeCounter";
@@ -68,6 +72,24 @@ export default class GameMsgAdapter implements StocAdapter {
 
     const func = dataView.getUint8(0);
     const gameData = exData.slice(1);
+    if ([93, 95, 96, 97].includes(func))
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: cardRelationMessage(func, gameData),
+      });
+    if (func === 37 || func === 38)
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: deckVisibilityMessage(func, gameData),
+      });
+    if (func === GAME_MSG.MSG_CARD_HINT) {
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: MsgCardHintAdapter(gameData),
+      });
+    }
+    if (func === GAME_MSG.MSG_PLAYER_HINT) {
+      return new ygopro.YgoStocMsg({
+        stoc_game_msg: MsgPlayerHintAdapter(gameData),
+      });
+    }
     let gameMsg: any = new ygopro.StocGameMessage({}).toObject();
 
     if (!PENETRATE.penetrate(func, gameMsg, gameData)) {

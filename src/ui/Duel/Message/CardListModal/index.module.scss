@@ -1,0 +1,27 @@
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 80px));
+  gap: 8px;
+  p { grid-column: 1 / -1; margin: 4px 0; }
+  .chain { position: absolute; left: 0; right: 0; bottom: 0; }
+  button {
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    min-width: 44px;
+    overflow: hidden;
+    position: relative;
+    &:focus-visible {
+      outline: 2px solid #76b2ff;
+    }
+  }
+}
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
+  .cards {
+    grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+  }
+}

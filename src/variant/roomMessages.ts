@@ -3,6 +3,7 @@ import { type Language } from "./index";
 const messages = {
   cn: {
     title: "决斗准备",
+    roomRules: "房间规则",
     selectDeck: "选择卡组",
     noDeck: "请先选择卡组",
     prepare: "准备决斗",
@@ -35,6 +36,7 @@ const messages = {
   },
   en: {
     title: "Duel lobby",
+    roomRules: "Room rules",
     selectDeck: "Choose deck",
     noDeck: "Choose a deck first",
     prepare: "Ready to duel",
@@ -68,6 +70,7 @@ const messages = {
   },
   ja: {
     title: "デュエル準備",
+    roomRules: "ルーム設定",
     selectDeck: "デッキを選択",
     noDeck: "先にデッキを選んでください",
     prepare: "準備完了",
@@ -102,6 +105,7 @@ const messages = {
   },
   ko: {
     title: "듀얼 준비",
+    roomRules: "방 규칙",
     selectDeck: "덱 선택",
     noDeck: "먼저 덱을 선택하세요",
     prepare: "듀얼 준비",

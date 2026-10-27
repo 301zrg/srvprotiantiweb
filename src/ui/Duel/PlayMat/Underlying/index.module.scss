@@ -15,19 +15,30 @@
   @include utils.noise-bg;
 }
 
+// A pre-softened gradient instead of filter: blur(500px+): WebKit allocates a
+// filter surface far larger than the viewport and repainted it on every turn
+// transition, freezing high-resolution iPads.
 .inner {
   transform: translateY(50%);
   width: 60vw;
   height: 100vh;
-  background: radial-gradient(#00814f, #1c0161);
-  background-size: contain;
-  background-repeat: repeat;
-  filter: blur(502px);
-  transition: 0.5s;
+  background: radial-gradient(
+    closest-side,
+    rgba(0, 129, 79, 0.3),
+    rgba(28, 1, 97, 0.16) 55%,
+    rgba(28, 1, 97, 0)
+  );
+  transition:
+    transform 0.5s,
+    opacity 0.5s;
 }
 .opponent .inner {
-  background: radial-gradient(#810000, #54005f98);
+  background: radial-gradient(
+    closest-side,
+    rgba(129, 0, 0, 0.3),
+    rgba(84, 0, 95, 0.14) 55%,
+    rgba(84, 0, 95, 0)
+  );
   transform: translateY(-50%);
-  filter: blur(602px);
   opacity: 0.8;
 }

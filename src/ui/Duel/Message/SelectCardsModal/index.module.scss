@@ -62,11 +62,42 @@
   top: 0;
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+.spatialGroup { display: block; width: 100%; }
+.fieldOption { min-width: 0; width: 100%; text-align: center; }
+.optionLocation { display: block; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; padding: 3px 0; }
+.chainTag { margin: 3px 0; }
+.targetTag { display: block; color: #ffb4cd; border: 1px solid #e56d97; border-radius: 3px; font-size: 11px; line-height: 1.4; padding: 2px; margin: 3px 0; }
+.fieldOption .check-card { width: 100%; height: auto; aspect-ratio: auto; outline: 2px dashed #75def1; outline-offset: -1px; border-color: transparent; }
+.fieldOption[data-field-selected="true"] .check-card { outline: 3px solid #ffdb75; }
+.fieldOption .check-card::before { display: none; }
+.fieldCheck { position: absolute; top: 1px; right: 1px; z-index: 2; color: #ffdb75; background: #172a34; padding: 3px; border-radius: 3px; }
+.fieldCover { position: relative; width: 100%; height: clamp(60px, 10vw, 100px); }
+.fieldCover .fieldImage { position: absolute; top: 50%; left: 50%; height: 90%; width: auto; aspect-ratio: var(--card-ratio); transform: translate(-50%, -50%); }
+.fieldOption[data-field-defense="true"] .fieldImage { height: 70%; transform: translate(-50%, -50%) rotate(90deg); }
+.fieldOption .preview { width: 100%; padding: 2px; min-height: 44px; height: auto; white-space: normal; font-size: 11px; line-height: 14px; }
+.selectionSummary { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 6px 0; color: #ffe5a0; font-size: 12px; }
+
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .check-group {
-    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px 6px;
   }
   .check-card {
     width: 100%;
   }
+  .preview {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 2px;
+    font-size: 11px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+}
+
+// Phone portrait has no room for a third button in the minimized bar.
+@media (orientation: portrait) and (max-width: 479px) {
+  .miniCancel { display: none; }
 }

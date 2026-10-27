@@ -1,6 +1,9 @@
+import i18next from "i18next";
+
 import { ygopro } from "@/api";
 import { InteractType } from "@/stores";
 import { IconFont } from "@/ui/Shared";
+import { getLanguage } from "@/variant";
 
 import CardPosition = ygopro.CardPosition;
 
@@ -98,7 +101,7 @@ const messages: Record<
 /* End of definition (I18N) */
 
 export function interactTypeToString(t: InteractType): string {
-  const language = (localStorage.getItem("language") || "cn") as Language;
+  const language = getLanguage();
   const sSet = messages[language].sSet;
   const summon = messages[language].summon;
   const spSummon = messages[language].spSummon;
@@ -123,7 +126,7 @@ export function interactTypeToString(t: InteractType): string {
     case InteractType.ATTACK:
       return attack;
     default:
-      return "未知选项";
+      return i18next.t("ClientUI:UnknownAction");
   }
 }
 

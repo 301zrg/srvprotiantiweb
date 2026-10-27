@@ -3,5 +3,6 @@ declare const classNames: {
   readonly op: "op";
   readonly chain: "chain";
   readonly text: "text";
+  readonly tag: "tag";
 };
 export = classNames;

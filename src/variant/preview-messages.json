@@ -1,0 +1,62 @@
+{
+  "cn": {
+    "joinPersistence": "完整昵称和房间信息（含 $ 后的密码）会保存在此浏览器中，下次打开时自动填入。",
+    "spectatorRestore": "退出观战后，将恢复你之前填写的昵称和房间。",
+    "banStatus": "禁限状态", "all": "全部", "forbidden": "禁止", "limited": "限制", "semiLimited": "准限制", "unlimited": "无限制",
+    "ignoreBanlist": "忽略禁限卡表", "ignoreBanlistHelp": "仅影响卡组编辑，同名卡合计最多 3 张；能否用于对战由服务器判定。", "copyLimit": "同名卡合计最多 3 张。", "banlistWarning": "当前卡组不符合禁限卡表，可继续编辑。",
+    "randomRps": "随机出拳", "off": "关闭", "suggest": "仅建议", "playRandom": "按这个出", "randomHelp": "仅建议：显示随机建议，由你选择。按这个出：点击按钮后立即出拳。", "suggestion": "本次建议：{hand}", "randomSelected": "已随机选择：{hand}",
+    "mainDeck": "主卡组", "remaining": "剩余 {count} 张", "emptyZone": "此区域没有卡片。",
+    "chainMode": "连锁确认", "chainSmart": "智能连锁", "chainAll": "全部连锁", "chainIgnore": "忽略连锁", "chainHelp": "修改后立即应用于后续连锁确认，并记住下次使用的模式。",
+    "details": "卡片详情", "history": "操作记录", "chat": "聊天", "turnStatus": "第 {turn} 回合 · {player} · {phase}", "yourAction": "轮到你操作", "opponentAction": "等待对方操作", "expandSidebar": "展开侧栏", "hideSidebar": "隐藏侧栏", "returnField": "返回场地", "switchView": "切换视角",
+    "messageMode": "消息提示", "automatic": "自动适配", "popup": "弹出消息", "recordOnly": "仅消息记录", "messageHelp": "手机竖屏下，普通系统消息显示在消息栏，详细内容保留在聊天记录中。重要连接提示和必要选择仍会显示。", "unreadMessages": "消息 · {count}",
+    "sound": "音效", "soundVolume": "音效音量", "soundHelp": "同时控制对局与录像的音效。", "soundOn": "音效：开", "soundOff": "音效：关",
+    "practice": "测试手牌", "deckA": "A 方卡组", "deckB": "B 方卡组", "startingHand": "起始手牌", "noShuffle": "不洗牌", "practiceRules": "大师规则 2 · 双方均由你操作 · 忽略胜负条件", "startPractice": "开始测试", "redeal": "重新发牌", "retryHand": "重试本次手牌", "returnEditor": "返回卡组编辑", "activeSide": "当前操作：{player} 方", "practiceHelp": "忽略胜负条件，其余操作仍按游戏规则处理。", "practiceLoading": "正在准备测试手牌…", "practiceLoadFailed": "测试环境加载失败，请重试。", "practiceStopped": "测试已停止：{reason}。",
+    "extractDecks": "提取卡组", "replayDecks": "录像卡组", "deckCounts": "主卡组 {main} / 额外 {extra}", "saveDeck": "保存到我的卡组", "downloadYdk": "下载 YDK", "saveBoth": "保存双方卡组", "extractHelp": "提取的是本局开局时的主卡组和额外卡组；录像不包含备牌。", "extractLoading": "正在提取卡组…", "deckSaved": "已保存为“{name}”。", "bothSaved": "已保存双方卡组。", "extractUnsupported": "暂不支持从此格式的录像提取卡组。", "extractFailed": "无法提取卡组：{reason}。", "deckSaveFailed": "卡组保存失败，请重试或下载 YDK。",
+    "operations": "对局操作", "sounds": "声音", "displayMessages": "画面与消息", "language": "语言", "troubleshooting": "问题排查"
+  },
+  "en": {
+    "joinPersistence": "Your full nickname and room entry, including the password after $, are saved in this browser and filled in next time.",
+    "spectatorRestore": "Leaving spectating restores your previous nickname and room entry.",
+    "banStatus": "Banlist status", "all": "All", "forbidden": "Forbidden", "limited": "Limited", "semiLimited": "Semi-Limited", "unlimited": "Unlimited",
+    "ignoreBanlist": "Ignore banlist", "ignoreBanlistHelp": "Applies only to deck editing. Cards with the same name remain limited to 3 copies in total; the server decides whether a deck can be used.", "copyLimit": "Cards with the same name are limited to 3 copies in total.", "banlistWarning": "This deck does not meet the banlist. You can continue editing.",
+    "randomRps": "Random hand", "off": "Off", "suggest": "Suggest only", "playRandom": "Play the result", "randomHelp": "Suggest only shows a random suggestion for you to choose. Play the result submits a random hand when clicked.", "suggestion": "Suggestion: {hand}", "randomSelected": "Randomly selected: {hand}",
+    "mainDeck": "Main Deck", "remaining": "{count} cards remaining", "emptyZone": "There are no cards in this zone.",
+    "chainMode": "Chain confirmation", "chainSmart": "Smart Chain", "chainAll": "All Chain", "chainIgnore": "Ignore Chain", "chainHelp": "Changes apply to subsequent chain confirmations and are remembered for next time.",
+    "details": "Card details", "history": "Action log", "chat": "Chat", "turnStatus": "Turn {turn} · {player} · {phase}", "yourAction": "Your action", "opponentAction": "Waiting for opponent", "expandSidebar": "Expand sidebar", "hideSidebar": "Hide sidebar", "returnField": "Return to field", "switchView": "Switch view",
+    "messageMode": "Message display", "automatic": "Automatic", "popup": "Popups", "recordOnly": "Log only", "messageHelp": "In portrait mode, ordinary system messages appear in the message bar and remain in the chat log. Important connection notices and required choices are still shown.", "unreadMessages": "Messages · {count}",
+    "sound": "Sound effects", "soundVolume": "Effects volume", "soundHelp": "Controls sound effects in both duels and replays.", "soundOn": "Sound: on", "soundOff": "Sound: off",
+    "practice": "Test hand", "deckA": "Player A deck", "deckB": "Player B deck", "startingHand": "Starting hand", "noShuffle": "Do not shuffle", "practiceRules": "Master Rule 2 · You control both players · Victory conditions ignored", "startPractice": "Start test", "redeal": "Deal a new hand", "retryHand": "Retry this hand", "returnEditor": "Return to deck editor", "activeSide": "Acting player: {player}", "practiceHelp": "Victory conditions are ignored; all other actions follow the game rules.", "practiceLoading": "Preparing hand test…", "practiceLoadFailed": "Could not load the test environment. Please retry.", "practiceStopped": "Test stopped: {reason}.",
+    "extractDecks": "Extract decks", "replayDecks": "Replay decks", "deckCounts": "Main {main} / Extra {extra}", "saveDeck": "Save to my decks", "downloadYdk": "Download YDK", "saveBoth": "Save both decks", "extractHelp": "Extracts the Main and Extra Decks at the start of this game. The replay does not contain Side Decks.", "extractLoading": "Extracting decks…", "deckSaved": "Saved as “{name}”.", "bothSaved": "Both decks saved.", "extractUnsupported": "Deck extraction is not supported for this replay format.", "extractFailed": "Could not extract decks: {reason}.", "deckSaveFailed": "Could not save the deck. Retry or download the YDK.",
+    "operations": "Duel controls", "sounds": "Sound", "displayMessages": "Display and messages", "language": "Language", "troubleshooting": "Troubleshooting"
+  },
+  "ja": {
+    "joinPersistence": "ニックネームとルームの入力内容（$ 以降のパスワードを含む）をこのブラウザーに保存し、次回も自動入力します。",
+    "spectatorRestore": "観戦を終了すると、以前入力したニックネームとルームに戻ります。",
+    "banStatus": "禁止・制限", "all": "すべて", "forbidden": "禁止", "limited": "制限", "semiLimited": "準制限", "unlimited": "無制限",
+    "ignoreBanlist": "禁止・制限を無視", "ignoreBanlistHelp": "デッキ編集にのみ適用されます。同名カードは合計3枚までです。対戦で使用できるかはサーバーが判定します。", "copyLimit": "同名カードは合計3枚までです。", "banlistWarning": "このデッキは禁止・制限に適合していません。編集は続けられます。",
+    "randomRps": "ランダムじゃんけん", "off": "オフ", "suggest": "提案のみ", "playRandom": "結果どおりに出す", "randomHelp": "「提案のみ」はランダムな提案を表示し、自分で選びます。「結果どおりに出す」は押すとランダムな手を送信します。", "suggestion": "今回の提案：{hand}", "randomSelected": "ランダムで選択：{hand}",
+    "mainDeck": "メインデッキ", "remaining": "残り {count} 枚", "emptyZone": "このゾーンにカードはありません。",
+    "chainMode": "チェーン確認", "chainSmart": "スマートチェーン", "chainAll": "すべて確認", "chainIgnore": "チェーンを無視", "chainHelp": "変更は以降のチェーン確認に適用され、次回も保存した設定を使用します。",
+    "details": "カード詳細", "history": "操作履歴", "chat": "チャット", "turnStatus": "ターン {turn} · {player} · {phase}", "yourAction": "あなたの操作待ち", "opponentAction": "相手の操作待ち", "expandSidebar": "サイドバーを開く", "hideSidebar": "サイドバーを閉じる", "returnField": "フィールドに戻る", "switchView": "視点切り替え",
+    "messageMode": "メッセージ表示", "automatic": "自動調整", "popup": "ポップアップ", "recordOnly": "履歴のみ", "messageHelp": "縦画面では通常のシステムメッセージをメッセージバーに表示し、全文をチャット履歴に残します。重要な接続通知や必要な選択肢は引き続き表示します。", "unreadMessages": "メッセージ · {count}",
+    "sound": "効果音", "soundVolume": "効果音の音量", "soundHelp": "対戦とリプレイの効果音を共通で設定します。", "soundOn": "効果音：オン", "soundOff": "効果音：オフ",
+    "practice": "初手テスト", "deckA": "A側のデッキ", "deckB": "B側のデッキ", "startingHand": "初期手札", "noShuffle": "シャッフルしない", "practiceRules": "マスタールール2 · 両プレイヤーを操作 · 勝敗条件を無視", "startPractice": "テスト開始", "redeal": "手札を引き直す", "retryHand": "同じ手札で再開", "returnEditor": "デッキ編集に戻る", "activeSide": "現在の操作：{player}側", "practiceHelp": "勝敗条件のみを無視し、その他の操作はゲームのルールに従います。", "practiceLoading": "初手テストを準備中…", "practiceLoadFailed": "テスト環境を読み込めませんでした。再試行してください。", "practiceStopped": "テスト停止：{reason}。",
+    "extractDecks": "デッキを抽出", "replayDecks": "リプレイのデッキ", "deckCounts": "メイン {main} / EX {extra}", "saveDeck": "マイデッキに保存", "downloadYdk": "YDKをダウンロード", "saveBoth": "両方のデッキを保存", "extractHelp": "このデュエル開始時のメインデッキとEXデッキを抽出します。リプレイにサイドデッキは含まれていません。", "extractLoading": "デッキを抽出中…", "deckSaved": "「{name}」として保存しました。", "bothSaved": "両方のデッキを保存しました。", "extractUnsupported": "この形式のリプレイからのデッキ抽出には対応していません。", "extractFailed": "デッキを抽出できません：{reason}。", "deckSaveFailed": "デッキを保存できませんでした。再試行するかYDKをダウンロードしてください。",
+    "operations": "対戦操作", "sounds": "サウンド", "displayMessages": "表示とメッセージ", "language": "言語", "troubleshooting": "問題の確認"
+  },
+  "ko": {
+    "joinPersistence": "닉네임과 방 입력 내용($ 뒤의 비밀번호 포함)을 이 브라우저에 저장하고 다음에 자동으로 입력합니다.",
+    "spectatorRestore": "관전을 종료하면 이전에 입력한 닉네임과 방 정보로 돌아갑니다.",
+    "banStatus": "금지·제한 상태", "all": "전체", "forbidden": "금지", "limited": "제한", "semiLimited": "준제한", "unlimited": "무제한",
+    "ignoreBanlist": "금지·제한 목록 무시", "ignoreBanlistHelp": "덱 편집에만 적용됩니다. 같은 이름의 카드는 합계 3장까지이며, 대전에서 사용할 수 있는지는 서버가 판정합니다.", "copyLimit": "같은 이름의 카드는 합계 3장까지입니다.", "banlistWarning": "이 덱은 금지·제한 목록에 맞지 않습니다. 편집은 계속할 수 있습니다.",
+    "randomRps": "무작위 가위바위보", "off": "끄기", "suggest": "제안만", "playRandom": "결과대로 내기", "randomHelp": "제안만: 무작위 제안을 보고 직접 선택합니다. 결과대로 내기: 버튼을 누르면 무작위로 선택하여 바로 냅니다.", "suggestion": "이번 제안: {hand}", "randomSelected": "무작위 선택: {hand}",
+    "mainDeck": "메인 덱", "remaining": "남은 카드 {count}장", "emptyZone": "이 존에는 카드가 없습니다.",
+    "chainMode": "체인 확인", "chainSmart": "스마트 체인", "chainAll": "모든 체인", "chainIgnore": "체인 무시", "chainHelp": "변경 사항은 이후의 체인 확인에 적용되며 다음에도 저장한 설정을 사용합니다.",
+    "details": "카드 상세", "history": "행동 기록", "chat": "채팅", "turnStatus": "{turn}턴 · {player} · {phase}", "yourAction": "내 조작 대기", "opponentAction": "상대 조작 대기", "expandSidebar": "사이드바 펼치기", "hideSidebar": "사이드바 숨기기", "returnField": "필드로 돌아가기", "switchView": "시점 전환",
+    "messageMode": "메시지 표시", "automatic": "자동 조정", "popup": "팝업", "recordOnly": "기록만", "messageHelp": "세로 화면에서는 일반 시스템 메시지를 메시지 표시줄에 표시하고 전체 내용을 채팅 기록에 남깁니다. 중요한 연결 알림과 필수 선택은 계속 표시합니다.", "unreadMessages": "메시지 · {count}",
+    "sound": "효과음", "soundVolume": "효과음 음량", "soundHelp": "대전과 리플레이의 효과음을 함께 설정합니다.", "soundOn": "효과음: 켜짐", "soundOff": "효과음: 꺼짐",
+    "practice": "첫 패 테스트", "deckA": "A측 덱", "deckB": "B측 덱", "startingHand": "시작 패", "noShuffle": "셔플하지 않기", "practiceRules": "마스터 룰 2 · 양쪽 플레이어 직접 조작 · 승패 조건 무시", "startPractice": "테스트 시작", "redeal": "새 패 받기", "retryHand": "같은 패로 다시 시작", "returnEditor": "덱 편집으로 돌아가기", "activeSide": "현재 조작: {player}측", "practiceHelp": "승패 조건만 무시하며 나머지 조작은 게임 규칙을 따릅니다.", "practiceLoading": "첫 패 테스트 준비 중…", "practiceLoadFailed": "테스트 환경을 불러오지 못했습니다. 다시 시도해 주세요.", "practiceStopped": "테스트 중지: {reason}.",
+    "extractDecks": "덱 추출", "replayDecks": "리플레이 덱", "deckCounts": "메인 {main} / 엑스트라 {extra}", "saveDeck": "내 덱에 저장", "downloadYdk": "YDK 다운로드", "saveBoth": "양쪽 덱 저장", "extractHelp": "이 듀얼 시작 시점의 메인 덱과 엑스트라 덱을 추출합니다. 리플레이에는 사이드 덱이 포함되지 않습니다.", "extractLoading": "덱 추출 중…", "deckSaved": "“{name}”(으)로 저장했습니다.", "bothSaved": "양쪽 덱을 저장했습니다.", "extractUnsupported": "이 형식의 리플레이에서는 덱 추출을 지원하지 않습니다.", "extractFailed": "덱을 추출할 수 없습니다: {reason}.", "deckSaveFailed": "덱을 저장하지 못했습니다. 다시 시도하거나 YDK를 다운로드해 주세요.",
+    "operations": "대전 조작", "sounds": "소리", "displayMessages": "화면 및 메시지", "language": "언어", "troubleshooting": "문제 확인"
+  }
+}

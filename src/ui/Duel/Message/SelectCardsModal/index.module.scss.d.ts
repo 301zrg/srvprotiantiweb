@@ -7,5 +7,16 @@ declare const classNames: {
   readonly "check-card": "check-card";
   readonly opponent: "opponent";
   readonly card: "card";
+  readonly spatialGroup: "spatialGroup";
+  readonly fieldOption: "fieldOption";
+  readonly optionLocation: "optionLocation";
+  readonly chainTag: "chainTag";
+  readonly targetTag: "targetTag";
+  readonly fieldCheck: "fieldCheck";
+  readonly fieldCover: "fieldCover";
+  readonly fieldImage: "fieldImage";
+  readonly preview: "preview";
+  readonly selectionSummary: "selectionSummary";
+  readonly miniCancel: "miniCancel";
 };
 export = classNames;

@@ -1,41 +1,83 @@
 import { MessageOutlined } from "@ant-design/icons";
 import { message, notification } from "antd";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 
 import { fetchStrings, Region } from "@/api";
-import { Phase2StringCodeMap } from "@/common";
 import { useConfig } from "@/config";
-import { HandResult, matStore } from "@/stores";
+import { useMediaQuery } from "@/hook";
+import { HandResult, historyStore, matStore } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
+import { useI18N } from "@/ui/I18N";
 import { useChat } from "@/ui/Shared";
+import { formatDuelResult } from "@/variant/duelResults";
+import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
 import styles from "./index.module.scss";
+import { chatPresentation } from "./presentation";
 
 const NeosConfig = useConfig();
+const serverChatKey = "server-chat";
 
 let globalMsgApi: ReturnType<typeof message.useMessage>[0] | undefined;
 export const HintNotification = () => {
+  const { t } = useTranslation("ClientUI");
+  const { t: handText } = useTranslation("WaitRoom");
+  const { serverMessageMode, hidePlayerIds } = useSnapshot(settingStore);
+  const portrait = useMediaQuery("(orientation: portrait)");
+  const { language } = useI18N();
+  const text = previewMessages(language);
   const matSnap = useSnapshot(matStore);
+  const declaration = useSnapshot(historyStore).declaration;
   const hintState = matSnap.hint;
   const toss = matSnap.tossResult;
   const handResults = matSnap.handResults;
-  const currentPhase = matSnap.phase.currentPhase;
   const error = matSnap.error;
 
   const { dialogs } = useChat(true);
+  const seenDialogs = useRef(0);
+  const chatVisible = useRef(false);
+  const [summary, setSummary] = useState<{ name: string; content: string }>();
+  const [unread, setUnread] = useState(0);
+  const feedback = useRef<HTMLDivElement>(null);
+  const chatFeedback = useRef<HTMLDivElement>(null);
   const [msgApi, msgContextHolder] = message.useMessage({
-    maxCount: NeosConfig.ui.hint.maxCount,
+    maxCount: 1,
+    duration: 2,
+    getContainer: () => feedback.current || document.body,
   });
   const [notiApi, notiContextHolder] = notification.useNotification({
-    maxCount: NeosConfig.ui.hint.maxCount,
+    maxCount: portrait ? NeosConfig.ui.hint.maxCount : 1,
+    duration: portrait ? 4.5 : 2,
+    getContainer: () => chatFeedback.current || document.body,
   });
 
   globalMsgApi = msgApi;
   useEffect(() => {
+    if (!declaration) return;
+    const result = formatDuelResult(declaration.result, language);
+    msgApi.open({
+      key: "declaration",
+      type: "info",
+      content: `${result.title}: ${result.value}`,
+      duration: 3,
+    });
+  }, [declaration?.serial, msgApi]);
+  useEffect(() => {
+    notiApi.destroy();
+    setSummary(undefined);
+  }, [hidePlayerIds]);
+  useEffect(() => {
     if (hintState && hintState.msg) {
-      msgApi.info(`${hintState.msg}`);
-    }
-  }, [hintState.msg]);
+      msgApi.open({
+        key: "duel-hint",
+        type: "info",
+        content: `${hintState.msg}`,
+        duration: 2,
+      });
+    } else msgApi.destroy("duel-hint");
+  }, [hintState.msg, msgApi]);
 
   useEffect(() => {
     if (toss) {
@@ -43,31 +85,18 @@ export const HintNotification = () => {
     }
   }, [toss]);
 
-  // TODO: I18n
   useEffect(() => {
     const meHand = handResults.me;
     const opHand = handResults.op;
     if (meHand !== HandResult.UNKNOWN && opHand !== HandResult.UNKNOWN) {
       msgApi.info(
-        `{我方出示${getHandResultText(meHand)}，对方出示${getHandResultText(
-          opHand,
-        )}}`,
+        t("HandResults", {
+          me: handText(getHandResultKey(meHand)),
+          op: handText(getHandResultKey(opHand)),
+        }),
       );
     }
   }, [handResults]);
-
-  useEffect(() => {
-    if (currentPhase) {
-      const message = fetchStrings(
-        Region.System,
-        Phase2StringCodeMap.get(currentPhase) ?? 0,
-      );
-      msgApi.info(message);
-      console.color("DeepPink")(
-        `${message}(${matStore.isMe(matStore.currentPlayer) ? "me" : "op"})`,
-      );
-    }
-  }, [currentPhase]);
 
   useEffect(() => {
     if (error !== "") {
@@ -76,20 +105,80 @@ export const HintNotification = () => {
   }, [error]);
 
   useEffect(() => {
+    if (dialogs.length <= seenDialogs.current) return;
+    seenDialogs.current = dialogs.length;
     const latest = dialogs.at(-1);
-    if (latest) {
+    if (!latest) return;
+    const presentation = chatPresentation(
+      serverMessageMode,
+      portrait,
+      latest.isServer,
+    );
+    if (presentation === "summary") {
+      setSummary(latest);
+      if (!chatVisible.current) setUnread((count) => count + 1);
+    } else if (presentation === "popup") {
       notiApi.open({
+        key: latest.isServer ? serverChatKey : undefined,
         message: latest.name,
         description: latest.content,
         icon: <MessageOutlined />,
       });
     }
-  }, [dialogs]);
+  }, [dialogs, serverMessageMode, portrait, notiApi]);
+
+  useEffect(() => {
+    const presentation = chatPresentation(serverMessageMode, portrait, true);
+    if (presentation !== "popup") notiApi.destroy(serverChatKey);
+    if (presentation !== "summary") {
+      setSummary(undefined);
+      setUnread(0);
+    }
+  }, [serverMessageMode, portrait, notiApi]);
+
+  useEffect(() => {
+    const read = (event: Event) => {
+      chatVisible.current =
+        (event as CustomEvent<{ open?: boolean }>).detail?.open ?? true;
+      if (chatVisible.current) setUnread(0);
+    };
+    window.addEventListener("neos:duel-chat-read", read);
+    return () => window.removeEventListener("neos:duel-chat-read", read);
+  }, []);
 
   return (
     <>
+      <div
+        ref={feedback}
+        className={styles.feedback}
+        data-testid="duel-feedback"
+      />
+      <div
+        ref={chatFeedback}
+        className={styles.chatFeedback}
+        data-testid="duel-chat-feedback"
+      />
       {msgContextHolder}
       {notiContextHolder}
+      {serverMessageMode === "auto" && portrait && summary && unread > 0 && (
+        <button
+          type="button"
+          data-testid="duel-message-summary"
+          className={styles.summary}
+          title={`${summary.name}: ${summary.content}`}
+          onClick={() => {
+            setUnread(0);
+            window.dispatchEvent(new CustomEvent("neos:open-duel-chat"));
+          }}
+        >
+          <span className={styles.unread}>
+            {previewFormat(text.unreadMessages, { count: unread })}
+          </span>
+          <span className={styles.preview} role="status" aria-live="polite">
+            {summary.content}
+          </span>
+        </button>
+      )}
     </>
   );
 };
@@ -122,16 +211,15 @@ export const showWaiting = (open: boolean) => {
   }
 };
 
-// TODO: I18n
-function getHandResultText(res: HandResult): string {
+function getHandResultKey(res: HandResult): string {
   switch (res) {
     case HandResult.UNKNOWN:
       return "[?]";
     case HandResult.ROCK:
-      return "拳头";
+      return "Rock";
     case HandResult.PAPER:
-      return "布";
+      return "Paper";
     case HandResult.SCISSOR:
-      return "剪刀";
+      return "Scissors";
   }
 }

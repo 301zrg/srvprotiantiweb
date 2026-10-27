@@ -19,16 +19,49 @@ import "overlayscrollbars/overlayscrollbars.css";
 import "@/styles/core.scss";
 import "@/styles/inject.scss";
 
-import { ProConfigProvider } from "@ant-design/pro-provider";
+import {
+  enUSIntl,
+  jaJPIntl,
+  koKRIntl,
+  ProConfigProvider,
+  zhCNIntl,
+} from "@ant-design/pro-provider";
 import { App, ConfigProvider } from "antd";
+import enUS from "antd/locale/en_US";
+import jaJP from "antd/locale/ja_JP";
+import koKR from "antd/locale/ko_KR";
 import zhCN from "antd/locale/zh_CN";
 import React from "react";
 import ReactDOM from "react-dom/client";
 
 import { theme } from "@/ui/theme";
 
-import { I18NProvider } from "./ui/I18N";
+import { I18NProvider, useI18N } from "./ui/I18N";
 import { NeosRouter } from "./ui/NeosRouter";
+import { type Language } from "./variant";
+
+const componentLocales = { cn: zhCN, en: enUS, ja: jaJP, ko: koKR };
+const componentIntl = {
+  cn: zhCNIntl,
+  en: enUSIntl,
+  ja: jaJPIntl,
+  ko: koKRIntl,
+};
+const LocalizedApplication = () => {
+  const { language } = useI18N();
+  return (
+    <ConfigProvider
+      theme={theme}
+      locale={componentLocales[language as Language]}
+    >
+      <App>
+        <ProConfigProvider dark intl={componentIntl[language as Language]}>
+          <NeosRouter />
+        </ProConfigProvider>
+      </App>
+    </ConfigProvider>
+  );
+};
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement,
@@ -36,12 +69,6 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <I18NProvider>
-    <ConfigProvider theme={theme} locale={zhCN}>
-      <App>
-        <ProConfigProvider dark>
-          <NeosRouter />
-        </ProConfigProvider>
-      </App>
-    </ConfigProvider>
+    <LocalizedApplication />
   </I18NProvider>,
 );

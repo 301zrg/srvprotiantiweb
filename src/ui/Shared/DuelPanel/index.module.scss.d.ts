@@ -6,5 +6,10 @@ declare const classNames: {
   readonly "ant-drawer-title": "ant-drawer-title";
   readonly "ant-drawer-body": "ant-drawer-body";
   readonly body: "body";
+  readonly sidebar: "sidebar";
+  readonly "ant-drawer-header-title": "ant-drawer-header-title";
+  readonly iconClose: "iconClose";
+  readonly docked: "docked";
+  readonly compact: "compact";
 };
 export = classNames;

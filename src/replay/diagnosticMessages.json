@@ -1,0 +1,332 @@
+{
+  "录像文件大小无效（上限 8 MB）": {
+    "cn": "录像文件大小无效（上限 8 MB）",
+    "en": "Invalid replay size (maximum 8 MB)",
+    "ja": "リプレイのサイズが不正です（上限 8 MB）",
+    "ko": "리플레이 크기가 잘못되었습니다 (최대 8 MB)"
+  },
+  "旧消息录像头已截断": {
+    "cn": "旧消息录像头已截断",
+    "en": "Legacy replay header is truncated",
+    "ja": "旧形式のリプレイヘッダーが途切れています",
+    "ko": "이전 형식 리플레이 헤더가 잘렸습니다"
+  },
+  "旧消息录像长度超出限制或已截断": {
+    "cn": "旧消息录像长度超出限制或已截断",
+    "en": "Legacy replay is truncated or exceeds its limits",
+    "ja": "旧形式のリプレイが途切れているか上限を超えています",
+    "ko": "이전 형식 리플레이가 잘렸거나 제한을 초과했습니다"
+  },
+  "旧 Neos 消息录像暂仅保存与下载": {
+    "cn": "旧 Neos 消息录像暂仅保存与下载",
+    "en": "Legacy Neos replays support saving and downloading only",
+    "ja": "旧Neosリプレイは保存とダウンロードのみ対応しています",
+    "ko": "이전 Neos 리플레이는 저장과 다운로드만 지원합니다"
+  },
+  "不是标准 YGOPro .yrp 录像": {
+    "cn": "不是标准 YGOPro .yrp 录像",
+    "en": "Not a standard YGOPro .yrp replay",
+    "ja": "標準のYGOPro .yrpリプレイではありません",
+    "ko": "표준 YGOPro .yrp 리플레이가 아닙니다"
+  },
+  "录像头、长度或标记无效": {
+    "cn": "录像头、长度或标记无效",
+    "en": "Invalid replay header, length or flags",
+    "ja": "リプレイのヘッダー・長さ・フラグが不正です",
+    "ko": "리플레이 헤더, 길이 또는 플래그가 잘못되었습니다"
+  },
+  "不支持此录像头版本": {
+    "cn": "不支持此录像头版本",
+    "en": "Unsupported replay header version",
+    "ja": "未対応のリプレイヘッダーバージョンです",
+    "ko": "지원하지 않는 리플레이 헤더 버전입니다"
+  },
+  "录像压缩参数超出限制": {
+    "cn": "录像压缩参数超出限制",
+    "en": "Replay compression parameters exceed limits",
+    "ja": "圧縮パラメーターが上限を超えています",
+    "ko": "리플레이 압축 매개변수가 제한을 초과했습니다"
+  },
+  "录像正文已截断或存在多余数据": {
+    "cn": "录像正文已截断或存在多余数据",
+    "en": "Replay body is truncated or contains extra data",
+    "ja": "リプレイ本文が途切れているか余分なデータがあります",
+    "ko": "리플레이 본문이 잘렸거나 추가 데이터가 있습니다"
+  },
+  "旧版 YRP1 暂仅保存与下载": {
+    "cn": "旧版 YRP1 暂仅保存与下载",
+    "en": "Legacy YRP1 replays support saving and downloading only",
+    "ja": "旧YRP1形式は保存とダウンロードのみ対応しています",
+    "ko": "이전 YRP1 리플레이는 저장과 다운로드만 지원합니다"
+  },
+  "双打录像暂仅保存与下载": {
+    "cn": "双打录像暂仅保存与下载",
+    "en": "Tag replays support saving and downloading only",
+    "ja": "タッグのリプレイは保存とダウンロードのみ対応しています",
+    "ko": "태그 리플레이는 저장과 다운로드만 지원합니다"
+  },
+  "单人谜题录像暂仅保存与下载": {
+    "cn": "单人谜题录像暂仅保存与下载",
+    "en": "Puzzle replays support saving and downloading only",
+    "ja": "パズルのリプレイは保存とダウンロードのみ対応しています",
+    "ko": "퍼즐 리플레이는 저장과 다운로드만 지원합니다"
+  },
+  "非 UNIFORM 录像暂仅保存与下载": {
+    "cn": "非 UNIFORM 录像暂仅保存与下载",
+    "en": "Non-UNIFORM replays support saving and downloading only",
+    "ja": "非UNIFORM形式は保存とダウンロードのみ対応しています",
+    "ko": "UNIFORM이 아닌 리플레이는 저장과 다운로드만 지원합니다"
+  },
+  "录像正文已截断": {
+    "cn": "录像正文已截断",
+    "en": "Replay body is truncated",
+    "ja": "リプレイ本文が途切れています",
+    "ko": "리플레이 본문이 잘렸습니다"
+  },
+  "录像规则参数无效或为双打模式": {
+    "cn": "录像规则参数无效或为双打模式",
+    "en": "Invalid replay rules or unsupported tag mode",
+    "ja": "リプレイのルールが不正か未対応のタッグモードです",
+    "ko": "리플레이 규칙이 잘못되었거나 지원하지 않는 태그 모드입니다"
+  },
+  "录像牌组长度异常": {
+    "cn": "录像牌组长度异常",
+    "en": "Invalid replay deck length",
+    "ja": "リプレイのデッキ長が不正です",
+    "ko": "리플레이 덱 길이가 잘못되었습니다"
+  },
+  "录像包含无效卡号": {
+    "cn": "录像包含无效卡号",
+    "en": "Replay contains an invalid card ID",
+    "ja": "無効なカード番号が含まれています",
+    "ko": "리플레이에 잘못된 카드 번호가 있습니다"
+  },
+  "录像响应长度为零": {
+    "cn": "录像响应长度为零",
+    "en": "Replay response has zero length",
+    "ja": "リプレイの応答長がゼロです",
+    "ko": "리플레이 응답 길이가 0입니다"
+  },
+  "脚本包预算异常": {
+    "cn": "脚本包预算异常",
+    "en": "Invalid script package size budget",
+    "ja": "スクリプトパッケージのサイズ上限が不正です",
+    "ko": "스크립트 패키지 크기 한도가 잘못되었습니다"
+  },
+  "脚本解压超限": {
+    "cn": "脚本解压超限",
+    "en": "Script decompression exceeds limits",
+    "ja": "スクリプトの展開が上限を超えました",
+    "ko": "스크립트 압축 해제가 제한을 초과했습니다"
+  },
+  "脚本包长度不匹配": {
+    "cn": "脚本包长度不匹配",
+    "en": "Script package length mismatch",
+    "ja": "スクリプトパッケージの長さが一致しません",
+    "ko": "스크립트 패키지 길이가 일치하지 않습니다"
+  },
+  "录像内存不足": {
+    "cn": "录像内存不足",
+    "en": "Insufficient replay memory",
+    "ja": "リプレイのメモリが不足しています",
+    "ko": "리플레이 메모리가 부족합니다"
+  },
+  "卡数据长度异常": {
+    "cn": "卡数据长度异常",
+    "en": "Invalid card data length",
+    "ja": "カードデータの長さが不正です",
+    "ko": "카드 데이터 길이가 잘못되었습니다"
+  },
+  "脚本索引长度异常": {
+    "cn": "脚本索引长度异常",
+    "en": "Invalid script index length",
+    "ja": "スクリプト索引の長さが不正です",
+    "ko": "스크립트 색인 길이가 잘못되었습니다"
+  },
+  "脚本索引异常": {
+    "cn": "脚本索引异常",
+    "en": "Invalid script index",
+    "ja": "スクリプト索引が不正です",
+    "ko": "스크립트 색인이 잘못되었습니다"
+  },
+  "脚本索引路径或范围异常": {
+    "cn": "脚本索引路径或范围异常",
+    "en": "Invalid script index path or range",
+    "ja": "スクリプト索引のパスまたは範囲が不正です",
+    "ko": "스크립트 색인 경로 또는 범위가 잘못되었습니다"
+  },
+  "脚本包剩余数据异常": {
+    "cn": "脚本包剩余数据异常",
+    "en": "Unexpected trailing script data",
+    "ja": "スクリプトパッケージに余分なデータがあります",
+    "ko": "스크립트 패키지에 예상하지 못한 추가 데이터가 있습니다"
+  },
+  "录像 LZMA 正文损坏": {
+    "cn": "录像 LZMA 正文损坏",
+    "en": "Replay LZMA body is corrupted",
+    "ja": "リプレイのLZMAデータが破損しています",
+    "ko": "리플레이 LZMA 본문이 손상되었습니다"
+  },
+  "706 旧裁定补丁初始化失败": {
+    "cn": "706 旧裁定补丁初始化失败",
+    "en": "706 legacy ruling patch failed to initialize",
+    "ja": "706旧裁定パッチの初期化に失敗しました",
+    "ko": "706 구재정 패치 초기화 실패"
+  },
+  "录像尚未打开": {
+    "cn": "录像尚未打开",
+    "en": "Replay is not open",
+    "ja": "リプレイはまだ開いていません",
+    "ko": "리플레이가 아직 열리지 않았습니다"
+  },
+  "录像计算超时，已停止播放": {
+    "cn": "录像计算超时，已停止播放",
+    "en": "Replay calculation timed out; playback stopped",
+    "ja": "計算がタイムアウトしたため再生を停止しました",
+    "ko": "리플레이 계산 시간이 초과되어 재생을 중지했습니다"
+  },
+  "Core 消息超过批次限制": {
+    "cn": "Core 消息超过批次限制",
+    "en": "Core messages exceed the batch limit",
+    "ja": "Coreメッセージがバッチ上限を超えています",
+    "ko": "Core 메시지가 배치 제한을 초과했습니다"
+  },
+  "录像响应与当前旧裁定环境不一致（MSG_RETRY）": {
+    "cn": "录像响应与当前旧裁定环境不一致（MSG_RETRY）",
+    "en": "Replay responses differ from this legacy ruling environment (MSG_RETRY)",
+    "ja": "応答が現在の旧裁定環境と一致しません（MSG_RETRY）",
+    "ko": "리플레이 응답이 현재 구재정 환경과 일치하지 않습니다 (MSG_RETRY)"
+  },
+  "录像终局仍有未消费响应，环境不匹配": {
+    "cn": "录像终局仍有未消费响应，环境不匹配",
+    "en": "Unused responses at duel end; replay environment mismatch",
+    "ja": "終了時に未使用の応答が残っています。環境が一致しません",
+    "ko": "듀얼 종료 시 미사용 응답이 남았습니다. 리플레이 환경이 일치하지 않습니다"
+  },
+  "查询内存不足": {
+    "cn": "查询内存不足",
+    "en": "Insufficient query memory",
+    "ja": "クエリのメモリが不足しています",
+    "ko": "쿼리 메모리가 부족합니다"
+  },
+  "查询消息超限": {
+    "cn": "查询消息超限",
+    "en": "Query message exceeds limits",
+    "ja": "クエリメッセージが上限を超えています",
+    "ko": "쿼리 메시지가 제한을 초과했습니다"
+  },
+  "播放资源清单异常": {
+    "cn": "播放资源清单异常",
+    "en": "Invalid playback resource manifest",
+    "ja": "再生リソースのマニフェストが不正です",
+    "ko": "재생 리소스 목록이 잘못되었습니다"
+  },
+  "资源流不可用": {
+    "cn": "资源流不可用",
+    "en": "Resource stream is unavailable",
+    "ja": "リソースのストリームを利用できません",
+    "ko": "리소스 스트림을 사용할 수 없습니다"
+  },
+  "播放资源超限": {
+    "cn": "播放资源超限",
+    "en": "Playback resource exceeds limits",
+    "ja": "再生リソースが上限を超えています",
+    "ko": "재생 리소스가 제한을 초과했습니다"
+  },
+  "播放资源校验失败": {
+    "cn": "播放资源校验失败",
+    "en": "Playback resource integrity check failed",
+    "ja": "再生リソースの整合性確認に失敗しました",
+    "ko": "재생 리소스 무결성 검사 실패"
+  },
+  "正在初始化旧裁定脚本": {
+    "cn": "正在初始化旧裁定脚本",
+    "en": "Initializing legacy ruling scripts",
+    "ja": "旧裁定スクリプトを初期化中",
+    "ko": "구재정 스크립트 초기화 중"
+  },
+  "Core 消息截断": {
+    "cn": "Core 消息截断",
+    "en": "Core message is truncated",
+    "ja": "Coreメッセージが途切れています",
+    "ko": "Core 메시지가 잘렸습니다"
+  },
+  "Core 消息批次超出限制": {
+    "cn": "Core 消息批次超出限制",
+    "en": "Core message batch exceeds limits",
+    "ja": "Coreメッセージのバッチが上限を超えています",
+    "ko": "Core 메시지 배치가 제한을 초과했습니다"
+  },
+  "查询消息截断": {
+    "cn": "查询消息截断",
+    "en": "Query message is truncated",
+    "ja": "クエリメッセージが途切れています",
+    "ko": "쿼리 메시지가 잘렸습니다"
+  },
+  "查询长度异常": {
+    "cn": "查询长度异常",
+    "en": "Invalid query length",
+    "ja": "クエリの長さが不正です",
+    "ko": "쿼리 길이가 잘못되었습니다"
+  },
+  "卡片查询截断": {
+    "cn": "卡片查询截断",
+    "en": "Card query is truncated",
+    "ja": "カードクエリが途切れています",
+    "ko": "카드 쿼리가 잘렸습니다"
+  },
+  "查询数组超限": {
+    "cn": "查询数组超限",
+    "en": "Query array exceeds limits",
+    "ja": "クエリの配列が上限を超えています",
+    "ko": "쿼리 배열이 제한을 초과했습니다"
+  },
+  "查询格式不匹配": {
+    "cn": "查询格式不匹配",
+    "en": "Query format mismatch",
+    "ja": "クエリ形式が一致しません",
+    "ko": "쿼리 형식이 일치하지 않습니다"
+  },
+  "录像保存事务失败": {
+    "cn": "录像保存事务失败",
+    "en": "Replay storage transaction failed",
+    "ja": "リプレイ保存のトランザクションに失敗しました",
+    "ko": "리플레이 저장 트랜잭션 실패"
+  },
+  "请关闭旧版录像页面后重试": {
+    "cn": "请关闭旧版录像页面后重试",
+    "en": "Close older replay pages and retry",
+    "ja": "古いリプレイページを閉じて再試行してください",
+    "ko": "이전 리플레이 페이지를 닫고 다시 시도하세요"
+  },
+  "录像已在其他页面删除": {
+    "cn": "录像已在其他页面删除",
+    "en": "Replay was deleted in another tab",
+    "ja": "別のタブでリプレイが削除されました",
+    "ko": "다른 탭에서 리플레이가 삭제되었습니다"
+  },
+  "录像原件不存在": {
+    "cn": "录像原件不存在",
+    "en": "Original replay file is missing",
+    "ja": "リプレイの元ファイルがありません",
+    "ko": "원본 리플레이 파일이 없습니다"
+  },
+  "本地录像库已达 100 MB，请下载备份后清理": {
+    "cn": "本地录像库已达 100 MB，请下载备份后清理",
+    "en": "Replay library reached 100 MB. Download backups and free space.",
+    "ja": "リプレイライブラリが100 MBに達しました。バックアップを保存して整理してください",
+    "ko": "리플레이 보관함이 100 MB에 도달했습니다. 백업을 다운로드하고 정리하세요"
+  },
+  "保存失败且临时缓存已满，请清理录像库后重试": {
+    "cn": "保存失败且临时缓存已满，请清理录像库后重试",
+    "en": "Save failed and temporary cache is full. Free space and retry.",
+    "ja": "保存に失敗し一時キャッシュも満杯です。整理して再試行してください",
+    "ko": "저장에 실패했고 임시 캐시가 가득 찼습니다. 보관함을 정리하고 다시 시도하세요"
+  },
+  "标题不能为空": {
+    "cn": "标题不能为空",
+    "en": "Title cannot be empty",
+    "ja": "タイトルを入力してください",
+    "ko": "제목을 입력하세요"
+  }
+}

@@ -1,11 +1,14 @@
 import { clear, createStore, del, get, set } from "idb-keyval";
 
 import { useConfig } from "@/config";
+import { storageKey } from "@/variant/deployment";
 
 import { AudioActionType } from "../type";
 
 const AUDIO_DB_NAME = "audio";
-const sourceDb = createStore(AUDIO_DB_NAME, "sources");
+let sourceDb: ReturnType<typeof createStore> | undefined;
+const getSourceDb = () =>
+  (sourceDb ??= createStore(storageKey(AUDIO_DB_NAME), "sources"));
 
 const { assetsPath } = useConfig();
 
@@ -13,19 +16,30 @@ const { assetsPath } = useConfig();
 async function loadFromNet(name: string) {
   const prefix = `${assetsPath}/sound/`;
   const response = await fetch(`${prefix}${name}`);
+  if (!response.ok)
+    throw new Error(`Audio resource ${name}: HTTP ${response.status}`);
   const fileBlob = await response.arrayBuffer();
   cacheResource(name, fileBlob);
   return fileBlob;
 }
 
 /** 从缓存中加载音频资源 */
-function loadFromCache(name: string) {
-  return get(name, sourceDb);
+async function loadFromCache(name: string) {
+  try {
+    return await get<ArrayBuffer>(name, getSourceDb());
+  } catch {
+    return undefined;
+  }
 }
 
 /** 缓存资源 */
-function cacheResource(name: string, fileBlob: ArrayBuffer) {
-  set(name, fileBlob, sourceDb);
+async function cacheResource(name: string, fileBlob: ArrayBuffer) {
+  // Audio is a recoverable cache; it must not prevent importing a user's deck.
+  try {
+    await set(name, fileBlob, getSourceDb());
+  } catch {
+    /* Continue without the optional persistent cache. */
+  }
 }
 
 /** 加载音频资源 */
@@ -44,7 +58,7 @@ export async function loadAudio(name: string) {
 /** 移除音频资源 */
 export async function removeAudio(name: string) {
   try {
-    await del(name, sourceDb);
+    await del(name, getSourceDb());
   } catch {
     // 资源未落库，不做处理
   }
@@ -52,7 +66,7 @@ export async function removeAudio(name: string) {
 
 /** 清空音频缓存 */
 export async function clearAudioCache() {
-  return clear(sourceDb);
+  return clear(getSourceDb());
 }
 
 /** 获取音效名称 */

@@ -1,5 +1,6 @@
 import { type CardMeta, fetchCard } from "@/api";
 import { tellCardBasicType, tellCardSecondaryType } from "@/common";
+import { downloadFile, shareOrDownloadFile } from "@/infra/fileExport";
 import { type IDeck } from "@/stores";
 
 /** 用在卡组编辑 */
@@ -55,17 +56,21 @@ export function genYdkText(deck: IDeck): string {
 
 /** 下载卡组YDK文件 **/
 export function downloadDeckAsYDK(deck: IDeck) {
-  const text = genYdkText(deck);
+  downloadFile(deckAsYdkFile(deck));
+}
 
-  const blob = new Blob([text], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
+export function deckAsYdkFile(deck: IDeck) {
+  const name =
+    deck.deckName
+      .replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, "_")
+      .replace(/\.ydk$/i, "")
+      .trim()
+      .slice(0, 120) || "deck";
+  return new File([genYdkText(deck)], `${name}.ydk`, { type: "text/plain" });
+}
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = deck.deckName + ".ydk";
-  a.click();
-
-  URL.revokeObjectURL(url);
+export function shareDeckAsYDK(deck: IDeck) {
+  return shareOrDownloadFile(deckAsYdkFile(deck), deck.deckName);
 }
 
 /** 将卡组复制到剪贴板 */

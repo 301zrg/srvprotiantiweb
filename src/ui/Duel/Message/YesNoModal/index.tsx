@@ -1,5 +1,6 @@
 import { Button } from "antd";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { sendSelectEffectYnResponse } from "@/api";
@@ -17,6 +18,7 @@ const defaultProps = { isOpen: false };
 const localStore = proxy<YesNoModalProps>(defaultProps);
 
 export const YesNoModal: React.FC = () => {
+  const { t } = useTranslation("ClientUI");
   const container = getUIContainer();
   const { isOpen, msg } = useSnapshot(localStore);
   const hint = useSnapshot(matStore.hint);
@@ -35,20 +37,20 @@ export const YesNoModal: React.FC = () => {
             data-testid="duel-yesno-no"
             onClick={() => {
               sendSelectEffectYnResponse(container.conn, false);
-              rs();
+              rs(false);
             }}
           >
-            取消
+            {t("Cancel")}
           </Button>
           <Button
             data-testid="duel-yesno-yes"
             type="primary"
             onClick={() => {
               sendSelectEffectYnResponse(container.conn, true);
-              rs();
+              rs(true);
             }}
           >
-            确认
+            {t("Confirm")}
           </Button>
         </>
       }
@@ -58,11 +60,12 @@ export const YesNoModal: React.FC = () => {
   );
 };
 
-let rs: (arg?: any) => void = () => {};
+let rs: (response: boolean) => void = () => {};
 
 export const displayYesNoModal = async (msg: string) => {
   localStore.msg = msg;
   localStore.isOpen = true;
-  await new Promise<void>((resolve) => (rs = resolve)); // 等待在组件内resolve
+  const response = await new Promise<boolean>((resolve) => (rs = resolve));
   localStore.isOpen = false;
+  return response;
 };

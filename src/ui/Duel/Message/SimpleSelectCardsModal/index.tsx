@@ -1,6 +1,8 @@
 // import "./index.scss";
 import { INTERNAL_Snapshot as Snapshot, proxy, useSnapshot } from "valtio";
 
+import { closeCardListModal } from "../CardListModal";
+import { closeCardModal } from "../CardModal";
 import { type Option, SelectCardsModal } from "../SelectCardsModal";
 
 const defaultProps = {
@@ -36,12 +38,25 @@ let rs: (options: Snapshot<Option[]>) => void = () => {};
 
 export const displaySimpleSelectCardsModal = async (
   args: Omit<typeof defaultProps, "isOpen">,
+  signal?: AbortSignal,
 ) => {
+  if (signal?.aborted) return [];
+  // Existing detail/zone drawers otherwise cover the candidate footer on phones.
+  closeCardModal();
+  closeCardListModal();
   localStore.selectables = args.selectables;
   localStore.isOpen = true;
-  const res = await new Promise<Snapshot<Option[]>>(
-    (resolve) => (rs = resolve),
-  ); // 等待在组件内resolve
-  localStore.isOpen = false;
+  const res = await new Promise<Snapshot<Option[]>>((resolve) => {
+    const abort = () => settle([]);
+    const settle = (value: Snapshot<Option[]>) => {
+      if (rs !== settle) return;
+      signal?.removeEventListener("abort", abort);
+      rs = () => {};
+      localStore.isOpen = false;
+      resolve(value);
+    };
+    rs = settle;
+    signal?.addEventListener("abort", abort, { once: true });
+  });
   return res;
 };

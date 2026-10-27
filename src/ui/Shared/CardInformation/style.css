@@ -1,0 +1,20 @@
+.card-information-layer { position: fixed; inset: 0; z-index: 940; pointer-events: none; }
+.card-information-layer *, .card-information-layer svg { pointer-events: none; }
+.card-link-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.card-link-lines line { stroke: #c6a5ff; stroke-width: 2; filter: drop-shadow(0 0 2px #151020); }
+.card-information-rect { position: absolute; }
+.card-link-outline { position: absolute; inset: -2px; border: 2px solid #c6a5ff; border-radius: 3px; box-shadow: 0 0 4px #302047; }
+.card-link-outline[data-link-active="true"] { border-color: #e1d2ff; }
+.card-counter-stack { position: absolute; left: 1px; bottom: 1px; display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 0; }
+.card-counter-stack > span { display: flex; align-items: center; gap: 3px; padding: 0 3px; border: 1px solid currentColor; border-radius: 3px; background: #111827ed; font: 700 12px/1 system-ui, sans-serif; min-width: 16px; box-sizing: border-box; }
+.card-counter-stack i, .card-counter-details i { display: inline-block; width: 4px; height: 4px; flex: 0 0 4px; border-radius: 50%; background: currentColor; }
+.card-counter-details { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.card-counter-details > div { display: flex; align-items: center; gap: 8px; }
+.card-counter-details strong { margin-left: auto; }
+.related-card-details { margin: 12px 0; }
+.related-card-details > div { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.related-card-details button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px; color: inherit; text-align: left; border: 1px solid #77679b; border-radius: 5px; background: #34284c33; cursor: pointer; }
+.related-card-details button:focus-visible { outline: 2px solid #d2b9ff; }
+.related-card-details img { width: 30px; height: 44px; object-fit: contain; }
+.related-card-details span { min-width: 0; overflow-wrap: anywhere; }
+.related-card-details small { display: block; opacity: .8; }

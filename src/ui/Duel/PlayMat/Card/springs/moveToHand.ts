@@ -5,21 +5,20 @@ import { matConfig } from "../../css";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
-const {
-  BLOCK_HEIGHT_M,
-  BLOCK_HEIGHT_S,
-  CARD_RATIO,
-  ROW_GAP,
-  HAND_MARGIN_TOP,
-  HAND_CARD_HEIGHT,
-  HAND_CIRCLE_CENTER_OFFSET_Y,
-  HAND_MAT_OFFSET_Y,
-} = matConfig;
-
 const { HAND } = ygopro.CardZone;
 
 export const moveToHand: MoveFunc = async (props) => {
-  const { card, api } = props;
+  const {
+    BLOCK_HEIGHT_M,
+    BLOCK_HEIGHT_S,
+    CARD_RATIO,
+    ROW_GAP,
+    HAND_MARGIN_TOP,
+    HAND_CARD_HEIGHT,
+    HAND_CIRCLE_CENTER_OFFSET_Y,
+    HAND_MAT_OFFSET_Y,
+  } = matConfig;
+  const { card, api, signal } = props;
   const { sequence, controller } = card.location;
   // 手卡会有很复杂的计算...
   const hand_circle_center_x = 0;
@@ -46,7 +45,10 @@ export const moveToHand: MoveFunc = async (props) => {
 
   const _rz = (angle * 180) / Math.PI;
 
-  await asyncStart(api)({
+  await asyncStart(
+    api,
+    signal,
+  )({
     x: isMe(controller) ? x : -x,
     y: isMe(controller) ? y : -y,
     z: sequence + 5,

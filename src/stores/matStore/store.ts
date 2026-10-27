@@ -1,10 +1,12 @@
 /* eslint valtio/avoid-this-in-proxy: 0 */
 import { proxy } from "valtio";
+import { subscribeKey } from "valtio/utils";
 
 import { ygopro } from "@/api";
 
+import { settingStore } from "../settingStore";
 import { type NeosStore } from "../shared";
-import { ChainSetting, InitInfo, MatState } from "./types";
+import { InitInfo, MatState } from "./types";
 
 /**
  * 根据controller判断是自己还是对方。
@@ -66,6 +68,8 @@ const initialState: Omit<MatState, "reset"> = {
   },
   initInfo,
   selfType: ygopro.StocTypeChange.SelfType.UNKNOWN,
+  observerSwapped: false,
+  observerView: 0,
   hint: { code: -1 },
   currentPlayer: -1,
   phase: {
@@ -73,6 +77,7 @@ const initialState: Omit<MatState, "reset"> = {
     enableBp: false, // 允许进入战斗阶段
     enableM2: false, // 允许进入M2阶段
     enableEp: false, // 允许回合结束
+    enableShuffle: false, // 允许洗切手牌
   },
   unimplemented: 0,
   handResults: {
@@ -90,7 +95,7 @@ const initialState: Omit<MatState, "reset"> = {
     selectableList: [],
     selectedList: [],
   },
-  chainSetting: ChainSetting.CHAIN_SMART,
+  chainSetting: settingStore.chainSetting,
   duelEnd: false,
   // methods
   isMe,
@@ -104,6 +109,8 @@ export class MatStore implements MatState, NeosStore {
   timeLimits = initialState.timeLimits;
   initInfo = initialState.initInfo;
   selfType = initialState.selfType;
+  observerSwapped = initialState.observerSwapped;
+  observerView: 0 | 1 = 0;
   hint = initialState.hint;
   currentPlayer = initialState.currentPlayer;
   phase = initialState.phase;
@@ -124,6 +131,8 @@ export class MatStore implements MatState, NeosStore {
     this.initInfo.me = defaultInitInfo;
     this.initInfo.op = defaultInitInfo;
     this.selfType = ygopro.StocTypeChange.SelfType.UNKNOWN;
+    this.observerSwapped = false;
+    this.observerView = 0;
     this.hint = { code: -1 };
     this.currentPlayer = -1;
     this.phase = {
@@ -131,6 +140,7 @@ export class MatStore implements MatState, NeosStore {
       enableBp: false, // 允许进入战斗阶段
       enableM2: false, // 允许进入M2阶段
       enableEp: false, // 允许回合结束
+      enableShuffle: false, // 允许洗切手牌
     };
     this.unimplemented = 0;
     this.handResults.me = 0;
@@ -153,6 +163,24 @@ export class MatStore implements MatState, NeosStore {
  * 具体介绍可以点进`MatState`去看
  */
 export const matStore = proxy<MatStore>(new MatStore());
+
+// Change future prompts only. An already displayed prompt keeps its response.
+subscribeKey(
+  settingStore,
+  "chainSetting",
+  (mode) => {
+    if (matStore.chainSetting !== mode) matStore.chainSetting = mode;
+  },
+  true,
+);
+subscribeKey(
+  matStore,
+  "chainSetting",
+  (mode) => {
+    if (settingStore.chainSetting !== mode) settingStore.chainSetting = mode;
+  },
+  true,
+);
 
 // @ts-ignore 挂到全局，便于调试
 window.matStore = matStore;

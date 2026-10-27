@@ -1,9 +1,11 @@
 import { fetchStrings, Region, ygopro } from "@/api";
 import { displayOptionModal } from "@/ui/Duel/Message";
 import MsgAnnounce = ygopro.StocGameMessage.MsgAnnounce;
+import type { Container } from "@/container";
 import { displayAnnounceModal } from "@/ui/Duel/Message/AnnounceModal";
+import type { ValueResultKind } from "@/variant/duelResults";
 
-export default async (announce: MsgAnnounce) => {
+export default async (container: Container, announce: MsgAnnounce) => {
   const type_ = announce.announce_type;
   let min = announce.min;
   if (
@@ -12,10 +14,18 @@ export default async (announce: MsgAnnounce) => {
   ) {
     min = 1;
   }
+  const record = (kind: ValueResultKind, value: number) =>
+    container.context.historyStore.putResult(
+      container.context,
+      { kind, value },
+      announce.player,
+      0,
+      "response",
+    );
 
   switch (type_) {
     case MsgAnnounce.AnnounceType.RACE: {
-      await displayOptionModal(
+      const response = await displayOptionModal(
         fetchStrings(Region.System, 563),
         announce.options.map((option) => ({
           info: fetchStrings(Region.System, 1020 + option.code),
@@ -23,11 +33,12 @@ export default async (announce: MsgAnnounce) => {
         })),
         min,
       );
+      record("race", response);
 
       break;
     }
     case MsgAnnounce.AnnounceType.Attribute: {
-      await displayOptionModal(
+      const response = await displayOptionModal(
         fetchStrings(Region.System, 562),
         announce.options.map((option) => ({
           info: fetchStrings(Region.System, 1010 + option.code),
@@ -35,16 +46,25 @@ export default async (announce: MsgAnnounce) => {
         })),
         min,
       );
+      record("attribute", response);
 
       break;
     }
     case MsgAnnounce.AnnounceType.Card: {
-      await displayAnnounceModal(announce.options.map((option) => option.code));
+      const response = await displayAnnounceModal(
+        announce.options.map((option) => option.code),
+      );
+      container.context.historyStore.putAnnounce(
+        container.context,
+        response,
+        announce.player,
+        "response",
+      );
 
       break;
     }
     case MsgAnnounce.AnnounceType.Number: {
-      await displayOptionModal(
+      const response = await displayOptionModal(
         fetchStrings(Region.System, 565),
         announce.options.map((option) => ({
           info: option.code.toString(),
@@ -52,6 +72,10 @@ export default async (announce: MsgAnnounce) => {
         })),
         min,
       );
+      const option = announce.options.find(
+        (option) => option.response === response,
+      );
+      if (option) record("number", option.code);
 
       break;
     }

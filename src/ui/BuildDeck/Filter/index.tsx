@@ -16,6 +16,8 @@ import {
   Type2StringCodeMap,
 } from "@/common";
 import { FtsConditions } from "@/middleware/sqlite/fts";
+import { useI18N } from "@/ui/I18N";
+import { previewMessages } from "@/variant/previewMessages";
 
 import styles from "./index.module.scss";
 
@@ -34,6 +36,8 @@ export const Filter: React.FC<{
   onConfirm: (newConditons: FtsConditions) => void;
   onCancel: () => void;
 }> = ({ conditions, onConfirm, onCancel }) => {
+  const { language } = useI18N();
+  const text = previewMessages(language);
   const [newConditions, setNewConditions] = useState<FtsConditions>(conditions);
   const handleSelectChange =
     <T extends keyof FtsConditions>(key: T) =>
@@ -74,6 +78,24 @@ export const Filter: React.FC<{
     <>
       <div className={styles.title}>{i18n("CardFilter")}</div>
       <div className={styles.form}>
+        <Item title={text.banStatus}>
+          <Select
+            data-testid="deck-ban-status-filter"
+            mode="multiple"
+            allowClear
+            placeholder={text.all}
+            aria-label={text.banStatus}
+            style={{ width: "100%" }}
+            value={newConditions.banStatuses ?? []}
+            options={[
+              text.forbidden,
+              text.limited,
+              text.semiLimited,
+              text.unlimited,
+            ].map((label, value) => ({ label, value }))}
+            onChange={handleSelectChange("banStatuses")}
+          />
+        </Item>
         {T.map(([options, title, key]) => (
           <Item title={title} key={key}>
             <CustomSelect
@@ -171,16 +193,19 @@ const CustomSelect: React.FC<{
 
 const Item: React.FC<
   React.PropsWithChildren<{ title: string; showTip?: boolean }>
-> = ({ title, children, showTip = false }) => (
-  <div className={styles.item}>
-    <div className={styles["item-name"]}>
-      {title}
-      {showTip && (
-        <Tooltip title="若要输入 ? 的攻击/守备，请输入 -2">
-          <InfoCircleFilled style={{ fontSize: "0.625rem" }} />
-        </Tooltip>
-      )}
+> = ({ title, children, showTip = false }) => {
+  const { t } = useTranslation("ClientUI");
+  return (
+    <div className={styles.item}>
+      <div className={styles["item-name"]}>
+        {title}
+        {showTip && (
+          <Tooltip title={t("UnknownStatHint")}>
+            <InfoCircleFilled style={{ fontSize: "0.625rem" }} />
+          </Tooltip>
+        )}
+      </div>
+      {children}
     </div>
-    {children}
-  </div>
-);
+  );
+};

@@ -11,6 +11,14 @@ const { HAND, GRAVE, REMOVED, DECK, EXTRA, MZONE, SZONE, TZONE } =
   ygopro.CardZone;
 
 export const move: MoveFunc = async (props) => {
+  if (props.card.overlayOrigin) {
+    // Logical overlay addresses are authoritative; only rendering stays put
+    // until Core sends the host's chosen destination.
+    props = {
+      ...props,
+      card: { ...props.card, location: props.card.overlayOrigin },
+    };
+  }
   const { card } = props;
   switch (card.location.zone) {
     case MZONE:

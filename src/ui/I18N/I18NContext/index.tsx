@@ -13,6 +13,7 @@ import { activateStrings, loadStrings } from "@/api/strings";
 import { getUIContainer } from "@/container/compat";
 import { activateCardDatabase, prepareCardDatabase } from "@/middleware/sqlite";
 import { cardStore } from "@/stores/cardStore";
+import { matStore } from "@/stores/matStore";
 import { roomStore } from "@/stores/roomStore";
 import {
   getEnvironmentFile,
@@ -21,7 +22,9 @@ import {
   languageLocales,
   languages,
   serverLanguageCommand,
+  setLanguagePreference,
 } from "@/variant";
+import { formatDuelHint } from "@/variant/duelHintText";
 
 interface I18NContextType {
   language: string;
@@ -62,9 +65,15 @@ export const I18NProvider: React.FC<{ children: React.ReactNode }> = ({
     activateCardDatabase(results[0].value);
     activateStrings(results[1].value);
     for (const card of cardStore.inner) {
-      if (card.code > 0) card.meta = fetchCard(card.code);
+      if (card.code > 0)
+        card.meta = { ...card.meta, text: fetchCard(card.code).text };
     }
-    localStorage.setItem("language", selected);
+    if (matStore.hint.esHint && matStore.hint.esHintSource)
+      matStore.hint.esHint = formatDuelHint(
+        matStore.hint.esHintSource,
+        selected,
+      );
+    setLanguagePreference(selected);
     await i18next.changeLanguage(selected);
     setLanguage(selected);
     if (roomStore.joined) {
@@ -75,7 +84,7 @@ export const I18NProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    localStorage.setItem("language", language);
+    setLanguagePreference(language as Language);
     document.documentElement.lang = languageLocales[language as Language];
   }, [language]);
 

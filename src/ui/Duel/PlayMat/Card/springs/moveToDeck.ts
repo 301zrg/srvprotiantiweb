@@ -1,32 +1,30 @@
 import { ygopro } from "@/api";
-import { isMe } from "@/stores";
+import { cardStore, isMe } from "@/stores";
 
 import { matConfig } from "../../css";
+import { deckCardFaceUp } from "../../deckVisibility";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
-
-const {
-  BLOCK_WIDTH,
-  BLOCK_HEIGHT_M,
-  COL_GAP,
-  ROW_GAP,
-  DECK_OFFSET_X,
-  DECK_OFFSET_Y,
-  DECK_ROTATE_Z,
-  DECK_CARD_HEIGHT,
-} = matConfig;
 
 const { DECK, EXTRA } = ygopro.CardZone;
 
 export const moveToDeck: MoveFunc = async (props) => {
-  const { card, api } = props;
+  const {
+    BLOCK_WIDTH,
+    COL_GAP,
+    DECK_OFFSET_X,
+    DECK_ROW_Y,
+    DECK_ROTATE_Z,
+    DECK_CARD_HEIGHT,
+  } = matConfig;
+  const { card, api, signal } = props;
   // report
   const { location } = card;
   const { controller, zone, sequence } = location;
 
   const rightX = DECK_OFFSET_X + 2 * (BLOCK_WIDTH + COL_GAP);
   const leftX = -rightX;
-  const bottomY = DECK_OFFSET_Y + 2 * BLOCK_HEIGHT_M + 2 * ROW_GAP;
+  const bottomY = DECK_ROW_Y;
   const topY = -bottomY;
   let x = isMe(controller) ? rightX : leftX;
   let y = isMe(controller) ? bottomY : topY;
@@ -37,12 +35,22 @@ export const moveToDeck: MoveFunc = async (props) => {
   rz += isMe(controller) ? 0 : 180;
   const z = sequence;
 
-  await asyncStart(api)({
+  await asyncStart(
+    api,
+    signal,
+  )({
     x,
     y,
     z,
     rz,
-    ry: isMe(controller) ? (zone === DECK ? 180 : 0) : 180,
+    ry:
+      zone === DECK
+        ? deckCardFaceUp(card, cardStore.deckReversed)
+          ? 0
+          : 180
+        : isMe(controller)
+        ? 0
+        : 180,
     zIndex: z,
     height: DECK_CARD_HEIGHT,
 

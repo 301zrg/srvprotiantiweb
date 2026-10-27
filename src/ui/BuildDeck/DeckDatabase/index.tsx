@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import { useTranslation } from "react-i18next";
 
-import { CardMeta, searchCards } from "@/api";
+import { CardMeta, forbidden, searchCards } from "@/api";
 import { isToken } from "@/common";
 import { emptySearchConditions, FtsConditions } from "@/middleware/sqlite/fts";
 import { useI18N } from "@/ui/I18N";
@@ -69,6 +69,11 @@ export const DeckDatabase: React.FC = () => {
   const handleSearch = (conditions: FtsConditions = searchConditions) => {
     const result = searchCards({ query: searchWord, conditions })
       .filter((card) => !isToken(card.data.type ?? 0))
+      .filter(
+        (card) =>
+          !conditions.banStatuses?.length ||
+          conditions.banStatuses.includes(forbidden.get(card) ?? 3),
+      )
       .sort(sortRef.current);
     setSearchCardResult(result);
   };
@@ -148,6 +153,7 @@ export const DeckDatabase: React.FC = () => {
               : "primary"
           }
           icon={<FilterOutlined />}
+          data-testid="deck-filter-open"
           onClick={showFilterModal}
         >
           {i18n("Filter")}
