@@ -8,8 +8,10 @@
 }
 
 .sider {
+  --sider-width: 18.75rem;
   width: var(--sider-width);
   flex: 0 0 var(--sider-width);
+  min-width: 0;
   background-color: hsla(0, 0%, 100%, 0.05);
   position: relative;
   height: 100%;

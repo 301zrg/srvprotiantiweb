@@ -41,7 +41,8 @@
     }
     .back {
       z-index: 0;
-      transform: translateZ(0px);
+      // Both visible faces sit at the same depth after a flip, so card z-index wins.
+      transform: translateZ(-0.5px);
     }
   }
   .shadow {

@@ -17,8 +17,33 @@ export enum SideStage {
   WAITING = 8, // 观战者等待双方玩家
 }
 
+export interface SideEditor {
+  initialDeck: IDeck;
+  draft: IDeck;
+  scrollTop: number;
+}
+
 export class SideStore implements NeosStore {
   stage: SideStage = SideStage.NONE;
+  // The editor survives a connection remount, but never becomes a submitted deck.
+  editor?: SideEditor;
+
+  getEditor(): SideEditor {
+    if (!this.editor) {
+      const initialDeck = this.getSideDeck();
+      this.editor = {
+        initialDeck,
+        draft: {
+          ...initialDeck,
+          main: [...initialDeck.main],
+          extra: [...initialDeck.extra],
+          side: [...initialDeck.side],
+        },
+        scrollTop: 0,
+      };
+    }
+    return this.editor;
+  }
 
   // 换备牌组只属于当前标签页的连接；localStorage 会让同源的对手标签页互相覆盖。
   // sessionStorage 保留本标签页刷新后的数据，但在离开房间时清除。
@@ -52,6 +77,7 @@ export class SideStore implements NeosStore {
   }
   reset(): void {
     this.stage = SideStage.NONE;
+    this.editor = undefined;
     try {
       sessionStorage.removeItem(KEY);
     } catch (err) {

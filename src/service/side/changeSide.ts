@@ -5,5 +5,11 @@ export function handleChangeSide(
   container: Container,
   _: ygopro.StocChangeSide,
 ) {
-  container.context.sideStore.stage = SideStage.SIDE_CHANGING;
+  const side = container.context.sideStore;
+  if (
+    side.stage !== SideStage.SIDE_CHANGING &&
+    side.stage !== SideStage.SIDE_CHANGED
+  )
+    side.editor = undefined;
+  side.stage = SideStage.SIDE_CHANGING;
 }

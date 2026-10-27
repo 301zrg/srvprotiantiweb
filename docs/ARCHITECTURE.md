@@ -134,6 +134,9 @@ sequenceDiagram
     WS->>Service: 排队处理在线事件
     Service->>Store: 更新 UI
   end
+  Note over Session,Store: 换备中断线时保存初始基线、草稿和滚动的内存快照
+  Note over Session,Store: 新连接仍以冻结 G1 认证；重挂载恢复编辑器，不提交草稿
+  Note over Service,Store: 新换备阶段和正常离场清理编辑器状态
   Server-->>WS: DUEL_END 和可能连续多份 STOC_REPLAY
   Capture->>IDB: 原件去重与事务保存
   Session->>Capture: finish 等尾包及已收到的保存任务
@@ -225,6 +228,7 @@ sequenceDiagram
 | 完整联机输入 | 内存草稿与当前标签页 sessionStorage；普通退出保留，主动清空和一键观战清空按会话契约执行 |
 | 公开偏好 | localStorage 的语言、公开昵称／房名等，不含账号或房间密码 |
 | 卡组 | 卡组 IndexedDB 与编辑 store；不会随观战输入清空而删除 |
+| 换备编辑器 | `SideStore.editor` 保存本阶段初始卡组、草稿和滚动，仅在同会话自动恢复时显式复制；新阶段／离场清理，不持久化未提交草稿，不替代 sessionStorage 中的已提交卡组 |
 | 录像 | 独立 IndexedDB 的 blobs／entries／occurrences，原件 hash 去重；失败时有限临时内存并提示备份 |
 | 录像资源缓存 | 可选 Cache Storage，与玩家卡组／录像原件分开；不可当作玩家数据备份 |
 | BiliToy 命名空间 | 同作品版本更新共享、不同作品隔离；普通站点仍按浏览器 origin 分隔 |
