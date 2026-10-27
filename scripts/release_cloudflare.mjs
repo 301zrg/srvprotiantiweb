@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { previewConfig } from "./preview_config.mjs";
+import { previewConfig, releaseSkipReason } from "./preview_config.mjs";
 
 export const WRANGLER_VERSION = "4.148.0";
 const MAX_ATTEMPTS = 3;
@@ -127,6 +127,11 @@ if (
       throw new Error(
         "Usage: node scripts/release_cloudflare.mjs preview|deploy",
       );
+    const skip = releaseSkipReason(process.argv[2]);
+    if (skip) {
+      console.log(skip);
+      process.exit(0);
+    }
     process.exitCode = await releaseWithRetry(process.argv[2], {
       run: runWrangler,
       signal: cancellation.signal,

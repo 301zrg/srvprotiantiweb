@@ -5,6 +5,8 @@ import { publicOperatorConfigFromEnvironment } from "./public_operator_config.mj
 export const previewConfig = Object.freeze(JSON.parse(readFileSync(new URL("../deployment/preview.json", import.meta.url), "utf8")));
 if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(previewConfig.name) ||
     typeof previewConfig.productionBranch !== "string" || !previewConfig.productionBranch ||
+    typeof previewConfig.previewBranch !== "string" || !previewConfig.previewBranch ||
+    previewConfig.previewBranch === previewConfig.productionBranch ||
     new URL(previewConfig.publicConfigUrl).protocol !== "https:")
   throw new Error("Invalid fixed preview configuration");
 
@@ -14,6 +16,17 @@ export function isPreviewBuild(environment = process.env) {
     return environment.WORKERS_CI_BRANCH !== previewConfig.productionBranch;
   }
   return environment.SRVPRO_BUILD_TARGET === "preview";
+}
+
+// Workers CI runs the preview command for every non-production push; only the
+// preview branch may replace the shared test site, and only main may go live.
+export function releaseSkipReason(mode, environment = process.env) {
+  if (environment.WORKERS_CI !== "1") return;
+  const branch = environment.WORKERS_CI_BRANCH;
+  if (!branch) throw new Error("Workers CI branch is required to choose the release target");
+  const allowed = mode === "preview" ? previewConfig.previewBranch : previewConfig.productionBranch;
+  if (branch !== allowed)
+    return `Skipping Cloudflare ${mode}: branch ${branch} is not ${allowed}.`;
 }
 
 export async function cloudflarePublicConfig(environment = process.env, fetcher = fetch) {

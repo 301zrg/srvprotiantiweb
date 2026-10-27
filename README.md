@@ -29,7 +29,7 @@ npm run preview:static
 - [当前架构与数据流](docs/ARCHITECTURE.md)：实际目录、四张图、配置和存储归属。
 - [开发约束与任务入口](AGENTS.md)、[设计理由](YGOPro_706_Web_Client_Design.md)、[剩余工作](IMPLEMENTATION_PLAN.md)。
 - [录像使用](docs/replay-usage.md)、[卡组接收](docs/deck-import.md)、[录像接收](docs/replay-import.md)、[观战链接](docs/room-spectator-links.md)。
-- [外部静态站点自动发布](docs/cloudflare-ci.md)：`deploy/cloudflare` 是已配置的发布分支，更新它会触发上线；普通工作分支不会自动发布。
+- [外部静态站点自动发布](docs/cloudflare-ci.md)：`main` 发布正式版、`preview` 发布测试版，推送即上线；其他工作分支不会发布。分支规范见该文档。
 
 按改动选检查：文档检查链接与事实；协议改动运行相应封包／会话回归；资源改动核对 SHA 与 revision；UI 改动运行对应浏览器脚本、类型检查、lint 和构建。浏览器模拟不代替 Android／iOS 真机。原始输入与私密配置保持不变，未授权卡组、录像和凭据不入库。
 
