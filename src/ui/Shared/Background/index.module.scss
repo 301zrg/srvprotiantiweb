@@ -19,8 +19,11 @@
   transform: translateY(-70%);
   width: 60vw;
   height: 100vh;
-  background: radial-gradient(#00814f, #1c0161);
-  background-size: contain;
-  background-repeat: repeat;
-  filter: blur(502px);
+  // Pre-softened; a 500px blur filter is very expensive on WebKit.
+  background: radial-gradient(
+    closest-side,
+    rgba(0, 129, 79, 0.3),
+    rgba(28, 1, 97, 0.16) 55%,
+    rgba(28, 1, 97, 0)
+  );
 }

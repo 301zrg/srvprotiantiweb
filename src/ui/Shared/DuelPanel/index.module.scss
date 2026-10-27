@@ -34,7 +34,9 @@
   }
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .compact {
     top: max(8px, env(safe-area-inset-top));
     left: max(8px, env(safe-area-inset-left));

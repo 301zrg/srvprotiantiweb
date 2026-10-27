@@ -1,7 +1,7 @@
 declare const classNames: {
   readonly container: "container";
-  readonly copyButton: "copyButton";
   readonly fieldHeading: "fieldHeading";
+  readonly copyButton: "copyButton";
   readonly roomRulesLink: "roomRulesLink";
 };
 export = classNames;

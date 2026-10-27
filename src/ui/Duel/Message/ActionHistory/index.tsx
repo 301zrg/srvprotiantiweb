@@ -45,12 +45,14 @@ export const ActionHistory: React.FC = () => {
   );
 };
 
-const HistoryItem: React.FC<History> = ({
+// Memoized: the drawer stays mounted after first open, and the list grows all
+// match long, so each new entry must not re-render every earlier one.
+const HistoryItem: React.FC<History> = React.memo(function HistoryItem({
   card,
   currentLocation,
   operation,
   target,
-}) => {
+}) {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
   if (operation === HistoryOp.ANNOUNCE)
@@ -100,7 +102,7 @@ const HistoryItem: React.FC<History> = ({
       {target && <div className={styles.target}>{`${zone2Text(target)}`}</div>}
     </div>
   );
-};
+});
 
 function zone2Text(zone: ygopro.CardZone): string {
   return fetchStrings(Region.System, zone + 1000);

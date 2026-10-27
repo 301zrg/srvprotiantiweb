@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 export const mobileInterfaceQuery =
-  "(max-width: 1024px), (max-height: 600px) and (pointer: coarse)";
+  "(max-width: 1024px), (max-height: 600px) and (pointer: coarse), (hover: none) and (pointer: coarse)";
 
 export function useMediaQuery(media: string) {
   const [matches, setMatches] = useState(

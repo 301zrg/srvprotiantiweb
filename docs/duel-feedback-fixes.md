@@ -36,3 +36,29 @@ npm run lint
 4. 各自使用不同昵称与不同 LP 开局，第三人观战；分别测试座位甲先攻和座位乙先攻。来回切视角、发生 LP 变化和进入下一局后核对昵称、场面、生命值和计时；观战者不能操作双方对局。
 
 静态发布包与 BiliToy 专用包分别按 [上线测试手册](current-server-online-test.md) 和 [BiliToy 上传说明](bilitoy-feasibility.md) 使用。BiliToy 平台账号许可与实际上传尚需协作者完成。
+
+## 双倍祭品的上级召唤
+
+2026-10-18：双生天使（`11662742`）单独在场、用于上级召唤主宰者许珀里翁（`55794644`）时，
+原选择窗口要求选满两张卡，导致无法确认。`MSG_SELECT_TRIBUTE` 的 `Info.level` 实际是服务器计算的
+祭品值（`release_param`），不是怪兽星级；`min` 限制祭品值总和，`max` 限制实际选择张数。
+协议依据见仓库内 `third-party/replay/ocgcore/playerop.cpp` 的 `field::select_tribute`。
+
+`selectTribute.ts` 将祭品值映射到现有选卡窗口的 `level1` 合计校验，允许总值达到 `min`、张数不超过 `max` 的组合，
+并保留服务器的取消标志。响应仍按实际选择的卡片数量及原始索引发送，一张双生天使只回传一次。
+是否可当两体祭品由服务器决定，网页不按卡号或卡文推断，不修改在线 Core／Lua。
+
+回归入口为 `npm run test:tribute-ui`，报告及截图保存在忽略目录 `.audit-tmp/tribute-selection/`。
+使用原生合成封包重建场面，覆盖桌面、手机竖屏和横屏的双生天使单卡、普通两卡、服务器仅赋一体祭品值、
+非零响应索引、祭品值溢出、最大选卡数、单祭品、取消与普通 `SELECT_CARD`。
+2026-10-18：上述 9 个场景 × 3 种屏幕尺寸共 27 项通过；`tsc --noEmit`、`npm run lint` 和 `npm run build:static` 通过。
+这些本地检查针对客户端协议和交互；生产发布与正式网页复验见下文，真实手机／完整对局仍需另行验收。
+
+同日已通过 [PR #35](https://github.com/301zrg/srvprotiantiweb/pull/35) 发布。候选基于当时生产提交 `632ddbda`，
+在隔离工作树重跑 27 项交互、类型检查、438 份手写源码／声明的 ESLint 和完整 Cloudflare 构建通过；
+合并提交 `7b636941a9c4ca85084f96972c8ec3dc2c7c715b` 的正式构建 `c759dc57-4a84-4c8e-af04-95a3dc794f57` 返回 success，
+正式站点 `deployment-info.json` 已核对该提交。34 项线上 JS/CSS 字节数及 SHA 一致，原 WSS 配置和可信 TLS／101 握手保持。
+使用正式网页资源、完全本地的模拟 WebSocket，在桌面／手机横竖屏分别复现旧版不能确认，再验证新版单选确认后
+只发送一张卡的响应 `[3,0,1,1,0]`；没有发送真实玩家登录或比赛消息，没有重启 SRVPro、Nginx 或隧道。
+回执与前后截图见 `.audit-tmp/tribute-release-20261018/.audit-tmp/tribute-production/`，完整回执为同目录上级的 `release-receipt.json`。
+以上生产网页交互仍使用模拟封包，不代替真实手机和完整对局验收。

@@ -1,2 +1,4 @@
-declare const classNames: { readonly cards: "cards" };
+declare const classNames: {
+  readonly cards: "cards";
+};
 export = classNames;

@@ -4,6 +4,7 @@ import { fetchCard, fetchStrings, Region, ygopro } from "@/api";
 import ErrorType = ygopro.StocErrorMsg.ErrorType;
 import { Container } from "@/container";
 import { AudioActionType, playEffect } from "@/infra/audio";
+import { SideStage } from "@/stores";
 import { getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 
@@ -97,6 +98,8 @@ export default async function handleErrorMsg(
       break;
     }
     case ErrorType.SIDEERROR: {
+      if (container.context.sideStore.stage === SideStage.SIDE_CHANGED)
+        container.context.sideStore.stage = SideStage.SIDE_CHANGING;
       roomStore.errorMsg = t("SideError");
       break;
     }

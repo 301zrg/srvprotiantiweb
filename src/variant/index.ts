@@ -14,6 +14,7 @@ declare global {
     __SRVPRO_DUEL_CONFIG__?: {
       duelWebSocketUrl?: unknown;
       deckImportOrigins?: unknown;
+      websiteBaseUrl?: unknown;
     };
   }
 }

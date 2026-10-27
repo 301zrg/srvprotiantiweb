@@ -1,7 +1,7 @@
 import { animated, to, useSpring } from "@react-spring/web";
 import { Dropdown, type MenuProps } from "antd";
 import classnames from "classnames";
-import React, { type CSSProperties, useEffect, useRef, useState } from "react";
+import React, { type CSSProperties, useEffect, useState } from "react";
 import { useSnapshot } from "valtio";
 
 import {
@@ -80,26 +80,25 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
   const [classFocus, setClassFocus] = useState(false);
 
   // >>> 动画 >>>
-  /** 动画序列的promise */
-  const animationQueue = useRef(Promise.resolve());
-  const mounted = useRef(false);
-
-  const addToAnimation = (p: () => Promise<void>) => {
-    const next = animationQueue.current.then(() =>
-      mounted.current ? p() : undefined,
-    );
-    // Preserve the error for this caller without poisoning later animations.
-    animationQueue.current = next.catch(() => {});
-    return next;
-  };
-
   useEffect(() => {
-    mounted.current = true;
+    // Each effect owns its queue, including React StrictMode's replacement
+    // mount. Every stage keeps the original connection and mount signal.
+    const lifetime = new AbortController();
+    const signal = lifetime.signal;
+    const connectionSignal = container.conn.signal;
+    let animationQueue = Promise.resolve();
+    const addToAnimation = (p: () => Promise<void>) => {
+      const next = animationQueue.then(() =>
+        signal.aborted ? undefined : p(),
+      );
+      animationQueue = next.catch(() => {});
+      return next;
+    };
     const unregisterMove = eventbus.register(
       Task.Move,
       card.uuid,
       async (options?: MoveOptions) => {
-        await addToAnimation(() => move({ card, api, options }));
+        await addToAnimation(() => move({ card, api, options, signal }));
       },
     );
 
@@ -109,7 +108,11 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       async () => {
         await addToAnimation(async () => {
           setClassFocus(true);
-          await focus({ card, api });
+          try {
+            await focus({ card, api, signal });
+          } finally {
+            if (!signal.aborted) setClassFocus(false);
+          }
         });
       },
     );
@@ -118,18 +121,24 @@ export const Card: React.FC<{ idx: number }> = React.memo(({ idx }) => {
       Task.Attack,
       card.uuid,
       async (options: AttackOptions) => {
-        await addToAnimation(() => attack({ card, api, options }));
+        await addToAnimation(() => attack({ card, api, options, signal }));
       },
     );
     // State may already contain catch-up messages received before this mount.
-    void addToAnimation(() => move({ card, api }));
-    return () => {
-      mounted.current = false;
+    void addToAnimation(() => move({ card, api, signal })).catch(() => {
+      if (import.meta.env.DEV) console.warn("Initial card placement failed.");
+    });
+    const cleanup = () => {
+      lifetime.abort();
       unregisterMove();
       unregisterFocus();
       unregisterAttack();
       api.stop(true);
+      connectionSignal?.removeEventListener("abort", cleanup);
     };
+    connectionSignal?.addEventListener("abort", cleanup, { once: true });
+    if (connectionSignal?.aborted) cleanup();
+    return cleanup;
   }, []);
 
   // <<< 动画 <<<

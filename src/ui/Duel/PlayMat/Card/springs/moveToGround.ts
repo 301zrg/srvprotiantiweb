@@ -21,7 +21,7 @@ const {
 const { MZONE, SZONE, TZONE } = ygopro.CardZone;
 
 export const moveToGround: MoveFunc = async (props) => {
-  const { card, api, options } = props;
+  const { card, api, options, signal } = props;
 
   const { location } = card;
 
@@ -99,7 +99,10 @@ export const moveToGround: MoveFunc = async (props) => {
       height: 0,
     });
   } else {
-    await asyncStart(api)({
+    await asyncStart(
+      api,
+      signal,
+    )({
       x,
       y,
       height,
@@ -114,7 +117,10 @@ export const moveToGround: MoveFunc = async (props) => {
     });
   }
 
-  await asyncStart(api)({
+  await asyncStart(
+    api,
+    signal,
+  )({
     height,
     z: 0,
     subZ: isToken ? 100 : 0,
@@ -125,5 +131,5 @@ export const moveToGround: MoveFunc = async (props) => {
       clamp: true,
     },
   });
-  if (isToken) api.set({ subZ: 0 });
+  if (isToken && !signal?.aborted) api.set({ subZ: 0 });
 };

@@ -39,7 +39,9 @@ section.mat {
   min-height: 0;
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .viewport {
     top: calc(80px + env(safe-area-inset-top));
     bottom: calc(

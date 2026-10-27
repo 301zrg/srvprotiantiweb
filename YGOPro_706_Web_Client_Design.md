@@ -1,16 +1,20 @@
 # YGOPro 706 历史环境 Web 客户端设计
 
-> 修订：2026-10-08；服务端／上游核查：2026-09-28；1103 四语裁剪库复制与核查：2026-09-29。
-> 状态：第一期已可使用，Cloudflare 自动部署已成功。2026-10-08 获授权后完成第二期录像首版的本地实现与自动化回归，真机与生产样本仍待验收。详细方案与 `special.lua` 处理见 [第二期计划](docs/replay-phase2-plan.md)，使用及证据见 [录像说明](docs/replay-usage.md)。本轮仅修改本项目，官网 HTML 等待单独指令。今年继续使用现有大陆服务器与隧道，明年更换服务器后再处理直连。
-> 产品目标：外部托管的静态网页点开即玩，支持手机与桌面；联机页由玩家自行填写昵称和房间名，只固定服务器地址与端口，在线裁定完全由服务端承担。
+> 修订：2026-10-10。本文维护长期设计理由、约束与分期定义；不再维护项目级进度。
+> 当前实装见 [架构与数据流](docs/ARCHITECTURE.md)，实现／本地／生产／真机状态统一见 [当前状态](docs/PROJECT_STATUS.md)，未完成验收见 [剩余工作](IMPLEMENTATION_PLAN.md)。
+> 产品目标：外部托管的静态网页点开即玩，支持手机与桌面；玩家填写昵称和房间名，仅固定服务器地址，在线裁定由服务端承担。
 
-本轮用户已指定 `locales/1103_*` 的四语裁剪库为项目资源，并明确网页不部署到天梯服务器。当前依据见[1103 资源审计](docs/1103-resource-audit.json)、[暂存说明](resources-staging/1103/README.md)、[服务端审计](docs/server-contract-audit.md)、[上游审计](docs/upstream-audit.md)；[旧资源审计](docs/resource-audit.json)保留为 card-catalog 完整库与禁表的历史记录。
+用户指定的 `locales/1103_*` 四语裁剪库是资源基线，原件保持字节不变；
+来源见 [1103 资源审计](docs/1103-resource-audit.json) 与 [暂存说明](resources-staging/1103/README.md)。
+旧完整 card-catalog 库的审计仅为历史来源，不重新作为默认卡池。
+在线首版、录像首版、场地重演和官网卡组／录像配套均已有源码；
+实际发布与验收须按当前状态核实。文中的历史授权不作为未来操作许可。
+整理前完整文本保留在 [设计归档](docs/archive/DESIGN_2026-10-10.md)。
 
-用户已确认在线首版设计并宣布过开工，现确认第一期可用。第二期覆盖下文 P4–P5，2026-10-08 已获条件性开工授权：本轮自动部署完成并验收无问题后进入实施，无需再次询问。本地源码、默认配置、生产实际行为分别记录，不能互相替代。
+## 0. 历史审查与设计决策来源
 
-2026-10-08 单独获授权并实现网页版卡组接收入口，支持公开内容参数与指定来源消息交接，统一解析 YDK／原生 deckbuffer／三分区结构并打开本地编辑器，见 [卡组接收契约](docs/deck-import.md)。官网 HTML／按钮留待下一步；此项不表示第二期录像已开工。
-
-## 0. 本次审查结论与开工门槛
+本节记录 2026-09-28 至 2026-10-08 的审查阶段，表格中的“缺口”“本次未验证”和源码 SHA
+不代表今天仍未实现；当前结果以架构页和状态页为准。
 
 总体方向可行：以 Neos 为基础做专用客户端，复用现有服务器的 Neos WebSocket 接口，不在浏览器在线运行决斗 Core。主要缺口如下。
 
@@ -29,10 +33,10 @@
 | 联机页预设为独立 TT 入口 | 用户要求与原版联机页一致，自填昵称、房间名，仅固定 IP／端口 | 统一“加入游戏”；房间名 TT 进入天梯，其他名称按服务器原有语义处理 |
 | 默认昵称／托管位置没有写成硬约束 | 用户要求玩家自行输入昵称，且天梯服务器资源不足 | 可编辑昵称是首版能力；前端构建及所有静态资源一律放在天梯服务器之外 |
 
-### 已锁定的审查基线
+### 早期审查基线（历史）
 
 - Neos：`DarkNeos/neos-ts@a84c443674f82d6d47969915e6cb8656660be364`。按该 SHA 核查的源码事实不代表未来 main。
-- neos-protobuf gitlink：`81291cac39ba7c726ef817166c41e028bd0a4e8b`。它参与内部消息对象生成，不代表 WebSocket 上传输 protobuf。
+- 原 neos-protobuf gitlink 为 `81291cac39ba7c726ef817166c41e028bd0a4e8b`。当前固定协议源码／许可证已复制入 `protocol-source/`，生成 TS 仍入库，普通构建不要求子模块；它仅参与内部对象生成，不代表 WebSocket 上传输 protobuf。
 - 本地服务器 HEAD：`f253da853bf15c2742b1effafe222bbb54fc3813`，工作区有既存未提交修改。本次不修改服务端，也不把 HEAD 当作完整部署快照。
 - 当前四语裁剪库的源／副本 SHA、大小、差异、搜索尾缀记录在 `docs/1103-resource-audit.json`；旧完整库与禁表结果保留在 `docs/resource-audit.json`，两组输入不混用。
 - 本次未读取私密部署配置，未连接生产服务器；未声明生产已启用 MR2、WSS、历史卡池校验或重连。
@@ -70,11 +74,11 @@
 
 ### 1.2 分期与非目标
 
-标准 YRP 库与播放分别在 P4／P5，不阻塞首版在线客户端。未实现的功能不显示可点击的“播放”按钮，也不把 `features.replay=true` 当默认值。
+标准 YRP 库与播放分别在 P4／P5，当前首版已实现。只为已确认支持的格式显示可用播放入口；保存原件与可播放是两个状态，不能把功能开关当作兼容证据。
 
 首版不做新的账号数据库、MyCard SSO／匹配／观战、MDPro 云卡组、多环境切换、AI、本地在线裁定、完整天梯统计站移植。保留到既有介绍／统计页面的链接即可；需要嵌入 API 时另核对 HTTPS、CORS 和权限。
 
-“轻量”指少启动请求、按需资源和低维护成本，不以删掉 TT 认证、换备、网络恢复或手机操作为代价。PWA、离线缓存、网页内的公开房间列表、跨设备云同步后续评估。已增加从外部房间列表链接进入观战的参数契约：`room`、`spectate=1`、可选公开 `nickname`；默认 `observer from web`；2026-10-09 按用户要求，一键观战入房或取消时清空普通联机昵称／房名缓存。具体房间和观战权限由宿主处理，列表 HTML 的改动另行实施，见 [房间链接观战](docs/room-spectator-links.md)。
+“轻量”指少启动请求、按需资源和低维护成本，不以删掉 TT 认证、换备、网络恢复或手机操作为代价。PWA、离线缓存、网页内的公开房间列表、跨设备云同步后续评估。已增加从外部房间列表链接进入观战的参数契约：`room`、`spectate=1`、可选公开 `nickname`；默认 `observer from web`；2026-10-09 按用户要求，一键观战入房或取消时清空普通联机昵称／房名缓存。具体房间和观战权限由宿主处理；官网列表配套已在相邻仓库实现，实际上线另验，见 [房间链接观战](docs/room-spectator-links.md)。
 
 ## 2. 架构与上游边界
 
@@ -98,7 +102,7 @@ flowchart TB
 
 上游在线传输是原生 YGOPro 包，内部 protobuf 模型继续复用。原 `src/api/ocgcore/` 路径名不表示浏览器正在跑 Core，不应据此整目录删除。
 
-建议新增：
+早期目标目录（保留为设计来源；实际模块以当前架构页为准）：
 
 ```text
 src/variant/          固定环境、资源URL、公开部署参数
@@ -111,7 +115,7 @@ environment/          来源锁文件、历史ID集合、文本override
 docs/                 审计、兼容矩阵、实测记录
 ```
 
-这些是目标目录，不代表已存在的实现。
+这些是历史目标目录，不要求为了符合目录名移动现有实现。实际会话在 `src/ui/Match/util.ts`，资源加载在 `src/middleware/` 与 `src/variant/`，环境输入／生成物在 `resources-staging/` 和 `public/environment/`。
 
 ## 3. 连接、协议和房间契约
 
@@ -140,16 +144,16 @@ payload
 
 WS 不额外封装 JSON、base64 或 protobuf。保留发送 `PLAYER_INFO → JOIN_GAME → UPDATE_DECK → Ready` 的服务器期望顺序。
 
-上游解析器能循环拆同一消息中的多包，但使用有符号读取，未完善半包和长度校验。P0 必须验证／修复以下边界，尤其为后续大录像包：
+原上游解析器的有符号读取、半包与长度校验不足是 P0 的修改依据；当前已使用独立帧解析器，入口见架构页。以下保持协议边界要求：
 - 使用无符号读取；长度不得小于 opcode 长度，未完整收齐不得读取。
 - 支持一条 WS 消息中的多个协议包；如果接入路径可能转发半包，使用累计缓冲重组。
 - 验证协议上限、分配上限、截断、未知 opcode 与畸形包；错误只结束本次会话。
 - 统一处理 ArrayBuffer／Blob，保证异步读取保序；不丢失错误、关闭通知或最后录像。
-- 每次连接独立 epoch／取消令牌；旧连接消息不得写入新对局 store。队列可观测且有内存上限，不能依赖动画完成来无限积压消息。
+- 每次连接独立 epoch／取消令牌；旧连接消息不得写入新对局 store。累计队列上限原为设计目标，但 2026-10-10 用户决定暂不实施 B，以保留连续动画，接受长时间后台／慢消费的积压现状。单包／半包限制仍在，不等于累计限制；此项不再是默认施工要求。
 
 ### 3.3 HostInfo 与 MR2
 
-历史资源目标为 MR2、2011.3.1；TT 是 Match，普通房间模式由房间名命令及服务器决定，不能因固定服务器而强制所有房间进入 TT／Match。必须读取并展示实际 `STOC_JOIN_GAME` HostInfo 中的 mode、duel_rule、lflist、rule、LP、时间与卡组检查配置。当前上游 join handler 只标记已加入，不能继续忽略这些字段。
+历史资源目标为 MR2、2011.3.1；TT 是 Match，普通房间模式由房间名命令及服务器决定，不能因固定服务器而强制所有房间进入 TT／Match。必须读取并展示实际 `STOC_JOIN_GAME` HostInfo 中的 mode、duel_rule、lflist、rule、LP、时间与卡组检查配置。当前客户端读取这些字段并按支持模式处理；不能仅凭“已加入”忽略实际 HostInfo。
 
 MR2 场地、阶段、先攻抽卡和相关选择由服务端消息决定；前端只展示和响应，不补规则模拟。场地布局需检查是否误用固定现代区域。TT 的规则／禁表与约定不符时停止 Ready 并提示；普通房间正常接受宿主下发的受支持模式，不因它不是 Match 就拒绝入房。普通房间禁表等参数与本地提示不同，要明确展示差异，客户端卡组提示不得充当入房权限；仅遇到实际不支持的协议／场地规则时明确说明能力限制，不能偷偷改房名或转入 TT。
 
@@ -211,7 +215,7 @@ P0 至少证实普通房与 TT 的区别、TT Match 整场流程、禁表 hash�
 
 前轮 `card-catalog/databases` 的 14,981／14,968 行完整库不再是本项目默认输入；它的现代类型、13 ID 差异和超安全整数统计仅属于旧审计。当前四份 1103 库没有超出 JS 安全整数的 datas 值，但生成器仍须支持保真整数。`ot & 0x8` 也仍不是发行日期标记，不能据此再裁一次历史池。
 
-### 5.2 已确定的后续处理方案（开工后执行）
+### 5.2 当前生成规则与资源约束
 
 采用中文 1103 裁剪库的 **5,267 个 ID 与 datas** 作为客户端四语统一基线；英文、日文、韩文库只提供各自 texts。按此方案处理用户已确认的卡池，不再等待重新从现代完整库划定产品范围。
 
@@ -349,10 +353,10 @@ P0 至少证实普通房与 TT 的区别、TT Match 整场流程、禁表 hash�
 P0 测量上游基线后记录具体设备、浏览器、网络与 gzip/Brotli 后传输量；以下是首版工程预算，超出须说明优化或调整依据：
 - 普通 4G／约 10 Mbps、100 ms RTT 条件下，首次可操作首页目标 3 秒内；当前语卡组可用目标 8 秒内。
 - 首页不下载 Replay Core／Lua、不请求四份 CDB、不预取全卡池图片。
-- 在线首版不发布背景音乐和旧卡组封面；保留可关闭的提示音。当前本地静态包约 12.7 MB（未压缩），不把所有资源体积误记为首屏传输量。
+- 在线首版不发布背景音乐和旧卡组封面；保留可关闭的提示音。录像资源加入前的在线首版包约 12.7 MB（未压缩）；该历史测量不能作为当前完整包体，也不能当作首屏传输量。当前应按对应构建重测。
 - 首屏 JS+CSS 压缩后目标不超过 1.5 MiB（不含按需 CDB／SQLite），卡组阶段记录单语库与 SQLite 的真实成本。
 - 列表分页／虚拟化，缩略图按可见区域加载；详情图按需。活动区域搜索与点击目标响应 100 ms 内，持续长任务单独记录。
-- 单次正常对局不积累无上限的消息／日志／图片缓存；语言切换与退出 Replay 后检查内存回落。
+- 语言切换与退出 Replay 后检查内存回落，日志／图片缓存按用途控制。累计在线消息队列保留上述用户确认的 B 例外，不能把原性能目标当作已实现或自动施工要求。
 
 至少测 Android Chrome 与 iOS Safari 真机，加桌面 Chrome／Firefox／Safari 或实际支持矩阵。Playwright 的触屏／WebKit 模拟负责回归，不能替代真机文件导出、键盘、切后台、内存和触控检查。
 
@@ -471,11 +475,11 @@ Replay store 与在线会话隔离；进入／退出清理 Worker、计时器、
 
 用户已确认设计并宣布开工；Neos 源码已检出，本地依赖安装、构建及隔离联调已进行。后续构建机仍为开发机或外部 CI，不使用天梯服务器。
 
-先在独立工作目录按固定 SHA 导入 Neos，再合入本目录的设计与专用文件；不在非空目录直接 clone 覆盖，也不把审计临时目录当正式工程。origin 指未来本项目远端，upstream 指 DarkNeos；未创建远端前不编造仓库地址。
+项目已基于固定 Neos 来源导入；`origin` 指本项目 `301zrg/srvprotiantiweb`，`upstream` 指 DarkNeos。后续同步使用独立分支，不在非空目录 clone 覆盖，也不把审计临时目录当正式工程。
 
-固定 lockfile、Node/npm环境、gitlink和生成代码。当前生成的 `src/api/ocgcore/idl/ocgcore.ts` 已提交；无协议变更时不应为正常构建强制重新运行 protoc。协议变更才锁定 protoc／TS插件并审核生成 diff。
+固定 lockfile、Node/npm 环境、仓库内协议来源指纹和生成代码；旧 gitlink 仅为来源史。当前生成的 `src/api/ocgcore/idl/ocgcore.ts` 已提交；无协议变更时不应为正常构建强制重新运行 protoc。协议变更才锁定 protoc／TS插件并审核生成 diff。
 
-上游 build 曾使用 `cp -r`，e2e有POSIX环境变量赋值／sh。本项目已替换构建中的复制命令，并在 Windows PowerShell 完成 `npm ci` 和 `npm run build`；Linux CI 及上游原版基线仍需另验。
+上游 build 曾使用 `cp -r`，e2e有POSIX环境变量赋值／sh。本项目已替换构建中的复制命令，并在 Windows PowerShell 完成 `npm ci` 和 `npm run build`；Cloudflare 实际成功记录见自动部署专题；本机、云端与上游原版基线的证据分开记录。
 
 上游测试依赖外部账号／实时服务的部分与本项目离线mock区分记录，不向正式天梯自动造比赛。现有 e2e仅桌面Chrome，补触屏／WebKit；四语key、资源与协议边界做本项目测试。
 
@@ -486,9 +490,11 @@ Replay store 与在线会话隔离；进入／退出清理 Worker、计时器、
 4. 运行本次影响的构建／资源／UI／协议回归；Replay已上线后加入对应fixture；
 5. 通过测试服完整Match与移动端smoke后才发布，保留旧应用／资源的回退入口。
 
-## 14. 实施阶段与完成定义
+## 14. 历史分期与完成定义
 
-P0–P3 已获施工授权并完成可用首版，用户现确认第一期可使用；具体测试证据与历史待测项见施工清单。`121.4.34.71:7911` 仍为 YGOPro TCP，网页使用已配置的公网隧道 WSS。2026-10-08 用户授权第二期施工，P4–P5 首版已实现并通过原生录像、隔离 WSS 和触屏尺寸回归；格式范围、资源锁与未测真机／生产项见 [录像说明](docs/replay-usage.md)。天梯官网 HTML 仍等单独指令。
+下表保留原 P0–P5 分期定义，退出条件是验收要求，不表示已经全部通过。
+在线与录像首版及官网配套的当前结果统一在 [项目状态](docs/PROJECT_STATUS.md)，
+详细记录见 [录像使用](docs/replay-usage.md) 和 [历史施工清单](docs/archive/IMPLEMENTATION_PLAN_2026-10-10.md)。
 
 | 阶段 | 产物 | 退出条件 |
 | --- | --- | --- |
@@ -515,31 +521,31 @@ P0风险验证优先于全面美化与四语翻译铺开；P1可在等待WSS时�
 | 四语 | 所有入口；连续快速切换；离线/404/hash失败保持旧语言；WS和deck ID不变；服务端聊天语言另同步 |
 | 本地存储 | reload、配额满、不可用、schema迁移、多标签页冲突、导出备份；清缓存不删用户存档 |
 | 静态部署 | 构建及所有静态请求在天梯服务器之外；根路径/子路径/Hash刷新；SQLite/Worker/图片路径；跨静态源CORS/MIME；HTTPS/WSS；旧缓存新版本混合失败可恢复 |
-| 性能 | 首页不加载Replay Core/Lua/四库；网络请求无MyCard/MDPro；卡图离线可操作；持续对局无无界队列 |
+| 性能 | 首页不加载Replay Core/Lua/四库；网络请求无MyCard/MDPro；卡图离线可操作；日志／图片缓存可控；累计在线队列保留第 3.2 节用户确认的 B 例外 |
 | Replay（对应阶段） | 原字节存取；YRP变体/坏文件/压缩上限；多局延迟接收；脚本初始化；逐步与桌面比对；取消/内存/懒加载 |
 
 fixture 只使用明确授权的测试数据；真实玩家录像含双方卡组，不默认作为可公开样本。优先从隔离测试服生成。
 
-## 16. 待取得的部署证据
+## 16. 部署证据的维护要求
 
-以下不是要重新讨论产品方向；它们决定能否完成生产联调。由维护者提供非敏感摘要或测试环境实测取得，无需公开整份配置。
+当前已经取得的证据与未完成验收统一见 [项目状态](docs/PROJECT_STATUS.md)，
+具体方法见 [剩余工作](IMPLEMENTATION_PLAN.md)。此处只定义长期应记录的内容，
+不再维护早期“入口／CI 尚未确认”清单；原记录保留在设计归档。
 
-1. 实际 WSS 域名／路径、TLS终止位置、是否已启用Neos；目前尚未确认。
-2. 实际core版本／commit／构建参数、卡库及expansions加载顺序，以及与用户已确认的中文1103 ID/datas基线的兼容性；不再要求重新确认这四份裁剪库是否作为项目输入。
-3. 真实TT的HostInfo：MR2、Match、2011.3.1 hash、卡池rule与合法性开关；普通房Single/Match、同名加入/不存在创建、房间密码、空值及特殊命令处理；抽样非法卡拒绝结果。
-4. 转发IP头与可信反代范围、实际重连窗口、错误/断线行为。
-5. 四语 strings 及历史文本 override 来源；四个 1103 源目录的 strings.conf 已随原始资源复制并按 SHA 审核。输入版本以普通 Git 跟踪，CI 取回与验证仍待配置。
-6. 外部静态托管的具体平台／域名／基路径和卡图可达性；“不部署到天梯服务器”已确定，不再作为待选择方案。
-7. P4/P5再取得：生产YRP样本、标准scripts及706的精确版本、公共脚本初始化顺序。
+每次正式兼容验收记录非敏感摘要：应用提交和环境 revision、WSS 路径与 TLS 终止位置、
+Core／Lua／706 scripts 指纹、卡库与 expansions 加载顺序、实际 HostInfo／禁表 hash、
+非法卡组拒绝、可信转发 IP／Origin 边界、重连与完整 Match、录像样本及原生对比。
+静态构建同时记录平台／基路径、资源指纹、WASM／Worker 加载和卡图可达性。
+原件、生成规则与快照随版本锁定；本机构建、云构建、生产对局和真机证据分开。
 
-已获开工授权；未满足上线门槛时仍可推进本地工程、mock 测试和布局，但不能写成“已完成生产兼容”。
+无需公开私密配置或玩家数据。实现存在或上线授权不能写成已完成生产兼容。
 
 ## 17. 参考入口
 
 本地依据：
-- [宿主开发约束](../srvprotianti/AGENTS.md)、[TT插件](../srvprotianti/plugins/ladder-core/README.md)。
-- [卡片目录边界](../srvprotianti/plugins/card-catalog/README.md)、[卡池移植指南](../srvprotianti/docs/CARD_POOL_PORTING_GUIDE.md)。
-- [实际介绍页](../srvprotianti/plugins/ladder-web/web/intro.html)、[桌面脚本初始化参考](../srvprotianti-desktop/src-tauri/src/scripts.rs)。
+- [宿主开发约束](https://github.com/301zrg/srvprotianti/blob/restructure2/AGENTS.md)、[TT插件](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-core/README.md)。
+- [卡片目录边界](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/card-catalog/README.md)、[卡池移植指南](https://github.com/301zrg/srvprotianti/blob/restructure2/docs/CARD_POOL_PORTING_GUIDE.md)。
+- [实际介绍页](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/web/intro.html)、[桌面脚本初始化参考](https://github.com/301zrg/srvprotianti-desktop/blob/main/src-tauri/src/scripts.rs)。
 - [服务端精确源码索引](docs/server-contract-audit.md)、[当前1103资源测量](docs/1103-resource-audit.json)、[原件暂存说明](resources-staging/1103/README.md)、[前轮完整库与禁表测量](docs/resource-audit.json)。
 
 固定上游依据：

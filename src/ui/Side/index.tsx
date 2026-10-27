@@ -10,11 +10,12 @@ import { CardMeta, fetchCard, sendUpdateDeck } from "@/api";
 import { isExtraDeckCard } from "@/common";
 import { getUIContainer } from "@/container/compat";
 import { AudioActionType, changeScene } from "@/infra/audio";
-import { IDeck, roomStore, SideStage, sideStore } from "@/stores";
+import { IDeck, matStore, roomStore, SideStage, sideStore } from "@/stores";
 import { requireSession } from "@/ui/requireSession";
 import { deckMessages } from "@/variant/deckMessages";
 
 import { CardDetail } from "../BuildDeck/CardDetail";
+import { EndModal } from "../Duel/Message/EndModal";
 import { useI18N } from "../I18N";
 import { Background, DeckZone, Type, useChat } from "../Shared";
 import { Chat } from "../WaitRoom/Chat";
@@ -38,6 +39,7 @@ export const Component: React.FC = () => {
   const [initialDeck] = useState(() => sideStore.getSideDeck());
   const { stage } = useSnapshot(sideStore);
   const { errorMsg } = useSnapshot(roomStore);
+  const { duelEnd } = useSnapshot(matStore);
   const [deck, setDeck] = useState<IDeck>(initialDeck);
   const [selectedCard, setSelectedCard] = useState(0);
   const [feedback, setFeedback] = useState<
@@ -60,6 +62,7 @@ export const Component: React.FC = () => {
     source: Type | "search",
     destination: Type,
   ) => {
+    if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
     setFeedback(undefined);
     setDeck((prev) => {
       const deck = {
@@ -80,6 +83,7 @@ export const Component: React.FC = () => {
     });
   };
   const onReset = () => {
+    if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
     setDeck({
       ...initialDeck,
       main: [...initialDeck.main],
@@ -89,6 +93,7 @@ export const Component: React.FC = () => {
     setFeedback("resetDone");
   };
   const onSummit = () => {
+    if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
     const original = [
       ...initialDeck.main,
       ...initialDeck.extra,
@@ -108,11 +113,11 @@ export const Component: React.FC = () => {
     }
     sendUpdateDeck(container.conn, deck);
     sideStore.setSideDeck(deck);
+    sideStore.stage = SideStage.SIDE_CHANGED;
   };
 
   useEffect(() => {
     if (stage === SideStage.SIDE_CHANGING) {
-      // Reconnect's DUEL_START prefix may temporarily set SIDE_CHANGED.
       // CHANGE_SIDE is authoritative and reopens editing, including its hint.
       setFeedback(undefined);
     }
@@ -124,6 +129,10 @@ export const Component: React.FC = () => {
       navigate("/duel");
     }
   }, [stage]);
+  useEffect(() => {
+    // A final opponent disconnect may end the match during Side too.
+    if (duelEnd) navigate("/match");
+  }, [duelEnd, navigate]);
   useEffect(() => {
     if (errorMsg !== undefined && errorMsg !== "") {
       message.error(errorMsg);
@@ -151,6 +160,7 @@ export const Component: React.FC = () => {
                   data-testid="side-reset"
                   size="small"
                   icon={<UndoOutlined />}
+                  disabled={stage !== SideStage.SIDE_CHANGING}
                   onClick={onReset}
                 >
                   {text.reset}
@@ -160,7 +170,7 @@ export const Component: React.FC = () => {
                   data-testid="side-confirm"
                   size="small"
                   icon={<CheckOutlined />}
-                  disabled={stage > SideStage.SIDE_CHANGING}
+                  disabled={stage !== SideStage.SIDE_CHANGING}
                   onClick={onSummit}
                 >
                   {text.confirm}
@@ -236,6 +246,7 @@ export const Component: React.FC = () => {
           />
         </div>
       </div>
+      <EndModal />
       <TpModal />
     </DndProvider>
   );

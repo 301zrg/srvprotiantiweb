@@ -157,7 +157,16 @@ try {
               }
             }, 30);
           } else if (packet[2] === 22 && !this.silent) {
-            this.emit(25, [8, 0, ...new TextEncoder().encode("OK"), 0, 0]);
+            if (this.dropNextChat) {
+              this.dropNextChat = false;
+              return;
+            }
+            const acknowledge = () => {
+              if (this.readyState === 1 && !this.silent)
+                this.emit(25, [8, 0, ...new TextEncoder().encode("OK"), 0, 0]);
+            };
+            if (this.ackDelay) setTimeout(acknowledge, this.ackDelay);
+            else acknowledge();
           } else if (packet[2] === 33) {
             mock.earlyRole ||= !mock.ack;
             window.__confirmSpectator = () => {
@@ -363,6 +372,33 @@ try {
       "data-view-controller",
       "1",
     );
+    // Losing one probe reply is recoverable without replacing the socket.
+    const probesBefore = await running.evaluate(() =>
+      window.__roomLink.packets.filter((packet) => packet[2] === 22).length);
+    await running.evaluate(() => {
+      window.__roomSocket.dropNextChat = true;
+      window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+      window.dispatchEvent(new Event("online"));
+    });
+    await expect.poll(() => running.evaluate(() =>
+      window.__roomLink.packets.filter((packet) => packet[2] === 22).length),
+      { timeout: 8000 }).toBe(probesBefore + 2);
+    await running.waitForTimeout(200);
+    assert.equal(await running.evaluate(() => window.__roomLink.urls.length), 1,
+      "The second acknowledged probe keeps the original session; overlapping events share one check");
+    // A slow foreground acknowledgement must not tear down a live session.
+    await running.evaluate(() => {
+      Object.defineProperty(document, "hidden", { configurable: true, value: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.__roomSocket.ackDelay = 6500;
+      delete document.hidden;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await running.waitForTimeout(7000);
+    assert.equal(await running.evaluate(() => window.__roomLink.urls.length), 1,
+      "A response after five seconds still belongs to the healthy original socket");
+    await expect(running.getByTestId("connection-alert")).toHaveCount(0);
+    await running.evaluate(() => { window.__roomSocket.ackDelay = 0; });
     // Safari can keep a lost socket marked OPEN without firing onclose.
     await running.evaluate(() => {
       Object.defineProperty(document, "hidden", { configurable: true, value: true });
@@ -380,7 +416,7 @@ try {
       "",
     );
     await running.close();
-    console.log("PASS spectator cleanup and stale OPEN recovery");
+    console.log("PASS spectator cleanup, slow/lost probe acknowledgement and stale OPEN recovery");
 
     // A cold phone can take longer than the old one-second start delay to
     // mount card components. History must PLAY before live updates, not snap.

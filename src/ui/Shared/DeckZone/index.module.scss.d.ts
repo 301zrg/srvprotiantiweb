@@ -7,6 +7,7 @@ declare const classNames: {
   readonly "card-continer": "card-continer";
   readonly "card-actions": "card-actions";
   readonly "card-menu": "card-menu";
+  readonly anticon: "anticon";
   readonly "editing-zone-name": "editing-zone-name";
 };
 export = classNames;

@@ -113,7 +113,9 @@
   position: relative;
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .sider {
     display: none;
   }

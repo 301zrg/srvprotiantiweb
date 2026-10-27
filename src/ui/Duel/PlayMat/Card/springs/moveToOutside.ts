@@ -18,7 +18,7 @@ const {
 const { REMOVED } = ygopro.CardZone;
 
 export const moveToOutside: MoveFunc = async (props) => {
-  const { card, api } = props;
+  const { card, api, signal } = props;
   const { zone, controller, position, sequence } = card.location;
 
   let x =
@@ -32,7 +32,10 @@ export const moveToOutside: MoveFunc = async (props) => {
     x = -x;
     y = -y;
   }
-  await asyncStart(api)({
+  await asyncStart(
+    api,
+    signal,
+  )({
     x,
     y,
     z: 0,
@@ -46,5 +49,5 @@ export const moveToOutside: MoveFunc = async (props) => {
       clamp: true,
     },
   });
-  api.set({ subZ: 0 });
+  if (!signal?.aborted) api.set({ subZ: 0 });
 };

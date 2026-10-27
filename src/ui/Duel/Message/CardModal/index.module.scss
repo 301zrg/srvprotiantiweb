@@ -38,13 +38,17 @@
   border-radius: 8px;
   background: #223247;
   overflow-wrap: anywhere;
-  strong { color: #a8d4ff; }
+  strong {
+    color: #a8d4ff;
+  }
 }
 
 .overview {
   align-items: flex-start;
 }
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .container {
     height: auto;
   }

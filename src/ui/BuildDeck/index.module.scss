@@ -147,7 +147,9 @@
   min-height: 0;
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .layout {
     width: 100%;
     flex-direction: column;

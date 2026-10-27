@@ -21,7 +21,9 @@
   gap: 2px;
 }
 
-@media (max-width: 1024px), (max-height: 600px) and (pointer: coarse) {
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
   .search-cards {
     --card-width: 96px;
     padding: 8px;

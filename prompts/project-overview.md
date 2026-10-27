@@ -1,89 +1,19 @@
-# Neos 项目介绍
+# srvprotiantiweb 项目摘要
 
-## 项目简介
+更新：2026-10-10。用于协作者／工具快速定位，权威模块图与数据流见 [当前架构](../docs/ARCHITECTURE.md)，验收范围见 [当前状态](../docs/PROJECT_STATUS.md)，开发约束见 [AGENTS](../AGENTS.md)。
 
-Neos 是一个 **Web 版游戏王对战平台**，目标是让玩家无需下载客户端，直接在浏览器中进行游戏王卡牌对战。
+这是基于 Neos 的 1103／706 历史环境静态网页客户端。React、TypeScript、Ant Design 和 HashRouter 提供四语界面、卡组编辑、Single／Match 联机与换备、观战链接、本地录像保存与固定环境重演。当前功能不包括上游 MyCard SSO／匹配、AI、多环境选择或新的账号后端。
 
-核心功能：
-- 竞技匹配（MyCard 天梯）
-- 娱乐匹配
-- MC 观战列表
-- 单人模式（AI 对战）
-- 自定义房间
-- 录像回放
+## 实际边界
 
-兼容萌卡社区的 [srvpro](https://github.com/mycard/srvpro) 服务器，可与 ygopro 客户端联机。
+- 在线：`src/ui/Match/` 冻结会话；`src/infra/stream.ts` 建立 WSS；`src/api/ocgcore/ocgAdapter/` 解析原生 YGOPro 包，`src/service/` 更新 Valtio 在线状态。服务端 SRVPro 的 Core／Lua 裁定，网页只展示与响应。
+- 协议：线上为 `uint16LE length + uint8 opcode + payload`，不是 protobuf。`src/api/ocgcore/idl/` 的生成对象仅用于内部适配；固定协议源见 `protocol-source/`。
+- 卡库：`src/middleware/sqlite/` 用 sql.js 读取当前语言 CDB，`src/variant/` 管理固定环境、资源、语言与部署配置；SQLite WASM 不是决斗 Core。
+- 卡组：`src/service/deck.ts` 与 `deckImport.ts` 管理 IndexedDB 和接收解析，UI 不承担交接权限判断。
+- 录像：`src/replay/capture.ts` 在网络到达时独立保存原始包，`library.ts` 管理独立 IndexedDB；`worker.ts`／`engine.ts` 使用固定 Core WASM／Lua 只读重演，独立于在线 store 和选择响应。
+- 静态构建：原始四语输入在 `resources-staging/1103/`，环境生成物在 `public/environment/`，固定录像资源在 `public/replay/706-v1/`。`build:static` 从锁定快照还原，不需要 Python／子模块／内核编译；修改资源时走专门维护路径。
+- 服务器和官网：身份、房间、计分、数据库属于 `srvprotianti`；静态前端在其外部托管。官网通过 Hash 内容或受限 postMessage 交接卡组／录像／观战参数，客户端不提供任意 URL 或 TCP 代理。
 
-## 技术架构
+账号 `昵称$密码` 与房间 `房名$房间密码` 保持独立。完整输入存当前标签页 sessionStorage，localStorage 仅存公开部分。已连接会话冻结输入，旧连接不得污染新状态。用户决定暂不改变累计在线消息队列，保留连续动画并接受积压限制。
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      UI 模块                                │
-│         React 18 + Ant Design + React Router                │
-├─────────────────────────────────────────────────────────────┤
-│                    Service 模块                             │
-│              业务逻辑（决斗事件处理）                         │
-├─────────────────────────────────────────────────────────────┤
-│                  MiddleWare 模块                            │
-│              WebSocket 长连接处理                            │
-├─────────────────────────────────────────────────────────────┤
-│                   Adapter 模块                              │
-│         ygopro 协议 (二进制 ↔ TypeScript)                   │
-├─────────────────────────────────────────────────────────────┤
-│                     API 模块                                │
-│              HTTP 请求（登录、卡片数据等）                    │
-├─────────────────────────────────────────────────────────────┤
-│                    Store 模块                               │
-│              全局状态管理 (Valtio)                           │
-└─────────────────────────────────────────────────────────────┘
-```
-
-技术栈：
-- **前端框架**: React 18 + TypeScript
-- **状态管理**: Valtio
-- **路由**: React Router 6
-- **UI 组件**: Ant Design 5
-- **构建工具**: Vite
-- **数据库**: sql.js (WebAssembly 版 SQLite，用于卡片数据)
-- **协议**: Google Protobuf (与服务器通信)
-- **动画**: React Spring
-
-## 目录结构
-
-```
-src/
-├── api/          # API 接口（HTTP 请求、卡片数据、mdproDeck 等）
-├── config/       # 配置文件
-├── container/    # 依赖注入容器
-├── hook/         # React Hooks
-├── infra/        # 基础设施（buffer、stream、eventbus 等）
-├── middleware/   # 中间件（WebSocket、SQLite）
-├── service/      # 业务逻辑
-│   ├── duel/     # 决斗相关事件处理（抽卡、召唤、攻击、连锁等）
-│   ├── room/     # 房间相关
-│   └── ...
-├── stores/       # 状态管理
-├── styles/       # 全局样式
-├── types/        # TypeScript 类型定义
-└── ui/           # UI 组件
-    ├── BuildDeck/    # 卡组构建
-    ├── Duel/         # 决斗界面
-    ├── Match/        # 匹配界面
-    ├── Shared/       # 共享组件
-    └── ...
-```
-
-## 部署
-
-- https://neos.moecube.com (萌卡社区)
-- https://www.neos.moe (Cloudflare)
-
-## 相关链接
-
-- [GitLab 仓库](https://code.mycard.moe/mycard/Neos)
-- [项目文档](https://doc.neos.moe)
-- [萌卡社区](https://mycard.moe/)
-
-## 相关设计文档
-
-- [LLM Duel Agent 方案](./llm-duel-agent.md): 通过 Playwright 操作 Neos UI 的外部大模型对战 Agent 方案。
+先按任务路由读一个专题，再查实际源码。不要把 [上游摘要归档](../docs/archive/UPSTREAM_PROJECT_OVERVIEW.md) 中的功能当作本项目现状，不把实现存在或用户上线许可当作生产／真机验证。
