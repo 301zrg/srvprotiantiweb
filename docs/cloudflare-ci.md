@@ -1,13 +1,13 @@
 # 现有 Workers 站点的 GitHub 自动部署
 
-更新：2026-10-19。本文说明现有 `black-surf-69e5` Worker 的自动部署、固定测试入口和历史故障。项目级实现与验收统一见 [当前状态](PROJECT_STATUS.md)。自动部署仅负责 `srvprotiantiweb`，天梯服务器及 `srvprotianti` 官网页面由各自项目部署。
+更新：2026-10-28。本文说明现有 `black-surf-69e5` Worker 的自动部署、固定测试入口和历史故障。项目级实现与验收统一见 [当前状态](PROJECT_STATUS.md)。自动部署仅负责 `srvprotiantiweb`，天梯服务器及 `srvprotianti` 官网页面由各自项目部署。
 
 ## 仓库配置
 
 - [wrangler.json](../wrangler.json)：Worker 名称与现有站点一致，发布 `dist/` 静态文件及最小 [HTTPS 入口](../deployment/static-entry.mjs)。`assets.binding = ASSETS`、`run_worker_first = true` 使入口在命中静态文件前运行：HTTP 返回同主机、路径和查询的 308；HTTPS 将原请求交给 `env.ASSETS.fetch`，保留资源响应。包含 `previews: {}`，供非生产分支的 `wrangler preview` 使用；`assets`（包括绑定）和兼容日期仍在顶层，不放进 `previews`。修改 Worker 名称必须同时调整此文件；CI 要求名称一致。[名称要求与 Git 接入](https://developers.cloudflare.com/workers/ci-cd/builds/)、[资源绑定与执行顺序](https://developers.cloudflare.com/workers/static-assets/binding/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#what-goes-in-the-previews-block)
 - [package.json](../package.json)：`build:cloudflare` 通过 `build:static` 还原固定环境资源，再执行 Vite 构建及资源复制；`deploy:cloudflare` 和 `preview:cloudflare` 通过 [发布脚本](../scripts/release_cloudflare.mjs) 使用固定的 Wrangler `4.148.0`，对明确的 API 限流最多尝试三次。预览始终调用 `wrangler preview`，不会变成生产发布。
 - [build_cloudflare.mjs](../scripts/build_cloudflare.mjs)：生产要求显式传入公开 WSS；测试预览按下节读取正式站公开的当前 WSS。固定根路径与正常资源格式，生成公开 `duel-config.js` 和带源码提交号的 `deployment-info.json`。官网链接与卡组／录像消息白名单可通过公开构建变量一同发布，详见 [公开配置与迁址](public-deployment-config.md)。缺少或无效 WSS、白名单错误、构建失败时返回非零退出码，不执行后续部署。普通 `npm run build` 仍可用于离线组卡开发。
-- 当前发布分支为 **`deploy/cloudflare`**，从包含观战修复、卡组接收功能的最新交付版本建立。`main` 暂时较旧，不能直接改用它发布；以后所有改动合并到 `main` 后再调整生产分支。
+- 2026-10-28 起生产分支为 **`main`**，测试分支为 **`preview`**，名称记录在 [deployment/preview.json](../deployment/preview.json)；`deploy/cloudflare` 停用，内容已并入 `main`。分支规范见下文 [分支与发布流程](#分支与发布流程)。
 
 四语 CDB 与 strings 原件、禁表、界面素材和 SQLite WASM 已在 Git 中。云端只需 Node：`restore_environment_assets.mjs` 核对源文件、生成／校验规则和压缩归档的 SHA，然后还原与既有发布版本完全相同的 11 个资源文件。快照约 1.78 MB，存于 `resources-staging/1103/environment-v1.data`，不作为额外资源上传到站点。输入或规则变更会拦截构建，维护者需先按 [资源说明](../resources-staging/1103/README.md) 更新环境版本及快照，不会默用陈旧卡库。原 Python 生成与校验流程仍用于开发机，云端不调用 Python，也不依赖本机 `F:` 路径或生产服务器。生成的 protobuf TypeScript 已提交，日常构建无需生成协议或主动更新 `neos-protobuf` 子模块。
 
@@ -20,7 +20,7 @@
 | 项目 | 填写值 |
 | --- | --- |
 | Git 仓库 | `301zrg/srvprotiantiweb` |
-| 生产分支 / Git branch | `deploy/cloudflare` |
+| 生产分支 / Git branch | `main`（2026-10-28 由 `deploy/cloudflare` 改为 `main`） |
 | Root directory / 路径 | 保持界面默认的 `/`，表示仓库根目录；不要填本机路径或 `dist` |
 | Build command | `npm ci --include=dev && npm run build:cloudflare` |
 | Deploy command | `npm run deploy:cloudflare` |
@@ -41,25 +41,25 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 
 上述值均为公开构建参数，不需要勾选“加密”；WSS 会写入发布的网页配置，勾选加密也不会对玩家隐藏入口。官网迁址时还可设置 `VITE_DECK_IMPORT_ORIGINS`（精确 origin 的 JSON 数组，例如 `["https://ladder.example.com"]`；`[]` 禁用消息交接）和 `VITE_WEBSITE_BASE_URL`（首页官网链接，例如 `https://ladder.example.com/`）。未设置时沿用原有默认值；不是 WSS 网关的网页版 Origin 白名单。三项发布值使用同一校验器并一起写入产物，完整规则和手工包参数见 [公开配置](public-deployment-config.md)。之前设置的 `PYTHON_VERSION=3.13.3` 可以删除，保留也不影响本项目构建，因为现在不调用 Python。不要放玩家凭据、证书私钥、隧道 Token 或 GitHub Token。Cloudflare 的构建环境支持 Node 版本覆盖与跳过自动依赖安装。[构建镜像说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)、[构建缓存](https://developers.cloudflare.com/workers/ci-cd/builds/build-caching/)
 
-5. 保存仓库连接和构建设置。对于已有 Worker，官方接入步骤要求向连接的 Git 分支推送新提交来触发构建；连接之前已经存在的提交不能作为首次自动构建已启动的依据。由维护者向 `deploy/cloudflare` 推送一次提交，初次成功后不再需要手动上传 ZIP。[已有 Worker 的首次触发步骤](https://developers.cloudflare.com/workers/ci-cd/builds/)
+5. 保存仓库连接和构建设置。对于已有 Worker，官方接入步骤要求向连接的 Git 分支推送新提交来触发构建；连接之前已经存在的提交不能作为首次自动构建已启动的依据。由维护者向生产分支推送一次提交，初次成功后不再需要手动上传 ZIP。[已有 Worker 的首次触发步骤](https://developers.cloudflare.com/workers/ci-cd/builds/)
 
-6. 在当前 Worker 的 **Deployments（部署）** 页底部点击 **View build history（查看构建历史）**，再点具体记录查看日志。截图若写着“此 Worker 还没有构建”，表示还没有构建记录；先到 **Settings（设置）→ Builds（构建）** 确认已连接 `301zrg/srvprotiantiweb`、生产分支为 `deploy/cloudflare`，然后检查连接后推送的新提交是否触发记录。手动上传的部署不等于 Git 构建记录。[构建状态与日志入口](https://developers.cloudflare.com/workers/ci-cd/builds/)
+6. 在当前 Worker 的 **Deployments（部署）** 页底部点击 **View build history（查看构建历史）**，再点具体记录查看日志。截图若写着“此 Worker 还没有构建”，表示还没有构建记录；先到 **Settings（设置）→ Builds（构建）** 确认已连接 `301zrg/srvprotiantiweb`、生产分支为 `main`，然后检查连接后推送的新提交是否触发记录。手动上传的部署不等于 Git 构建记录。[构建状态与日志入口](https://developers.cloudflare.com/workers/ci-cd/builds/)
 
 连接、推送和生产分支规则见 [GitHub 接入](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/github-integration/)、[构建分支](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/)。预览构建成功仍须单独核对实际浏览器 WSS 握手。
 
 ## 固定测试入口与 WSS
 
-测试地址固定为 `https://codex-client-preview-20261019-black-surf-69e5.1627406938.workers.dev/`。[deployment/preview.json](../deployment/preview.json) 保存这个既有预览名称；发布脚本显式传入 `wrangler preview --name`，不再随工作分支名变化。后续测试分支必须包含本配置与脚本，并沿用 `npm run preview:cloudflare`；不要更换名称或使用每次部署的唯一地址，否则浏览器缓存与网关 Origin 均会改变。所有分支共用这一入口，最新成功发布会覆盖上一测试版，应串行发布。[官方预览命名](https://developers.cloudflare.com/workers/previews/get-started/)
+测试地址固定为 `https://codex-client-preview-20261019-black-surf-69e5.1627406938.workers.dev/`。[deployment/preview.json](../deployment/preview.json) 保存这个既有预览名称；发布脚本显式传入 `wrangler preview --name`，不再随工作分支名变化。不要更换名称或使用每次部署的唯一地址，否则浏览器缓存与网关 Origin 均会改变。Workers CI 会对每个非生产分支执行预览命令；发布脚本经 `releaseSkipReason` 只允许 `preview` 分支更新测试版、`main` 分支执行生产发布，其他分支的构建照常运行但跳过发布，测试链接不再被任意工作分支覆盖。本地手动执行不受此限制。[官方预览命名](https://developers.cloudflare.com/workers/previews/get-started/)
 
-[preview_config.mjs](../scripts/preview_config.mjs) 根据官方 `WORKERS_CI=1` 与 `WORKERS_CI_BRANCH` 区分生产分支 `deploy/cloudflare` 和测试分支。测试构建从正式站 `https://ocg1103nexus.com/deployment-info.json` 读取公开 WSS，覆盖预览环境里陈旧的 `VITE_DUEL_WS_URL`；只读取这个公开字段，不读取服务器或 Cloudflare 机密。请求超时、元数据错误或无效 WSS 均使构建失败，不回退到旧地址。产物记录 `previewName`、`configurationSource` 供核验。生产构建仍只使用自己的显式环境变量，不访问测试配置来源。[官方 CI 变量](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
+[preview_config.mjs](../scripts/preview_config.mjs) 根据官方 `WORKERS_CI=1` 与 `WORKERS_CI_BRANCH` 区分生产分支 `main` 和测试分支。测试构建从正式站 `https://ocg1103nexus.com/deployment-info.json` 读取公开 WSS，覆盖预览环境里陈旧的 `VITE_DUEL_WS_URL`；只读取这个公开字段，不读取服务器或 Cloudflare 机密。请求超时、元数据错误或无效 WSS 均使构建失败，不回退到旧地址。产物记录 `previewName`、`configurationSource` 供核验。生产构建仍只使用自己的显式环境变量，不访问测试配置来源。[官方 CI 变量](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
 
-本地验证可设置 `SRVPRO_BUILD_TARGET=preview` 后执行 `npm run build:cloudflare`。`npm run test:preview-config` 覆盖跨分支固定名称、当前 WSS 覆盖、生产隔离及失败拒绝。
+本地验证可设置 `SRVPRO_BUILD_TARGET=preview` 后执行 `npm run build:cloudflare`。`npm run test:preview-config` 覆盖跨分支固定名称、按分支限定的发布目标、当前 WSS 覆盖、生产隔离及失败拒绝。
 
 2026-10-21 增加固定自定义测试入口 `https://test.ocg1103nexus.com/`：独立 Worker `srvprotiantiweb-test-entry` 的配置与源码位于 [deployment/test-entry](../deployment/test-entry/wrangler.json)，仅 GET／HEAD 转发至上述固定预览；HTTP 先返回同主机、路径和查询的 308，不读取预览页面。它不存储玩家数据、不代理 WSS、不改变正式 Worker 或根域名路由。`global_fetch_strictly_public` 允许按公开互联网规则访问原预览；路径与查询保留，认证／Cookie 不转发，站内重定向保持测试域名，响应增加 noindex。不是按用户输入选择上游的开放代理。
 
 此入口只需单独发布一次；以后已有 `preview:cloudflare` 更新固定预览时，自定义测试域名自动读取相同内容，不必重复发另一份静态资源。需要更新入口程序时，先运行 `node scripts/test_preview_entry.mjs`，再显式使用 `npx wrangler@4.148.0 deploy --config deployment/test-entry/wrangler.json`；该命令只属于独立测试 Worker，不能省略配置参数或用于主站发布。网关额外精确允许 `https://test.ocg1103nexus.com`，依然要求备份、配置校验及自建连接连续性检查。不同网页 Origin 的本地卡组与设置由浏览器隔离，不自动迁移。
 
-两个 HTTP 跳转分别随主候选和独立测试入口发布生效；仅发布预览不会更新正式根域名，未来合入并发布 `deploy/cloudflare` 才更新正式入口。无需修改根域名路由或控制台 HTTPS 开关。静态 `_redirects` 只支持路径匹配，不能精确区分 HTTP／HTTPS，因此不添加可能造成 HTTPS 自身循环的全站静态规则。[静态重定向限制](https://developers.cloudflare.com/workers/static-assets/redirects/)。`node scripts/test_https_entry.mjs` 覆盖主入口的 HTTP 308 和 HTTPS 原样透传；`node scripts/test_preview_entry.mjs` 覆盖独立入口。Hash 不发送到服务器，308 不写新 fragment，浏览器继续保留原 Hash 路由；发布后仍需实际浏览器核对跳转、安全上下文及入场。
+两个 HTTP 跳转分别随主候选和独立测试入口发布生效；仅发布预览不会更新正式根域名，合入并发布 `main` 才更新正式入口。无需修改根域名路由或控制台 HTTPS 开关。静态 `_redirects` 只支持路径匹配，不能精确区分 HTTP／HTTPS，因此不添加可能造成 HTTPS 自身循环的全站静态规则。[静态重定向限制](https://developers.cloudflare.com/workers/static-assets/redirects/)。`node scripts/test_https_entry.mjs` 覆盖主入口的 HTTP 308 和 HTTPS 原样透传；`node scripts/test_preview_entry.mjs` 覆盖独立入口。Hash 不发送到服务器，308 不写新 fragment，浏览器继续保留原 Hash 路由；发布后仍需实际浏览器核对跳转、安全上下文及入场。
 
 网关仅需授权上述固定测试 Origin 一次；不使用 `*.workers.dev` 通配符。按用户授权修改现有 Nginx Origin 表前，备份原文件、核对修改范围并运行 `nginx -t`，成功后仅平滑重载 Nginx，不重启游戏、PM2 或 cloudflared。未设强制关停超时的旧工作进程会继续处理已有连接；仍需用自建连接验证重载前后连续性，不能据此声称所有真实对局已验收。[Nginx 平滑重载](https://nginx.org/en/docs/control.html)
 
@@ -81,7 +81,21 @@ Cloudflare 对 API 有账户／用户、IP 等限流口径，部分接口还有�
 
 `npm run test:cloudflare-release` 不调用真实发布接口，验证服务器等待值、重试上限、非限流失败立即退出、取消与预览／生产隔离。本地测试通过不代表云端发布已经成功，合并前仍核对最新预览检查。
 
-代码在工作分支完成并通过相关验证后，由维护者把确认可发布的修改合入／推送至 `deploy/cloudflare`。Cloudflare 自动拉取仓库、安装锁定依赖、校验并还原卡库、构建并部署到原站点。仅创建 PR、仅本地保存或推送其他分支，不会更新这个生产站点；直接更新发布分支会触发上线。
+## 分支与发布流程
+
+| 分支 | 站点 | 内容 |
+| --- | --- | --- |
+| `main` | 正式版 `https://ocg1103nexus.com/` | 已发布版本；推送即上线 |
+| `preview` | 测试版 `https://test.ocg1103nexus.com/` | `main` 加上正在测试的大功能；推送即更新测试版 |
+| `feat/简述`、`fix/简述` | 不发布 | 从最新 `main` 拉出，合并后删除本地与远程分支 |
+
+- 大功能：`feat/*` 合入 `preview` 验收，测试期修复仍提交到 `feat/*` 再合入 `preview`；验收后 `feat/*` 单独经 PR 合入 `main`。
+- 小修复：`fix/*` 经 PR 合入 `main` 上线，随后把 `main` 合入 `preview`，两边同时生效。
+- `preview` 始终包含 `main`，但从不合回 `main`，未验收功能因此不会顺带上线。放弃功能时可从 `main` 重建 `preview` 后强制推送；只有该分支允许强制推送。
+- 测试轮次与回滚点用 tag（如 `preview-r13-20261023`、`release-20261026`），不新建快照分支。worktree 仅用于并行工作，完成后 `git worktree remove`。
+- 开工前 `git switch main && git pull`，确认 `git status` 干净再拉新分支。
+
+Cloudflare 自动拉取仓库、安装锁定依赖、校验并还原卡库、构建并部署。仅创建 PR、仅本地保存或推送其他分支，不更新任何站点。
 
 本项目构建与文件下载继续由外部 Cloudflare 承担。无需为前端自动部署重启 SRVPro、Nginx 或 PM2 隧道，也不需要改变现有网页 origin 白名单。Quick Tunnel 重启仍可能换 WSS 地址；到构建变量中更新 `VITE_DUEL_WS_URL` 后运行一次新构建，不需要手动上传文件。
 

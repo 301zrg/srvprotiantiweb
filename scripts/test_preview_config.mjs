@@ -8,7 +8,7 @@ for (const npmCli of ["C:/node/npm-cli.js", undefined]) {
   assert.equal(wranglerInvocation("deploy", npmCli).args.at(-1), "deploy");
 }
 
-const { cloudflarePublicConfig, isPreviewBuild, previewConfig } = await import("./preview_config.mjs");
+const { cloudflarePublicConfig, isPreviewBuild, previewConfig, releaseSkipReason } = await import("./preview_config.mjs");
 const environment = { WORKERS_CI: "1", WORKERS_CI_BRANCH: "codex/a-new-test", VITE_DUEL_WS_URL: "wss://old.example.test/neos" };
 const source = { target: "cloudflare-workers", sourceCommit: "a".repeat(40), duelWebSocketUrl: "wss://current.example.test/neos" };
 let requests = 0;
@@ -21,16 +21,26 @@ const fetcher = async (url, options) => {
   return new Response(JSON.stringify(source));
 };
 assert.equal(isPreviewBuild(environment), true);
-assert.equal(isPreviewBuild({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "deploy/cloudflare" }), false);
+assert.equal(isPreviewBuild({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "main" }), false);
+assert.equal(isPreviewBuild({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "preview" }), true);
+const ci = (branch) => ({ WORKERS_CI: "1", WORKERS_CI_BRANCH: branch });
+assert.equal(releaseSkipReason("preview", ci("preview")), undefined, "Only the preview branch updates the shared test site");
+assert.equal(releaseSkipReason("deploy", ci("main")), undefined);
+for (const branch of ["main", "deploy/cloudflare", "fix/a-small-patch", "feat/a-large-feature"])
+  assert.match(releaseSkipReason("preview", ci(branch)), /Skipping/, `${branch} must not replace the test site`);
+for (const branch of ["preview", "deploy/cloudflare", "fix/a-small-patch"])
+  assert.match(releaseSkipReason("deploy", ci(branch)), /Skipping/, `${branch} must not go live`);
+assert.equal(releaseSkipReason("preview", {}), undefined, "Manual releases stay explicit");
+assert.throws(() => releaseSkipReason("preview", { WORKERS_CI: "1" }), /branch/i);
 assert.equal(isPreviewBuild({ SRVPRO_BUILD_TARGET: "preview" }), true);
 assert.equal(isPreviewBuild({}), false);
 assert.throws(() => isPreviewBuild({ WORKERS_CI: "1" }), /branch/i);
 assert.equal((await cloudflarePublicConfig(environment, fetcher)).duelWebSocketUrl, source.duelWebSocketUrl);
 assert.equal((await cloudflarePublicConfig({ ...environment, VITE_DUEL_WS_URL: "" }, fetcher)).duelWebSocketUrl, source.duelWebSocketUrl);
 const beforeProduction = requests;
-assert.equal((await cloudflarePublicConfig({ ...environment, WORKERS_CI_BRANCH: "deploy/cloudflare" }, fetcher)).duelWebSocketUrl, environment.VITE_DUEL_WS_URL);
+assert.equal((await cloudflarePublicConfig({ ...environment, WORKERS_CI_BRANCH: "main" }, fetcher)).duelWebSocketUrl, environment.VITE_DUEL_WS_URL);
 assert.equal(requests, beforeProduction, "Production must not request or inherit preview configuration");
-await assert.rejects(cloudflarePublicConfig({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "deploy/cloudflare" }, fetcher), /VITE_DUEL_WS_URL/);
+await assert.rejects(cloudflarePublicConfig({ WORKERS_CI: "1", WORKERS_CI_BRANCH: "main" }, fetcher), /VITE_DUEL_WS_URL/);
 for (const response of [
   () => new Response("Unavailable", { status: 503 }),
   () => new Response("<html>broken</html>"),

@@ -1,5 +1,6 @@
 {
   "name": "codex-client-preview-20261019",
-  "productionBranch": "deploy/cloudflare",
+  "productionBranch": "main",
+  "previewBranch": "preview",
   "publicConfigUrl": "https://ocg1103nexus.com/deployment-info.json"
 }

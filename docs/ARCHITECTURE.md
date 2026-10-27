@@ -325,7 +325,7 @@ flowchart LR
 | 维护协议 IDL | [固定来源说明](../protocol-source/README.md)；来源、许可证、指纹和生成 TS 一起更新 |
 
 发布仅将构建产物放在外部静态站点；静态文件不经天梯服务器中转。
-`deploy/cloudflare` 更新会触发已配置的生产构建，发布验证与回退归 [自动部署](cloudflare-ci.md)。
+`main` 更新会触发已配置的生产构建、`preview` 更新测试版，发布验证与回退归 [自动部署](cloudflare-ci.md)。
 图中是当前构建职责，不是全新 Linux 服务端部署／数据恢复指南。
 
 模块、配置、存储或数据流变化时同步本文；局部 UI 和协议字段只维护所属专题。

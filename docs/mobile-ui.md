@@ -173,7 +173,7 @@ Cloudflare 静态构建，默认 `http://127.0.0.1:4173`，可用 `SMOKE_URL` �
 
 决斗的操作前确认（默认关闭）、主动候选取消与草稿重置见 [操作说明](duel-cancel-research.md)。设置 → 操作可查看仅保存在本机的连接诊断；字段、海外测试与补时方案见 [海外延迟](overseas-latency.md)。确认框提供手机关闭入口，服务器计时不会因确认而暂停。
 
-通常将 PR 合入 `deploy/cloudflare`，由已有 Cloudflare Git 构建自动更新 `https://ocg1103nexus.com/`；原 `workers.dev` 地址仍指向同一 Worker。配置见 [自动部署](cloudflare-ci.md)。本轮只更新网页，不要求重启 SRVPro、Nginx 或已由 PM2 管理的隧道。
+通常将 PR 合入 `main`，由已有 Cloudflare Git 构建自动更新 `https://ocg1103nexus.com/`；原 `workers.dev` 地址仍指向同一 Worker。配置见 [自动部署](cloudflare-ci.md)。本轮只更新网页，不要求重启 SRVPro、Nginx 或已由 PM2 管理的隧道。
 
 需要手工打包时，使用当前仍在线的公开 WSS 地址；下面的隧道域名是占位符，应替换后再执行：
 
