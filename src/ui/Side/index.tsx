@@ -5,7 +5,7 @@ import {
 } from "@ant-design/icons";
 import { App, Badge, Button } from "antd";
 import { HTML5toTouch } from "rdndmb-html5-to-touch";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd-multi-backend";
 import { LoaderFunction, useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
@@ -43,11 +43,12 @@ export const Component: React.FC = () => {
   const text = deckMessages(language);
   const container = getUIContainer();
   const { message } = App.useApp();
-  const [initialDeck] = useState(() => sideStore.getSideDeck());
+  const [initialDeck] = useState(() => sideStore.getEditor().initialDeck);
   const { stage } = useSnapshot(sideStore);
   const { errorMsg } = useSnapshot(roomStore);
   const { duelEnd } = useSnapshot(matStore);
-  const [deck, setDeck] = useState<IDeck>(initialDeck);
+  const [deck, setDeck] = useState<IDeck>(() => sideStore.getEditor().draft);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedCard, setSelectedCard] = useState(0);
   const [feedback, setFeedback] = useState<
     "resetDone" | "sideInvalid" | "sideChanged"
@@ -67,6 +68,10 @@ export const Component: React.FC = () => {
     const viewport = chat.ref.current?.osInstance()?.elements().viewport;
     if (viewport) viewport.scrollTop = viewport.scrollHeight;
   }, [chatOpen, chat.dialogs.length]);
+  useLayoutEffect(() => {
+    if (scrollRef.current)
+      scrollRef.current.scrollTop = sideStore.getEditor().scrollTop;
+  }, []);
   const canAdd = (card: CardMeta, type: Type, _source: Type | "search") => {
     const cardType = card.data.type ?? 0;
     if (
@@ -85,32 +90,34 @@ export const Component: React.FC = () => {
   ) => {
     if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
     setFeedback(undefined);
-    setDeck((prev) => {
-      const deck = {
-        ...prev,
-        main: [...prev.main],
-        extra: [...prev.extra],
-        side: [...prev.side],
-      };
-      if (source !== "search") {
-        const removeIndex = deck[source].findIndex((id) => id === card.id);
-        if (removeIndex !== -1) {
-          deck[source].splice(removeIndex, 1);
-        }
+    const current = sideStore.getEditor().draft;
+    const updated = {
+      ...current,
+      main: [...current.main],
+      extra: [...current.extra],
+      side: [...current.side],
+    };
+    if (source !== "search") {
+      const removeIndex = updated[source].findIndex((id) => id === card.id);
+      if (removeIndex !== -1) {
+        updated[source].splice(removeIndex, 1);
       }
-      deck[destination].push(card.id);
-
-      return deck;
-    });
+    }
+    updated[destination].push(card.id);
+    // Save synchronously: a close event may follow before React commits.
+    sideStore.getEditor().draft = updated;
+    setDeck(updated);
   };
   const onReset = () => {
     if (sideStore.stage !== SideStage.SIDE_CHANGING) return;
-    setDeck({
+    const updated = {
       ...initialDeck,
       main: [...initialDeck.main],
       extra: [...initialDeck.extra],
       side: [...initialDeck.side],
-    });
+    };
+    sideStore.getEditor().draft = updated;
+    setDeck(updated);
     setFeedback("resetDone");
   };
   const onSummit = () => {
@@ -235,7 +242,15 @@ export const Component: React.FC = () => {
                 </div>
               )}
             </div>
-            <div data-testid="side-scroll-area" className={styles["deck-zone"]}>
+            <div
+              ref={scrollRef}
+              data-testid="side-scroll-area"
+              className={styles["deck-zone"]}
+              onScroll={(event) => {
+                if (sideStore.editor)
+                  sideStore.editor.scrollTop = event.currentTarget.scrollTop;
+              }}
+            >
               {(["main", "extra", "side"] as const).map((type) => (
                 <DeckZone
                   key={type}

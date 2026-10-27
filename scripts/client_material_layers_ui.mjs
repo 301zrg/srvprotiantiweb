@@ -18,6 +18,7 @@ const fixture =
   prior +
   `
 import moveMaterialTest from '@/service/duel/move';
+import positionMaterialTest from '@/service/duel/posChange';
 window.__materialLayers={
  online(count,player,defense,order){
   window.__followup.duel();const Z=api.ygopro.CardZone;
@@ -29,6 +30,8 @@ window.__materialLayers={
  async step(name){
   const Z=api.ygopro.CardZone;const host=stores.cardStore.inner.find(c=>c.uuid===this.hostId);const material=stores.cardStore.inner.find(c=>c.uuid===this.materialIds[1]);
   if(name==='focus'){await eventbus.call(Task.Focus,host.uuid);return;}
+  const positions={facedownDefense:api.ygopro.CardPosition.FACEDOWN_DEFENSE,faceupDefense:api.ygopro.CardPosition.FACEUP_DEFENSE,facedownAttack:api.ygopro.CardPosition.FACEDOWN_ATTACK,faceupAttack:api.ygopro.CardPosition.FACEUP_ATTACK};
+  if(name in positions){await positionMaterialTest(getUIContainer(),new api.ygopro.StocGameMessage.MsgPosChange({card_info:new api.ygopro.CardInfo({controller:host.location.controller,location:host.location.zone,sequence:host.location.sequence}),pre_position:host.location.position,cur_position:positions[name]}));return;}
   const target=['detach','reattach'].includes(name)?material:host;
   const to=new api.ygopro.CardLocation({...target.location.toObject(),...(name==='position'?{position:2}:name==='detach'?{zone:Z.GRAVE,sequence:0,is_overlay:false,position:0}:name==='reattach'?{zone:Z.MZONE,sequence:2,is_overlay:true,overlay_sequence:2}:name==='leave'?{zone:Z.EXTRA,sequence:0,position:3}:{zone:Z.MZONE,sequence:2,position:2})});
   await moveMaterialTest(getUIContainer(),new api.ygopro.StocGameMessage.MsgMove({code:target.code,from:new api.ygopro.CardLocation(target.location.toObject()),to,reason:0}));
@@ -82,6 +85,23 @@ function materialHits(nodes) {
       point,
     };
   });
+}
+function hostHit(el) {
+  const box = el.getBoundingClientRect();
+  const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const top = document.elementFromPoint(point.x, point.y);
+  const card = top?.closest('[data-testid="duel-card"]');
+  return {
+    visible: el.contains(top),
+    point,
+    code: el.dataset.cardCode,
+    position: el.dataset.cardPosition,
+    topCode: card?.dataset.cardCode,
+    topOverlay: card?.dataset.cardIsOverlay,
+    topImage: top && getComputedStyle(top).backgroundImage,
+    zIndex: getComputedStyle(el).zIndex,
+    rotation: getComputedStyle(el).getPropertyValue("--ry"),
+  };
 }
 let browser, server;
 const evidence = [];
@@ -144,7 +164,10 @@ try {
       await expect(page.locator('main[data-ready="true"]')).toBeVisible({
         timeout: 60000,
       });
-      if (!process.argv.includes("--practice-only"))
+      if (
+        !process.argv.includes("--practice-only") &&
+        !process.argv.includes("--transitions-only")
+      )
         for (const count of counts)
           for (const player of [0, 1])
             for (const defense of [false, true])
@@ -247,6 +270,13 @@ try {
           await page.waitForTimeout(550);
           for (const step of [
             "focus",
+            "facedownDefense",
+            "focus",
+            "detach",
+            "reattach",
+            "faceupDefense",
+            "facedownAttack",
+            "faceupAttack",
             "position",
             "detach",
             "reattach",
@@ -289,6 +319,37 @@ try {
               '[data-testid="duel-card"][data-card-zone="MZONE"][data-card-is-overlay="false"]',
             );
             await expect(host).toHaveCSS("z-index", "3");
+            const center = await host.evaluate(hostHit);
+            evidence.push({
+              kind: "host-center",
+              width,
+              height,
+              player,
+              step,
+              ...center,
+            });
+            assert.ok(
+              center.visible,
+              "Host center stays above its materials after " +
+                step +
+                ": " +
+                JSON.stringify(center),
+            );
+            if (step.startsWith("facedown") || step.startsWith("faceup")) {
+              await page.screenshot({
+                path: folder + "/" + step + "-" + width + "-" + player + ".png",
+              });
+              for (const m of hit) {
+                await page.mouse.click(m.point.x, m.point.y);
+                await expect(
+                  page.getByTestId("duel-card-detail"),
+                ).toHaveAttribute("data-card-code", String(m.code));
+                await page.getByTestId("duel-card-panel-close").click();
+                await expect(
+                  page.getByTestId("duel-card-panel"),
+                ).not.toBeVisible();
+              }
+            }
             await expect(page.getByTestId("duel-material-count")).toHaveText(
               String(count),
             );

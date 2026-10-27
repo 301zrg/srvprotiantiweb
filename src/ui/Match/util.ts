@@ -38,6 +38,7 @@ let session:
         kind: ResumeKind;
         deck?: Uint8Array;
         side: ReturnType<typeof sideStore.getSideDeck>;
+        editor: typeof sideStore.editor;
         sideStage: SideStage;
         fieldExpected: boolean;
         deadline: number;
@@ -103,6 +104,9 @@ export function reconnectSrvpro() {
       kind: observer ? "observer" : old.duelStarted ? "player" : "waiting",
       deck: old.initialDeckPayload?.slice(),
       side: JSON.parse(JSON.stringify(sideStore.getSideDeck())),
+      editor: sideStore.editor
+        ? JSON.parse(JSON.stringify(sideStore.editor))
+        : undefined,
       sideStage: sideStore.stage,
       fieldExpected:
         roomStore.stage === RoomStage.DUEL_START &&
@@ -130,6 +134,9 @@ export function reconnectSrvpro() {
       activeConnection?.close();
       resetUniverse();
       sideStore.setSideDeck(saved.side);
+      sideStore.editor = saved.editor
+        ? JSON.parse(JSON.stringify(saved.editor))
+        : undefined;
       sideStore.stage = saved.sideStage;
       const conn = wire({
         ...original.join,
