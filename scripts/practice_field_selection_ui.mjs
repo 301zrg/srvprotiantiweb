@@ -134,6 +134,10 @@ try {
       await expect(boardCard(0, 4, 2)).toHaveCSS('outline-color', 'rgb(255, 224, 138)');
       await boardCard(0, 4, 0).click();
       await boardCard(0, 4, 2).click();
+      // As online: the minimized bar confirms the board-edited draft directly.
+      await expect(page.getByTestId('practice-mini-submit')).toBeVisible();
+      assert.equal(await responseCount(), baseline, 'Showing the minimized confirm does not submit');
+      if (width < height) await expect(page.getByTestId('practice-mini-cancel')).toBeHidden();
       await page.getByTestId('practice-return-selection').click();
       await expect(candidate(3)).toHaveAttribute('aria-pressed', 'true');
       await expect(candidate(9)).toHaveAttribute('aria-pressed', 'false');

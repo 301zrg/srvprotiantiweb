@@ -26,7 +26,7 @@ import {
   Modal,
   Pagination,
 } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
@@ -69,6 +69,15 @@ import {
   seedScene,
 } from "@/ui/Shared/DuelBoard/scene";
 import { sceneInformationCards } from "@/ui/Shared/DuelBoard/sceneInformation";
+import {
+  type DuelHistoryEntry,
+  HistoryRow,
+  HistoryTimeline,
+} from "@/ui/Shared/DuelHistory";
+import {
+  eventHistoryEntries,
+  type HistoryCursor,
+} from "@/ui/Shared/DuelHistory/convert";
 import {
   DuelPanel,
   DuelSidebarContext,
@@ -578,10 +587,19 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [view, setView] = useState(0),
     [target, setTarget] = useState("1"),
     [card, setCard] = useState<ReplayCard>(),
-    [history, setHistory] = useState<ReplayHistoryFrame[]>([]),
+    [history, setHistory] = useState<{ id: number; entry: DuelHistoryEntry }[]>(
+      [],
+    ),
+    [historyCode, setHistoryCode] = useState(0),
     [showHistory, setShowHistory] = useState(false),
     [title, setTitle] = useState("");
   const [reveal, setReveal] = useState(false);
+  const historyCursor = useRef<HistoryCursor>({ turn: 0 });
+  const historySerial = useRef(0);
+  const resetHistory = () => {
+    historyCursor.current = { turn: 0 };
+    setHistory([]);
+  };
   const [zoom, setZoom] = useState(1);
   const wide = useMediaQuery(duelSidebarQuery);
   const short = useMediaQuery(
@@ -692,22 +710,34 @@ function Player({ id, text }: { id: string; text: string[] }) {
           autoStartPending.current = false;
           const next = data.frame as ReplayFrame;
           setStatus("");
-          setHistory((old) =>
-            [
-              ...old,
-              ...(data.history || [next]).flatMap((f: ReplayHistoryFrame) =>
-                f.events
-                  .filter(
-                    (e) => describeEvents({ ...f, events: [e] }, t).length > 0,
-                  )
-                  .map((e) => ({
-                    turn: f.turn,
-                    names: f.names,
-                    events: [e],
-                  })),
-              ),
-            ].slice(-1000),
+          // Outside the state updater: the cursor walks each message once.
+          const codeAt = (place: {
+            player: number;
+            location: number;
+            sequence: number;
+          }) =>
+            next.cards.find(
+              (c) =>
+                c.player === place.player &&
+                c.location === place.location &&
+                c.sequence === place.sequence,
+            )?.code;
+          const added = (data.history || [next]).flatMap(
+            (f: ReplayHistoryFrame) => {
+              const entries = eventHistoryEntries(
+                f.events,
+                historyCursor.current,
+                codeAt,
+              );
+              historyCursor.current.turn = f.turn;
+              return entries.map((entry) => ({
+                id: historySerial.current++,
+                entry,
+              }));
+            },
           );
+          if (added.length)
+            setHistory((old) => [...old, ...added].slice(-1000));
           if (!seek.current && next.step > 0 && scene.current) {
             queue.current = sceneSteps(scene.current, next);
             if (!requestedAuto.current || !paused.current) advance();
@@ -824,6 +854,21 @@ function Player({ id, text }: { id: string; text: string[] }) {
       ? currentCard
       : undefined;
   const fieldWords = replayFieldWords(language);
+  const [nameA, nameB] = frame?.names ?? [];
+  const replayPlayer = useCallback(
+    (player: number) =>
+      (player === 0 ? nameA : nameB) || `Player ${player + 1}`,
+    [nameA, nameB],
+  );
+  const inspectHistory = useCallback((code: number) => {
+    paused.current = true;
+    setPlaying(false);
+    clearTimeout(timer.current);
+    audio.current?.stop();
+    setShowHistory(false);
+    setCard(undefined);
+    setHistoryCode(code);
+  }, []);
   const action = frame?.action;
   const actionText = action
     ? `${fieldWords[action.kind as keyof typeof fieldWords] || action.kind} ${
@@ -831,14 +876,27 @@ function Player({ id, text }: { id: string; text: string[] }) {
       } ${action.amount !== undefined ? `· ${action.amount}` : ""}`
     : fieldWords.ready;
   const historyList = (
-    <ol className="replay-history">
+    <HistoryTimeline
+      language={language}
+      empty={!history.length}
+      embedded={wide}
+      testId="replay-history-content"
+      className="replay-history"
+    >
       {orderHistory(
-        history
-          .flatMap((f) => describeEvents(f, t))
-          .map((line, i) => <li key={i}>{line}</li>),
+        history.map(({ id, entry }) => (
+          <HistoryRow
+            key={id}
+            entry={entry}
+            language={language}
+            playerLabel={replayPlayer}
+            onInspect={inspectHistory}
+            testPrefix="replay"
+          />
+        )),
         settings.historyOrder,
       )}
-    </ol>
+    </HistoryTimeline>
   );
   // Persistent: errors and the end state never auto-dismiss.
   const statusPanel = (
@@ -943,7 +1001,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
         stop();
         seek.current = 0;
         setSeeking(false);
-        setHistory([]);
+        resetHistory();
         request("restart");
       },
     },
@@ -1063,7 +1121,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
           seek.current = turn;
           setSeeking(true);
           if (turn <= frame!.turn) {
-            setHistory([]);
+            resetHistory();
             request("restart");
           } else request();
         },
@@ -1248,6 +1306,23 @@ function Player({ id, text }: { id: string; text: string[] }) {
           )}
         </DuelPanel>
         <DuelPanel
+          open={!!historyCode}
+          onClose={() => setHistoryCode(0)}
+          title={fetchCard(historyCode).text.name || historyCode}
+          testId="replay-history-card-detail"
+          zIndex={1100}
+          compact
+        >
+          {!!historyCode && (
+            <CardDetailContent
+              code={historyCode}
+              language={language}
+              imageClassName="replay-detail-image"
+              descriptionClassName="replay-description"
+            />
+          )}
+        </DuelPanel>
+        <DuelPanel
           open={showHistory && !wide}
           onClose={() => setShowHistory(false)}
           title={text[15]}
@@ -1291,45 +1366,3 @@ const phaseName = (phase: number, t: (key: string) => string) =>
     256: "MP2",
     512: "EP",
   })[phase] || String(phase);
-function describeEvents(frame: ReplayHistoryFrame, t: (key: string) => string) {
-  return frame.events.flatMap((e) => {
-    const v = new DataView(new Uint8Array(e).buffer),
-      code = (p: number) =>
-        fetchCard(v.getUint32(p, true)).text.name ||
-        String(v.getUint32(p, true)),
-      prefix = `T${frame.turn} `;
-    if (e[0] === 40)
-      return [`${prefix}${frame.names[e[1]]} ${t("TurnStarted")}`];
-    if (e[0] === 41) return [`${prefix}${phaseName(v.getUint16(1, true), t)}`];
-    if ([60, 62, 64].includes(e[0]))
-      return [
-        `${prefix}${code(1)} ${
-          e[0] === 60
-            ? t("Summon")
-            : e[0] === 62
-            ? t("SpecialSummon")
-            : t("FlipSummon")
-        }`,
-      ];
-    if (e[0] === 70) return [`${prefix}${t("Chain")}: ${code(1)}`];
-    if (e[0] === 50)
-      return [`${prefix}${code(1)} ${t("Move")} ${e[6]} → ${e[10]}`];
-    if (e[0] === 2 && [8, 10].includes(e[1]))
-      return [`${prefix}${t("DeclareHint")}: ${code(3)}`];
-    if (e[0] === 160 && e[5] === 2)
-      return [`${prefix}${t("DeclareCard")}: ${code(6)}`];
-    if ([91, 92, 100].includes(e[0]))
-      return [
-        `${prefix}${frame.names[e[1]]} ${
-          e[0] === 92 ? t("Recover") : t("Decrease")
-        } LP ${v.getUint32(2, true)}`,
-      ];
-    if (e[0] === 5)
-      return [
-        `${prefix}${e[1] < 2 ? frame.names[e[1]] : t("Draw")} · ${t(
-          "EndReason",
-        )} ${e[2]}`,
-      ];
-    return [];
-  });
-}

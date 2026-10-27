@@ -24,6 +24,12 @@ export default async (
   );
 
   if (attacker) {
+    context.historyStore.putAttack(
+      context,
+      attacker.code,
+      attack.attacker_location,
+      attack.direct_attack ? undefined : attack.target_location,
+    );
     if (attack.direct_attack) {
       playEffect(AudioActionType.SOUND_DIRECT_ATTACK);
       await callCardAttack(attacker.uuid, {

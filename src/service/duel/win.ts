@@ -10,6 +10,11 @@ import { isObserver } from "./catchUp";
 export default async (container: Container, win: MsgWin) => {
   const context = container.context;
   const { win_player, reason } = win;
+  context.historyStore.putWin(
+    context,
+    win_player,
+    fetchStrings(Region.Victory, `0x${reason.toString(16)}`),
+  );
 
   if (isObserver(container)) {
     // A historical result must not wait for a spectator to dismiss a player

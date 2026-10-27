@@ -14,4 +14,5 @@ export default (
   const player = newTurn.player;
   context.matStore.currentPlayer = player;
   context.matStore.turnCount = context.matStore.turnCount + 1;
+  context.historyStore.putTurn(context, player);
 };

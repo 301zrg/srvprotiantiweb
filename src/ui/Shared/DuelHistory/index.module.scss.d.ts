@@ -12,5 +12,12 @@ declare const classNames: {
   readonly announcement: "announcement";
   readonly resultText: "resultText";
   readonly embedded: "embedded";
+  readonly entry: "entry";
+  readonly tag: "tag";
+  readonly divider: "divider";
+  readonly phase: "phase";
+  readonly note: "note";
+  readonly damage: "damage";
+  readonly recover: "recover";
 };
 export = classNames;

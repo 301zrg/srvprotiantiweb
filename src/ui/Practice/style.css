@@ -34,8 +34,6 @@
 .practice-history { padding-left:22px; }
 .practice-history li { margin-bottom:12px; line-height:1.5; overflow-wrap:anywhere; }
 .practice-history-card { border:0; padding:0; background:none; color:#9cd8ff; font:inherit; text-align:left; text-decoration:underline; cursor:pointer; }
-.practice-session .practice-feedback { top:calc(var(--header-height,48px) + 16px); left:auto; right:18px; width:calc(var(--practice-rail) - 20px); height:28px; pointer-events:none; }
-.practice-session .practice-session-rail { padding-top:42px; }
 .practice-session-rail { position:absolute; top:8px; bottom:8px; right:8px; width:var(--practice-rail); box-sizing:border-box; overflow:auto; padding:10px; border:1px solid #526274; border-radius:8px; background:#1d293beF; display:flex; flex-direction:column; gap:12px; }
 .practice-session-title { display:flex; gap:6px; align-items:center; justify-content:space-between; }
 .practice-session-title h1 { margin:0; font-size:18px; }
@@ -53,12 +51,11 @@
 @media (orientation:landscape) and (min-width:480px) {
   .practice-session[data-control-side="left"] .practice-session-rail { left:8px; right:auto; }
   .practice-session[data-control-side="left"] .practice-mat-viewport { left:calc(var(--practice-rail) + 16px); right:8px; }
-  .practice-session[data-control-side="left"] .practice-feedback { left:18px; right:auto; }
+  .practice-session-rail .practice-feedback { position:relative; inset:auto; width:auto; flex:0 0 28px; height:28px; pointer-events:none; }
 }
 @media (orientation:portrait), (max-width:479px) {
   .practice-session { display:flex; flex-direction:column; gap:4px; padding:4px; padding-top:calc(36px + var(--duel-minimized-height,0px)); box-sizing:border-box; }
   .practice-session .practice-feedback { top:calc(var(--header-height,48px) + var(--duel-minimized-height,0px) + 4px); left:8px; right:8px; width:auto; }
-  .practice-session .practice-session-rail { padding-top:6px; }
   .practice-mat-viewport { position:relative; inset:auto; flex:1; width:100%; }
   .practice-session-rail { position:relative; inset:auto; width:100%; flex:0 1 auto; max-height:37%; padding:6px; gap:5px; }
   .practice-session-title h1 { font-size:15px; }
@@ -248,3 +245,5 @@
     width: 100%;
   }
 }
+/* Phone portrait has no room for a third button in the minimized bar. */
+@media (orientation:portrait) and (max-width:479px) { .practice-mini-cancel { display:none; } }

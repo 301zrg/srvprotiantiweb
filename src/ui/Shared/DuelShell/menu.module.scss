@@ -72,6 +72,15 @@
       padding: 0 8px;
       font-size: 14px;
     }
+    // Replay speed: same height and baseline as the toolbar buttons.
+    &:not(.sidebar) :global(.ant-select) {
+      height: 44px;
+      font-size: 14px;
+    }
+    &:not(.sidebar) :global(.ant-select-selector) {
+      height: 100% !important;
+      align-items: center;
+    }
   }
 }
 

@@ -7,7 +7,13 @@
   overflow: hidden;
 }
 
+// The width is defined here: without it the column took the width of its
+// longest chat line, and a long notice (e.g. an opponent reconnecting)
+// squeezed the deck editor.
 .sider {
+  --sider-width: 18.75rem;
+  min-width: 0;
+  overflow: hidden;
   width: var(--sider-width);
   flex: 0 0 var(--sider-width);
   background-color: hsla(0, 0%, 100%, 0.05);
@@ -155,4 +161,12 @@
     min-height: 0;
     flex: none;
   }
+}
+
+// Touch/narrow layouts: chat in an overlay panel (see the chat button).
+.chatPanel {
+  height: 100%;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
 }

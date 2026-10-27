@@ -287,13 +287,6 @@ export const Component = () => {
       data-testid="practice-page"
       data-prompt-minimized={promptMinimized && promptOpen}
     >
-      <div
-        ref={feedbackContainer}
-        className={`${feedbackStyles.feedback} practice-feedback`}
-        data-testid="practice-feedback"
-      >
-        {feedbackHolder}
-      </div>
       {scene && (
         <PracticeBoard
           frame={scene}
@@ -368,6 +361,15 @@ export const Component = () => {
             )}
           </div>
         )}
+        {/* Landscape: a fixed slot in the rail, as in the online sidebar.
+            Portrait: fixed above the life bars. */}
+        <div
+          ref={feedbackContainer}
+          className={`${feedbackStyles.feedback} practice-feedback`}
+          data-testid="practice-feedback"
+        >
+          {feedbackHolder}
+        </div>
         <div className="practice-session-controls">
           <Button
             data-testid="practice-setup"
@@ -534,6 +536,31 @@ export const Component = () => {
             >
               {fetchStrings(Region.System, 1211)}
             </Button>
+          ) : request && selection ? (
+            // As online: board taps keep editing the draft, so it can be
+            // confirmed (or cancelled) without reopening the window.
+            <>
+              {request.cancelable && (
+                <Button
+                  className="practice-mini-cancel"
+                  data-testid="practice-mini-cancel"
+                  disabled={responding}
+                  onClick={() => answer(request, -1)}
+                >
+                  {t("Cancel")}
+                </Button>
+              )}
+              <Button
+                type="primary"
+                data-testid="practice-mini-submit"
+                disabled={
+                  responding || !encodePracticeAnswer(request, selected)
+                }
+                onClick={() => answer(request, selected)}
+              >
+                {t("Confirm")}
+              </Button>
+            </>
           ) : undefined
         }
         centered

@@ -10,5 +10,6 @@ declare const classNames: {
   readonly feedback: "feedback";
   readonly "deck-zone": "deck-zone";
   readonly "detail-container": "detail-container";
+  readonly chatPanel: "chatPanel";
 };
 export = classNames;

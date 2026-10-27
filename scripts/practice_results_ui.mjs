@@ -50,9 +50,12 @@ try {
         const life = await page.locator('.practice-life-bars').boundingBox();
         assert.ok(strip.y + strip.height <= life.y + 1, 'Portrait result strip stays above LP and the field');
       } else {
-        const title = await page.locator('.practice-session-title').boundingBox();
+        const state = await page.getByTestId('practice-state').boundingBox();
+        const controls = await page.locator('.practice-session-controls').boundingBox();
         const rail = await page.locator('.practice-session-rail').boundingBox();
-        assert.ok(strip.y + strip.height <= title.y + 1, 'Result strip stays above the rail title and controls');
+        const title = await page.locator('.practice-session-title').boundingBox();
+        assert.ok(strip.y >= state.y + state.height - 1 && strip.y + strip.height <= controls.y + 1, 'Result strip sits in its slot between state and controls');
+        assert.ok(title.y - rail.y <= 12, 'No reserved gap above the rail title');
         assert.ok(strip.x >= rail.x && strip.x + strip.width <= rail.x + rail.width, 'Result strip follows the actual 220/280px rail');
       }
       await page.screenshot({ path: `${folder}/number-result-${width}.png` });

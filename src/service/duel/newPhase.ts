@@ -12,6 +12,7 @@ export default (
   playEffect(AudioActionType.SOUND_PHASE);
   // ts本身还没有这么智能，所以需要手动指定类型
   container.context.matStore.phase.currentPhase = newPhase.phase_type;
+  container.context.historyStore.putPhase(container.context);
   const hint = onlinePhaseHint(newPhase.phase_type);
   container.context.matStore.phase.battleTiming =
     hint && isBattleHint(hint) ? hint : undefined;

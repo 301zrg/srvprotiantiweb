@@ -3,6 +3,7 @@ import { ygopro } from "@/api";
 import MsgUpdateHp = ygopro.StocGameMessage.MsgUpdateHp;
 import { Container } from "@/container";
 import { AudioActionType, changeScene, playEffect } from "@/infra/audio";
+import { HistoryOp } from "@/stores";
 
 import { fetchEsHintMeta } from "./util";
 
@@ -12,10 +13,22 @@ export default (container: Container, msgUpdateHp: MsgUpdateHp) => {
     playEffect(AudioActionType.SOUND_DAMAGE);
     fetchEsHintMeta({ context, originMsg: "玩家收到伤害时" }); // TODO: i18n
     context.matStore.initInfo.of(msgUpdateHp.player).life -= msgUpdateHp.value;
+    context.historyStore.putLp(
+      context,
+      msgUpdateHp.player,
+      HistoryOp.DAMAGE,
+      msgUpdateHp.value,
+    );
   } else if (msgUpdateHp.type_ === MsgUpdateHp.ActionType.RECOVER) {
     playEffect(AudioActionType.SOUND_RECOVER);
     fetchEsHintMeta({ context, originMsg: "玩家生命值回复时" }); // TODO: i18n
     context.matStore.initInfo.of(msgUpdateHp.player).life += msgUpdateHp.value;
+    context.historyStore.putLp(
+      context,
+      msgUpdateHp.player,
+      HistoryOp.RECOVER,
+      msgUpdateHp.value,
+    );
   }
   if (
     context.matStore.initInfo.me.life >
