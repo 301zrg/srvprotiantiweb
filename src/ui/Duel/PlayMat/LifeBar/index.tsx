@@ -5,6 +5,7 @@ import { ygopro } from "@/api";
 import { matStore, type Player, roomStore } from "@/stores";
 import { LifeBarView } from "@/ui/Shared/DuelShell/LifeBarView";
 import { clockLeft, duelClock } from "@/variant/duelClock";
+import { matchGame } from "@/variant/matchGame";
 
 export function spectatorName(
   players: readonly (Readonly<Player> | undefined)[],
@@ -37,6 +38,7 @@ export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
   // Clocks are derived from the last calibration and the elapsed time; the
   // interval only repaints, so missed or throttled callbacks cannot drift.
   const clock = useSnapshot(duelClock);
+  const game = useSnapshot(matchGame);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     setNow(Date.now());
@@ -68,6 +70,7 @@ export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
   return (
     <LifeBarView
       docked={docked}
+      game={snapPlayer.hostInfo?.mode === 1 ? game.number : undefined}
       far={{
         active: observing
           ? currentPlayer === farController

@@ -34,6 +34,7 @@ try {
   assert.equal(fresh.historyStyle, "auto", "The log picks text on phones and cards on computers");
   assert.equal(fresh.chatOrder, "history", "Duel chat follows the action log order by default");
   assert.equal(fresh.spectatorKeepSeat, true, "Spectators keep their side after siding by default");
+  assert.equal(fresh.showZoneIndexes, true, "Zone numbers are shown by default");
 
   const muted = await load({ audio: { enableSoundEffects: false, enableReplaySoundEffects: true }, showServerMessages: false });
   assert.equal(muted.audio.enableSoundEffects, false, "Legacy replay preference must not unmute the main sound setting");

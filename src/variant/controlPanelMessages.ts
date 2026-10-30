@@ -16,7 +16,7 @@ const words = {
       "文字模式不显示卡图和图标，同样空间内能看到更多记录；对局、观战、录像播放和测试手牌通用。",
     chatOrder: "聊天消息顺序",
     chatFollowHistory: "跟随操作记录顺序",
-    chatOrderHelp: "对局和观战中的玩家与系统消息按此顺序显示。",
+    chatOrderHelp: "对局、观战和换备中的玩家与系统消息按此顺序显示。",
     spectatorKeepSeat: "观战换备后保持视角不换边",
     spectatorKeepSeatHelp:
       "开启时，下一局继续让同一位玩家显示在下方，不随先后手变化；关闭时每局以先攻方在下方。手动切换视角后会记住所选玩家。",
@@ -26,6 +26,9 @@ const words = {
       "卡图会缓存在本机以免重复下载，最多约 600 张，存储空间紧张时自动停止缓存。清理只删除卡图，不影响卡组、录像和联机输入。",
     cardCacheCleared: "已清理卡图缓存。卡组、录像和联机输入未受影响。",
     cardCacheEmpty: "当前没有可清理的卡图缓存。",
+    zoneIndexes: "显示区域编号",
+    zoneIndexesHelp:
+      "在怪兽区和魔法陷阱区格子右下角显示 1–5，对应操作记录中的“怪兽区 3”等位置；对方区域按对方自己的编号。",
   },
   en: {
     position: "Control panel position",
@@ -44,7 +47,8 @@ const words = {
       "Text mode omits card art and icons so more entries fit. Applies to duels, spectating, replays and hand tests.",
     chatOrder: "Chat order",
     chatFollowHistory: "Same as the action log",
-    chatOrderHelp: "Player and system messages in duels and while spectating.",
+    chatOrderHelp:
+      "Player and system messages in duels, while spectating and while siding.",
     spectatorKeepSeat: "Keep the spectator view after siding",
     spectatorKeepSeatHelp:
       "When on, the same player stays at the bottom in the next game regardless of who goes first. When off, the first player is at the bottom each game. A manual view switch is remembered.",
@@ -55,6 +59,9 @@ const words = {
     cardCacheCleared:
       "Card image cache cleared. Decks, replays and inputs are unchanged.",
     cardCacheEmpty: "There is no card image cache to clear.",
+    zoneIndexes: "Show zone numbers",
+    zoneIndexesHelp:
+      'Shows 1-5 in the corner of each Monster and Spell & Trap Zone, matching places such as "Monster Zone 3" in the action log. The opponent\'s zones use their own numbering.',
   },
   ja: {
     position: "操作パネルの位置",
@@ -74,7 +81,7 @@ const words = {
     chatOrder: "チャットの順序",
     chatFollowHistory: "操作履歴と同じ",
     chatOrderHelp:
-      "対戦・観戦中のプレイヤーとシステムのメッセージに適用されます。",
+      "対戦・観戦・サイドデッキ調整中のプレイヤーとシステムのメッセージに適用されます。",
     spectatorKeepSeat: "サイデッキング後も観戦視点を固定",
     spectatorKeepSeatHelp:
       "オンにすると、先攻・後攻に関係なく次のゲームも同じプレイヤーを下側に表示します。オフでは各ゲームの先攻プレイヤーが下側です。手動で切り替えた視点は記憶されます。",
@@ -85,6 +92,9 @@ const words = {
     cardCacheCleared:
       "カード画像キャッシュを削除しました。デッキ・リプレイ・入力は変わりません。",
     cardCacheEmpty: "削除できるカード画像キャッシュはありません。",
+    zoneIndexes: "ゾーン番号を表示",
+    zoneIndexesHelp:
+      "モンスターゾーンと魔法・罠ゾーンの隅に 1–5 を表示し、操作履歴の「モンスターゾーン 3」などに対応させます。相手のゾーンは相手側の番号です。",
   },
   ko: {
     position: "조작 패널 위치",
@@ -103,7 +113,8 @@ const words = {
       "텍스트 모드는 카드 이미지와 아이콘을 생략해 더 많은 기록을 보여 줍니다. 대전, 관전, 리플레이, 패 테스트에 적용됩니다.",
     chatOrder: "채팅 순서",
     chatFollowHistory: "조작 기록과 같게",
-    chatOrderHelp: "대전과 관전 중 플레이어 및 시스템 메시지에 적용됩니다.",
+    chatOrderHelp:
+      "대전, 관전, 사이드 덱 교체 중 플레이어 및 시스템 메시지에 적용됩니다.",
     spectatorKeepSeat: "사이드 후 관전 시점 유지",
     spectatorKeepSeatHelp:
       "켜면 선후공과 관계없이 다음 게임에도 같은 플레이어를 아래쪽에 표시합니다. 끄면 매 게임 선공 플레이어가 아래쪽입니다. 직접 전환한 시점은 기억됩니다.",
@@ -114,6 +125,9 @@ const words = {
     cardCacheCleared:
       "카드 이미지 캐시를 삭제했습니다. 덱, 리플레이, 입력은 그대로입니다.",
     cardCacheEmpty: "삭제할 카드 이미지 캐시가 없습니다.",
+    zoneIndexes: "구역 번호 표시",
+    zoneIndexesHelp:
+      '몬스터 존과 마법·함정 존 모서리에 1–5를 표시해 조작 기록의 "몬스터 존 3" 등과 대응시킵니다. 상대 구역은 상대 기준 번호입니다.',
   },
 };
 export const controlPanelMessages = (language: string) =>

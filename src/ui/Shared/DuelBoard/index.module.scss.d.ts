@@ -5,5 +5,6 @@ declare const classNames: {
   readonly glowing: "glowing";
   readonly "disabled-cross": "disabled-cross";
   readonly count: "count";
+  readonly zoneIndex: "zoneIndex";
 };
 export = classNames;

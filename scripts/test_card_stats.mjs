@@ -149,9 +149,34 @@ try {
       [{ x: 100, y: 210, width: 70, height: 100 }],
       clip,
       60,
+    )?.y,
+    81,
+    "Insufficient space below moves the label above the card",
+  );
+  assert.equal(
+    placeFieldStats(
+      rect,
+      [
+        { x: 100, y: 210, width: 70, height: 100 },
+        { x: 100, y: -10, width: 70, height: 100 },
+      ],
+      clip,
+      60,
     ),
     undefined,
-    "Insufficient space below hides entire label",
+    "No room above or below hides the entire label",
+  );
+  assert.ok(
+    placeFieldStats(
+      rect,
+      [
+        rect,
+        { x: 110, y: 102, width: 70, height: 100 },
+      ],
+      clip,
+      60,
+    ),
+    "The monster itself and its stacked materials do not block the label",
   );
   assert.equal(
     placeFieldStats(rect, [], clip, 90),
@@ -159,7 +184,7 @@ try {
     "Text cannot spill out of its monster column",
   );
   assert.equal(
-    placeFieldStats(rect, [], { ...clip, height: 210 }, 65),
+    placeFieldStats(rect, [], { ...clip, y: 90, height: 120 }, 65),
     undefined,
     "Do not clip or overlap controls outside the board",
   );

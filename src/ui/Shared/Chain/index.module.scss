@@ -6,10 +6,13 @@
   justify-content: center;
   align-items: center;
   pointer-events: none;
+  // Chain numbers read upright for the viewer, also after an online
+  // spectator turns the board (--duel-view-rotation; unset elsewhere).
+  transform: rotate(calc(0deg - var(--duel-view-rotation, 0deg)));
 }
 
 .op {
-  transform: rotate(180deg);
+  transform: rotate(calc(180deg - var(--duel-view-rotation, 0deg)));
 }
 
 .chain {

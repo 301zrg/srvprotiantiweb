@@ -27,7 +27,7 @@ import {
   zoneRect,
 } from "./geometry";
 import { type SceneCard, sceneSpot, type Spot } from "./scene";
-import { ZoneBlock, ZoneCount, ZoneLayer } from "./ZoneBlock";
+import { ZoneBlock, ZoneCount, ZoneIndex, ZoneLayer } from "./ZoneBlock";
 
 const pileLocations = [1, 64, 16, 32];
 
@@ -103,6 +103,7 @@ export function SceneBoard({
   maxScale = 1.2,
   information,
   showCounts,
+  showIndexes = false,
   conceal = () => false,
   names,
   renderCard,
@@ -122,6 +123,8 @@ export function SceneBoard({
   maxScale?: number;
   information: InformationCard[];
   showCounts: boolean;
+  /** Slot numbers 1-5 matching the action log's places. */
+  showIndexes?: boolean;
   /** Whether a card's face is hidden (replay without reveal). */
   conceal?: (card: SceneCard) => boolean;
   /** Mode class names kept for styling and tests. */
@@ -309,6 +312,12 @@ export function SceneBoard({
                         data-location={location}
                         data-sequence={sequence}
                       >
+                        {showIndexes && sequence < 5 && (
+                          <ZoneIndex
+                            index={sequence + 1}
+                            rect={zoneRect(g, sceneSpot(spot, view))}
+                          />
+                        )}
                         {!!markers.length && (
                           <BgChain chains={markers} op={!near} />
                         )}

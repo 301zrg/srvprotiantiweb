@@ -85,7 +85,7 @@ export const PracticeBoard = ({
     location: number;
     sequence?: number;
   }>();
-  const { showZoneCounts } = useSnapshot(settingStore);
+  const { showZoneCounts, showZoneIndexes } = useSnapshot(settingStore);
   const portrait = useMediaQuery("(orientation: portrait)");
   const mobile = useMobileInterface();
   const actionFirst = portrait && mobile;
@@ -318,6 +318,7 @@ export const PracticeBoard = ({
         masterRule={practiceProfile.rules}
         information={sceneInformationCards(frame.cards, language, 0, true)}
         showCounts={showZoneCounts}
+        showIndexes={showZoneIndexes}
         names={{ slot: "practice-field-slot", pile: "practice-field-pile" }}
         renderCard={(placed) => cardButton(placed.card, placed.key, placed)}
         slotProps={(address) => {

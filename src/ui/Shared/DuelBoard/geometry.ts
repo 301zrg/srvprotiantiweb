@@ -304,7 +304,16 @@ export function cardPose(g: BoardGeometry, input: PoseInput): CardPose {
   return {
     x: rect.x,
     y: rect.y,
-    z: spot.zone === "deck" || spot.zone === "extra" ? spot.sequence : 0,
+    // In the online 3D board z-index is ignored inside the preserve-3d
+    // context, so equal depths fall back to DOM order: a card discarded from
+    // the hand (earlier in the DOM) ended up under the old top of the GY.
+    // Piles therefore stack by depth; GY/banished by an invisible step.
+    z:
+      spot.zone === "deck" || spot.zone === "extra"
+        ? spot.sequence
+        : spot.zone === "grave" || spot.zone === "removed"
+        ? spot.sequence * 0.05
+        : 0,
     height: rect.height,
     rz: rect.rotation,
     ry: input.faceDown ? 180 : 0,

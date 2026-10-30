@@ -19,6 +19,7 @@ export const MessageSetting = () => {
     historyStyle,
     chatOrder,
     spectatorKeepSeat,
+    showZoneIndexes,
   } = useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
@@ -133,6 +134,18 @@ export const MessageSetting = () => {
       </Checkbox>
       <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
         {revision.showZoneCountsHelp}
+      </Typography.Paragraph>
+      <Checkbox
+        data-testid="setting-zone-indexes"
+        checked={showZoneIndexes}
+        onChange={(event) => {
+          settingStore.showZoneIndexes = event.target.checked;
+        }}
+      >
+        {panel.zoneIndexes}
+      </Checkbox>
+      <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+        {panel.zoneIndexesHelp}
       </Typography.Paragraph>
       <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
         <Checkbox

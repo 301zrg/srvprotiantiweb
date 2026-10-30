@@ -28,6 +28,7 @@ export interface SettingConfig {
   chatOrder: ChatOrder;
   /** Spectators keep the same room seat near them across games of a match. */
   spectatorKeepSeat: boolean;
+  showZoneIndexes: boolean;
 }
 
 /** Normalize old browser settings without letting the old replay flag unmute. */
@@ -72,6 +73,7 @@ export function normalizeSetting(value: unknown): SettingConfig {
         ? config.chatOrder
         : "history",
     spectatorKeepSeat: config.spectatorKeepSeat !== false,
+    showZoneIndexes: config.showZoneIndexes !== false,
     chainSetting: [
       ChainSetting.CHAIN_ALL,
       ChainSetting.CHAIN_IGNORE,

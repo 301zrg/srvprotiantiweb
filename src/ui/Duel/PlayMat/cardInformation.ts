@@ -64,11 +64,12 @@ export function onlineInformationCards(
           !hidden &&
           card.location.zone === ygopro.CardZone.MZONE &&
           !!((card.meta.data?.type ?? 0) & 1) &&
-          [
-            ygopro.CardPosition.ATTACK,
-            ygopro.CardPosition.FACEUP_ATTACK,
-            ygopro.CardPosition.DEFENSE,
-            ygopro.CardPosition.FACEUP_DEFENSE,
+          // Any face-up position: the protocol also reports FACEUP (0x5) or
+          // combined values, which the old exact list dropped.
+          ![
+            ygopro.CardPosition.FACEDOWN,
+            ygopro.CardPosition.FACEDOWN_ATTACK,
+            ygopro.CardPosition.FACEDOWN_DEFENSE,
           ].includes(card.location.position)
             ? {
                 attack: card.meta.data?.atk,

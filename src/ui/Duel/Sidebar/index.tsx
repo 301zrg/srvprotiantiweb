@@ -9,6 +9,7 @@ import {
   sidebarStatusClass,
 } from "@/ui/Shared/DuelShell/SidebarFrame";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
+import { matchGame } from "@/variant/matchGame";
 import { displayPlayerId } from "@/variant/playerIds";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
 
@@ -28,6 +29,7 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
   const { turnCount, currentPlayer, selfType, observerSwapped, phase } =
     useSnapshot(matStore);
   const room = useSnapshot(roomStore);
+  const game = useSnapshot(matchGame);
   const observing =
     selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
   const player =
@@ -58,6 +60,13 @@ export const DuelSidebar = ({ wide }: { wide: boolean }) => {
           role="status"
         >
           <div>
+            {/* Match only: which game of the match this is. */}
+            {room.hostInfo?.mode === 1 && game.number > 0 && (
+              <span
+                data-testid="duel-game-number"
+                style={{ whiteSpace: "nowrap" }}
+              >{`G${game.number} · `}</span>
+            )}
             {previewFormat(text.turnStatus, {
               turn: turnCount,
               player: displayPlayerId(player, hidePlayerIds),

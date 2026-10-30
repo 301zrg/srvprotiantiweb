@@ -105,6 +105,8 @@
     "test:duel-clock": "node --experimental-strip-types scripts/test_duel_clock.mjs",
     "test:duel-clock-ui": "node scripts/duel_clock_ui.mjs",
     "test:card-image-cache": "node scripts/card_image_cache_ui.mjs",
+    "test:match-game": "node --experimental-strip-types scripts/test_match_game.mjs",
+    "test:room-fill-tt": "node scripts/room_fill_tt_ui.mjs",
     "test:duel-feedback": "python scripts/build_environment_assets.py && node scripts/duel_feedback_ui.mjs",
     "test:tribute-ui": "node scripts/restore_environment_assets.mjs && node scripts/tribute_selection_ui.mjs",
     "test:room-links": "python scripts/build_environment_assets.py && node scripts/room_link_ui.mjs",
