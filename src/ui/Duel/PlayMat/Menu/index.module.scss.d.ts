@@ -9,5 +9,8 @@ declare const classNames: {
   readonly sidebar: "sidebar";
   readonly primary: "primary";
   readonly phaseLabel: "phaseLabel";
+  readonly observing: "observing";
+  readonly phaseText: "phaseText";
+  readonly optionalLabel: "optionalLabel";
 };
 export = classNames;
