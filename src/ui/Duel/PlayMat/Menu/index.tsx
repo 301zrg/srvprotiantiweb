@@ -449,6 +449,7 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
     <div
       className={classNames(styles["menu-container"], {
         [styles.sidebar]: docked,
+        [styles.observing]: observing,
       })}
       ref={menu}
       data-testid="duel-menu"
@@ -486,7 +487,11 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
             disabled={globalDisable}
             aria-label={duelPhaseLabel(language, currentPhase, battleTiming)}
           >
-            <span className={classNames({ [styles.phaseLabel]: showShuffle })}>
+            <span
+              className={classNames(styles.phaseText, {
+                [styles.phaseLabel]: showShuffle,
+              })}
+            >
               {duelPhaseLabel(language, currentPhase, battleTiming)}
             </span>
           </Button>
@@ -503,7 +508,7 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
               matStore.observerView = observerView === 0 ? 1 : 0;
             }}
           >
-            {text.switchView}
+            <span className={styles.optionalLabel}>{text.switchView}</span>
           </Button>
         ) : (
           <DropdownWithTitle

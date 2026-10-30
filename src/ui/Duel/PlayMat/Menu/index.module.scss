@@ -84,3 +84,44 @@
 @media (orientation: portrait) and (max-width: 479px) {
   .menu-container:not(.sidebar) .phaseLabel { display: none; }
 }
+
+// Phone portrait spectating: phase and battle-timing names vary in length, so
+// the controls must fit one row below the phase bar whatever the text; the board
+// is sized from --duel-menu-height and would otherwise jump between phases.
+// Only the phase name gives way; the remaining controls are icon-only
+// (aria-label keeps their names). The side-waiting notice appears only between
+// games and takes its own last row so it stays readable.
+@media (orientation: portrait) and (max-width: 479px) {
+  .menu-container.observing:not(.sidebar) {
+    gap: 4px;
+    [data-testid^="duel-"] {
+      flex: 0 0 auto;
+    }
+    [data-testid="duel-phase-select"] {
+      flex: 1 1 0;
+      min-width: 44px;
+      overflow: hidden;
+    }
+    .phaseText {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .optionalLabel { display: none; }
+    .observer-wait {
+      flex: 1 0 100%;
+      order: 1;
+      min-width: 0;
+      max-width: none;
+      padding: 0 2px;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
+  }
+}
