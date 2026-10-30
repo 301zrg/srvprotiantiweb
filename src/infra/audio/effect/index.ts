@@ -8,6 +8,8 @@ import { AudioActionType } from "../type";
 subscribe(
   settingStore,
   () => {
+    audioContextManger.effectsWanted =
+      settingStore.audio.enableSoundEffects === true;
     if (!settingStore.audio.enableSoundEffects)
       audioContextManger.stopEffects();
     else
@@ -17,6 +19,8 @@ subscribe(
   },
   true,
 );
+audioContextManger.effectsWanted =
+  settingStore.audio.enableSoundEffects === true;
 
 export function playEffect(effect: AudioActionType) {
   if (!settingStore.audio.enableSoundEffects) return;

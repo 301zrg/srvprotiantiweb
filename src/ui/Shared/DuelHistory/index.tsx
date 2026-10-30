@@ -1,9 +1,12 @@
 import classNames from "classnames";
-import React, { type ReactNode } from "react";
+import React, { createContext, type ReactNode, useContext } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
 
 import { fetchCard, fetchStrings, Region } from "@/api";
 import { useConfig } from "@/config";
+import { useMobileInterface } from "@/hook";
+import { settingStore } from "@/stores/settingStore";
 import { replayFieldWords } from "@/ui/Shared/DuelBoard/sceneWords";
 import type { PhaseKey } from "@/variant/duelPhases";
 import { type DuelResult, formatDuelResult } from "@/variant/duelResults";
@@ -111,6 +114,22 @@ const zoneWords = {
     direct: "직접 공격",
   },
 };
+const facedownWords = {
+  cn: "里侧卡",
+  en: "Face-down card",
+  ja: "裏側のカード",
+  ko: "뒷면 카드",
+};
+
+/** Text rows instead of card art ("auto": text on the mobile interface). */
+export function useHistoryTextMode() {
+  const { historyStyle } = useSnapshot(settingStore);
+  const mobile = useMobileInterface();
+  return historyStyle === "text" || (historyStyle === "auto" && mobile);
+}
+// Provided once by the timeline so memoized rows need no per-row listeners.
+const TextModeContext = createContext(false);
+
 const zoneText = (language: string) =>
   zoneWords[language as keyof typeof zoneWords] ?? zoneWords.cn;
 
@@ -217,12 +236,42 @@ const HistoryCard = ({
   </button>
 );
 
+/** Card name in text rows; still opens the card detail. */
+const HistoryCardName = ({
+  code,
+  language,
+  onInspect,
+  testPrefix,
+}: {
+  code: number;
+  language: string;
+  onInspect: (code: number) => void;
+  testPrefix: string;
+}) =>
+  code ? (
+    <button
+      type="button"
+      className={styles.cardName}
+      data-testid={`${testPrefix}-history-card`}
+      data-card-code={code}
+      onClick={() => onInspect(code)}
+    >
+      {fetchCard(code).text.name ?? code}
+    </button>
+  ) : (
+    <span className={styles.facedown}>
+      {facedownWords[language as keyof typeof facedownWords] ??
+        facedownWords.en}
+    </span>
+  );
+
 // Memoized: logs stay mounted and grow all match long, so a new entry must
 // not re-render every earlier one.
 export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
   function HistoryRow({ entry, language, playerLabel, onInspect, testPrefix }) {
     const { t } = useTranslation("ClientUI");
     const { assetsPath } = useConfig();
+    const textMode = useContext(TextModeContext);
     const words = replayFieldWords(language);
     const { kind, code = 0, player, turn, phase } = entry;
     const who = player === undefined ? "" : playerLabel(player);
@@ -260,8 +309,42 @@ export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
         testPrefix={testPrefix}
       />
     );
+    const name = (
+      <HistoryCardName
+        code={code}
+        language={language}
+        onInspect={onInspect}
+        testPrefix={testPrefix}
+      />
+    );
     let body: ReactNode;
-    if (kind === "result" && entry.result) {
+    if (textMode && kind === "result" && entry.result) {
+      const formatted = formatDuelResult(entry.result, language);
+      body = (
+        <div
+          className={styles.textRow}
+          data-testid={`${testPrefix}-history-result`}
+          data-result-kind={entry.result.kind}
+          data-player={player}
+        >
+          <strong>{titleOf(formatted.title)}</strong>
+          {code > 0 && name}
+          <span data-testid={`${testPrefix}-history-result-value`}>
+            {formatted.value}
+          </span>
+        </div>
+      );
+    } else if (textMode && kind === "announce")
+      body = (
+        <div
+          className={styles.textRow}
+          data-testid={`${testPrefix}-history-announce`}
+        >
+          <strong>{titleOf(mobileMessages(language).declaredCard)}</strong>
+          {name}
+        </div>
+      );
+    else if (kind === "result" && entry.result) {
       const formatted = formatDuelResult(entry.result, language);
       body = (
         <div
@@ -313,6 +396,19 @@ export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
           {kind === "draw" ? `×${entry.amount ?? 1}` : entry.amount ?? ""}
         </div>
       );
+    else if (textMode)
+      body = (
+        <div className={styles.textRow}>
+          {name}
+          <span className={styles.textOp}>{opText(kind, t, language)}</span>
+          {entry.from && <span>{placeText(entry.from, language)}</span>}
+          {entry.to && (
+            <span className={styles.textTarget}>
+              → {placeText(entry.to, language)}
+            </span>
+          )}
+        </div>
+      );
     else {
       const icon = icons[kind] ?? "summon.png";
       body = (
@@ -336,7 +432,10 @@ export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
       );
     }
     return (
-      <div className={styles.entry} data-history-kind={kind}>
+      <div
+        className={classNames(styles.entry, { [styles.textEntry]: textMode })}
+        data-history-kind={kind}
+      >
         {tag && <div className={styles.tag}>{tag}</div>}
         {body}
       </div>
@@ -360,15 +459,20 @@ export function HistoryTimeline({
   className?: string;
   children: ReactNode;
 }) {
+  const textMode = useHistoryTextMode();
   return (
     <div
       className={classNames(styles.container, className, {
         [styles.embedded]: embedded,
+        [styles.text]: textMode,
       })}
       data-testid={testId}
+      data-history-style={textMode ? "text" : "image"}
     >
       {empty && <p>{mobileMessages(language).emptyHistory}</p>}
-      <div className={styles.timeline}>{children}</div>
+      <TextModeContext.Provider value={textMode}>
+        <div className={styles.timeline}>{children}</div>
+      </TextModeContext.Provider>
     </div>
   );
 }

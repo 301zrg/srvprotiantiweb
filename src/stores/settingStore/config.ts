@@ -5,6 +5,10 @@ import { AudioConfig, defaultAudioConfig } from "./audio";
 export type RandomRpsMode = "off" | "suggest" | "play";
 export type ServerMessageMode = "auto" | "popup" | "record";
 export type HistoryOrder = "oldest" | "newest";
+/** "auto": text rows on the mobile interface, card art on desktop. */
+export type HistoryStyle = "auto" | "image" | "text";
+/** Duel chat order; "history" follows the action log order. */
+export type ChatOrder = "history" | HistoryOrder;
 export const replaySpeeds = [0.5, 1, 2, 4, 8, 16] as const;
 
 export interface SettingConfig {
@@ -20,6 +24,10 @@ export interface SettingConfig {
   replayAutoPlay: boolean;
   controlPanelSide: "left" | "right";
   historyOrder: HistoryOrder;
+  historyStyle: HistoryStyle;
+  chatOrder: ChatOrder;
+  /** Spectators keep the same room seat near them across games of a match. */
+  spectatorKeepSeat: boolean;
 }
 
 /** Normalize old browser settings without letting the old replay flag unmute. */
@@ -55,6 +63,15 @@ export function normalizeSetting(value: unknown): SettingConfig {
     replayAutoPlay: config.replayAutoPlay !== false,
     controlPanelSide: config.controlPanelSide === "right" ? "right" : "left",
     historyOrder: config.historyOrder === "newest" ? "newest" : "oldest",
+    historyStyle:
+      config.historyStyle === "image" || config.historyStyle === "text"
+        ? config.historyStyle
+        : "auto",
+    chatOrder:
+      config.chatOrder === "oldest" || config.chatOrder === "newest"
+        ? config.chatOrder
+        : "history",
+    spectatorKeepSeat: config.spectatorKeepSeat !== false,
     chainSetting: [
       ChainSetting.CHAIN_ALL,
       ChainSetting.CHAIN_IGNORE,

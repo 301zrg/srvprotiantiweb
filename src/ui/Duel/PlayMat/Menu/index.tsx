@@ -38,6 +38,7 @@ import {
   DEFAULT_REPLAY_ADVANCE_MASK,
   matStore,
   replayStore,
+  roomStore,
   SideStage,
   sideStore,
 } from "@/stores";
@@ -53,6 +54,7 @@ import {
 } from "@/variant/duelPhases";
 import { type BattleTiming, battleTimingLabel } from "@/variant/duelTiming";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { seatOfView } from "@/variant/observerSeat";
 import { previewMessages } from "@/variant/previewMessages";
 
 import { PhaseBar } from "../../PhaseBar";
@@ -478,7 +480,13 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
               icon={<SwapOutlined />}
               type="text"
               onClick={() => {
-                matStore.observerView = observerView === 0 ? 1 : 0;
+                const view = observerView === 0 ? 1 : 0;
+                matStore.observerView = view;
+                // Remember the chosen seat for the following games.
+                roomStore.observerSeat = seatOfView(
+                  view,
+                  matStore.observerSwapped,
+                );
               }}
             >
               <span className={styles.optionalLabel}>{text.switchView}</span>

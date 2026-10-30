@@ -46,6 +46,8 @@ export class RoomStore implements NeosStore {
   selfType: SelfType = 0; // 当前玩家的类型
   stage: RoomStage = RoomStage.WAITING;
   errorMsg?: string = undefined; // 错误信息
+  /** Spectator's preferred side (room seat team) across games of this room. */
+  observerSeat: 0 | 1 | null = null;
 
   getMePlayer() {
     return this.players.find((player) => player?.isMe);
@@ -63,6 +65,7 @@ export class RoomStore implements NeosStore {
     this.selfType = SelfType.UNKNOWN;
     this.stage = RoomStage.WAITING;
     this.errorMsg = undefined;
+    this.observerSeat = null;
   }
 }
 

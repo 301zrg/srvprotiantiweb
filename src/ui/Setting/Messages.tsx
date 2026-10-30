@@ -14,6 +14,9 @@ export const MessageSetting = () => {
     hidePlayerIds,
     controlPanelSide,
     historyOrder,
+    historyStyle,
+    chatOrder,
+    spectatorKeepSeat,
   } = useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
@@ -54,6 +57,64 @@ export const MessageSetting = () => {
         </Radio.Group>
         <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
           {panel.historyOrderHelp}
+        </Typography.Paragraph>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.historyStyle}</legend>
+        <Radio.Group
+          value={historyStyle}
+          onChange={(event) => {
+            settingStore.historyStyle = event.target.value;
+          }}
+        >
+          <Radio data-testid="setting-history-style-auto" value="auto">
+            {panel.historyStyleAuto}
+          </Radio>
+          <Radio data-testid="setting-history-style-image" value="image">
+            {panel.historyStyleImage}
+          </Radio>
+          <Radio data-testid="setting-history-style-text" value="text">
+            {panel.historyStyleText}
+          </Radio>
+        </Radio.Group>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {panel.historyStyleHelp}
+        </Typography.Paragraph>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.chatOrder}</legend>
+        <Radio.Group
+          value={chatOrder}
+          onChange={(event) => {
+            settingStore.chatOrder = event.target.value;
+          }}
+        >
+          <Radio data-testid="setting-chat-history" value="history">
+            {panel.chatFollowHistory}
+          </Radio>
+          <Radio data-testid="setting-chat-oldest" value="oldest">
+            {panel.oldestFirst}
+          </Radio>
+          <Radio data-testid="setting-chat-newest" value="newest">
+            {panel.newestFirst}
+          </Radio>
+        </Radio.Group>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {panel.chatOrderHelp}
+        </Typography.Paragraph>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <Checkbox
+          data-testid="setting-spectator-keep-seat"
+          checked={spectatorKeepSeat}
+          onChange={(event) => {
+            settingStore.spectatorKeepSeat = event.target.checked;
+          }}
+        >
+          {panel.spectatorKeepSeat}
+        </Checkbox>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {panel.spectatorKeepSeatHelp}
         </Typography.Paragraph>
       </fieldset>
       <Checkbox

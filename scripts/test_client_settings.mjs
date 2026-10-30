@@ -31,6 +31,9 @@ try {
   assert.equal(fresh.serverMessageMode, "auto", "A fresh user needs adaptive message display");
   assert.equal(fresh.randomRpsMode, "suggest", "Random suggestions must never submit by default");
   assert.equal(fresh.chainSetting, 2, "A fresh user keeps smart chain timing");
+  assert.equal(fresh.historyStyle, "auto", "The log picks text on phones and cards on computers");
+  assert.equal(fresh.chatOrder, "history", "Duel chat follows the action log order by default");
+  assert.equal(fresh.spectatorKeepSeat, true, "Spectators keep their side after siding by default");
 
   const muted = await load({ audio: { enableSoundEffects: false, enableReplaySoundEffects: true }, showServerMessages: false });
   assert.equal(muted.audio.enableSoundEffects, false, "Legacy replay preference must not unmute the main sound setting");
@@ -50,6 +53,9 @@ try {
   configured.replaySpeed = 4;
   configured.replayAutoPlay = false;
   configured.controlPanelSide = "right";
+  configured.historyStyle = "text";
+  configured.chatOrder = "newest";
+  configured.spectatorKeepSeat = false;
   await new Promise(resolve => setTimeout(resolve, 0));
   const reopened = await load(JSON.parse(saved));
   assert.equal(reopened.audio.enableSoundEffects, false, "Main mute must survive reopening the browser");
@@ -60,6 +66,9 @@ try {
   assert.equal(reopened.replaySpeed, 4, "Replay speed survives reopening");
   assert.equal(reopened.replayAutoPlay, false, "Explicit autoplay opt-out survives reopening");
   assert.equal(reopened.controlPanelSide, "right", "Panel side survives reopening");
+  assert.equal(reopened.historyStyle, "text", "Log style survives reopening");
+  assert.equal(reopened.chatOrder, "newest", "Chat order survives reopening");
+  assert.equal(reopened.spectatorKeepSeat, false, "Spectator seat opt-out survives reopening");
 
   const damaged = await load({ chainSetting: 99, randomRpsMode: "auto-send", serverMessageMode: "bad", audio: { enableSoundEffects: "true", soundEffectsVolume: 90 } });
   assert.equal(damaged.chainSetting, 2);
@@ -67,8 +76,11 @@ try {
   assert.equal(damaged.serverMessageMode, "auto");
   assert.equal(damaged.audio.enableSoundEffects, false);
   assert.equal(damaged.audio.soundEffectsVolume, 1);
-  const invalidSide = await load({ controlPanelSide: "bottom" });
+  const invalidSide = await load({ controlPanelSide: "bottom", historyStyle: "cards", chatOrder: "random", spectatorKeepSeat: "no" });
   assert.equal(invalidSide.controlPanelSide, "left");
+  assert.equal(invalidSide.historyStyle, "auto");
+  assert.equal(invalidSide.chatOrder, "history");
+  assert.equal(invalidSide.spectatorKeepSeat, true);
   for (const replaySpeed of [0, -1, 3, "2", null]) {
     const invalidReplay = await load({ replaySpeed, replayAutoPlay: "false" });
     assert.equal(invalidReplay.replaySpeed, 1);
