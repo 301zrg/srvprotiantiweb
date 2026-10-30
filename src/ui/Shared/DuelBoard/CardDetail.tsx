@@ -1,7 +1,8 @@
 import { Divider } from "antd";
 import type { ReactNode } from "react";
 
-import { fetchCard, getCardImgUrl } from "@/api";
+import { fetchCard } from "@/api";
+import { CardImg } from "@/ui/Shared/CardImg";
 import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { CardEffectText } from "../CardEffectText";
@@ -58,9 +59,10 @@ export function CardDetailContent({
   return (
     <>
       <div className="card-stat-overview">
-        <img
+        <CardImg
           className={`card-detail-image ${imageClassName ?? ""}`}
-          src={getCardImgUrl(code, !code)}
+          code={code}
+          back={!code}
           alt={code ? fetchCard(code).text.name ?? "" : ""}
         />
         <div className="card-detail-info">

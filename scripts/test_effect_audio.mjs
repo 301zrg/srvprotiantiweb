@@ -64,6 +64,11 @@ try {
     "/src/infra/audio/type.ts",
   );
   const effect = AudioActionType.SOUND_SUMMON;
+  // A tap before any online effect creates nothing.
+  audio.effectsWanted = true;
+  listeners.get("click")();
+  assert.equal(contexts.length, 0, "a tap alone creates no audio context");
+  audio.effectsWanted = false;
   // Before any gesture (spectating without touching the screen): nothing plays
   // and no per-effect contexts pile up.
   for (let i = 0; i < 20; i++) await audio.playEffect(effect, 0.5);
@@ -77,7 +82,8 @@ try {
     0,
     "suspended context drops effects",
   );
-  // Gestures only unlock when sound effects are on.
+  // Gestures only unlock when sound effects are on, and never create a
+  // context by themselves (replays must not get an online context).
   listeners.get("pointerdown")();
   const callsWhileOff = contexts[0].resumeCalls;
   audio.effectsWanted = true;

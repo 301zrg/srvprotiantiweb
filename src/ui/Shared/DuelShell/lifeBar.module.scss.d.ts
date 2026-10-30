@@ -6,6 +6,7 @@ declare const classNames: {
   readonly extra: "extra";
   readonly "timer-container": "timer-container";
   readonly "timer-text": "timer-text";
+  readonly timing: "timing";
   readonly sidebar: "sidebar";
 };
 export = classNames;

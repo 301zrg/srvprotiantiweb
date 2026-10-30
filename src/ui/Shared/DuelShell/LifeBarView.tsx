@@ -16,8 +16,13 @@ export interface LifeBarPlayer {
   /** Whose turn it is. */
   active: boolean;
   controller: number;
-  /** Remaining seconds; omitted where there is no clock (replays). */
+  /** Remaining seconds; omitted where there is no clock (replays,
+   * spectating, rooms without a limit). Both players show their clock. */
   timeLimit?: number;
+  /** The room's limit, for the ring; the clock is hidden without it. */
+  timeTotal?: number;
+  /** This player's response is being timed (separate from whose turn). */
+  timing?: boolean;
   /** Extra line under the LP, e.g. a replay's hand count. */
   extra?: ReactNode;
 }
@@ -40,6 +45,8 @@ const LifeBarItem: React.FC<LifeBarPlayer & { isMe: boolean }> = ({
   name,
   life,
   timeLimit,
+  timeTotal,
+  timing = false,
   isMe,
   controller,
   extra,
@@ -78,11 +85,19 @@ const LifeBarItem: React.FC<LifeBarPlayer & { isMe: boolean }> = ({
         </div>
         {extra && <div className={styles.extra}>{extra}</div>}
       </div>
-      {active && timeLimit !== undefined && (
-        <div className={styles["timer-container"]}>
+      {timeLimit !== undefined && !!timeTotal && (
+        <div
+          className={classNames(styles["timer-container"], {
+            [styles.timing]: timing,
+          })}
+          data-testid="duel-player-clock"
+          data-player={isMe ? "me" : "op"}
+          data-timing={timing}
+          data-seconds={timeLimit}
+        >
           <Progress
             type="circle"
-            percent={Math.floor((timeLimit / 240) * 100)}
+            percent={Math.min(100, Math.floor((timeLimit / timeTotal) * 100))}
             strokeWidth={20}
             size={14}
           />

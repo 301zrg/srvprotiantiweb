@@ -1,8 +1,8 @@
 import classNames from "classnames";
 import { CSSProperties, useMemo } from "react";
 
-import { getCardImgUrl } from "@/api";
 import { useConfig } from "@/config";
+import { useCardImage } from "@/hook/useCardImage";
 
 import styles from "./index.module.scss";
 
@@ -36,6 +36,7 @@ export const YgoCard: React.FC<Props> = (props) => {
     onClick,
     onLoad,
   } = props;
+  const image = useCardImage(code, isBack);
 
   return useMemo(
     () => (
@@ -44,7 +45,7 @@ export const YgoCard: React.FC<Props> = (props) => {
         style={
           {
             width,
-            "--src": `url(${getCardImgUrl(code, isBack)})`,
+            "--src": image ? `url(${image})` : "none",
             ...style,
           } as any
         }
@@ -79,6 +80,7 @@ export const YgoCard: React.FC<Props> = (props) => {
       </div>
     ),
     [
+      image,
       code,
       isBack,
       targeted,

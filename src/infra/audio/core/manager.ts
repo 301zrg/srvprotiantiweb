@@ -63,14 +63,15 @@ class AudioManager {
   public async playEffect(effect: AudioActionType, volume = 1) {
     const name = getEffectName(effect);
     if (!name) return;
+    // Created on the first online effect, never by a mere tap elsewhere
+    // (replays and the hand test have their own audio).
+    if (!this.effectContext || this.effectContext.state !== "running")
+      this.unlockEffects();
     const context = this.effectContext;
     // Mobile Safari keeps a context created without a gesture suspended and
     // used to start every effect once the next tap resumed it, all at once.
     // Effects are momentary: if the shared context is not running now, skip.
-    if (!context || context.state !== "running") {
-      this.unlockEffects();
-      return;
-    }
+    if (!context || context.state !== "running") return;
     const generation = this.effectGeneration,
       requested = performance.now();
     this.effectVolume = volume;
@@ -147,11 +148,11 @@ class AudioManager {
     }
   }
 
-  /** Any tap, click or key unlocks effects, e.g. the tap that opens a duel. */
+  /** Any tap, click or key resumes an existing effect context. */
   private installEffectUnlock() {
     if (typeof window === "undefined") return;
     const unlock = () => {
-      if (this.effectsWanted) this.unlockEffects();
+      if (this.effectsWanted && this.effectContext) this.unlockEffects();
     };
     for (const type of ["pointerdown", "touchend", "click", "keydown"])
       window.addEventListener(type, unlock, { capture: true, passive: true });

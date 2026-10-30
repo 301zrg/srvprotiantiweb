@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
-import { useEnv } from "@/hook";
 import { matStore, type Player, roomStore } from "@/stores";
 import { LifeBarView } from "@/ui/Shared/DuelShell/LifeBarView";
+import { clockLeft, duelClock } from "@/variant/duelClock";
 
 export function spectatorName(
   players: readonly (Readonly<Player> | undefined)[],
@@ -34,33 +34,18 @@ export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
   const nearController = observing ? observerView : matStore.isMe(0) ? 0 : 1;
   const farController = 1 - nearController;
 
-  const snapTimeLimit = useSnapshot(matStore.timeLimits);
-  const [myTimeLimit, setMyTimeLimit] = useState(snapTimeLimit.me);
-  const [opTimeLimit, setOpTimeLimit] = useState(snapTimeLimit.op);
+  // Clocks are derived from the last calibration and the elapsed time; the
+  // interval only repaints, so missed or throttled callbacks cannot drift.
+  const clock = useSnapshot(duelClock);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    setMyTimeLimit(snapTimeLimit.me);
-  }, [snapTimeLimit.me]);
-  useEffect(() => {
-    setOpTimeLimit(snapTimeLimit.op);
-  }, [snapTimeLimit.op]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMyTimeLimit((time) => time - 1);
-      setOpTimeLimit((time) => time - 1);
-    }, 1000);
-
+    setNow(Date.now());
+    if (clock.running === null) return;
+    const interval = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (useEnv().VITE_IS_AI_MODE) {
-      // 如果是AI模式
-      // FIXME: 探索一个优雅的、判断当前是不是AI模式的方法，用户手动输入AI也是AI模式
-      setMyTimeLimit(240);
-      setOpTimeLimit(240);
-    }
-  }, [currentPlayer]);
+  }, [clock.running, clock.seq]);
+  const timeOf = (controller: number) =>
+    duelClock.limit ? clockLeft(controller, now) : undefined;
 
   const meLife = snapInitInfo.me.life;
   const opLife = snapInitInfo.op.life;
@@ -89,7 +74,9 @@ export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
           : !matStore.isMe(currentPlayer),
         name: farName,
         life: flipped ? meLife : opLife,
-        timeLimit: flipped ? myTimeLimit : opTimeLimit,
+        timeLimit: timeOf(farController),
+        timeTotal: clock.limit,
+        timing: clock.running === farController,
         controller: farController,
       }}
       near={{
@@ -98,7 +85,9 @@ export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
           : matStore.isMe(currentPlayer),
         name: nearName,
         life: flipped ? opLife : meLife,
-        timeLimit: flipped ? opTimeLimit : myTimeLimit,
+        timeLimit: timeOf(nearController),
+        timeTotal: clock.limit,
+        timing: clock.running === nearController,
         controller: nearController,
       }}
     />

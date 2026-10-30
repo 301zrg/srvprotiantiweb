@@ -1,6 +1,8 @@
-import { Checkbox, Radio, Typography } from "antd";
+import { Button, Checkbox, Radio, Typography } from "antd";
+import { useState } from "react";
 import { useSnapshot } from "valtio";
 
+import { clearCardImageCache } from "@/api/cardImageCache";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
@@ -22,6 +24,9 @@ export const MessageSetting = () => {
   const text = previewMessages(language);
   const revision = clientRevisionMessages(language);
   const panel = controlPanelMessages(language);
+  const [cacheState, setCacheState] = useState<"" | "busy" | "done" | "none">(
+    "",
+  );
   return (
     <>
       <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
@@ -163,6 +168,30 @@ export const MessageSetting = () => {
         </Radio.Group>
         <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
           {text.messageHelp}
+        </Typography.Paragraph>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.cardCache}</legend>
+        <Button
+          data-testid="setting-clear-card-cache"
+          loading={cacheState === "busy"}
+          onClick={async () => {
+            setCacheState("busy");
+            setCacheState((await clearCardImageCache()) ? "done" : "none");
+          }}
+        >
+          {panel.clearCardCache}
+        </Button>
+        <Typography.Paragraph
+          type="secondary"
+          style={{ marginTop: 12 }}
+          data-testid="setting-card-cache-status"
+        >
+          {cacheState === "done"
+            ? panel.cardCacheCleared
+            : cacheState === "none"
+            ? panel.cardCacheEmpty
+            : panel.cardCacheHelp}
         </Typography.Paragraph>
       </fieldset>
     </>
