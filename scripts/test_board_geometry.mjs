@@ -101,7 +101,7 @@ try {
       return {
         x,
         y,
-        z: 0,
+        z: zone === "grave" || zone === "removed" ? sequence * 0.05 : 0,
         height: g.CARD_HEIGHT_O,
         rz: near ? 0 : 180,
         ry: faceDown ? 180 : 0,
@@ -247,6 +247,15 @@ try {
     sceneSpot({ player: 1, location: 4 | 128, sequence: 0 }, 1).zone,
     "monster",
   );
+  // The online 3D board ignores z-index inside preserve-3d: GY and banished
+  // cards stack by depth, so the newest card is on top whatever the DOM order.
+  for (const zone of ["grave", "removed"]) {
+    const depths = [0, 1, 2].map(
+      (sequence) => cardPose(g, { spot: { zone, near: true, sequence } }).z,
+    );
+    assert.ok(depths[0] < depths[1] && depths[1] < depths[2], zone + " stacks by depth");
+    assert.ok(depths[2] < 1, zone + " keeps no visible thickness");
+  }
   // Roomy screens widen only the row gap and grow the board to fit it.
   const tight = boardGeometry({ wide: true, masterRule: 2, roomy: false });
   assert.equal(g.ROW_GAP - tight.ROW_GAP, 18);

@@ -330,7 +330,34 @@ export const JoinRoomForm = ({
             text.spectatorRoomCommand
           ) : (
             <>
-              {text.roomHintBefore}
+              {/* The first "TT" in the hint fills the room name: players
+                  otherwise type M#TT or paste a waiting room's name and
+                  open a room instead of joining the ladder queue. */}
+              {(() => {
+                const at = text.roomHintBefore.indexOf("TT");
+                if (at < 0) return text.roomHintBefore;
+                return (
+                  <>
+                    {text.roomHintBefore.slice(0, at)}
+                    <button
+                      type="button"
+                      className={styles.fillLadderRoom}
+                      data-testid="room-fill-tt"
+                      aria-label={text.fillLadderRoom}
+                      title={text.fillLadderRoom}
+                      onClick={() => {
+                        setRoomName("TT");
+                        setInvalidLink(false);
+                        saveJoinForm({ roomName: "TT" });
+                        document.getElementById("room-name")?.focus();
+                      }}
+                    >
+                      TT
+                    </button>
+                    {text.roomHintBefore.slice(at + 2)}
+                  </>
+                );
+              })()}
               <a
                 className={styles.roomRulesLink}
                 href={roomRulesUrl}

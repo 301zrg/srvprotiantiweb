@@ -160,3 +160,20 @@
     }
   }
 }
+
+// Game of a match on layouts without the sidebar status: a small tag just
+// under the life bars, so it never adds a row or covers names and clocks.
+.game {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 8px;
+  border: 1px solid #8cbfe8;
+  border-radius: 9px;
+  background: #101925e6;
+  color: #d8eeff;
+  font: 700 12px/18px var(--theme-font, sans-serif);
+  white-space: nowrap;
+  pointer-events: none;
+}

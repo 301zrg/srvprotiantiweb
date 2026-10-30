@@ -58,6 +58,7 @@ class SettingStore implements NeosStore {
   historyStyle = defaultSetting.historyStyle;
   chatOrder = defaultSetting.chatOrder;
   spectatorKeepSeat = defaultSetting.spectatorKeepSeat;
+  showZoneIndexes = defaultSetting.showZoneIndexes;
 
   /** Compatibility for older callers; persistence uses serverMessageMode only. */
   get showServerMessages() {
@@ -97,6 +98,7 @@ class SettingStore implements NeosStore {
     this.historyStyle = defaultSetting.historyStyle;
     this.chatOrder = defaultSetting.chatOrder;
     this.spectatorKeepSeat = defaultSetting.spectatorKeepSeat;
+    this.showZoneIndexes = defaultSetting.showZoneIndexes;
     this.confirmOperations = defaultSetting.confirmOperations;
   }
 }
@@ -126,6 +128,7 @@ subscribe(settingStore, () => {
             "historyStyle",
             "chatOrder",
             "spectatorKeepSeat",
+            "showZoneIndexes",
             "confirmOperations",
           ]),
         ),

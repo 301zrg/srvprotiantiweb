@@ -13,7 +13,7 @@ import { storageKey } from "@/variant/deployment";
 const CACHE_NAME = storageKey("card-images-v1");
 const MAX_ENTRIES = 600; // ~50 MB at the typical 80 KB per image
 const TRIM_EVERY = 25;
-const MAX_DOWNLOADS = 8;
+const MAX_DOWNLOADS = 12;
 const RETRY_AFTER = 60_000;
 const IDLE_URLS = 150;
 /** Leave the origin's quota to decks, replays and other storage. */

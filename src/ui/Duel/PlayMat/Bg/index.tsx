@@ -18,6 +18,7 @@ import { type ZoneRect, zoneRect } from "@/ui/Shared/DuelBoard/geometry";
 import {
   ZoneBlock,
   ZoneCount,
+  ZoneIndex,
   ZoneLayer,
 } from "@/ui/Shared/DuelBoard/ZoneBlock";
 
@@ -115,6 +116,7 @@ const BgRow: React.FC<{
   opponent?: boolean;
   snap: Snapshot<BlockState[]>;
 }> = ({ szone = false, opponent = false, snap }) => {
+  const { showZoneIndexes } = useSnapshot(settingStore);
   const container = getUIContainer();
   const controller = getController(opponent);
   const zone = szone ? SZONE : MZONE;
@@ -127,6 +129,11 @@ const BgRow: React.FC<{
           rect={rectOf(controller, zone, i)}
           data-testid="duel-zone"
           data-zone={ygopro.CardZone[zone]}
+          children={
+            showZoneIndexes ? (
+              <ZoneIndex index={i + 1} rect={rectOf(controller, zone, i)} />
+            ) : undefined
+          }
           data-zone-value={zone}
           data-controller={controller}
           data-sequence={i}

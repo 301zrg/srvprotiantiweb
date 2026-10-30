@@ -9,6 +9,7 @@ import { sleep } from "@/infra";
 import { RoomStage, SideStage } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { hideClock, resetClock } from "@/variant/duelClock";
+import { countGameStart } from "@/variant/matchGame";
 import { seatOfView, viewForGame } from "@/variant/observerSeat";
 
 import { genCard } from "../utils";
@@ -52,6 +53,7 @@ export default async (
         settingStore.spectatorKeepSeat,
       )
     : 0;
+  countGameStart();
   // Spectator connections never receive TIME_LIMIT from the server.
   if (observing) hideClock();
   else resetClock(context.roomStore.hostInfo?.timeLimit ?? 0);

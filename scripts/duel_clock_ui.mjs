@@ -30,6 +30,7 @@ window.__clockTest = {
     location.hash = "#/duel";
   },
   calibrate(controller, left) { calibrateFixture(controller, left, Date.now()); },
+  flip() { matFixture.observerView = 1; },
   spectate() { matFixture.selfType = fixtureProtocol.StocGameMessage.MsgStart.PlayerType.Observer; hideFixture(); }
 };`;
 mkdirSync(folder, { recursive: true });
@@ -121,8 +122,14 @@ try {
     assert.ok(ring === null || ring.includes("100"), `full ring (${ring})`);
     await page.screenshot({ path: `${folder}/${name}.png` });
     // Spectators have no reliable time: no clock, no fake 00:00.
+    // Slot numbers 1-5 for both players' Monster and Spell & Trap Zones.
+    await expect(page.getByTestId("zone-index")).toHaveCount(20);
     await page.evaluate(() => window.__clockTest.spectate());
     await expect(page.getByTestId("duel-player-clock")).toHaveCount(0);
+    // A spectator turning the board keeps numbers and pile counts upright.
+    await page.evaluate(() => window.__clockTest.flip());
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${folder}/${name}-flipped.png` });
     assert.deepEqual(errors, []);
     await context.close();
   }

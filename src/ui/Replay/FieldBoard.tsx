@@ -59,7 +59,7 @@ export function FieldBoard({
   const t = replayFieldWords(language),
     cardWords = replayCardWords(language),
     board = useRef<SceneBoardHandle>(null);
-  const { showZoneCounts } = useSnapshot(settingStore);
+  const { showZoneCounts, showZoneIndexes } = useSnapshot(settingStore);
   const desktop = useMediaQuery("(min-width: 1024px) and (min-height: 600px)");
   const [pile, setPile] = useState<Spot>();
   useEffect(() => {
@@ -100,6 +100,7 @@ export function FieldBoard({
         maxScale={desktop ? Infinity : 1.2}
         information={sceneInformationCards(frame.cards, language, view, reveal)}
         showCounts={showZoneCounts}
+        showIndexes={showZoneIndexes}
         conceal={(card) => concealReplayCard(card, reveal)}
         names={{ slot: "replay-field-slot", pile: "replay-field-pile" }}
         pileProps={({ player, location }, cards) => ({

@@ -77,3 +77,22 @@ export const ZoneCount = ({
     {count}
   </span>
 );
+
+/** Zone number (1-5) in a slot's corner, as the action log names places
+ * ("Monster Zone 3"); upright for the viewer, under the cards' layer. */
+export const ZoneIndex = ({
+  index,
+  rect,
+}: {
+  index: number;
+  rect: ZoneRect;
+}) => (
+  <span
+    data-testid="zone-index"
+    aria-hidden="true"
+    className={styles.zoneIndex}
+    style={{ "--zone-index-rotate": `${-rect.rotation}deg` } as CSSProperties}
+  >
+    {index}
+  </span>
+);

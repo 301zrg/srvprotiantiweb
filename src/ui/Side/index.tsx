@@ -38,7 +38,8 @@ export const loader: LoaderFunction = async () => {
 };
 
 export const Component: React.FC = () => {
-  const chat = useChat();
+  // Siding is part of the match: same chat order as the duel.
+  const chat = useChat(false, true);
   const { language } = useI18N();
   const text = deckMessages(language);
   const container = getUIContainer();
@@ -66,8 +67,9 @@ export const Component: React.FC = () => {
     if (!chatOpen) return;
     setChatSeen(chat.dialogs.length);
     const viewport = chat.ref.current?.osInstance()?.elements().viewport;
-    if (viewport) viewport.scrollTop = viewport.scrollHeight;
-  }, [chatOpen, chat.dialogs.length]);
+    if (viewport)
+      viewport.scrollTop = chat.newestFirst ? 0 : viewport.scrollHeight;
+  }, [chatOpen, chat.dialogs.length, chat.newestFirst]);
   useLayoutEffect(() => {
     if (scrollRef.current)
       scrollRef.current.scrollTop = sideStore.getEditor().scrollTop;

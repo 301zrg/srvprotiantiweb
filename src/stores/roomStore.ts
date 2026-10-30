@@ -6,6 +6,7 @@ import StocHsPlayerChange = ygopro.StocHsPlayerChange;
 import SelfType = ygopro.StocTypeChange.SelfType;
 import HandType = ygopro.HandType;
 import type { HostInfo } from "@/variant/hostInfo";
+import { resetMatchGame } from "@/variant/matchGame";
 
 import { type NeosStore } from "./shared";
 
@@ -66,6 +67,7 @@ export class RoomStore implements NeosStore {
     this.stage = RoomStage.WAITING;
     this.errorMsg = undefined;
     this.observerSeat = null;
+    resetMatchGame();
   }
 }
 

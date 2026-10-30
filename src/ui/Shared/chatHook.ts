@@ -18,11 +18,11 @@ interface ChatItem {
   isServer: boolean;
 }
 
-export const useChat = (isDuel: boolean = false) => {
+export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
   const { hidePlayerIds, chatOrder, historyOrder } = useSnapshot(settingStore);
-  // Only the duel / spectating chat follows the order setting.
+  // Duel, spectating and side-deck chats follow the order setting.
   const newestFirst =
-    isDuel &&
+    ordered &&
     (chatOrder === "newest" ||
       (chatOrder === "history" && historyOrder === "newest"));
   const container = getUIContainer();
@@ -111,6 +111,9 @@ export const useChat = (isDuel: boolean = false) => {
   }, [chatList, hidePlayerIds, newestFirst]);
   return {
     dialogs,
+    /** Newest message whatever the display order (for notifications). */
+    latest: newestFirst ? dialogs[0] : dialogs.at(-1),
+    newestFirst,
     input,
     setInput,
     ref,

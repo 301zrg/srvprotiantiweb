@@ -8,7 +8,7 @@ import { asyncStart, getDuration } from "./utils";
 
 export const moveToOutside: MoveFunc = async (props) => {
   const { card, api, signal } = props;
-  const { x, y, height, rz, ry, zIndex } = cardPose(matConfig, {
+  const { x, y, z, height, rz, ry, zIndex } = cardPose(matConfig, {
     spot: onlineSpot(card.location)!,
     faceDown: card.location.position === ygopro.CardPosition.FACEDOWN,
   });
@@ -18,7 +18,8 @@ export const moveToOutside: MoveFunc = async (props) => {
   )({
     x,
     y,
-    z: 0,
+    // Stacking depth by sequence: the newest GY/banished card stays on top.
+    z,
     height,
     rz,
     ry,

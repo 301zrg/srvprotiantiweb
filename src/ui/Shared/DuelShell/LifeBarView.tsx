@@ -33,10 +33,17 @@ export const LifeBarView: React.FC<{
   far: LifeBarPlayer;
   near: LifeBarPlayer;
   docked?: boolean;
-}> = ({ far, near, docked = false }) => (
+  /** Game of a match (G1-G3); the docked sidebar shows it in its status. */
+  game?: number;
+}> = ({ far, near, docked = false, game }) => (
   <div className={classNames(styles.container, { [styles.sidebar]: docked })}>
     <LifeBarItem {...far} isMe={false} />
     <LifeBarItem {...near} isMe={true} />
+    {!docked && !!game && (
+      <span className={styles.game} data-testid="duel-game-badge">
+        G{game}
+      </span>
+    )}
   </div>
 );
 

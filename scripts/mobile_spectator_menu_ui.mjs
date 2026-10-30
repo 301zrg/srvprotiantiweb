@@ -37,6 +37,7 @@ window.__spectatorTest = {
   waiting(on) { sideFixture.stage = on ? SideFixtureStage.WAITING : SideFixtureStage.NONE; },
   // System chat lines (sender 8) and one logged summon for the spectator log.
   chat(text) { chatFixture.sender = 8; chatFixture.message = text; },
+  historyOrder(order) { settingFixture.historyOrder = order; },
   chatOrder(order) { settingFixture.chatOrder = order; }
 };`;
 const P = {
@@ -306,6 +307,10 @@ try {
       await page.screenshot({ path: `${folder}/390-chat-newest.png` });
       await page.evaluate(() => window.__spectatorTest.chatOrder("history"));
       await expect.poll(order).toBe("oldest");
+      // Left on "follow the log": a newest-first log turns the chat too.
+      await page.evaluate(() => window.__spectatorTest.historyOrder("newest"));
+      await expect.poll(order).toBe("newest");
+      await page.evaluate(() => window.__spectatorTest.historyOrder("oldest"));
     }
     await context.close();
   }

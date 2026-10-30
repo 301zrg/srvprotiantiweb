@@ -60,12 +60,16 @@
     );
 }
 
-// Upright relative to the board, above the pile's stacked cards.
+// Upright relative to the viewer, above the pile's stacked cards. Online
+// spectators may turn the whole board by --duel-view-rotation (as cards do,
+// the badge cancels it too, or it reads upside down after a view switch).
 .count {
   position: absolute;
   bottom: 4px;
   right: 4px;
-  transform: rotate(var(--zone-count-rotate, 0deg))
+  transform: rotate(
+      calc(var(--zone-count-rotate, 0deg) - var(--duel-view-rotation, 0deg))
+    )
     translateZ(var(--zone-count-depth, 4px));
   z-index: 12;
   padding: 0 5px;
@@ -78,4 +82,20 @@
   line-height: 24px;
   text-align: center;
   pointer-events: none;
+}
+
+// Slot number in the bottom-right corner (cards sit in the slot's middle, so
+// the corner stays readable when occupied). Counter-rotated like the counts.
+.zoneIndex {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  transform: rotate(
+    calc(var(--zone-index-rotate, 0deg) - var(--duel-view-rotation, 0deg))
+  );
+  color: #d6e6f7;
+  font: 700 11px/1 var(--theme-font, sans-serif);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
 }
