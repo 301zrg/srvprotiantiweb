@@ -8,6 +8,7 @@ import { isUIContainer } from "@/container/compat";
 import { sleep } from "@/infra";
 import { RoomStage, SideStage } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
+import { hideClock, resetClock } from "@/variant/duelClock";
 import { seatOfView, viewForGame } from "@/variant/observerSeat";
 
 import { genCard } from "../utils";
@@ -51,6 +52,9 @@ export default async (
         settingStore.spectatorKeepSeat,
       )
     : 0;
+  // Spectator connections never receive TIME_LIMIT from the server.
+  if (observing) hideClock();
+  else resetClock(context.roomStore.hostInfo?.timeLimit ?? 0);
   if (observing)
     context.roomStore.observerSeat = seatOfView(
       context.matStore.observerView,

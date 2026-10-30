@@ -44,6 +44,10 @@ export class WebSocketStream {
     return this.control.confirmsTimeLimitsOnArrival;
   }
 
+  takeTimeLimitArrival() {
+    return this.control.takeTimeLimitArrival();
+  }
+
   get signal() {
     return this.cancellation.signal;
   }

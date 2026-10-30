@@ -5,6 +5,7 @@
  *
  * */
 import { WebSocketStream } from "@/infra";
+import { stopClock } from "@/variant/duelClock";
 import { markActionSent } from "@/variant/duelDiagnostics";
 
 import handleSocketOpen from "../service/onSocketOpen";
@@ -32,7 +33,11 @@ export function sendSocketData(conn: WebSocketStream, payload: Uint8Array) {
   if (payload[2] === 2 && !conn.duelStarted)
     conn.initialDeckPayload = payload.slice();
   conn.ws.send(payload);
-  if (payload[2] === 1) markActionSent(conn);
+  if (payload[2] === 1) {
+    markActionSent(conn);
+    // As YGOPro: a submitted response stops the local countdown.
+    stopClock();
+  }
 }
 
 export function closeSocket(conn: WebSocketStream) {

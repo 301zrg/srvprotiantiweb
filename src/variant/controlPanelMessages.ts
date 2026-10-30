@@ -20,6 +20,12 @@ const words = {
     spectatorKeepSeat: "观战换备后保持视角不换边",
     spectatorKeepSeatHelp:
       "开启时，下一局继续让同一位玩家显示在下方，不随先后手变化；关闭时每局以先攻方在下方。手动切换视角后会记住所选玩家。",
+    cardCache: "卡图缓存",
+    clearCardCache: "清理卡图缓存",
+    cardCacheHelp:
+      "卡图会缓存在本机以免重复下载，最多约 600 张，存储空间紧张时自动停止缓存。清理只删除卡图，不影响卡组、录像和联机输入。",
+    cardCacheCleared: "已清理卡图缓存。卡组、录像和联机输入未受影响。",
+    cardCacheEmpty: "当前没有可清理的卡图缓存。",
   },
   en: {
     position: "Control panel position",
@@ -42,6 +48,13 @@ const words = {
     spectatorKeepSeat: "Keep the spectator view after siding",
     spectatorKeepSeatHelp:
       "When on, the same player stays at the bottom in the next game regardless of who goes first. When off, the first player is at the bottom each game. A manual view switch is remembered.",
+    cardCache: "Card image cache",
+    clearCardCache: "Clear card image cache",
+    cardCacheHelp:
+      "Card images are kept on this device to avoid downloading them again (about 600 at most; caching stops when storage is low). Clearing removes only card images, not decks, replays or connection inputs.",
+    cardCacheCleared:
+      "Card image cache cleared. Decks, replays and inputs are unchanged.",
+    cardCacheEmpty: "There is no card image cache to clear.",
   },
   ja: {
     position: "操作パネルの位置",
@@ -65,6 +78,13 @@ const words = {
     spectatorKeepSeat: "サイデッキング後も観戦視点を固定",
     spectatorKeepSeatHelp:
       "オンにすると、先攻・後攻に関係なく次のゲームも同じプレイヤーを下側に表示します。オフでは各ゲームの先攻プレイヤーが下側です。手動で切り替えた視点は記憶されます。",
+    cardCache: "カード画像キャッシュ",
+    clearCardCache: "カード画像キャッシュを削除",
+    cardCacheHelp:
+      "カード画像を端末に保存し、再ダウンロードを防ぎます（最大約600枚、容量が少ない場合は保存を停止）。削除するのはカード画像のみで、デッキ・リプレイ・接続入力は残ります。",
+    cardCacheCleared:
+      "カード画像キャッシュを削除しました。デッキ・リプレイ・入力は変わりません。",
+    cardCacheEmpty: "削除できるカード画像キャッシュはありません。",
   },
   ko: {
     position: "조작 패널 위치",
@@ -87,6 +107,13 @@ const words = {
     spectatorKeepSeat: "사이드 후 관전 시점 유지",
     spectatorKeepSeatHelp:
       "켜면 선후공과 관계없이 다음 게임에도 같은 플레이어를 아래쪽에 표시합니다. 끄면 매 게임 선공 플레이어가 아래쪽입니다. 직접 전환한 시점은 기억됩니다.",
+    cardCache: "카드 이미지 캐시",
+    clearCardCache: "카드 이미지 캐시 삭제",
+    cardCacheHelp:
+      "카드 이미지를 기기에 저장해 다시 내려받지 않습니다(최대 약 600장, 저장 공간이 부족하면 저장 중지). 삭제는 카드 이미지만 지우며 덱, 리플레이, 접속 입력은 남습니다.",
+    cardCacheCleared:
+      "카드 이미지 캐시를 삭제했습니다. 덱, 리플레이, 입력은 그대로입니다.",
+    cardCacheEmpty: "삭제할 카드 이미지 캐시가 없습니다.",
   },
 };
 export const controlPanelMessages = (language: string) =>

@@ -1,6 +1,8 @@
 import { ygopro } from "@/api/ocgcore/idl/ocgcore";
 import type { WebSocketStream } from "@/infra";
 
+import { forgetClock } from "./duelClock";
+
 export type ResumeKind = "player" | "observer" | "waiting";
 interface Resume {
   kind: ResumeKind;
@@ -40,6 +42,8 @@ export function prepareConnectionResume(
   fieldExpected = true,
 ) {
   conn.resuming = true;
+  // Times from before the drop are stale; the server recalibrates.
+  forgetClock();
   resumes.set(conn, {
     kind,
     offered: false,

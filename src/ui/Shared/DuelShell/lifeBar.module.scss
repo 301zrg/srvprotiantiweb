@@ -62,6 +62,10 @@
     min-width: 3.25em;
   }
 }
+// Both clocks stay visible; the one the server is timing is emphasised, the
+// other keeps its frozen value (no animation, to stay cheap on phones).
+.timer-container:not(.timing) { opacity: 0.55; }
+.timer-container.timing .timer-text { color: #ffd98a; }
 
 .container.sidebar {
   position: relative;

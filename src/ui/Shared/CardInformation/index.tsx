@@ -3,7 +3,8 @@ import "./style.css";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { fetchStrings, getCardImgUrl, Region } from "@/api";
+import { fetchStrings, Region } from "@/api";
+import { CardImg } from "@/ui/Shared/CardImg";
 import {
   cardLinkWords,
   counterColor,
@@ -110,7 +111,7 @@ export function RelatedCards({
                 locateRelatedCard(targetId);
               }}
             >
-              <img src={getCardImgUrl(card.code, card.hidden)} alt="" />
+              <CardImg code={card.code} back={card.hidden} />
               <span>
                 {card.name}
                 <small>{card.position}</small>
