@@ -179,6 +179,17 @@ try {
     "The monster itself and its stacked materials do not block the label",
   );
   assert.equal(
+    placeFieldStats(
+      rect,
+      // Online cards sit in a larger animated box around the card.
+      [{ x: 90, y: 90, width: 90, height: 130 }],
+      clip,
+      60,
+    )?.y,
+    201,
+    "A card's own larger wrapper does not hide its label",
+  );
+  assert.equal(
     placeFieldStats(rect, [], clip, 90),
     undefined,
     "Text cannot spill out of its monster column",
