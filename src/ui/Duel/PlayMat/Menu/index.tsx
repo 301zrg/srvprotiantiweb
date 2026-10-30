@@ -424,6 +424,7 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
   return (
     <MenuFrame
       docked={docked}
+      observing={observing}
       label={text.settings}
       phaseBar={
         <PhaseBar
@@ -460,7 +461,9 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
               aria-label={duelPhaseLabel(language, currentPhase, battleTiming)}
             >
               <span
-                className={classNames({ [styles.phaseLabel]: showShuffle })}
+                className={classNames(styles.phaseText, {
+                  [styles.phaseLabel]: showShuffle,
+                })}
               >
                 {duelPhaseLabel(language, currentPhase, battleTiming)}
               </span>
@@ -478,7 +481,7 @@ export const Menu = ({ docked = false }: { docked?: boolean }) => {
                 matStore.observerView = observerView === 0 ? 1 : 0;
               }}
             >
-              {text.switchView}
+              <span className={styles.optionalLabel}>{text.switchView}</span>
             </Button>
           ) : (
             <DropdownWithTitle

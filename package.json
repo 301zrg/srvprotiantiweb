@@ -98,6 +98,7 @@
     "test:mobile-ui": "python scripts/build_environment_assets.py && node scripts/mobile_ui.mjs",
     "test:mobile-duel-ui": "node scripts/mobile_duel_ui.mjs",
     "test:mobile-spectator-card-close": "node scripts/mobile_duel_ui.mjs --card-close-only",
+    "test:mobile-spectator-menu": "node scripts/mobile_spectator_menu_ui.mjs",
     "test:duel-feedback": "python scripts/build_environment_assets.py && node scripts/duel_feedback_ui.mjs",
     "test:tribute-ui": "node scripts/restore_environment_assets.mjs && node scripts/tribute_selection_ui.mjs",
     "test:room-links": "python scripts/build_environment_assets.py && node scripts/room_link_ui.mjs",

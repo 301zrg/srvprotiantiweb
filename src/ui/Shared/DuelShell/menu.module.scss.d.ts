@@ -14,5 +14,8 @@ declare const classNames: {
   readonly replayJump: "replayJump";
   readonly "ant-input-number": "ant-input-number";
   readonly replayMore: "replayMore";
+  readonly observing: "observing";
+  readonly phaseText: "phaseText";
+  readonly optionalLabel: "optionalLabel";
 };
 export = classNames;

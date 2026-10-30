@@ -12,6 +12,7 @@ export const MenuFrame = ({
   phaseBar,
   primary,
   children,
+  observing = false,
   testId = "duel-menu",
 }: {
   docked: boolean;
@@ -19,6 +20,8 @@ export const MenuFrame = ({
   phaseBar: ReactNode;
   primary: ReactNode;
   children?: ReactNode;
+  /** Spectating: the phone portrait toolbar keeps one row (see menu.module.scss). */
+  observing?: boolean;
   testId?: string;
 }) => {
   const menu = useRef<HTMLDivElement>(null);
@@ -50,6 +53,7 @@ export const MenuFrame = ({
     <div
       className={classNames(styles["menu-container"], {
         [styles.sidebar]: docked,
+        [styles.observing]: observing,
       })}
       ref={menu}
       data-testid={testId}
