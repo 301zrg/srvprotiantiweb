@@ -19,5 +19,12 @@ declare const classNames: {
   readonly note: "note";
   readonly damage: "damage";
   readonly recover: "recover";
+  readonly text: "text";
+  readonly textEntry: "textEntry";
+  readonly textRow: "textRow";
+  readonly cardName: "cardName";
+  readonly facedown: "facedown";
+  readonly textOp: "textOp";
+  readonly textTarget: "textTarget";
 };
 export = classNames;

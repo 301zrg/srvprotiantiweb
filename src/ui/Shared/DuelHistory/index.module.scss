@@ -149,3 +149,46 @@
 // Zone names never break per character in narrow rails.
 .container .timeline .history .location,
 .container .timeline .history .target { white-space: nowrap; }
+
+// Text mode: one compact line per action, card names as links to the detail.
+.container.text .timeline { gap: 4px; }
+.textEntry {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  row-gap: 0;
+  padding: 2px 0;
+  border-bottom: 1px solid #ffffff12;
+}
+.textEntry .tag { flex: none; }
+.textRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #e7eef7;
+  overflow-wrap: anywhere;
+  strong { color: #a8d4ff; }
+}
+.cardName {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #ffd98a;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline dotted #ffd98a80;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  // A comfortable tap target without making the line taller.
+  touch-action: manipulation;
+}
+.cardName:focus-visible { outline: 2px solid #8bddff; outline-offset: 1px; }
+.facedown { color: #b9c6d4; font-style: italic; }
+.textOp { color: #48faf0; }
+.textTarget { color: #f16b3f; }
+.container.text .announcement { padding: 4px 6px; }

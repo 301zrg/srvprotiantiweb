@@ -15,7 +15,8 @@ const folder = `.audit-tmp/mobile-spectator-menu-ui/${
 const outDir = `${folder}/web-dist`;
 const fixtureCode = `
 import { initUIContainer as initFixture } from "@/container/compat";
-import { roomStore as roomFixture, matStore as matFixture, cardStore as cardFixture, sideStore as sideFixture, SideStage as SideFixtureStage, RoomStage as RoomFixtureStage } from "@/stores";
+import { roomStore as roomFixture, matStore as matFixture, cardStore as cardFixture, sideStore as sideFixture, chatStore as chatFixture, SideStage as SideFixtureStage, RoomStage as RoomFixtureStage } from "@/stores";
+import { settingStore as settingFixture } from "@/stores/settingStore";
 import { fetchCard as fixtureCard, ygopro as fixtureProtocol } from "@/api";
 const makeCard = (zone,sequence,code) => ({uuid:"spectator-"+zone+"-"+sequence,code,meta:fixtureCard(code),location:{controller:0,zone,sequence,position:fixtureProtocol.CardPosition.FACEUP_ATTACK,is_overlay:false},idleInteractivities:[],counters:{},isToken:false,targeted:false,status:0,selectInfo:{selectable:false,selected:false}});
 window.__spectatorTest = {
@@ -33,7 +34,10 @@ window.__spectatorTest = {
     matFixture.phase.currentPhase = phase;
     matFixture.phase.battleTiming = timing === null ? undefined : timing;
   },
-  waiting(on) { sideFixture.stage = on ? SideFixtureStage.WAITING : SideFixtureStage.NONE; }
+  waiting(on) { sideFixture.stage = on ? SideFixtureStage.WAITING : SideFixtureStage.NONE; },
+  // System chat lines (sender 8) and one logged summon for the spectator log.
+  chat(text) { chatFixture.sender = 8; chatFixture.message = text; },
+  chatOrder(order) { settingFixture.chatOrder = order; }
 };`;
 const P = {
   DRAW: 1,
@@ -273,6 +277,35 @@ try {
           );
         await page.getByTestId("duel-switch-view").tap();
       }
+    }
+    if (!before && profile.name === "390") {
+      // Duel chat order: oldest first by default (as the action log), newest
+      // first when chosen; spectators get the text action log on phones.
+      await page.evaluate(() => {
+        window.__spectatorTest.chat("first line");
+      });
+      await page.waitForTimeout(50);
+      await page.evaluate(() => window.__spectatorTest.chat("second line"));
+      await page.getByTestId("duel-chat").tap();
+      const panel = page.getByTestId("duel-chat-panel");
+      await expect(panel).toContainText("second line");
+      const order = async () =>
+        panel.evaluate((el) => {
+          const text = el.innerText;
+          return text.indexOf("first line") < text.indexOf("second line")
+            ? "oldest"
+            : "newest";
+        });
+      assert.equal(
+        await order(),
+        "oldest",
+        "chat follows the oldest-first log by default",
+      );
+      await page.evaluate(() => window.__spectatorTest.chatOrder("newest"));
+      await expect.poll(order).toBe("newest");
+      await page.screenshot({ path: `${folder}/390-chat-newest.png` });
+      await page.evaluate(() => window.__spectatorTest.chatOrder("history"));
+      await expect.poll(order).toBe("oldest");
     }
     await context.close();
   }
