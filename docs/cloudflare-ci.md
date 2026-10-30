@@ -86,14 +86,18 @@ Cloudflare 对 API 有账户／用户、IP 等限流口径，部分接口还有�
 | 分支 | 站点 | 内容 |
 | --- | --- | --- |
 | `main` | 正式版 `https://ocg1103nexus.com/` | 已发布版本；推送即上线 |
-| `preview` | 测试版 `https://test.ocg1103nexus.com/` | `main` 加上正在测试的大功能；推送即更新测试版 |
-| `feat/简述`、`fix/简述` | 不发布 | 从最新 `main` 拉出，合并后删除本地与远程分支 |
+| `preview` | 测试版 `https://test.ocg1103nexus.com/` | `main` 加上只在测试版的改动；推送即更新测试版 |
+| `fix/简述` | 不发布 | 两边都上的改动，从最新 `main` 拉出，合并后删除本地与远程分支 |
+| `feat/简述` | 不发布 | 只上测试版的改动，从最新 `preview` 拉出，合并后删除本地与远程分支 |
 
-- 大功能：`feat/*` 合入 `preview` 验收，测试期修复仍提交到 `feat/*` 再合入 `preview`；验收后 `feat/*` 单独经 PR 合入 `main`。
-- 小修复：`fix/*` 经 PR 合入 `main` 上线，随后把 `main` 合入 `preview`，两边同时生效。
-- `preview` 始终包含 `main`，但从不合回 `main`，未验收功能因此不会顺带上线。放弃功能时可从 `main` 重建 `preview` 后强制推送；只有该分支允许强制推送。
+只保留 `main`、`preview` 两条长期线，不为单个功能保留长期分支。
+
+- 两边都上：`fix/*` 从 `main` 拉出，经 PR 合入 `main` 上线，随后把 `main` 合入 `preview`，两边同时生效。
+- 只上测试版：`feat/*` 从 `preview` 拉出，直接合入 `preview`；测试期修复同样新拉 `feat/*` 合入 `preview`。
+- 测试版上线正式版：`preview` 上的全部内容都已验收时，经 PR 把 `preview` 整体合入 `main`（使用 merge commit）。只想上线其中一部分时，再临时从 `main` 整理一个分支移植所需改动，不让未验收内容顺带上线。
+- `preview` 始终包含 `main`。放弃测试版上的改动时可从 `main` 重建 `preview` 后强制推送；只有该分支允许强制推送。
 - 测试轮次与回滚点用 tag（如 `preview-r13-20261023`、`release-20261026`），不新建快照分支。worktree 仅用于并行工作，完成后 `git worktree remove`。
-- 开工前 `git switch main && git pull`，确认 `git status` 干净再拉新分支。
+- 开工前同步对应的基线（`main` 或 `preview`），确认 `git status` 干净再拉新分支。
 
 Cloudflare 自动拉取仓库、安装锁定依赖、校验并还原卡库、构建并部署。仅创建 PR、仅本地保存或推送其他分支，不更新任何站点。
 
