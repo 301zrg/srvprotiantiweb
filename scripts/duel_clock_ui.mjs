@@ -13,7 +13,7 @@ const outDir = `${folder}/web-dist`;
 const fixtureCode = `
 import { initUIContainer as initFixture } from "@/container/compat";
 import { roomStore as roomFixture, matStore as matFixture, cardStore as cardFixture, RoomStage as RoomFixtureStage } from "@/stores";
-import { ygopro as fixtureProtocol } from "@/api";
+import { fetchCard as fixtureCard, ygopro as fixtureProtocol } from "@/api";
 import { calibrateClock as calibrateFixture, hideClock as hideFixture, resetClock as resetFixture } from "@/variant/duelClock";
 window.__clockTest = {
   duel(limit) {
@@ -31,6 +31,20 @@ window.__clockTest = {
   },
   calibrate(controller, left) { calibrateFixture(controller, left, Date.now()); },
   flip() { matFixture.observerView = 1; },
+  // Face-up monsters on both sides (and one face-down), for the ATK/DEF labels.
+  monsters() {
+    const make = (controller, sequence, code, position) => ({uuid:"stats-"+controller+"-"+sequence,code,meta:fixtureCard(code),location:{controller,zone:fixtureProtocol.CardZone.MZONE,sequence,position,is_overlay:false},idleInteractivities:[],counters:{},isToken:false,targeted:false,status:0,selectInfo:{selectable:false,selected:false}});
+    const pile = (controller, zone, n, code) => Array.from({length:n},(_,i)=>({...make(controller, i, code, fixtureProtocol.CardPosition.FACEDOWN_ATTACK), uuid:"pile-"+controller+"-"+zone+"-"+i, location:{controller,zone,sequence:i,position:fixtureProtocol.CardPosition.FACEDOWN_ATTACK,is_overlay:false}}));
+    cardFixture.inner = [
+      ...pile(0, fixtureProtocol.CardZone.DECK, 30, 0), ...pile(1, fixtureProtocol.CardZone.DECK, 30, 0),
+      ...pile(0, fixtureProtocol.CardZone.HAND, 5, 69247929), ...pile(1, fixtureProtocol.CardZone.HAND, 5, 0),
+      ...pile(0, fixtureProtocol.CardZone.EXTRA, 10, 0), ...pile(1, fixtureProtocol.CardZone.EXTRA, 10, 0),
+      make(0, 0, 69247929, fixtureProtocol.CardPosition.FACEUP_ATTACK),
+      make(0, 2, 44508094, fixtureProtocol.CardPosition.FACEUP_DEFENSE),
+      make(1, 1, 69247929, fixtureProtocol.CardPosition.FACEUP),
+      make(1, 3, 44508094, fixtureProtocol.CardPosition.FACEDOWN_DEFENSE),
+    ];
+  },
   spectate() { matFixture.selfType = fixtureProtocol.StocGameMessage.MsgStart.PlayerType.Observer; hideFixture(); }
 };`;
 mkdirSync(folder, { recursive: true });
@@ -122,6 +136,17 @@ try {
     assert.ok(ring === null || ring.includes("100"), `full ring (${ring})`);
     await page.screenshot({ path: `${folder}/${name}.png` });
     // Spectators have no reliable time: no clock, no fake 00:00.
+    if (!mobile) {
+      // Every face-up monster gets its ATK/DEF label on a roomy screen,
+      // including a FACEUP position; the face-down one does not.
+      await page.evaluate(() => window.__clockTest.monsters());
+      // With the hands and piles of a real board; each card's own animated
+      // wrapper is slightly larger than the card and must not hide its label.
+      await expect(
+        page.locator('[data-testid="field-card-stats"]'),
+      ).toHaveCount(3, { timeout: 10000 });
+      await page.screenshot({ path: `${folder}/${name}-stats.png` });
+    }
     // Slot numbers 1-5 for both players' Monster and Spell & Trap Zones.
     await expect(page.getByTestId("zone-index")).toHaveCount(20);
     await page.evaluate(() => window.__clockTest.spectate());

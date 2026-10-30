@@ -77,25 +77,26 @@ export function placeFieldStats(
   if (width > columnWidth + 2) return;
   const x = card.x + (card.width - width) / 2;
   if (x < clip.x || x + width > clip.x + clip.width) return;
-  const free = (y: number) =>
-    y >= clip.y &&
+  const overlaps = (r: StatRect) => r.x < x + width && r.x + r.width > x;
+  // Only cards beyond the monster's edge count: online cards are wrapped in
+  // larger animated boxes that overlap their own label strip.
+  const freeBelow = (y: number) =>
     y + height <= clip.y + clip.height &&
     !obstacles.some(
       (r) =>
-        r !== card &&
-        r.y < y + height + 1 &&
-        r.y + r.height > y - 1 &&
-        r.x < x + width &&
-        r.x + r.width > x &&
-        // The monster itself and cards stacked on it (materials) are not in
-        // the way; only cards reaching into the label's strip are.
-        !(r.y >= card.y - 1 && r.y + r.height <= card.y + card.height + 1),
+        r.y >= card.y + card.height - 1 && r.y < y + height + 1 && overlaps(r),
+    );
+  const freeAbove = (y: number) =>
+    y >= clip.y &&
+    !obstacles.some(
+      (r) =>
+        r.y + r.height <= card.y + 1 && r.y + r.height > y - 1 && overlaps(r),
     );
   // Under the card as usual; above it when the next row is too close, so a
   // crowded column still shows its stats instead of dropping them.
   const below = card.y + card.height + 1,
     above = card.y - height - 1;
-  if (free(below)) return { x, y: below, width, height };
-  if (free(above)) return { x, y: above, width, height };
+  if (freeBelow(below)) return { x, y: below, width, height };
+  if (freeAbove(above)) return { x, y: above, width, height };
   return undefined;
 }
