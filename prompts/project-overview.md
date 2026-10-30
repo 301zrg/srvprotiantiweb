@@ -14,6 +14,6 @@
 - 静态构建：原始四语输入在 `resources-staging/1103/`，环境生成物在 `public/environment/`，固定录像资源在 `public/replay/706-v1/`。`build:static` 从锁定快照还原，不需要 Python／子模块／内核编译；修改资源时走专门维护路径。
 - 服务器和官网：身份、房间、计分、数据库属于 `srvprotianti`；静态前端在其外部托管。官网通过 Hash 内容或受限 postMessage 交接卡组／录像／观战参数，客户端不提供任意 URL 或 TCP 代理。
 
-账号 `昵称$密码` 与房间 `房名$房间密码` 保持独立。完整输入存当前标签页 sessionStorage，localStorage 仅存公开部分。已连接会话冻结输入，旧连接不得污染新状态。用户决定暂不改变累计在线消息队列，保留连续动画并接受积压限制。
+账号 `昵称$密码` 与房间 `房名$房间密码` 保持独立。完整输入（含密码）持久保存在站点 localStorage 的 `joinFormSaved`，各标签页另有 sessionStorage 草稿；一键观战输入只临时使用。以 [会话契约](../docs/session-recovery.md) 为准。已连接会话冻结输入，旧连接不得污染新状态。用户决定暂不改变累计在线消息队列，保留连续动画并接受积压限制。
 
 先按任务路由读一个专题，再查实际源码。不要把 [上游摘要归档](../docs/archive/UPSTREAM_PROJECT_OVERVIEW.md) 中的功能当作本项目现状，不把实现存在或用户上线许可当作生产／真机验证。
