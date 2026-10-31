@@ -38,7 +38,7 @@
 - Neos：`DarkNeos/neos-ts@a84c443674f82d6d47969915e6cb8656660be364`。按该 SHA 核查的源码事实不代表未来 main。
 - 原 neos-protobuf gitlink 为 `81291cac39ba7c726ef817166c41e028bd0a4e8b`。当前固定协议源码／许可证已复制入 `protocol-source/`，生成 TS 仍入库，普通构建不要求子模块；它仅参与内部对象生成，不代表 WebSocket 上传输 protobuf。
 - 本地服务器 HEAD：`f253da853bf15c2742b1effafe222bbb54fc3813`，工作区有既存未提交修改。本次不修改服务端，也不把 HEAD 当作完整部署快照。
-- 当前四语裁剪库的源／副本 SHA、大小、差异、搜索尾缀记录在 `docs/1103-resource-audit.json`；旧完整库与禁表结果保留在 `docs/resource-audit.json`，两组输入不混用。
+- 当前四语裁剪库的源／副本 SHA、大小、差异、搜索尾缀记录在 `docs/1103-resource-audit.json`；旧完整库与禁表结果保留在 `docs/resource-audit.json`，两组输入不混用。该测量中的 `srvprotianti/ygopro/cards1.cdb` 于 2026-10-30 确认不在正式服引擎的加载路径上，已不再随项目携带；测量记录原样保留，仅作历史证据。
 - 本次未读取私密部署配置，未连接生产服务器；未声明生产已启用 MR2、WSS、历史卡池校验或重连。
 - 隔离的本地 SRVPro 实例已验证普通 Single 与 TT Match 双人入房、卡组准备和开局；完整比赛及生产兼容性仍属单独验收。
 
@@ -171,7 +171,7 @@ P0 至少证实普通房与 TT 的区别、TT Match 整场流程、禁表 hash�
 
 首次空昵称时在入场前提示填写；恢复的昵称保持可编辑，不锁定为配置值或自动生成值。浏览首页、组卡、导入／导出不要求填写昵称。昵称含凭据时提供遮罩／显示方式，默认不明文回显已有密码部分。
 
-首次直接打开联机页、且没有保存房名时默认预填 `TT`，不自动连接或准备。玩家自行修改／清空的房名继续缓存；链接指定房名优先，一键观战结束仍清空输入。首页以四语显示开源、非盈利及版权声明，说明相关素材权利归属，并可应权利人要求调整或下架。
+首次直接打开联机页、且没有保存房名时默认预填 `TT`，不自动连接或准备。玩家自行修改／清空的房名继续缓存；链接指定房名优先；一键观战使用临时表单，不改动普通缓存（2026-10-19 起）。首页以四语显示开源、非盈利及版权声明，说明相关素材权利归属，并可应权利人要求调整或下架。
 
 房间名作为玩家输入原样发送，保留服务端支持的大小写、空格、房间密码及命令语法；不擅自 trim、改大小写、拆分／拼接密码或将房间名解析为 IP／端口。只校验协议字段长度和 NUL 等不能安全编码的字符。普通命名房按宿主的同名加入／不存在创建处理，保留 `房名$房间密码` 等既有语法；特殊命令和空房名按服务器开关处理，空值绝不能自动补成 TT。昵称中的 `$` 凭据语法不套用到房间字段。
 
@@ -183,7 +183,7 @@ P0 至少证实普通房与 TT 的区别、TT Match 整场流程、禁表 hash�
 
 - 按协议 UTF-16 code unit 分别限制完整昵称登录串与房间字段；不得静默截断昵称、密码或房间名。长度、NUL、换行、额外分隔符和反斜杠按各字段的实际宿主解析行为校验，错误提示修改，不能自动改密码。
 - 服务端会按 `$` 拆密码、处理反斜杠；不要给用户提供前端接受而服务器另作解释的输入。
-- 普通联机持久缓存不含凭据的昵称部分、房名部分及显示语言；按 2026-10-10 用户要求，完整 `昵称$密码` 和 `房名$房间密码` 另存当前标签页 sessionStorage，刷新后原样回填，退出／返回也保留。不同标签页的完整输入互不覆盖，不把密码写入 localStorage。当前选中或成功保存的卡组作为后续编辑与入房默认卡组；已删除的选择回退到现有第一套。由链接一键观战入场或取消时清空昵称／房名草稿、会话缓存及公开缓存，返回普通联机页为空。实现与验证见 [会话说明](docs/session-recovery.md)。
+- 2026-10-19 起按用户要求，完整 `昵称$密码` 和 `房名$房间密码` 持久保存在浏览器缓存 `joinFormSaved`，关闭浏览器后仍回填；各标签页另存 `joinFormDraft` 草稿。（取代 2026-10-10 的“只存当前标签页、不把密码写入 localStorage”。）当前选中或成功保存的卡组作为后续编辑与入房默认卡组；已删除的选择回退到现有第一套。由链接一键观战入场时使用临时表单，不保存、不删除普通缓存。实现与验证见 [会话说明](docs/session-recovery.md)。
 - 账号／房间密码与完整登录串不得进入公开昵称显示、聊天、URL、日志、遥测、卡组名、录像名、错误导出或测试快照。
 - TT 默认赛前隐藏名字，客户端尊重服务器下发身份，不从公开页面/API反查匿名对手。
 - 浏览器可使用密码管理器；不承诺静态网页能提供账户找回或修改密码服务。
@@ -543,9 +543,9 @@ Core／Lua／706 scripts 指纹、卡库与 expansions 加载顺序、实际 Hos
 ## 17. 参考入口
 
 本地依据：
-- [宿主开发约束](https://github.com/301zrg/srvprotianti/blob/restructure2/AGENTS.md)、[TT插件](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-core/README.md)。
-- [卡片目录边界](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/card-catalog/README.md)、[卡池移植指南](https://github.com/301zrg/srvprotianti/blob/restructure2/docs/CARD_POOL_PORTING_GUIDE.md)。
-- [实际介绍页](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/web/intro.html)、[桌面脚本初始化参考](https://github.com/301zrg/srvprotianti-desktop/blob/main/src-tauri/src/scripts.rs)。
+- [宿主开发约束](https://github.com/301zrg/srvprotianti/blob/main/AGENTS.md)、[TT插件](https://github.com/301zrg/srvprotianti/blob/main/plugins/ladder-core/README.md)。
+- [卡片目录边界](https://github.com/301zrg/srvprotianti/blob/main/plugins/card-catalog/README.md)、[卡池移植指南](https://github.com/301zrg/srvprotianti/blob/main/docs/CARD_POOL_PORTING_GUIDE.md)。
+- [实际介绍页](https://github.com/301zrg/srvprotianti/blob/main/plugins/ladder-web/web/intro.html)、[桌面脚本初始化参考](https://github.com/301zrg/srvprotianti-desktop/blob/main/src-tauri/src/scripts.rs)。
 - [服务端精确源码索引](docs/server-contract-audit.md)、[当前1103资源测量](docs/1103-resource-audit.json)、[原件暂存说明](resources-staging/1103/README.md)、[前轮完整库与禁表测量](docs/resource-audit.json)。
 
 固定上游依据：

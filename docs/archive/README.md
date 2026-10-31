@@ -12,5 +12,6 @@
 | [整理前设计](DESIGN_2026-10-10.md) | 原审查假设、目录目标及分期描述 |
 | [上游中文介绍](UPSTREAM_README_zh_CN.md) | Neos 原功能、来源与贡献说明 |
 | [上游项目摘要](UPSTREAM_PROJECT_OVERVIEW.md) | 原 MyCard／AI／协议描述，供理解来源，不适用于当前项目 |
+| [状态流水 2026-10](PROJECT_STATUS_LOG_2026-10.md) | 2026-10-10～25 按日期记录的候选与发布状态；2026-10-30 从 PROJECT_STATUS 移出 |
 
 当前入口：[文档索引](../README.md)、[实际架构](../ARCHITECTURE.md)、[项目状态](../PROJECT_STATUS.md)。

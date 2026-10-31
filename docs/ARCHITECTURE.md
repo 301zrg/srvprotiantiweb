@@ -299,7 +299,7 @@ sequenceDiagram
 | 交接来源 | `deckImportOrigins` 是站方精确 Origin 白名单；参数只能选择允许来源，不能扩大白名单。消息还要校验 source／request／版本／负载 |
 | 语言 | 有效 Hash `lang` → 网页 query `lang` → 已存选择 → 支持的浏览器语言 → en；初始化前捕获，切语不重连 |
 | 资源地址 | `BASE_URL` 形成 `environment/1103-201103-v1` 与 `neos-assets` 路径；卡图源集中配置，不接收玩家任意 URL |
-| 完整联机输入 | 内存草稿与当前标签页 sessionStorage；普通退出保留，主动清空和一键观战清空按会话契约执行 |
+| 完整联机输入 | 内存草稿、各标签页 `joinFormDraft`（sessionStorage）及持久的 `joinFormSaved`（站点 localStorage，含密码）；普通退出保留，主动清空保持为空，一键观战用临时表单、不写普通缓存，详见 [会话契约](session-recovery.md) |
 | 公开偏好 | localStorage 的语言、公开昵称／房名等，不含账号或房间密码 |
 | 卡组 | 卡组 IndexedDB 与编辑 store；不会随观战输入清空而删除 |
 | 换备编辑器 | `SideStore.editor` 保存本阶段初始卡组、草稿和滚动，仅在同会话自动恢复时显式复制；新阶段／离场清理，不持久化未提交草稿，不替代 sessionStorage 中的已提交卡组 |
