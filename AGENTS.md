@@ -17,6 +17,7 @@
 - 只读 Replay、双边本地练习与在线 store／响应 handler 隔离。离线功能共享校验后的固定 Core 资源；练习规则由 variant profile 配置，不增加在线响应路径。动作队列仅控制展示，每批末回到 Core 完整查询。
 - 密码、证书、Token、私密配置、真实玩家未授权的卡组／录像／抓包不得提交。不读取相邻项目私密配置来推断部署状态。
 - 分支：只有 `main`（正式版）和 `preview`（测试版）两条长期线，推送即发布。两边都上的改动用从 `main` 拉出的 `fix/*`，合入 `main` 后再把 `main` 合入 `preview`；只上测试版的改动用从 `preview` 拉出的 `feat/*`，合入 `preview`。测试版内容全部验收后经 PR 整体合入 `main`，只上一部分时临时整理分支移植。不建测试快照分支，留档用 tag。详见 [分支与发布流程](docs/cloudflare-ci.md#分支与发布流程)。
+- 测试按 [测试分类与入口](docs/testing.md) 登记：能在干净检出里稳定通过的逻辑测试加入 `scripts/unit-tests.json`，由 `npm run test:unit` 运行。
 - 资源地址按 `document.baseURI` 解析，改动后验收根路径、绝对子路径和相对路径三种部署。
 - `docs/PROJECT_STATUS.md` 只写能力矩阵与已确认限制，不追加按日期的流水；过程与验收记录写进对应专题、PR 或 [归档](docs/archive/README.md)。
 - 文档中的历史授权不授权未来发布；用户当前指令及本会话已明确授权优先。区分代码已实现、本地验证、生产验证和真机验证，不补造通过项。
