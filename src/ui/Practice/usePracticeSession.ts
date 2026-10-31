@@ -205,7 +205,8 @@ export function usePracticeSession(language: string) {
         chainMode: settingStore.chainSetting,
         base: new URL(
           `${import.meta.env.BASE_URL}replay/${practiceProfile.revision}/`,
-          window.location.origin,
+          // Same as replay playback: relative BASE_URL builds resolve beside the page, not at the site root.
+          document.baseURI,
         ).href,
         config,
       });

@@ -156,7 +156,7 @@
     "test:client-settings": "node scripts/test_client_settings.mjs && node scripts/test_rps_request.mjs && node scripts/test_message_presentation.mjs && node scripts/test_online_audio.mjs",
     "test:deck-limits": "node scripts/test_deck_limits.mjs",
     "test:client-preview-ui": "node scripts/client_preview_ui.mjs",
-    "test:practice": "node scripts/test_practice_runtime_loader.mjs && node scripts/test_practice_runtime.mjs && node scripts/test_practice_prompts.mjs",
+    "test:practice": "node scripts/test_practice_base.mjs && node scripts/test_practice_runtime_loader.mjs && node scripts/test_practice_runtime.mjs && node scripts/test_practice_prompts.mjs",
     "test:practice-ui": "node scripts/practice_ui.mjs",
     "test:replay-extract": "node scripts/test_replay_extract.mjs",
     "test:replay-extract-ui": "node scripts/replay_extract_ui.mjs"
