@@ -15,12 +15,14 @@
 - `unit-tests.json` 的 `knownFailing` 记录检查时已失败、暂不纳入默认入口的测试和原因。修好后移回 `tests`，不要为了让入口通过而删掉测试。
 - 界面脚本的截图和报告写到被忽略的 `.audit-tmp/`。本地合成场面不能代替真实手机、正式服完整对局或生产验收。
 
-## 已知失败（2026-11-01 检查）
+## 2026-11-01 修复的三项
 
-| 测试 | 现象 |
-| --- | --- |
-| `scripts/test_duel_animation.mjs` | 加载 `src/infra/eventbus.ts` 时出错；该文件最后由 #37（2026-10-25）修改 |
-| `scripts/test_language_hints.mjs` | 测试用的 `@/api` 替身缺少 `DESCRIPTION_LIMIT` 导出 |
-| `scripts/test_online_audio.mjs` | 测试用的 `window` 替身缺少 `addEventListener` |
+首次整理时这三项已经失败。原因都是源码改了、测试没跟上，功能本身没有问题；修复后已移回 `test:unit`：
 
-这三项看起来都是源码改动后测试替身没有跟上，具体待单独修复。`test:duel-animation`、`test:client-settings` 两个专项脚本包含其中的测试，目前也会失败。
+| 测试 | 原因 | 修复 |
+| --- | --- | --- |
+| `scripts/test_duel_animation.mjs` | 直接 `import` 含 `enum` 的 `src/infra/eventbus.ts`，Node 的类型剥离不支持；专项脚本带 `--experimental-transform-types` 才能跑 | 先用 esbuild 编译再导入，普通 `node` 也能运行。依赖 `--expose-gc` 的那一项在 `test:unit` 中会跳过，在 `test:duel-animation` 中照常运行 |
+| `scripts/test_language_hints.mjs` | 10-11 起 `errorMsg.ts` 引入 `@/stores` 的 `SideStage` 和 `sideStore`；后来 `@/api` 又多了 `DESCRIPTION_LIMIT`、`getStrings` | 补上这些替身和模拟的 `sideStore`，并断言"副卡组被拒后回到更换中" |
+| `scripts/test_online_audio.mjs` | 10-31 联机音效改为共用一个、由触摸解锁的 AudioContext：从 `window.AudioContext` 创建，静音时停止正在播放的音源，不再关闭上下文；首次加载超过 600 ms 会被跳过 | `window` 替身补上 `AudioContext` 和监听方法，音源替身补上 `stop`、`disconnect`；先预热一次，再按共享上下文改写断言（停止正在播放的、静音期间不新建上下文、迟到的下载不播放、音量实时生效） |
+
+教训：改动源码的导入、全局对象或行为时，要同时运行对应测试；测试替身必须跟着源码一起改。

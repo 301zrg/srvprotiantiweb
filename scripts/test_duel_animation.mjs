@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 
-import { eventbus, Task } from "../src/infra/eventbus.ts";
+import { build } from "esbuild";
+
+// eventbus.ts declares a TypeScript enum, which Node's type stripping cannot run; compile it first.
+const compiled = await build({ entryPoints: ["src/infra/eventbus.ts"], bundle: true, write: false, platform: "node", format: "esm", external: ["eventemitter3"] });
+const temp = resolve(".audit-tmp/duel-animation-unit-tests"); mkdirSync(temp, { recursive: true });
+const modulePath = resolve(temp, "eventbus.mjs"); writeFileSync(modulePath, compiled.outputFiles[0].text);
+const { eventbus, Task } = await import(pathToFileURL(modulePath));
 
 test("unmounted cards do not block the protocol queue", { timeout: 1000 }, async () => {
   await eventbus.call(Task.Move, "not-mounted");

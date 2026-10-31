@@ -16,7 +16,7 @@ class Audio {
   constructor() { contexts.push(this); }
   createGain() { return this.gain; }
   createBufferSource() {
-    const source = { context: this, started: false, connect() { return this.context.gain; }, start() { this.started = true; }, addEventListener() {}, removeEventListener() {} };
+    const source = { context: this, started: false, stopped: false, connect() { return this.context.gain; }, disconnect() {}, start() { this.started = true; }, stop() { this.stopped = true; }, addEventListener() {}, removeEventListener() {} };
     this.sources.push(source);
     return source;
   }
@@ -25,7 +25,8 @@ class Audio {
   resume() { this.state = "running"; return Promise.resolve(); }
   suspend() { this.state = "suspended"; return Promise.resolve(); }
 }
-globalThis.window = { navigator: { userAgent: "online-audio-regression" }, location: { href: "http://127.0.0.1/", pathname: "/" } };
+// The effect manager registers tap/click/key listeners that resume a suspended context.
+globalThis.window = { navigator: { userAgent: "online-audio-regression" }, location: { href: "http://127.0.0.1/", pathname: "/" }, AudioContext: Audio, addEventListener() {}, removeEventListener() {} };
 globalThis.localStorage = { getItem: key => key === "language" ? "cn" : null, setItem() {} };
 globalThis.document = { addEventListener() {}, removeEventListener() {} };
 globalThis.AudioContext = Audio;
@@ -42,34 +43,46 @@ try {
   const { settingStore } = await server.ssrLoadModule("/src/stores/settingStore/index.ts");
   const { playEffect } = await server.ssrLoadModule("/src/infra/audio/effect/index.ts");
   settingStore.saveAudioConfig({ enableSoundEffects: true, soundEffectsVolume: 0.25 });
-  const playing = playEffect(101);
-  await playing;
-  assert.equal(contexts.length, 1);
-  assert.equal(contexts[0].gain.gain.value, 0.25);
-  assert.equal(contexts[0].sources[0].started, true);
+  // Warm-up: Vite transforms the audio cache modules on first use, and an effect whose
+  // first load takes over 600 ms is skipped by design. The decoded buffer is then cached.
+  await playEffect(101);
+  // Online effects share one gesture-unlocked context (2026-10-31): muting stops the
+  // active sources and cancels pending loads instead of closing a context per effect.
+  const shared = contexts[0], started = () => shared.sources.filter(source => source.started).length;
+  const before = started();
+  await playEffect(101);
+  assert.equal(contexts.length, 1, "Effects share a single audio context");
+  assert.equal(shared.gain.gain.value, 0.25);
+  assert.equal(started(), before + 1);
+  const active = shared.sources.at(-1);
   settingStore.saveAudioConfig({ enableSoundEffects: false });
-  assert.equal(contexts[0].state, "closed", "Muting must immediately stop an already playing online effect");
+  await flush();
+  assert.equal(active.stopped, true, "Muting must immediately stop an already playing online effect");
+  const muted = started();
   await playEffect(101);
   assert.equal(contexts.length, 1, "Muted playback must not create another audio context");
+  assert.equal(started(), muted, "Muted playback must not start a source");
 
   settingStore.saveAudioConfig({ enableSoundEffects: true, soundEffectsVolume: 0.5 });
   delayFetch = true;
   const pending = playEffect(205);
   await waitForFetch();
   settingStore.audio.enableSoundEffects = false;
+  await flush();
   finishFetch();
   await pending;
-  assert.equal(contexts[1].state, "closed");
-  assert.equal(contexts[1].sources.filter(source => source.started).length, 0, "Late downloads must not restart an effect after mute");
+  assert.equal(started(), muted, "Late downloads must not restart an effect after mute");
 
   settingStore.audio.enableSoundEffects = true;
   finishFetch = undefined;
   const resumed = playEffect(203);
   await waitForFetch();
   settingStore.audio.soundEffectsVolume = 0.4;
+  await flush();
   finishFetch();
   await resumed;
-  assert.equal(contexts[2].gain.gain.value, 0.4, "Changing the shared volume also updates currently loading effects");
+  assert.equal(contexts.length, 1);
+  assert.equal(shared.gain.gain.value, 0.4, "Changing the shared volume also updates currently loading effects");
   settingStore.audio.enableSoundEffects = false;
   console.log("Online audio: canonical mute, immediate active stop, pending-load cancellation and live volume passed.");
 } finally {
