@@ -9,6 +9,7 @@
 | 目的 | 入口 |
 | --- | --- |
 | 本地练习 | [Practice](practice.md) |
+| 运行测试、新测试放在哪个入口 | [测试分类与入口](testing.md) |
 | 接手项目、理解实际模块与数据归属 | [当前架构与四张数据流图](ARCHITECTURE.md)、[当前状态与验收矩阵](PROJECT_STATUS.md) |
 | 开发规则、设计取舍、未完成工作 | [AGENTS](../AGENTS.md)、[设计](../YGOPro_706_Web_Client_Design.md)、[剩余工作](../IMPLEMENTATION_PLAN.md) |
 | 联机配置、封包与服务端兼容 | [WSS 联调](wss-integration.md)、[服务端契约](server-contract-audit.md)、[会话与后台恢复](session-recovery.md) |

@@ -40,6 +40,7 @@
     "ygopro-deck-encode": "^1.0.14"
   },
   "scripts": {
+    "test:unit": "node scripts/run-unit-tests.mjs",
     "dev": "node scripts/check_replay_assets.mjs && python scripts/build_environment_assets.py && vite",
     "build": "node scripts/check_replay_assets.mjs && python scripts/build_environment_assets.py && vite build && node scripts/copy_assets.mjs",
     "build:static": "node scripts/restore_environment_assets.mjs && node scripts/check_replay_assets.mjs && vite build && node scripts/copy_assets.mjs",
