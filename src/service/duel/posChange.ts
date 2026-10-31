@@ -28,6 +28,7 @@ export default async (container: Container, posChange: MsgPosChange) => {
       clearOnlineCardTargets(context.cardStore, target.uuid);
     }
     target.location.position = posChange.cur_position;
+    context.historyStore.putPosition(context, target.code, target.location);
 
     // TODO: 暂时用`Move`动画，后续可以单独实现一个改变表示形式的动画
     await callCardMove(target.uuid);

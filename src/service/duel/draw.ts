@@ -13,6 +13,7 @@ export default async (
   fetchEsHintMeta({ context, originMsg: "玩家抽卡时" });
 
   const drawLength = draw.cards.length;
+  context.historyStore.putDraw(context, draw.player, drawLength);
 
   // 将卡从卡组移到手牌：设置zone、occupant、sequence
   const handsLength = context.cardStore.at(

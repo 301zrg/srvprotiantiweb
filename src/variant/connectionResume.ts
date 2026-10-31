@@ -1,6 +1,9 @@
 import { ygopro } from "@/api/ocgcore/idl/ocgcore";
 import type { WebSocketStream } from "@/infra";
 
+import { forgetClock } from "./duelClock";
+import { prepareMatchGameResume } from "./matchGame";
+
 export type ResumeKind = "player" | "observer" | "waiting";
 interface Resume {
   kind: ResumeKind;
@@ -40,6 +43,11 @@ export function prepareConnectionResume(
   fieldExpected = true,
 ) {
   conn.resuming = true;
+  // Times from before the drop are stale; the server recalibrates.
+  forgetClock();
+  // Spectators get the match again from game 1 and recount; players get only
+  // the current game's MSG_START, which must not count as a new game.
+  prepareMatchGameResume(kind, fieldExpected);
   resumes.set(conn, {
     kind,
     offered: false,

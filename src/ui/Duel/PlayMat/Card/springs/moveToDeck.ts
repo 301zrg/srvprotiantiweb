@@ -1,39 +1,25 @@
 import { ygopro } from "@/api";
 import { cardStore, isMe } from "@/stores";
+import { cardPose } from "@/ui/Shared/DuelBoard/geometry";
 
+import { onlineSpot } from "../../boardSpot";
 import { matConfig } from "../../css";
 import { deckCardFaceUp } from "../../deckVisibility";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
-const { DECK, EXTRA } = ygopro.CardZone;
+const { DECK } = ygopro.CardZone;
 
 export const moveToDeck: MoveFunc = async (props) => {
-  const {
-    BLOCK_WIDTH,
-    COL_GAP,
-    DECK_OFFSET_X,
-    DECK_ROW_Y,
-    DECK_ROTATE_Z,
-    DECK_CARD_HEIGHT,
-  } = matConfig;
   const { card, api, signal } = props;
-  // report
-  const { location } = card;
-  const { controller, zone, sequence } = location;
-
-  const rightX = DECK_OFFSET_X + 2 * (BLOCK_WIDTH + COL_GAP);
-  const leftX = -rightX;
-  const bottomY = DECK_ROW_Y;
-  const topY = -bottomY;
-  let x = isMe(controller) ? rightX : leftX;
-  let y = isMe(controller) ? bottomY : topY;
-  if (zone === EXTRA) {
-    x = isMe(controller) ? leftX : rightX;
-  }
-  let rz = zone === EXTRA ? DECK_ROTATE_Z : -DECK_ROTATE_Z;
-  rz += isMe(controller) ? 0 : 180;
-  const z = sequence;
+  const { controller, zone } = card.location;
+  const { x, y, z, rz, ry, zIndex, height } = cardPose(matConfig, {
+    spot: onlineSpot(card.location)!,
+    faceDown:
+      zone === DECK
+        ? !deckCardFaceUp(card, cardStore.deckReversed)
+        : !isMe(controller),
+  });
 
   await asyncStart(
     api,
@@ -43,16 +29,9 @@ export const moveToDeck: MoveFunc = async (props) => {
     y,
     z,
     rz,
-    ry:
-      zone === DECK
-        ? deckCardFaceUp(card, cardStore.deckReversed)
-          ? 0
-          : 180
-        : isMe(controller)
-        ? 0
-        : 180,
-    zIndex: z,
-    height: DECK_CARD_HEIGHT,
+    ry,
+    zIndex,
+    height,
 
     config: {
       duration: getDuration(),

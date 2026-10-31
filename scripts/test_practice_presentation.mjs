@@ -3,7 +3,7 @@ import {createServer} from 'vite';
 const vite=await createServer({server:{middlewareMode:true,watch:null},optimizeDeps:{disabled:true},logLevel:'error'});
 try {
   const {advancePracticeScene,practiceEffectText}=await vite.ssrLoadModule('/src/ui/Practice/presentation.ts');
-  const {seedScene}=await vite.ssrLoadModule('/src/ui/Replay/scene.ts');
+  const {seedScene}=await vite.ssrLoadModule('/src/ui/Shared/DuelBoard/scene.ts');
   const frame={step:0,consumed:0,total:0,events:[],cards:[],lp:[8000,8000],names:['A','B'],turn:1,phase:4,turnPlayer:0};
   let scene=seedScene(frame);
   const next={...frame,step:1,events:[[54,1,0,0,0,0,8,0,2]]};
@@ -18,7 +18,7 @@ try {
   const text=practiceEffectText({message:12,description:0,code:10002346,location:4},system,system,()=> 'Gachi',()=> 'Monster Zone');
   assert.equal(text,'Activate Monster Zone in Gachi?');
   assert.equal(practiceEffectText({message:13,description:95,code:10002346},system,system,()=> 'Gachi',()=> ''),'Detach from Gachi instead?');
-  const {materialOffset}=await vite.ssrLoadModule('/src/ui/Duel/PlayMat/materials.ts');
+  const {materialOffset}=await vite.ssrLoadModule('/src/ui/Shared/DuelBoard/geometry.ts');
   for(const count of [1,2,20]) for(const height of [88,120]) for(const rotation of [0,180]) for(let i=0;i<count;i++) {
     const offset=materialOffset(i,count,height,rotation);
     assert.ok(Math.abs(offset.y)<0.001,'Materials stay portrait in their own row, including defense hosts');

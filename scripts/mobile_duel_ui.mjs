@@ -232,7 +232,9 @@ try {
           await page.evaluate(() => window.__mobilePackets.at(-1)),
           [5, 0, 1, 13, 0, 0, 0],
         );
-        await page.getByTestId("duel-card-panel-close").tap();
+        // Portrait touch is action-first: the menu opens without a detail panel.
+        const summonClose = page.getByTestId("duel-card-panel-close");
+        if (await summonClose.isVisible()) await summonClose.tap();
       }
       await page.evaluate(() => window.__mobileTest.detail());
       await expect(page.getByTestId("duel-card-panel-close")).toBeVisible();
@@ -355,7 +357,8 @@ try {
           if (profile.width > profile.height) {
             const board = await page.getByTestId("duel-board-viewport").boundingBox();
             const controls = await page.getByTestId("duel-sidebar").locator(":scope > div").first().boundingBox();
-            assert.ok(detail.x >= board.x + board.width, "Wide details cover the board");
+            // Docked details follow the control panel, on either side.
+            assert.ok(detail.x >= board.x + board.width || detail.x + detail.width <= board.x, "Wide details cover the board");
             if (profile.height > 600) assert.ok(detail.y >= controls.y + controls.height - 1, "Wide details cover visible controls");
           } else {
             assert.ok(detail.bottom <= menu.y + 1, "Detail overlaps duel toolbar");

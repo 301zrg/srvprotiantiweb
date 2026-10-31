@@ -44,6 +44,7 @@ const messages = {
     nicknameHint:
       "天梯账号按「昵称$密码」输入；未注册的昵称会自动注册，账号密码设为首次输入的密码。昵称和房间名自动保留，密码仅留在当前标签页内存。",
     roomHintBefore: "输入 TT 进入天梯匹配；其他房间名按",
+    fillLadderRoom: "点击把房间名填为 TT（天梯匹配）",
     roomRules: "原版 YGOPro 联机规则",
     roomHintAfter:
       "进入普通房间。输入 M#[房间名] 进入 BO3（三局两胜）模式。非天梯匹配模式下，请将房间号发给朋友，邀请对方加入对战。",
@@ -121,6 +122,7 @@ const messages = {
       "For ladder accounts, enter nickname$password. An unregistered nickname is registered automatically using the password you first enter. Nickname and room are remembered; passwords stay only in this tab's memory.",
     roomHintBefore:
       "Enter TT for ladder matchmaking. Other room names follow the ",
+    fillLadderRoom: "Click to set the room name to TT (ladder matchmaking)",
     roomRules: "original YGOPro online rules",
     roomHintAfter:
       ". Enter M#[room name] for BO3 (best-of-three) matches. Outside ladder matchmaking, send your room name to a friend to invite them to join the duel.",
@@ -204,6 +206,7 @@ const messages = {
     nicknameHint:
       "ランク戦は 名前$パスワード を入力します。未登録の名前は自動登録され、最初に入力したパスワードが設定されます。名前とルーム名を保存し、パスワードはこのタブのメモリだけに保持します。",
     roomHintBefore: "TT でランク戦に参加します。それ以外のルーム名は",
+    fillLadderRoom: "クリックでルーム名を TT（ランク戦）にします",
     roomRules: "従来の YGOPro 接続ルール",
     roomHintAfter:
       "に従って通常のルームに入ります。M#[ルーム名] を入力すると BO3（3本勝負・2本先取）モードになります。ランク戦のマッチング以外では、ルーム名を友達に送って対戦に招待してください。",
@@ -281,6 +284,7 @@ const messages = {
     nicknameHint:
       "래더 계정은 이름$비밀번호를 입력하세요. 미등록 이름은 자동 등록되며 처음 입력한 비밀번호가 계정 비밀번호로 설정됩니다. 이름과 방 이름은 저장하며 비밀번호는 현재 탭의 메모리에만 유지됩니다.",
     roomHintBefore: "TT를 입력하면 래더 매칭에 참여합니다. 다른 방 이름은 ",
+    fillLadderRoom: "클릭하면 방 이름을 TT(래더 매칭)로 채웁니다",
     roomRules: "기존 YGOPro 온라인 규칙",
     roomHintAfter:
       "에 따라 일반 방으로 연결됩니다. M#[방 이름]을 입력하면 BO3(3판 2선승제) 모드로 들어갑니다. 래더 매칭이 아닌 경우 방 이름을 친구에게 보내 대전에 초대해 주세요.",

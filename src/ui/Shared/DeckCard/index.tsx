@@ -3,9 +3,10 @@ import { Button } from "antd";
 import React, { memo, useLayoutEffect, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 
-import { CardMeta, forbidden, forbidden_408, getCardImgUrl } from "@/api";
+import { CardMeta, forbidden, forbidden_408 } from "@/api";
 import { useConfig } from "@/config";
 import { useMobileInterface } from "@/hook";
+import { useCardImage, useNearViewport } from "@/hook/useCardImage";
 import { useI18N } from "@/ui/I18N";
 import { deckMessages } from "@/variant/deckMessages";
 
@@ -102,6 +103,10 @@ export const DeckCard: React.FC<{
     useLayoutEffect(() => {
       drag(mobile ? handleRef : ref);
     }, [drag, mobile, reorderMode]);
+    // A search page mounts ~200 cards: fetch only those near the visible part
+    // of the scroll area instead of everything native lazy-loading prefetches.
+    const near = useNearViewport(ref);
+    const image = useCardImage(value.id, false, near);
     const [loadedCode, setLoadedCode] = useState<number | null>(null);
     const showText = loadedCode !== value.id;
     const limitCnt = is408 ? forbidden_408.get(value) : forbidden.get(value);
@@ -152,10 +157,9 @@ export const DeckCard: React.FC<{
           <img
             className={styles.cardcover}
             data-card-image
-            src={getCardImgUrl(value.id)}
+            src={image}
             alt=""
             draggable={false}
-            loading="lazy"
             decoding="async"
             style={{ opacity: showText ? 0 : 1 }}
             onLoad={() => setLoadedCode(value.id)}

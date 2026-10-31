@@ -7,6 +7,7 @@ import { duelPresentationReady } from "@/service/duel/presentation";
 import { cardStore, matStore, roomStore } from "@/stores";
 import { useI18N } from "@/ui/I18N";
 import { CardInformationLayer } from "@/ui/Shared/CardInformation";
+import boardArea from "@/ui/Shared/DuelShell/boardArea.module.scss";
 
 import { Bg } from "../Bg";
 import { Card } from "../Card";
@@ -60,7 +61,7 @@ export const Mat: React.FC = () => {
   return (
     <div
       ref={viewport}
-      className={styles.viewport}
+      className={boardArea.viewport}
       data-testid="duel-board-viewport"
       data-view-controller={flipped ? 1 : matStore.isMe(0) ? 0 : 1}
     >

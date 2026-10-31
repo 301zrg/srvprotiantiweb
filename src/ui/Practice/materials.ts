@@ -1,4 +1,4 @@
-import type { SceneCard, SceneFrame, Spot } from "../Replay/scene";
+import type { SceneCard, SceneFrame, Spot } from "@/ui/Shared/DuelBoard/scene";
 
 export interface PracticeMaterial {
   card: SceneCard;

@@ -146,7 +146,7 @@ try {
     for (const [language, label] of [["cn", "简体中文"], ["en", "English"], ["ja", "日本語"], ["ko", "한국어"]]) {
       if (language !== "cn") {
         await page.evaluate(() => window.__results.openSettingPanel({ defaultKey: "language" }));
-        await page.locator(".ant-modal:visible .ant-select").click();
+        await page.locator(".ant-modal:visible [data-testid=\"settings-section-language\"] .ant-select").click();
         await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: label }).click();
         await expect.poll(() => page.evaluate(() => localStorage.getItem("language"))).toBe(language);
         await page.getByTestId("settings-close").click();
@@ -177,7 +177,7 @@ try {
       ["ja", "日本語", "効果リセット"], ["ko", "한국어", "효과 초기화"],
     ]) {
       await page.evaluate(() => window.__results.openSettingPanel({ defaultKey: "language" }));
-      await page.locator(".ant-modal:visible .ant-select").click();
+      await page.locator(".ant-modal:visible [data-testid=\"settings-section-language\"] .ant-select").click();
       await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: label }).click();
       await expect.poll(() => page.evaluate(() => localStorage.getItem("language"))).toBe(language);
       await page.getByTestId("settings-close").click();

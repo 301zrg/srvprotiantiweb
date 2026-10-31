@@ -1,48 +1,30 @@
 import { ygopro } from "@/api";
-import { isMe } from "@/stores";
+import { cardPose } from "@/ui/Shared/DuelBoard/geometry";
 
+import { onlineSpot } from "../../boardSpot";
 import { matConfig } from "../../css";
 import type { MoveFunc } from "./types";
 import { asyncStart, getDuration } from "./utils";
 
-const { REMOVED } = ygopro.CardZone;
-
 export const moveToOutside: MoveFunc = async (props) => {
-  const {
-    BLOCK_WIDTH,
-    SPELL_ROW_Y,
-    COL_GAP,
-    ROW_GAP,
-    CARD_HEIGHT_O,
-    BLOCK_OUTSIDE_OFFSET_X,
-    CARD_RATIO,
-  } = matConfig;
   const { card, api, signal } = props;
-  const { zone, controller, position, sequence } = card.location;
-
-  let x =
-      BLOCK_WIDTH * 2.5 +
-      COL_GAP * 2 +
-      BLOCK_OUTSIDE_OFFSET_X +
-      CARD_HEIGHT_O * CARD_RATIO * 0.5,
-    y = SPELL_ROW_Y;
-  if (zone === REMOVED) y -= ROW_GAP + CARD_HEIGHT_O;
-  if (!isMe(controller)) {
-    x = -x;
-    y = -y;
-  }
+  const { x, y, z, height, rz, ry, zIndex } = cardPose(matConfig, {
+    spot: onlineSpot(card.location)!,
+    faceDown: card.location.position === ygopro.CardPosition.FACEDOWN,
+  });
   await asyncStart(
     api,
     signal,
   )({
     x,
     y,
-    z: 0,
-    height: CARD_HEIGHT_O,
-    rz: isMe(controller) ? 0 : 180,
-    ry: [ygopro.CardPosition.FACEDOWN].includes(position) ? 180 : 0,
+    // Stacking depth by sequence: the newest GY/banished card stays on top.
+    z,
+    height,
+    rz,
+    ry,
     subZ: 100,
-    zIndex: sequence,
+    zIndex,
     config: {
       duration: getDuration(),
       clamp: true,

@@ -9,7 +9,13 @@ import { AnimationConfig } from "./animation";
 import { AudioConfig } from "./audio";
 import { normalizeSetting, SettingConfig } from "./config";
 
-export type { HistoryOrder, RandomRpsMode, ServerMessageMode } from "./config";
+export type {
+  ChatOrder,
+  HistoryOrder,
+  HistoryStyle,
+  RandomRpsMode,
+  ServerMessageMode,
+} from "./config";
 
 /** 将设置保存到本地 */
 const NEO_SETTING_CONFIG = storageKey("__neo_setting_config__");
@@ -49,6 +55,10 @@ class SettingStore implements NeosStore {
   replayAutoPlay = defaultSetting.replayAutoPlay;
   controlPanelSide = defaultSetting.controlPanelSide;
   historyOrder = defaultSetting.historyOrder;
+  historyStyle = defaultSetting.historyStyle;
+  chatOrder = defaultSetting.chatOrder;
+  spectatorKeepSeat = defaultSetting.spectatorKeepSeat;
+  showZoneIndexes = defaultSetting.showZoneIndexes;
 
   /** Compatibility for older callers; persistence uses serverMessageMode only. */
   get showServerMessages() {
@@ -85,6 +95,10 @@ class SettingStore implements NeosStore {
     this.replayAutoPlay = defaultSetting.replayAutoPlay;
     this.controlPanelSide = defaultSetting.controlPanelSide;
     this.historyOrder = defaultSetting.historyOrder;
+    this.historyStyle = defaultSetting.historyStyle;
+    this.chatOrder = defaultSetting.chatOrder;
+    this.spectatorKeepSeat = defaultSetting.spectatorKeepSeat;
+    this.showZoneIndexes = defaultSetting.showZoneIndexes;
     this.confirmOperations = defaultSetting.confirmOperations;
   }
 }
@@ -111,6 +125,10 @@ subscribe(settingStore, () => {
             "replayAutoPlay",
             "controlPanelSide",
             "historyOrder",
+            "historyStyle",
+            "chatOrder",
+            "spectatorKeepSeat",
+            "showZoneIndexes",
             "confirmOperations",
           ]),
         ),

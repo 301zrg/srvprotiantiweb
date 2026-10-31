@@ -5,8 +5,8 @@ import { proxy, useSnapshot } from "valtio";
 import { fetchStrings, Region, ygopro } from "@/api";
 import { cardStore, CardType } from "@/stores";
 import { useI18N } from "@/ui/I18N";
-import { replayCardWords } from "@/ui/Replay/cardState";
 import { ChainTag, YgoCard } from "@/ui/Shared";
+import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { previewMessages } from "@/variant/previewMessages";
 

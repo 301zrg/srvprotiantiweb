@@ -27,9 +27,9 @@ import {
 } from "@/stores/fieldSelectionStore";
 import { showCardModal as displayCardModal } from "@/ui/Duel/Message/CardModal";
 import { useI18N } from "@/ui/I18N";
-import { replayCardWords } from "@/ui/Replay/cardState";
 import { YgoCard } from "@/ui/Shared";
 import { counterDescription } from "@/ui/Shared/CardInformation";
+import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
 import { fieldPosition, fieldPositionLabel } from "@/variant/fieldSelection";
 import { previewMessages } from "@/variant/previewMessages";
 

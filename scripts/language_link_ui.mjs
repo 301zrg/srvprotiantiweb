@@ -44,7 +44,8 @@ try {
       if (lang === "en" || lang === "ko") assert.ok(!/[\u4e00-\u9fff]/.test(note));
       await page.getByTestId("open-settings").click();
       const settings = page.locator(".ant-modal-content");
-      await expect(settings.getByRole("tab").first()).toHaveText(lang === "zh" ? /音频/ : lang === "en" ? /Audio/ : lang === "ja" ? /オーディオ/ : /소리/);
+      // Settings open on the sound group; its heading follows the language.
+      await expect(settings.getByTestId("settings-section-audio").locator("h3")).toHaveText(lang === "zh" ? /声音/ : lang === "en" ? /Sound/ : lang === "ja" ? /サウンド/ : /소리/);
       await page.getByTestId("settings-close").click();
       await page.locator('nav a[href="#/build"]').click();
       await expect(page.getByTestId("deck-name")).toBeVisible();

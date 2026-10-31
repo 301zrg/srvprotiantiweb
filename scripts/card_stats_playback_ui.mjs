@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { replayControl } from "./replay_controls.mjs";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { chromium, expect } from "@playwright/test";
@@ -208,9 +209,10 @@ try {
             side === "left" ? rail.right <= board.x : rail.x >= board.right,
             "The board leaves space on the selected side",
           );
-          await page.evaluate(() => {
-            window.__followup.stores.matStore.hint.msg = "Stats fixture";
-          });
+          // A fresh hint per side: the 2 s notice must not depend on timing.
+          await page.evaluate((side) => {
+            window.__followup.stores.matStore.hint.msg = `Stats fixture ${side}`;
+          }, side);
           await expect(
             page.getByTestId("duel-feedback").locator(".ant-message-notice"),
           ).toBeVisible();
@@ -349,19 +351,19 @@ try {
   await page.getByRole("button", { name: "播放", exact: true }).click();
   await expect(
     page
-      .locator(".replay-controls")
+      .getByTestId("duel-menu")
       .getByRole("button", { name: "暂停", exact: true }),
   ).toBeVisible({ timeout: 60000 });
   await expect
     .poll(() => page.evaluate(() => window.__stats.lastReplay?.step ?? 0))
     .toBeGreaterThan(0);
   await page
-    .locator(".replay-controls")
+    .getByTestId("duel-menu")
     .getByRole("button", { name: "暂停", exact: true })
     .click();
   await page.evaluate(() => window.__stats.speed(4));
   await expect(
-    page.locator(".replay-controls .ant-select-selection-item").first(),
+    page.getByTestId("duel-menu").locator(".ant-select-selection-item").first(),
   ).toHaveText("4×");
   await page.waitForTimeout(700);
   const pausedStep = await page.evaluate(() => window.__stats.lastReplay.step);
@@ -370,18 +372,18 @@ try {
     await page.evaluate(() => window.__stats.lastReplay.step),
     pausedStep,
   );
-  await page.getByRole("button", { name: "重新开始", exact: true }).click();
+  await replayControl(page, "重新开始");
   await expect(page.locator(".replay-progress")).toContainText("步骤 0");
   await expect(
     page
-      .locator(".replay-controls")
+      .getByTestId("duel-menu")
       .getByRole("button", { name: "继续播放", exact: true }),
   ).toBeVisible();
   await page.evaluate(() => {
     window.__stats.autoplay(false);
     window.__stats.replayMock = true;
   });
-  await page.getByRole("button", { name: "退出播放", exact: true }).click();
+  await replayControl(page, "退出播放");
   await page.getByRole("button", { name: "播放", exact: true }).click();
   await expect(page.locator(".replay-progress")).toContainText("步骤 0");
   await page.waitForTimeout(900);

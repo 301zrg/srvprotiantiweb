@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { replayControl } from "./replay_controls.mjs";
 import { preview } from "vite";
 import { chromium, expect } from "@playwright/test";
 const server = await preview({
@@ -129,7 +130,7 @@ try {
   await expect(page.locator(".replay-progress")).toContainText("步骤 0", {
     timeout: 60000,
   });
-  await page.getByRole("button", { name: "列表视图", exact: true }).click();
+  await replayControl(page, "列表视图");
   await page.locator('.replay-card[data-location="16"]').first().click();
   await check("Replay grave identity", () =>
     expect(

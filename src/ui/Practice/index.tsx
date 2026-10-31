@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
-import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
+import { fetchCard, fetchStrings, Region } from "@/api";
 import { useMediaQuery } from "@/hook";
 import { passPracticeChain } from "@/practice/chain";
 import type { PracticeConfig } from "@/practice/engine";
@@ -36,9 +36,12 @@ import { deckStore } from "@/stores/deckStore";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
-import { CardCounters, RelatedCards } from "@/ui/Shared/CardInformation";
-import { CardStatsDetails } from "@/ui/Shared/CardStats";
-import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
+import { CardDetailContent } from "@/ui/Shared/DuelBoard/CardDetail";
+import { positionLabel } from "@/ui/Shared/DuelBoard/cardState";
+import {
+  sceneInformationCards,
+  sceneInformationId,
+} from "@/ui/Shared/DuelBoard/sceneInformation";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { corePhaseKey } from "@/variant/duelPhases";
@@ -52,16 +55,10 @@ import {
 import { mobileMessages } from "@/variant/mobileMessages";
 import { practiceProfile } from "@/variant/practice";
 import { previewFormat, previewMessages } from "@/variant/previewMessages";
-import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import feedbackStyles from "../Duel/Message/HintNotification/index.module.scss";
 import { NeosModal } from "../Duel/Message/NeosModal";
 import { PhaseBar } from "../Duel/PhaseBar";
-import {
-  sceneInformationCards,
-  sceneInformationId,
-} from "../Replay/cardInformation";
-import { positionLabel } from "../Replay/cardState";
 import { PracticeBoard } from "./Board";
 import { PracticeChoices } from "./Choices";
 import { PracticeHistory } from "./History";
@@ -290,13 +287,6 @@ export const Component = () => {
       data-testid="practice-page"
       data-prompt-minimized={promptMinimized && promptOpen}
     >
-      <div
-        ref={feedbackContainer}
-        className={`${feedbackStyles.feedback} practice-feedback`}
-        data-testid="practice-feedback"
-      >
-        {feedbackHolder}
-      </div>
       {scene && (
         <PracticeBoard
           frame={scene}
@@ -371,6 +361,15 @@ export const Component = () => {
             )}
           </div>
         )}
+        {/* Landscape: a fixed slot in the rail, as in the online sidebar.
+            Portrait: fixed above the life bars. */}
+        <div
+          ref={feedbackContainer}
+          className={`${feedbackStyles.feedback} practice-feedback`}
+          data-testid="practice-feedback"
+        >
+          {feedbackHolder}
+        </div>
         <div className="practice-session-controls">
           <Button
             data-testid="practice-setup"
@@ -537,6 +536,31 @@ export const Component = () => {
             >
               {fetchStrings(Region.System, 1211)}
             </Button>
+          ) : request && selection ? (
+            // As online: board taps keep editing the draft, so it can be
+            // confirmed (or cancelled) without reopening the window.
+            <>
+              {request.cancelable && (
+                <Button
+                  className="practice-mini-cancel"
+                  data-testid="practice-mini-cancel"
+                  disabled={responding}
+                  onClick={() => answer(request, -1)}
+                >
+                  {t("Cancel")}
+                </Button>
+              )}
+              <Button
+                type="primary"
+                data-testid="practice-mini-submit"
+                disabled={
+                  responding || !encodePracticeAnswer(request, selected)
+                }
+                onClick={() => answer(request, selected)}
+              >
+                {t("Confirm")}
+              </Button>
+            </>
           ) : undefined
         }
         centered
@@ -644,64 +668,56 @@ export const Component = () => {
         width="min(400px, 36vw)"
       >
         {!!detailCode && (
-          <>
-            <div className="card-stat-overview">
-              <img
-                className="practice-detail-image"
-                src={getCardImgUrl(detailCode)}
-                alt={card?.text.name || ""}
-              />
-              {!!(((card?.data.type ?? 0) | (inspected?.type ?? 0)) & 1) && (
-                <CardStatsDetails
-                  language={language}
-                  live={
-                    !!inspected &&
-                    [4, 8].includes(inspected.location) &&
-                    !!(inspected.position & 5) &&
-                    !!(inspected.type & 1)
-                  }
-                  stats={{
+          <CardDetailContent
+            code={detailCode}
+            language={language}
+            imageClassName="practice-detail-image"
+            descriptionClassName="practice-description"
+            stats={
+              ((card?.data.type ?? 0) | (inspected?.type ?? 0)) & 1
+                ? {
                     ...inspected,
                     printedAttack: card?.data.atk,
                     printedDefense: card?.data.def,
                     hasDefense: !(
                       (inspected?.type ?? card?.data.type ?? 0) & 0x4000000
                     ),
-                  }}
-                />
-              )}
-            </div>
-            <CardIdentityDetails
-              code={detailCode}
-              current={
-                inspected && inspected.currentCode !== undefined
-                  ? inspected
-                  : undefined
-              }
-              language={language}
-            />
-            {inspected && (
-              <>
-                <p>{positionLabel(inspected, language)}</p>
-                <CardCounters counters={inspected.counters} />
-                <RelatedCards
-                  id={sceneInformationId(session.scene?.cards ?? [], inspected)}
-                  cards={sceneInformationCards(
-                    session.scene?.cards ?? [],
-                    language,
-                    0,
-                    true,
-                  )}
-                  language={language}
-                  onLocate={() => setInspected(undefined)}
-                />
-              </>
-            )}
-            <strong className="card-printed-description-label">
-              {statsPlaybackMessages(language).printed}
-            </strong>
-            <p className="practice-description">{card?.text.desc}</p>
-          </>
+                  }
+                : undefined
+            }
+            live={
+              !!inspected &&
+              [4, 8].includes(inspected.location) &&
+              !!(inspected.position & 5) &&
+              !!(inspected.type & 1)
+            }
+            counters={inspected?.counters}
+            identity={
+              inspected && inspected.currentCode !== undefined
+                ? inspected
+                : undefined
+            }
+            related={
+              inspected
+                ? {
+                    id: sceneInformationId(
+                      session.scene?.cards ?? [],
+                      inspected,
+                    ),
+                    cards: sceneInformationCards(
+                      session.scene?.cards ?? [],
+                      language,
+                      0,
+                      true,
+                    ),
+                    onLocate: () => setInspected(undefined),
+                  }
+                : undefined
+            }
+            description={card?.text.desc}
+          >
+            {inspected && <p>{positionLabel(inspected, language)}</p>}
+          </CardDetailContent>
         )}
         <Button
           onClick={() => {

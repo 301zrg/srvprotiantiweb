@@ -5,5 +5,6 @@ declare const classNames: {
   readonly pageHeading: "pageHeading";
   readonly roomDirectory: "roomDirectory";
   readonly roomRulesLink: "roomRulesLink";
+  readonly fillLadderRoom: "fillLadderRoom";
 };
 export = classNames;

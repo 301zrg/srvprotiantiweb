@@ -9,7 +9,7 @@ try {
   const { CardStore } = await vite.ssrLoadModule('/src/stores/cardStore.ts');
   const { ygopro } = await vite.ssrLoadModule('/src/api/ocgcore/idl/ocgcore.ts');
   const { parseQuery } = await vite.ssrLoadModule('/src/replay/messages.ts');
-  const { seedScene, sceneSteps } = await vite.ssrLoadModule('/src/ui/Replay/scene.ts');
+  const { seedScene, sceneSteps } = await vite.ssrLoadModule('/src/ui/Shared/DuelBoard/scene.ts');
   const cards = [{ id: 'equip', equipTarget: 'm' }, { id: 'trap', cardTargets: ['m', 'n'] }, { id: 'm' }, { id: 'n' }];
   assert.deepEqual(relatedCardLinks(cards, 'm').map(e => [e.source, e.target, e.kind]), [['equip', 'm', 'equip'], ['trap', 'm', 'card']]);
   assert.equal(relatedCardLinks(cards, 'trap').length, 2);

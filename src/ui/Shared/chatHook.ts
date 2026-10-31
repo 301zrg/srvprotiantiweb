@@ -18,8 +18,13 @@ interface ChatItem {
   isServer: boolean;
 }
 
-export const useChat = (isDuel: boolean = false) => {
-  const { hidePlayerIds } = useSnapshot(settingStore);
+export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
+  const { hidePlayerIds, chatOrder, historyOrder } = useSnapshot(settingStore);
+  // Duel, spectating and side-deck chats follow the order setting.
+  const newestFirst =
+    ordered &&
+    (chatOrder === "newest" ||
+      (chatOrder === "history" && historyOrder === "newest"));
   const container = getUIContainer();
   const [chatList, setChatList] = useState<ChatItem[]>([]);
   const [input, setInput] = useState<string | undefined>(undefined);
@@ -27,11 +32,11 @@ export const useChat = (isDuel: boolean = false) => {
   /** 滚动条的ref */
   const ref = useRef<OverlayScrollbarsComponentRef<"div">>(null);
 
-  /** dialogs 滚动到最底下 */
-  const scrollToBottom = () => {
+  /** Scroll to the newest message: the bottom, or the top when newest first. */
+  const scrollToLatest = () => {
     const viewport = ref.current?.osInstance()?.elements().viewport;
     if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
+      viewport.scrollTop = newestFirst ? 0 : viewport.scrollHeight;
     }
   };
 
@@ -86,22 +91,29 @@ export const useChat = (isDuel: boolean = false) => {
           isServer: sender === 8 || (sender >= 11 && sender <= 19),
         },
       ]);
-      scrollToBottom();
+      scrollToLatest();
     }
   }, [chat]);
 
-  const dialogs = useMemo(
-    () =>
-      chatList.map((item) => ({
-        ...item,
-        name: item.isServer
-          ? item.name
-          : displayPlayerId(item.name, hidePlayerIds),
-      })),
-    [chatList, hidePlayerIds],
-  );
+  // Switching the order jumps to the newest message as well.
+  useEffect(() => {
+    requestAnimationFrame(scrollToLatest);
+  }, [newestFirst]);
+
+  const dialogs = useMemo(() => {
+    const list = chatList.map((item) => ({
+      ...item,
+      name: item.isServer
+        ? item.name
+        : displayPlayerId(item.name, hidePlayerIds),
+    }));
+    return newestFirst ? list.reverse() : list;
+  }, [chatList, hidePlayerIds, newestFirst]);
   return {
     dialogs,
+    /** Newest message whatever the display order (for notifications). */
+    latest: newestFirst ? dialogs[0] : dialogs.at(-1),
+    newestFirst,
     input,
     setInput,
     ref,

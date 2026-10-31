@@ -133,11 +133,13 @@ try {
     ])));
     const geometry = () => page.getByTestId("side-scroll-area").evaluate((element) => {
       const card = element.querySelector('[data-testid="deck-card"]');
-      const sidebar = document.querySelector('[data-testid="waitroom-chat"]').parentElement;
+      // Compact layouts move chat into an overlay panel, so there may be no column.
+      const sidebar = document.querySelector('[data-testid="waitroom-chat"]')?.parentElement;
       return { top: element.scrollTop, width: element.clientWidth, height: element.clientHeight,
         cardWidth: card.getBoundingClientRect().width, cardHeight: card.getBoundingClientRect().height,
-        sidebarWidth: sidebar.getBoundingClientRect().width, sidebarBasis: getComputedStyle(sidebar).flexBasis,
-        sidebarVariable: getComputedStyle(sidebar).getPropertyValue("--sider-width") };
+        sidebarWidth: sidebar ? sidebar.getBoundingClientRect().width : null,
+        sidebarBasis: sidebar ? getComputedStyle(sidebar).flexBasis : null,
+        sidebarVariable: sidebar ? getComputedStyle(sidebar).getPropertyValue("--sider-width") : null };
     });
     const uploads = () => page.evaluate(() => window.__sideTransport.packets.filter(({ bytes }) => bytes[2] === 2));
     async function move(source, id) {
@@ -163,7 +165,10 @@ try {
       const beforeChat = await geometry();
       const longNotice = 'Synthetic server notice ' + 'long-message-'.repeat(80);
       await page.evaluate((text) => window.__sideTransport.sockets[0].chat(text), longNotice);
-      await expect(page.getByTestId('waitroom-chat')).toContainText(longNotice);
+      // Compact layouts keep chat in a closed overlay; the unread badge proves delivery.
+      if (await page.getByTestId("side-chat").count())
+        await expect(page.locator(".ant-badge", { has: page.getByTestId("side-chat") }).locator(".ant-badge-count")).toBeVisible();
+      else await expect(page.getByTestId('waitroom-chat')).toContainText(longNotice);
       assert.deepEqual(await geometry(), beforeChat, 'Chat text must not squeeze the Side editor');
       if (submitted) await page.getByTestId("side-confirm").click();
       await page.getByTestId("side-scroll-area").evaluate((element) => { element.scrollTop = 120; });

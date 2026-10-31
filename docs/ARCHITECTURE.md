@@ -1,8 +1,81 @@
 # 当前架构与数据流
 
-更新：2026-10-22。本轮候选以生产提交 `7b636941` 为基线，新增本地练习和录像卡组提取；仅测试预览。
-本文描述源码边界，不断言正式站点今天的部署版本。功能和测试状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，
+更新：2026-10-26。本文描述源码边界，不断言正式站点今天的部署版本。功能和测试状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，
 设计理由见 [设计文档](../YGOPro_706_Web_Client_Design.md)。
+
+## 共享牌桌
+
+联机／观战、录像和测试手牌使用同一套牌桌几何与场面构件；三种模式各自保留数据来源、请求、动画驱动和外壳。
+2026-10-25 用户确认录像改为与联机相同的牌桌外观，2026-10-26 确认实施范围并要求一次发布到固定测试版；正式合入另行授权。
+实现基于 `deploy/cloudflare` 的 `db49ec6b`，分支 `codex/shared-duel-board-20261025`。
+
+| 共享入口 | 内容 | 使用者 |
+| --- | --- | --- |
+| [geometry.ts](../src/ui/Shared/DuelBoard/geometry.ts) | 纯函数：布局参数（横屏／≥700×600 加大行距／MR4+）、区域外框 `zoneRect`、卡片姿态 `cardPose`（场地、手牌扇形、牌堆、素材扇形）、CSS 变量和适配缩放 | 在线 springs 与 `Bg`、`SceneBoard`、几何回归 |
+| [ZoneBlock.tsx](../src/ui/Shared/DuelBoard/ZoneBlock.tsx) | 无状态区域块、牌堆数量角标、禁用叉号；样式在 [index.module.scss](../src/ui/Shared/DuelBoard/index.module.scss) | 在线 `Bg`、`SceneBoard` |
+| [SceneBoard.tsx](../src/ui/Shared/DuelBoard/SceneBoard.tsx)、[BoardCard.tsx](../src/ui/Shared/DuelBoard/BoardCard.tsx) | 离线平面牌桌：区域、牌堆、连锁标记、素材扇形及练习素材收集暂存；卡片按共享姿态摆放 | 测试手牌、录像 |
+| [CardDetail.tsx](../src/ui/Shared/DuelBoard/CardDetail.tsx) | 详情正文：卡图、攻守表、指示物、身份对照、关联卡片、卡面原文 | 在线 `CardModal`、练习与录像抽屉 |
+| [scene.ts](../src/ui/Shared/DuelBoard/scene.ts)、[sceneInformation.ts](../src/ui/Shared/DuelBoard/sceneInformation.ts)、[cardState.ts](../src/ui/Shared/DuelBoard/cardState.ts)、[sceneWords.ts](../src/ui/Shared/DuelBoard/sceneWords.ts) | 离线场面步骤、Core 位置到牌桌位置的 `sceneSpot`、信息投影、表示形式与隐藏规则、四语动作文案 | 测试手牌、录像 |
+
+在线 [boardSpot.ts](../src/ui/Duel/PlayMat/boardSpot.ts) 把在线区域枚举和控制者转为 `BoardSpot`；离线 `sceneSpot` 转换 Core 位掩码。
+几何不读 store、不写 DOM。在线 [css.ts](../src/ui/Duel/PlayMat/css.ts) 仅是兼容层：`matConfig` 只由在线 Mat 更新并写入 body 变量；
+离线牌桌各自计算几何并把变量写在自己的根节点，不修改在线布局。`Bg` 在 `neos:duel-layout` 时重算区域位置。
+
+仍各自独立：
+
+- **数据与请求：** 在线 service／stores 与 `actionRequest`；练习 Worker 请求与草稿；录像只检查并暂停。共享构件只回调卡片或区域。
+- **动画：** 在线 react-spring、连接取消与逐消息等待不变；离线用 CSS 过渡及录像到达／离开动画（`translate` 叠加在共享姿态上，速度随倍速）。
+- **外壳：** 联机侧栏、练习操作栏、录像工具栏／缩放／列表视图／牌堆抽屉。
+- **可见性：** 在线进入共享层前已执行隐藏规则；录像沿用 reveal，练习双方可见。
+
+在线牌桌的平面倾角为 0，离线牌桌不使用 `preserve-3d`，以 z-index 叠放（场地与素材在下、手牌在上），外观一致且避免旧 iPad 的 3D 合成开销。
+响应式判断沿用与联机相同的视口查询（宽屏侧栏、≥700×600），作为参数传入几何；录像缩放只放大画布并滚动，不改变几何。
+录像在桌面大屏不受 1.2 倍上限，保持占满可用区域；离线小牌堆以透明扩展区保持 44 px 宽的触控目标，纵向不越过相邻牌堆间隙。
+
+卡片标注层（指示物、关联连线、卡下攻守）仅在牌桌 DOM 变化、尺寸或数据变化后测量，最多 30 ms 一次；
+离线 CSS 卡片移动期间逐帧跟随，结束即停，忽略无限循环动画。
+
+验证：`test:board-geometry` 以 1,200 个姿态用例核对共享几何与原在线公式完全一致（各布局、双方、素材层与牌堆），
+并核对区域镜像与离线位掩码映射。`test:replay-scene` 比较完整 Core 字段，展示关系另行断言。浏览器回归、真机与完整联机状态见 [PROJECT_STATUS](PROJECT_STATUS.md)。
+
+### 共享对局外壳
+
+录像播放页与联机对局使用同一对局外壳（[DuelShell](../src/ui/Shared/DuelShell/)），双方只提供数据与按钮：
+
+| 共享件 | 内容 | 联机 | 录像 |
+| --- | --- | --- | --- |
+| `SidebarFrame` | 宽屏侧栏（控件区、反馈位、记录标签与展开）；竖屏原位渲染；面板停靠所需的 CSS 位置变量 | 生命值、回合说明、操作菜单、记录／聊天 | 生命值、录像状态、录像菜单、操作记录 |
+| `LifeBarView` | 双方名字、LP 动画、可选计时与附加行 | 在线状态与计时 | 当前帧 LP、手牌数，无计时 |
+| `DuelBackground` | 对局底层，按“当前回合是否下方玩家”着色 | 在线回合／观战视角 | 当前帧回合玩家与视角 |
+| `MenuFrame` | 工具栏容器、阶段条位置、侧栏两列网格；发布 `--duel-menu-height` | 联机按钮 | 录像按钮（只读阶段条） |
+| `boardArea` | 牌桌区避开侧栏或上下栏 | `Mat` | `SceneBoard` |
+
+在线计时、阶段响应、聊天和选择仍只在联机侧。录像侧栏在正常高度显示常用操作及跳到回合，其余（列表视图、恢复大小、下载、提取卡组、设置）与竖屏／短横屏的非常用操作一起放进“更多”面板；面板为停靠式，不用下拉菜单，短屏也能全部点击。
+播放时隐藏网站顶栏（仅 `/replays?id=`，录像库保留），“退出播放”回到录像库并结束 Worker。旋转、切换列表视图或开关面板只改变布局，不重建 Worker，也不恢复播放（`test:replay-shell-ui`）。
+
+### 共享操作记录
+
+三种模式的操作记录使用同一行样式（[DuelHistory](../src/ui/Shared/DuelHistory/index.tsx)）：卡图可点开各自的详情，
+操作图标与来源／去向区域（含格位，如“怪兽区 3”“额外怪兽区”“场地区”），每行带 `T回合 · 阶段 · 玩家` 标记。
+回合开始与进入战斗阶段单独成行，其他阶段只在标记中体现；LP 增减与抽卡为文字行，宣言／结果和胜负沿用公告框。
+
+| 来源 | 转换 | 卡片详情 |
+| --- | --- | --- |
+| 联机 `historyStore` | 处理函数写入时附带当前回合／阶段；新增回合、战斗阶段、LP、抽卡、表示形式、攻击与胜负，召唤／盖放记录目标格位；行内转换，store 条目保持引用以便逐行缓存 | `CardModal` |
+| 录像 Worker 帧的原始 Core 消息 | [convert.ts](../src/ui/Shared/DuelHistory/convert.ts) `eventHistoryEntries` 按顺序行走，游标随回合／阶段消息推进，每帧末以帧回合校正；重新开始／回跳时清空 | 只读详情抽屉 |
+| 练习场面步骤 | `sceneHistoryEntry`；攻击方卡号取自步骤卡片 | 练习详情 |
+
+在线信息不变：对方里侧卡仍为卡背，不显示卡号。
+
+“操作记录显示方式”为文字时（设置默认“自动”：手机界面文字、电脑图文），同一组件把每行改为一行文字：标记、卡名（仍可点开详情，里侧卡显示“里侧卡”）、操作、来源 → 去向；不加载卡图和图标。时间线按设置和 `useMobileInterface` 计算一次，经 context 传给已缓存的行，行本身不各自监听。
+
+联机计时（[duelClock](../src/variant/duelClock.ts)）按 YGOPro 的 time_left／time_player：每方保存服务端剩余秒数与包到达时间（在 `ConnectionControl` 按网络顺序记录，不受动画队列延迟），只有服务端正在等待的一方倒数，显示由校准点与实际经过时间计算，定时器只负责刷新。每个 `TIME_LIMIT` 都重新校准（含与上次相同的 180 秒），我方提交响应即停表，新回合双方恢复为房间时限，重连后在服务端重新校准前不显示。SRVPro 心跳会发双方 0 秒的 `TIME_LIMIT`，只用于确认、不作校准。观战连接收不到 `TIME_LIMIT`，因此观战不显示计时。双方时间始终显示，计时方高亮，与回合高亮分开；圆环按房间实际时限计算。判负与补时仍以服务端为准。
+
+卡图（[cardImageCache](../src/api/cardImageCache.ts)、`useCardImage`）：图源入口返回 `302 + no-store` 并跳转到不同的 CDN 节点，浏览器 HTTP 缓存经常重复下载同一张卡。最终图片允许 CORS，因此以入口地址（含图片语言）为键，把压缩文件存入 Cache Storage（`card-images-v1`）：最多约 600 张、先进先出，来源用量超过配额 60% 时停止写入；相同图片的并发请求合并，同时最多 12 个下载，失败的卡 60 秒内交给浏览器直接加载。运行时只保留引用计数的对象 URL 与 150 个空闲 URL，解码像素由页面元素负责。组卡卡片在进入滚动区域附近 400 px 内才加载。缓存不可用时回退到原地址；“画面与消息”可单独清理卡图缓存，不影响卡组、录像和联机输入。
+
+Match 局数（[matchGame](../src/variant/matchGame.ts)）按 MSG_START 计数，离开房间清零；观战重连清零后随服务端补发的整场历史重新计数，对战玩家对局中重连跳过补发的那一次。
+
+联机音效（`audioContextManger.playEffect`）只使用一个效果 AudioContext 和缓存的解码结果，由任意点击／触摸／按键解锁；未处于运行状态时直接丢弃该音效，不排队。此前每个音效新建一个 context，iOS 在无手势时保持暂停，下一次触摸会把积压的音效一次播完，暂停的 context 也不会释放。最多同时 6 个声音，解码超过 600 ms 的音效丢弃。背景音乐不在此范围。
 
 ## 组件与数据归属
 
@@ -16,7 +89,7 @@ flowchart TB
   subgraph Browser["浏览器：srvprotiantiweb"]
     Router["HashRouter + 页面懒加载"] --> UI["React / Ant Design UI"]
     UI --> Join["Match 会话<br/>冻结身份 / 房间 / G1 卡组"]
-    UI --> SharedDisplay["共享纯展示<br/>PhaseBar / 卡图 / 响应式几何"]
+    UI --> SharedDisplay["共享牌桌与纯展示<br/>几何 / 区域 / 卡面 / 详情 / PhaseBar"]
     Join --> Transport["WebSocketStream<br/>连接生命周期 / 保序队列"]
     Transport --> Adapter["YGOPro 帧解析 / 适配器<br/>内部 protobuf 对象"]
     Adapter --> Services["service 房间 / 对局 / 换备"]
@@ -55,7 +128,7 @@ Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二�
 
 `variant/webEntry` 解析公开 intent，`webEntrySession` 在资源加载前消费链接，并按现有运营来源名单完成一次性 postMessage 账号交接；`ui/WebEntry` 复用既有列表与 Match 表单，不引入新连接服务。带账号观战仅持久化完整身份、清空普通房间号，目标房间仍为临时输入；匿名入口继续恢复旧草稿。参数、来源校验和发送端示例见 [快捷入口](web-entry.md)。
 
-阶段栏与原菜单共用 `variant/duelPhases.ts`，依据当前请求来源、回合归属与 Core 标志禁用不可进入的阶段。`PhaseState.command` 仅在 idle／battle 请求期间有效，提交、失效、新阶段或其他选择会清除；响应继续经过操作所有权及确认机制。区域内部数量角标由“画面与消息”的持久化 `showZoneCounts` 控制，不影响区域列表与主卡组保密。练习共享卡图、响应式几何与 `PhaseBar` 展示，保留独立 Worker、请求及状态，不复用在线 handler 或连接。
+阶段栏与原菜单共用 `variant/duelPhases.ts`，依据当前请求来源、回合归属与 Core 标志禁用不可进入的阶段。`PhaseState.command` 仅在 idle／battle 请求期间有效，提交、失效、新阶段或其他选择会清除；响应继续经过操作所有权及确认机制。区域内部数量角标由“画面与消息”的持久化 `showZoneCounts` 控制，不影响区域列表与主卡组保密。练习与录像共享牌桌几何、区域、卡面、详情和 `PhaseBar` 展示，保留独立 Worker、请求及状态，不复用在线 handler 或连接。
 
 测试部署显式使用固定预览名称，保留同一 Origin 与浏览器存储。仅测试构建从正式站公开元数据读取当前 WSS；生产构建继续要求自己的显式环境变量。构建读取失败即中止，不写入陈旧地址。构建来源、共享入口覆盖关系与网关变更边界见 [自动部署](cloudflare-ci.md#固定测试入口与-wss)。
 
@@ -65,7 +138,7 @@ Cloudflare 主入口先将 HTTP 以 308 跳转到相同主机、路径与查询�
 
 `service/mora/feedback.ts` 将实际提交的手势与收到的胜负结果分开计数，由 Layout 中唯一 `RpsFeedback` 展示；相同平局仍是新事件，不依赖手势值是否变化。`hidePlayerIds` 仅作用于显示层，固定八个星号，不改房间原名、身份、缓存或录像。非空主／额外牌堆的数量角标深度取当前叠牌高度之上，仍归原区域和同一开关。练习双方牌堆允许完整查看，在线主卡组保密约束继续保留；位置 count=0、选择面板路由和验证契约见 [本地练习](practice.md)。
 
-在线 `MSG_REVERSE_DECK`／`MSG_DECK_TOP` 沿用原始二进制消息，经本地 adapter 扩展交给 service 更新 CardStore，不改固定 protobuf 或线上规则。整副翻转与单卡翻转独立；公开卡号单独记录，不能因翻转把隐藏缓存身份变成公开信息。联机和练习的素材仅共享扇形几何，依旧分别读取在线 CardStore 与本地 Core 查询。练习展示事件去重和最近操作历史保留在练习会话内；既有架构图的模块／连接边界不变。
+在线 `MSG_REVERSE_DECK`／`MSG_DECK_TOP` 沿用原始二进制消息，经本地 adapter 扩展交给 service 更新 CardStore，不改固定 protobuf 或线上规则。整副翻转与单卡翻转独立；公开卡号单独记录，不能因翻转把隐藏缓存身份变成公开信息。三种模式的素材共享扇形几何，依旧分别读取在线 CardStore 与本地 Core 查询。练习展示事件去重和最近操作历史保留在练习会话内；既有架构图的模块／连接边界不变。
 
 | 模块责任 | 实际入口 | 维护边界 |
 | --- | --- | --- |
@@ -81,7 +154,8 @@ Cloudflare 主入口先将 HTTP 以 308 跳转到相同主机、路径与查询�
 | 只读重演 | [worker.ts](../src/replay/worker.ts)、[engine.ts](../src/replay/engine.ts)、[Replay UI](../src/ui/Replay/index.tsx) | 固定资源、响应回灌、事件与完整查询；独立在线状态 |
 | 离线运行时与提取 | [runtime.ts](../src/replay/runtime.ts)、[extract.ts](../src/replay/extract.ts) | 共享 SHA 校验资源；提取保留原卡号顺序，不执行对局、不推测备牌 |
 | 双边本地练习 | [practice](../src/practice/)、[Practice UI](../src/ui/Practice/)、[profile](../src/variant/practice.ts) | Worker 隔离、双方响应归属和过期请求取消；不触发联机连接或修改编辑草稿 |
-| 重演展示 | [scene.ts](../src/ui/Replay/scene.ts)、[FieldBoard](../src/ui/Replay/FieldBoard.tsx)、[cardState.ts](../src/ui/Replay/cardState.ts) | 展示动作队列，每批末回到 Core 查询 |
+| 共享牌桌 | [Shared/DuelBoard](../src/ui/Shared/DuelBoard/) | 几何、区域、离线牌桌、详情正文与离线场面；不含请求或连接，见 [共享牌桌](#共享牌桌) |
+| 重演展示 | [scene.ts](../src/ui/Shared/DuelBoard/scene.ts)、[FieldBoard](../src/ui/Replay/FieldBoard.tsx) | 展示动作队列，每批末回到 Core 查询；牌桌使用共享 `SceneBoard` |
 | 固定协议来源 | [protocol-source](../protocol-source/README.md)、[生成 IDL](../src/api/ocgcore/idl/) | 保留来源 commit／许可证，日常构建不执行 protoc 或初始化 submodule |
 
 ## 卡片持续信息

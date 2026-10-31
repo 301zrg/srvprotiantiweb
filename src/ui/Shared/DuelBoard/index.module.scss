@@ -1,0 +1,101 @@
+// Zone outlines and pile counts shared by every duel board. Positions come
+// from `zoneRect`; the layer sits at the board center.
+.layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+.block {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  background-color: #ffffff1c;
+  &.highlight {
+    background: #ffffff4f;
+    cursor: pointer;
+    &:hover {
+      opacity: 0.5;
+    }
+  }
+  &.glowing {
+    --shadow-color: #13a1ff;
+    box-shadow:
+      0 0 3px 3px var(--shadow-color),
+      0 0 25px 2px #0099ff87;
+    background: var(--shadow-color);
+    border-radius: 2px;
+  }
+}
+.block[role="button"] {
+  cursor: pointer;
+}
+.block[role="button"]:focus-visible {
+  outline: 3px solid #40a9ff;
+}
+
+// 被禁用的样式
+.disabled-cross {
+  width: 100%;
+  height: 100%;
+  cursor: not-allowed;
+  background: linear-gradient(
+      to top right,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0) calc(50% - 1.5px),
+      red 50%,
+      rgba(0, 0, 0, 0) calc(50% + 1.5px),
+      rgba(0, 0, 0, 0) 100%
+    ),
+    linear-gradient(
+      to bottom right,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0) calc(50% - 1.5px),
+      red 50%,
+      rgba(0, 0, 0, 0) calc(50% + 1.5px),
+      rgba(0, 0, 0, 0) 100%
+    );
+}
+
+// Upright relative to the viewer, above the pile's stacked cards. Online
+// spectators may turn the whole board by --duel-view-rotation (as cards do,
+// the badge cancels it too, or it reads upside down after a view switch).
+.count {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(
+      calc(var(--zone-count-rotate, 0deg) - var(--duel-view-rotation, 0deg))
+    )
+    translateZ(var(--zone-count-depth, 4px));
+  z-index: 12;
+  padding: 0 5px;
+  min-width: 24px;
+  border: 1px solid #8cbfe8;
+  border-radius: 6px;
+  background: #101925e6;
+  color: #fff;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  pointer-events: none;
+}
+
+// Slot number in the bottom-right corner (cards sit in the slot's middle, so
+// the corner stays readable when occupied). Counter-rotated like the counts.
+.zoneIndex {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  transform: rotate(
+    calc(var(--zone-index-rotate, 0deg) - var(--duel-view-rotation, 0deg))
+  );
+  color: #d6e6f7;
+  font: 700 11px/1 var(--theme-font, sans-serif);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}

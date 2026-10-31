@@ -7,6 +7,10 @@ import { Container } from "@/container";
 import { isUIContainer } from "@/container/compat";
 import { sleep } from "@/infra";
 import { RoomStage, SideStage } from "@/stores";
+import { settingStore } from "@/stores/settingStore";
+import { hideClock, resetClock } from "@/variant/duelClock";
+import { countGameStart } from "@/variant/matchGame";
+import { seatOfView, viewForGame } from "@/variant/observerSeat";
 
 import { genCard } from "../utils";
 import { prepareDuelPresentation } from "./presentation";
@@ -32,11 +36,32 @@ export default async (
   }
   // 先初始化`matStore`
   context.matStore.selfType = start.playerType;
-  context.matStore.observerSwapped = Boolean(
+  const swapped = Boolean(
     (start as ygopro.StocGameMessage.MsgStart & { observerSwapped?: boolean })
       .observerSwapped,
   );
-  context.matStore.observerView = 0;
+  context.matStore.observerSwapped = swapped;
+  // The view names a Core player (the first player is 0 each game). To keep
+  // the same room seat near a spectator after siding, map the remembered seat
+  // back through this game's order; otherwise the first player is near.
+  const observing =
+    start.playerType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
+  context.matStore.observerView = observing
+    ? viewForGame(
+        context.roomStore.observerSeat,
+        swapped,
+        settingStore.spectatorKeepSeat,
+      )
+    : 0;
+  countGameStart();
+  // Spectator connections never receive TIME_LIMIT from the server.
+  if (observing) hideClock();
+  else resetClock(context.roomStore.hostInfo?.timeLimit ?? 0);
+  if (observing)
+    context.roomStore.observerSeat = seatOfView(
+      context.matStore.observerView,
+      swapped,
+    );
 
   if (context.sideStore.stage !== SideStage.NONE) {
     // 更新Side状态

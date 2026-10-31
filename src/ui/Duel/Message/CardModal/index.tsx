@@ -1,4 +1,3 @@
-import { Divider, Space } from "antd";
 import React from "react";
 import { proxy, useSnapshot } from "valtio";
 
@@ -6,19 +5,12 @@ import { type CardMeta, fetchCard, ygopro } from "@/api";
 import { cardStore, type CardType, matStore } from "@/stores";
 import { onlineInformationCards } from "@/ui/Duel/PlayMat/cardInformation";
 import { useI18N } from "@/ui/I18N";
-import { YgoCard } from "@/ui/Shared";
-import { CardCounters, RelatedCards } from "@/ui/Shared/CardInformation";
-import { CardStatsDetails } from "@/ui/Shared/CardStats";
-import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
+import { CardDetailContent } from "@/ui/Shared/DuelBoard/CardDetail";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { mobileMessages } from "@/variant/mobileMessages";
-import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { extraCardTypes, TYPE_LINK, TYPE_MONSTER } from "../../../../common";
-import { Desc } from "./Desc";
 import styles from "./index.module.scss";
-
-const CARD_WIDTH = "8.75rem";
 
 const defaultStore = {
   isOpen: false,
@@ -112,20 +104,14 @@ export const CardModal = () => {
         data-testid="duel-card-detail"
         data-card-code={meta?.id}
       >
-        <div className={`${styles.overview} card-stat-overview`}>
-          <YgoCard
-            code={meta?.id}
-            width={CARD_WIDTH}
-            style={{ borderRadius: 4 }}
-          />
-          <Space direction="vertical" className={styles.info}>
-            {(((meta?.data.type ?? 0) | (printed?.data.type ?? 0)) &
+        <CardDetailContent
+          code={meta?.id ?? 0}
+          language={language}
+          stats={
+            (((meta?.data.type ?? 0) | (printed?.data.type ?? 0)) &
               TYPE_MONSTER) !==
-              0 && (
-              <CardStatsDetails
-                language={language}
-                live={faceUp && !!((meta.data.type ?? 0) & TYPE_MONSTER)}
-                stats={{
+            0
+              ? {
                   attack: atk,
                   defense: def,
                   baseAttack: liveCard?.baseAttack,
@@ -133,49 +119,40 @@ export const CardModal = () => {
                   printedAttack: printed?.data.atk,
                   printedDefense: printed?.data.def,
                   hasDefense: !types.includes(TYPE_LINK),
-                }}
-              />
-            )}
-            <CardCounters counters={counters} testId="duel-card-counter" />
-          </Space>
-        </div>
-        {!!meta.id && (
-          <CardIdentityDetails
-            code={meta.id}
-            current={currentIdentity}
-            language={language}
-          />
-        )}
-        {hint && (
-          <div
-            className={styles.hint}
-            data-testid="duel-card-hint"
-            data-hint-type={hint.type}
-            data-hint-value={hint.value}
-          >
-            <strong>
-              {hint.type === 2 ? text.declaredCard : text.cardHint}
-            </strong>
-            <span>
-              {hint.type === 2
-                ? fetchCard(hint.value).text.name ?? hint.value
-                : hint.value}
-            </span>
-          </div>
-        )}
-        <RelatedCards
-          id={uuid}
-          cards={information}
-          language={language}
-          onLocate={() => {
-            store.isOpen = false;
+                }
+              : undefined
+          }
+          live={faceUp && !!((meta.data.type ?? 0) & TYPE_MONSTER)}
+          counters={counters}
+          countersTestId="duel-card-counter"
+          identity={currentIdentity}
+          related={{
+            id: uuid,
+            cards: information,
+            onLocate: () => {
+              store.isOpen = false;
+            },
           }}
-        />
-        <Divider style={{ margin: "0.875rem 0" }}></Divider>
-        <strong className="card-printed-description-label">
-          {statsPlaybackMessages(language).printed}
-        </strong>
-        <Desc desc={desc} />
+          description={desc}
+        >
+          {hint && (
+            <div
+              className={styles.hint}
+              data-testid="duel-card-hint"
+              data-hint-type={hint.type}
+              data-hint-value={hint.value}
+            >
+              <strong>
+                {hint.type === 2 ? text.declaredCard : text.cardHint}
+              </strong>
+              <span>
+                {hint.type === 2
+                  ? fetchCard(hint.value).text.name ?? hint.value
+                  : hint.value}
+              </span>
+            </div>
+          )}
+        </CardDetailContent>
       </div>
     </DuelPanel>
   );

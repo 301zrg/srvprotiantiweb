@@ -1,22 +1,38 @@
 import "./style.css";
 
 import {
+  AppstoreOutlined,
+  CaretRightOutlined,
+  CompressOutlined,
+  DownloadOutlined,
+  ExportOutlined,
+  EyeOutlined,
+  FileSearchOutlined,
+  LogoutOutlined,
+  PauseOutlined,
+  ReloadOutlined,
+  SettingOutlined,
+  SoundOutlined,
+  StepForwardOutlined,
+  SwapOutlined,
+  UnorderedListOutlined,
+  ZoomInOutlined,
+} from "@ant-design/icons";
+import {
   Button,
   ConfigProvider,
-  Drawer,
   Input,
   message,
   Modal,
   Pagination,
-  Select,
 } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
-import { fetchCard, fetchStrings, getCardImgUrl, Region } from "@/api";
-import { useMobileInterface } from "@/hook";
+import { fetchCard } from "@/api";
+import { useMediaQuery } from "@/hook";
 import type { ReplayFrame } from "@/replay/engine";
 import { MAX_REPLAY_BYTES } from "@/replay/format";
 import { sha256 } from "@/replay/hash";
@@ -40,22 +56,49 @@ import type { ReplayCard } from "@/replay/messages";
 import { type HistoryOrder, settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
-import { RelatedCards } from "@/ui/Shared/CardInformation";
-import { CardStatsDetails } from "@/ui/Shared/CardStats";
-import { CardIdentityDetails } from "@/ui/Shared/CardStats/CardIdentity";
+import { openSettingPanel } from "@/ui/Setting";
+import { CardDetailContent } from "@/ui/Shared/DuelBoard/CardDetail";
+import {
+  concealReplayCard,
+  positionLabel,
+  replayCardWords,
+} from "@/ui/Shared/DuelBoard/cardState";
+import {
+  type SceneFrame,
+  sceneSteps,
+  seedScene,
+} from "@/ui/Shared/DuelBoard/scene";
+import { sceneInformationCards } from "@/ui/Shared/DuelBoard/sceneInformation";
+import {
+  type DuelHistoryEntry,
+  HistoryRow,
+  HistoryTimeline,
+} from "@/ui/Shared/DuelHistory";
+import {
+  eventHistoryEntries,
+  type HistoryCursor,
+} from "@/ui/Shared/DuelHistory/convert";
+import {
+  DuelPanel,
+  DuelSidebarContext,
+  duelSidebarQuery,
+} from "@/ui/Shared/DuelPanel";
+import boardArea from "@/ui/Shared/DuelShell/boardArea.module.scss";
+import { DuelBackground } from "@/ui/Shared/DuelShell/DuelBackground";
+import { LifeBarView } from "@/ui/Shared/DuelShell/LifeBarView";
+import { SidebarFrame } from "@/ui/Shared/DuelShell/SidebarFrame";
 import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { type Language, languageLocales } from "@/variant";
+import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
+import { corePhaseKey } from "@/variant/duelPhases";
+import { mobileMessages } from "@/variant/mobileMessages";
 import { previewMessages } from "@/variant/previewMessages";
-import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { ReplayAudio } from "./audio";
-import { sceneInformationCards } from "./cardInformation";
-import { concealReplayCard } from "./cardState";
-import { positionLabel, replayCardWords, replayCounters } from "./cardState";
 import { ReplayCardTile } from "./CardTile";
 import { DeckExtract } from "./DeckExtract";
 import { FieldBoard, replayFieldWords } from "./FieldBoard";
-import { type SceneFrame, sceneSteps, seedScene } from "./scene";
+import { ReplayMenu } from "./ReplayMenu";
 
 const extraWords = {
   cn: {
@@ -65,6 +108,9 @@ const extraWords = {
     share: "分享文件",
     fallback: "浏览器未允许分享，已改用文件下载",
     cancel: "取消",
+    more: "更多",
+    hand: "手牌",
+    go: "跳转",
   },
   en: {
     soundOn: "Sound: on",
@@ -73,6 +119,9 @@ const extraWords = {
     share: "Share file",
     fallback: "Sharing unavailable; downloading the file instead",
     cancel: "Cancel",
+    more: "More",
+    hand: "Hand",
+    go: "Go",
   },
   ja: {
     soundOn: "効果音：オン",
@@ -81,6 +130,9 @@ const extraWords = {
     share: "ファイルを共有",
     fallback: "共有できないためファイルをダウンロードします",
     cancel: "キャンセル",
+    more: "その他",
+    hand: "手札",
+    go: "移動",
   },
   ko: {
     soundOn: "효과음: 켜짐",
@@ -89,6 +141,9 @@ const extraWords = {
     share: "파일 공유",
     fallback: "공유할 수 없어 파일을 다운로드합니다",
     cancel: "취소",
+    more: "더 보기",
+    hand: "패",
+    go: "이동",
   },
 };
 const replayExtraWords = (language: string) =>
@@ -502,7 +557,6 @@ function Library({ text }: { text: string[] }) {
 function Player({ id, text }: { id: string; text: string[] }) {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
-  const mobile = useMobileInterface();
   const stateText = replayCardWords(language);
   const words = replayExtraWords(language);
   const preview = previewMessages(language);
@@ -533,10 +587,24 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [view, setView] = useState(0),
     [target, setTarget] = useState("1"),
     [card, setCard] = useState<ReplayCard>(),
-    [history, setHistory] = useState<ReplayHistoryFrame[]>([]),
+    [history, setHistory] = useState<{ id: number; entry: DuelHistoryEntry }[]>(
+      [],
+    ),
+    [historyCode, setHistoryCode] = useState(0),
     [showHistory, setShowHistory] = useState(false),
     [title, setTitle] = useState("");
   const [reveal, setReveal] = useState(false);
+  const historyCursor = useRef<HistoryCursor>({ turn: 0 });
+  const historySerial = useRef(0);
+  const resetHistory = () => {
+    historyCursor.current = { turn: 0 };
+    setHistory([]);
+  };
+  const [zoom, setZoom] = useState(1);
+  const wide = useMediaQuery(duelSidebarQuery);
+  const short = useMediaQuery(
+    "(orientation: landscape) and (max-height: 600px)",
+  );
   const rate = settings.replaySpeed;
   const stop = () => {
     autoStartPending.current = false;
@@ -642,22 +710,34 @@ function Player({ id, text }: { id: string; text: string[] }) {
           autoStartPending.current = false;
           const next = data.frame as ReplayFrame;
           setStatus("");
-          setHistory((old) =>
-            [
-              ...old,
-              ...(data.history || [next]).flatMap((f: ReplayHistoryFrame) =>
-                f.events
-                  .filter(
-                    (e) => describeEvents({ ...f, events: [e] }, t).length > 0,
-                  )
-                  .map((e) => ({
-                    turn: f.turn,
-                    names: f.names,
-                    events: [e],
-                  })),
-              ),
-            ].slice(-1000),
+          // Outside the state updater: the cursor walks each message once.
+          const codeAt = (place: {
+            player: number;
+            location: number;
+            sequence: number;
+          }) =>
+            next.cards.find(
+              (c) =>
+                c.player === place.player &&
+                c.location === place.location &&
+                c.sequence === place.sequence,
+            )?.code;
+          const added = (data.history || [next]).flatMap(
+            (f: ReplayHistoryFrame) => {
+              const entries = eventHistoryEntries(
+                f.events,
+                historyCursor.current,
+                codeAt,
+              );
+              historyCursor.current.turn = f.turn;
+              return entries.map((entry) => ({
+                id: historySerial.current++,
+                entry,
+              }));
+            },
           );
+          if (added.length)
+            setHistory((old) => [...old, ...added].slice(-1000));
           if (!seek.current && next.step > 0 && scene.current) {
             queue.current = sceneSteps(scene.current, next);
             if (!requestedAuto.current || !paused.current) advance();
@@ -773,146 +853,77 @@ function Player({ id, text }: { id: string; text: string[] }) {
     !concealReplayCard(currentCard, reveal)
       ? currentCard
       : undefined;
-  return (
-    <main
-      className={`replay-player ${fieldView ? "replay-player-field" : ""}`}
-      style={
-        {
-          "--replay-motion-ms": `${Math.min(300, 600 / rate)}ms`,
-        } as React.CSSProperties
-      }
+  const fieldWords = replayFieldWords(language);
+  const [nameA, nameB] = frame?.names ?? [];
+  const replayPlayer = useCallback(
+    (player: number) =>
+      (player === 0 ? nameA : nameB) || `Player ${player + 1}`,
+    [nameA, nameB],
+  );
+  const inspectHistory = useCallback((code: number) => {
+    paused.current = true;
+    setPlaying(false);
+    clearTimeout(timer.current);
+    audio.current?.stop();
+    setShowHistory(false);
+    setCard(undefined);
+    setHistoryCode(code);
+  }, []);
+  const action = frame?.action;
+  const actionText = action
+    ? `${fieldWords[action.kind as keyof typeof fieldWords] || action.kind} ${
+        action.code ? fetchCard(action.code).text.name || action.code : ""
+      } ${action.amount !== undefined ? `· ${action.amount}` : ""}`
+    : fieldWords.ready;
+  const historyList = (
+    <HistoryTimeline
+      language={language}
+      empty={!history.length}
+      embedded={wide}
+      testId="replay-history-content"
+      className="replay-history"
     >
-      <header className="replay-header">
-        <h1>{title || text[2]}</h1>
-        <Button onClick={() => navigate("/replays")}>{text[12]}</Button>
-      </header>
-      <div className="replay-controls">
-        <Button
-          type="primary"
-          disabled={!frame || !!frame.end || !!error || seeking}
-          onClick={() => {
-            if (playing) {
-              stop();
-              clearTimeout(timer.current);
-            } else {
-              audio.current?.unlock();
-              paused.current = false;
-              setPlaying(true);
-              request();
-            }
-          }}
-        >
-          {playing ? text[7] : text[8]}
-        </Button>
-        <Button
-          disabled={
-            !frame || !!frame.end || playing || !!error || seeking || working
-          }
-          onClick={() => {
-            audio.current?.unlock();
-            request();
-          }}
-        >
-          {text[9]}
-        </Button>
-        <Button
-          disabled={!frame || working || !!error}
-          onClick={() => {
-            stop();
-            seek.current = 0;
-            setSeeking(false);
-            setHistory([]);
-            request("restart");
-          }}
-        >
-          {text[10]}
-        </Button>
-        <Select
-          aria-label={t("ReplaySpeed")}
-          value={rate}
-          options={[0.5, 1, 2, 4, 8, 16].map((n) => ({
-            value: n,
-            label: `${n}×`,
-          }))}
-          onChange={(n) => {
-            settingStore.replaySpeed = n;
-          }}
-        />
-        <Button onClick={() => setView(1 - view)}>{text[11]}</Button>
-        <Button
-          aria-pressed={soundEnabled}
-          onClick={() => {
-            const enabled = !soundEnabled;
-            settingStore.saveAudioConfig({ enableSoundEffects: enabled });
-            audio.current?.configure(
-              enabled,
-              settingStore.audio.soundEffectsVolume ?? 0.7,
-            );
-            if (enabled) audio.current?.unlock();
-          }}
-        >
-          {soundEnabled ? words.soundOn : words.soundOff}
-        </Button>
-        <Input
-          aria-label={t("ReplayTarget")}
-          type="number"
-          min={1}
-          max={999}
-          value={target}
-          onChange={(e) => setTarget(e.target.value)}
-        />
-        <Button
-          disabled={!frame || working || !!error}
-          onClick={() => {
-            const turn = Number(target);
-            if (!Number.isInteger(turn) || turn < 1 || turn > 999) return;
-            stop();
-            seek.current = turn;
-            setSeeking(true);
-            if (turn <= frame!.turn) {
-              setHistory([]);
-              request("restart");
-            } else request();
-          }}
-        >
-          {text[13]}
-        </Button>
-        {seeking && (
-          <Button
-            onClick={() => {
-              seek.current = 0;
-              setSeeking(false);
-              stop();
-            }}
+      {orderHistory(
+        history.map(({ id, entry }) => (
+          <HistoryRow
+            key={id}
+            entry={entry}
+            language={language}
+            playerLabel={replayPlayer}
+            onInspect={inspectHistory}
+            testPrefix="replay"
+          />
+        )),
+        settings.historyOrder,
+      )}
+    </HistoryTimeline>
+  );
+  // Persistent: errors and the end state never auto-dismiss.
+  const statusPanel = (
+    <div className="replay-status" data-testid="replay-status">
+      <h1 className="replay-title">{title || text[2]}</h1>
+      {frame && (
+        <>
+          <div className="replay-progress">
+            {t("ReplayTurn")} {frame.turn} · {phaseName(frame.phase, t)} ·{" "}
+            {frame.names[frame.turnPlayer]} · {t("ReplayStep")} {frame.step} ·{" "}
+            {t("ReplayResponse")} {frame.consumed}/{frame.total}
+            {frame.end && (
+              <strong data-testid="replay-end" data-end={frame.end}>
+                {frame.end === "complete"
+                  ? ` · ${t("ReplayComplete")}`
+                  : ` · ${t("ReplayStopped")}`}
+              </strong>
+            )}
+          </div>
+          <div
+            className="replay-field-action"
+            role="status"
+            data-action={action?.kind || "ready"}
           >
-            {text[24]}
-          </Button>
-        )}
-        <Button onClick={() => setShowHistory(true)}>{text[15]}</Button>
-        <Button onClick={() => setFieldView(!fieldView)}>
-          {fieldView
-            ? replayFieldWords(language).list
-            : replayFieldWords(language).field}
-        </Button>
-        <Button aria-pressed={reveal} onClick={() => setReveal(!reveal)}>
-          {stateText.reveal}
-        </Button>
-        <Button onClick={() => run(() => downloadReplay(id))}>{text[3]}</Button>
-        <Button
-          onClick={() => {
-            stop();
-            setExtracting(true);
-          }}
-        >
-          {preview.extractDecks}
-        </Button>
-      </div>
-      {extracting && (
-        <DeckExtract
-          replayId={id}
-          closeLabel={text[23]}
-          onClose={() => setExtracting(false)}
-        />
+            {actionText}
+          </div>
+        </>
       )}
       {reveal && <p className="replay-note">{stateText.revealNote}</p>}
       {(status || seeking) && (
@@ -927,202 +938,415 @@ function Player({ id, text }: { id: string; text: string[] }) {
           {localizeReplayText(error, language as Language)}
         </p>
       )}
-      {frame && (
-        <>
-          <div className="replay-progress">
-            {t("ReplayTurn")} {frame.turn} · {phaseName(frame.phase, t)} ·{" "}
-            {frame.names[frame.turnPlayer]} · {t("ReplayStep")} {frame.step} ·{" "}
-            {t("ReplayResponse")} {frame.consumed}/{frame.total}
-            {frame.end && (
-              <strong>
-                {frame.end === "complete"
-                  ? ` · ${t("ReplayComplete")}`
-                  : ` · ${t("ReplayStopped")}`}
-              </strong>
-            )}
-          </div>
-          {fieldView ? (
-            <FieldBoard
-              frame={frame}
-              view={view}
-              reveal={reveal}
-              language={language}
-              text={text}
-              onPause={stop}
-              onInspect={(selectedCard) => {
-                stop();
-                setCard(selectedCard);
-              }}
-            />
-          ) : (
-            <div className="replay-board">
-              {[1 - view, view].map((player) => (
-                <section className="replay-side" key={player}>
-                  <header>
-                    <h2>{frame.names[player] || `Player ${player + 1}`}</h2>
-                    <strong>LP {frame.lp[player]}</strong>
-                  </header>
-                  {[2, 4, 8, 1, 64, 16, 32].map((location, i) => {
-                    const cards = frame.cards.filter(
-                      (c) => c.player === player && c.location === location,
-                    );
-                    return (
-                      <div className="replay-zone" key={location}>
-                        <h3>
-                          {text[16 + i]} <span>{cards.length}</span>
-                        </h3>
-                        <div>
-                          {cards.map((c) => (
-                            <ReplayCardTile
-                              key={c.sequence}
-                              card={c}
-                              language={language}
-                              reveal={reveal}
-                              zoneLabel={text[16 + i]}
-                              onInspect={(selectedCard) => {
-                                stop();
-                                clearTimeout(timer.current);
-                                setCard(selectedCard);
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </section>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-      <Drawer
-        rootClassName="replay-drawer"
-        title={
-          (selectedIdentity?.currentCode
-            ? fetchCard(selectedIdentity.currentCode).text.name
-            : selected?.text.name) || currentCard?.code
+    </div>
+  );
+  const handCount = (player: number) =>
+    frame?.cards.filter((c) => c.player === player && c.location === 2)
+      .length ?? 0;
+  const lifeBarPlayer = (player: number) => ({
+    name: frame?.names[player] || `Player ${player + 1}`,
+    life: frame?.lp[player] ?? 0,
+    active: frame?.turnPlayer === player,
+    controller: player,
+    extra: `${words.hand} ${handCount(player)}`,
+  });
+  const common = [
+    {
+      key: "play",
+      label: playing ? text[7] : text[8],
+      icon: playing ? <PauseOutlined /> : <CaretRightOutlined />,
+      disabled: !frame || !!frame.end || !!error || seeking,
+      onClick: () => {
+        if (playing) {
+          stop();
+          clearTimeout(timer.current);
+        } else {
+          audio.current?.unlock();
+          paused.current = false;
+          setPlaying(true);
+          request();
         }
-        open={!!currentCard}
-        onClose={() => setCard(undefined)}
-        width={mobile ? "min(400px, 100vw)" : 400}
-        closable={!mobile}
-        extra={
-          mobile ? (
-            <Button
-              data-testid="replay-card-detail-close"
-              style={{ minWidth: 44, minHeight: 44 }}
-              onClick={() => setCard(undefined)}
-            >
-              {text[23]}
-            </Button>
-          ) : undefined
-        }
-      >
-        {!mobile && (
-          <Button onClick={() => setCard(undefined)}>{text[23]}</Button>
-        )}
-        {currentCard && (
-          <>
-            <div className="card-stat-overview">
-              <img
-                className="replay-detail-image"
-                src={getCardImgUrl(currentCard.code)}
-                alt=""
-              />
-              {!!((currentCard.type | (selected?.data.type ?? 0)) & 1) && (
-                <CardStatsDetails
+      },
+    },
+    {
+      key: "step",
+      label: text[9],
+      icon: <StepForwardOutlined />,
+      disabled:
+        !frame || !!frame.end || playing || !!error || seeking || working,
+      onClick: () => {
+        audio.current?.unlock();
+        request();
+      },
+    },
+    ...(wide
+      ? []
+      : [
+          {
+            key: "history",
+            label: text[15],
+            icon: <FileSearchOutlined />,
+            onClick: () => setShowHistory(true),
+          },
+        ]),
+  ];
+  const others = [
+    {
+      key: "restart",
+      pinned: true,
+      label: text[10],
+      icon: <ReloadOutlined />,
+      disabled: !frame || working || !!error,
+      onClick: () => {
+        stop();
+        seek.current = 0;
+        setSeeking(false);
+        resetHistory();
+        request("restart");
+      },
+    },
+    {
+      key: "view",
+      pinned: true,
+      label: text[11],
+      icon: <SwapOutlined />,
+      onClick: () => setView(1 - view),
+    },
+    {
+      key: "sound",
+      pinned: true,
+      label: soundEnabled ? words.soundOn : words.soundOff,
+      icon: <SoundOutlined />,
+      pressed: soundEnabled,
+      onClick: () => {
+        const enabled = !soundEnabled;
+        settingStore.saveAudioConfig({ enableSoundEffects: enabled });
+        audio.current?.configure(
+          enabled,
+          settingStore.audio.soundEffectsVolume ?? 0.7,
+        );
+        if (enabled) audio.current?.unlock();
+      },
+    },
+    {
+      key: "reveal",
+      pinned: true,
+      label: stateText.reveal,
+      icon: <EyeOutlined />,
+      pressed: reveal,
+      onClick: () => setReveal(!reveal),
+    },
+    {
+      key: "list",
+      label: fieldView ? fieldWords.list : fieldWords.field,
+      icon: fieldView ? <UnorderedListOutlined /> : <AppstoreOutlined />,
+      onClick: () => setFieldView(!fieldView),
+    },
+    {
+      key: "zoom",
+      pinned: true,
+      label: `${fieldWords.zoom} ${zoom}×`,
+      icon: <ZoomInOutlined />,
+      disabled: !fieldView,
+      onClick: () => setZoom((z) => (z >= 2 ? 1 : z + 0.5)),
+    },
+    {
+      key: "reset",
+      label: fieldWords.reset,
+      icon: <CompressOutlined />,
+      disabled: !fieldView,
+      onClick: () => setZoom(1),
+    },
+    {
+      key: "download",
+      label: text[3],
+      icon: <DownloadOutlined />,
+      onClick: () => run(() => downloadReplay(id)),
+    },
+    {
+      key: "extract",
+      label: preview.extractDecks,
+      icon: <ExportOutlined />,
+      onClick: () => {
+        stop();
+        setExtracting(true);
+      },
+    },
+    {
+      key: "settings",
+      label: mobileMessages(language).settings,
+      icon: <SettingOutlined />,
+      onClick: () => openSettingPanel({ defaultKey: "replay" }),
+    },
+    {
+      key: "exit",
+      pinned: true,
+      label: text[12],
+      icon: <LogoutOutlined />,
+      onClick: () => navigate("/replays"),
+    },
+  ];
+  const menu = (
+    <ReplayMenu
+      key="menu"
+      docked={wide}
+      compact={!wide || short}
+      label={mobileMessages(language).settings}
+      phase={{
+        current: frame ? corePhaseKey(frame.phase) : undefined,
+        turnOwner: frame?.turnPlayer === view ? "self" : "opponent",
+      }}
+      common={common}
+      others={others}
+      speed={{
+        label: t("ReplaySpeed"),
+        value: rate,
+        options: [0.5, 1, 2, 4, 8, 16],
+        onChange: (n: number) => {
+          settingStore.replaySpeed = n;
+        },
+      }}
+      jump={{
+        label: text[13],
+        inputLabel: t("ReplayTarget"),
+        cancelLabel: text[24],
+        confirmLabel: words.go,
+        value: target,
+        onChange: setTarget,
+        disabled: !frame || working || !!error,
+        onJump: () => {
+          const turn = Number(target);
+          if (!Number.isInteger(turn) || turn < 1 || turn > 999) return;
+          stop();
+          seek.current = turn;
+          setSeeking(true);
+          if (turn <= frame!.turn) {
+            resetHistory();
+            request("restart");
+          } else request();
+        },
+        onCancel: seeking
+          ? () => {
+              seek.current = 0;
+              setSeeking(false);
+              stop();
+            }
+          : undefined,
+      }}
+      moreLabel={words.more}
+    />
+  );
+  return (
+    <main
+      className="replay-player replay-duel"
+      data-testid="replay-player"
+      style={
+        {
+          "--replay-motion-ms": `${Math.min(300, 600 / rate)}ms`,
+        } as React.CSSProperties
+      }
+    >
+      <DuelSidebarContext.Provider value={wide}>
+        <DuelBackground near={!frame || frame.turnPlayer === view} />
+        <SidebarFrame
+          wide={wide}
+          top={[
+            <LifeBarView
+              key="life"
+              docked={wide}
+              far={lifeBarPlayer(1 - view)}
+              near={lifeBarPlayer(view)}
+            />,
+            menu,
+          ]}
+          status={statusPanel}
+          tabsLabel={text[15]}
+          expandLabels={{
+            expand: clientRevisionMessages(language).expandLogs,
+            collapse: clientRevisionMessages(language).collapseLogs,
+          }}
+          closePanels={() => setCard(undefined)}
+          tabs={[
+            {
+              key: "history",
+              label: text[15],
+              testId: "replay-history-tab",
+              render: ({ active, wide }) => wide && active && historyList,
+            },
+          ]}
+        />
+        {!wide && <div className="replay-shell-strip">{statusPanel}</div>}
+        <div className="replay-duel-stage">
+          <div className={boardArea.viewport}>
+            {frame &&
+              (fieldView ? (
+                <FieldBoard
+                  frame={frame}
+                  view={view}
+                  reveal={reveal}
                   language={language}
-                  live={
-                    [4, 8].includes(currentCard.location) &&
-                    !!(currentCard.position & 5) &&
-                    !!(currentCard.type & 1)
-                  }
-                  stats={{
-                    ...currentCard,
-                    printedAttack: selected?.data.atk,
-                    printedDefense: selected?.data.def,
-                    hasDefense: !(currentCard.type & 0x4000000),
+                  text={text}
+                  zoom={zoom}
+                  onPause={stop}
+                  onInspect={(selectedCard) => {
+                    stop();
+                    setCard(selectedCard);
                   }}
                 />
-              )}
-            </div>
-            <CardIdentityDetails
+              ) : (
+                <div className="replay-board">
+                  {[1 - view, view].map((player) => (
+                    <section className="replay-side" key={player}>
+                      <header>
+                        <h2>{frame.names[player] || `Player ${player + 1}`}</h2>
+                        <strong>LP {frame.lp[player]}</strong>
+                      </header>
+                      {[2, 4, 8, 1, 64, 16, 32].map((location, i) => {
+                        const cards = frame.cards.filter(
+                          (c) => c.player === player && c.location === location,
+                        );
+                        return (
+                          <div className="replay-zone" key={location}>
+                            <h3>
+                              {text[16 + i]} <span>{cards.length}</span>
+                            </h3>
+                            <div>
+                              {cards.map((c) => (
+                                <ReplayCardTile
+                                  key={c.sequence}
+                                  card={c}
+                                  language={language}
+                                  reveal={reveal}
+                                  zoneLabel={text[16 + i]}
+                                  onInspect={(selectedCard) => {
+                                    stop();
+                                    clearTimeout(timer.current);
+                                    setCard(selectedCard);
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </section>
+                  ))}
+                </div>
+              ))}
+          </div>
+        </div>
+        <DuelPanel
+          open={!!currentCard}
+          onClose={() => setCard(undefined)}
+          title={
+            (selectedIdentity?.currentCode
+              ? fetchCard(selectedIdentity.currentCode).text.name
+              : selected?.text.name) || currentCard?.code
+          }
+          testId="replay-card-detail"
+          zIndex={1100}
+          compact
+        >
+          {currentCard && (
+            <CardDetailContent
               code={currentCard.code}
-              current={selectedIdentity}
               language={language}
-            />
-            <p>{positionLabel(currentCard, language)}</p>
-            {!!((currentCard.status || 0) & 1) && <p>{stateText.disabled}</p>}
-            {!!((currentCard.status || 0) & 0x4000000) && (
-              <p>{stateText.forbidden}</p>
-            )}
-            <strong className="card-printed-description-label">
-              {statsPlaybackMessages(language).printed}
-            </strong>
-            <p className="replay-description">{selected?.text.desc}</p>
-            <RelatedCards
-              id={currentCard.sceneId}
-              cards={sceneInformationCards(
-                frame?.cards ?? [],
-                language,
-                view,
-                reveal,
+              imageClassName="replay-detail-image"
+              descriptionClassName="replay-description"
+              stats={
+                (currentCard.type | (selected?.data.type ?? 0)) & 1
+                  ? {
+                      ...currentCard,
+                      printedAttack: selected?.data.atk,
+                      printedDefense: selected?.data.def,
+                      hasDefense: !(currentCard.type & 0x4000000),
+                    }
+                  : undefined
+              }
+              live={
+                [4, 8].includes(currentCard.location) &&
+                !!(currentCard.position & 5) &&
+                !!(currentCard.type & 1)
+              }
+              counters={currentCard.counters}
+              identity={selectedIdentity}
+              related={{
+                id: currentCard.sceneId,
+                cards: sceneInformationCards(
+                  frame?.cards ?? [],
+                  language,
+                  view,
+                  reveal,
+                ),
+                onLocate: () => setCard(undefined),
+              }}
+              description={selected?.text.desc}
+            >
+              <p>{positionLabel(currentCard, language)}</p>
+              {!!((currentCard.status || 0) & 1) && <p>{stateText.disabled}</p>}
+              {!!((currentCard.status || 0) & 0x4000000) && (
+                <p>{stateText.forbidden}</p>
               )}
-              language={language}
-              onLocate={() => setCard(undefined)}
-            />
-            {currentCard.declared && (
-              <p>
-                {stateText.declared}：
-                {fetchCard(currentCard.declared).text.name ||
-                  currentCard.declared}
-              </p>
-            )}
-            {!!currentCard.overlay.length && (
-              <p>
-                {stateText.materials} {currentCard.overlay.length}：
-                {currentCard.overlay
-                  .map((n) => fetchCard(n).text.name || n)
-                  .join("、")}
-              </p>
-            )}
-            {!!replayCounters(currentCard).length && (
-              <p>
-                {stateText.counters}：
-                {replayCounters(currentCard)
-                  .map(({ type, count }) => {
-                    const name = fetchStrings(
-                      Region.Counter,
-                      `0x${type.toString(16)}`,
-                    );
-                    return `${
-                      name === "?" ? `0x${type.toString(16)}` : name
-                    } × ${count}`;
-                  })
-                  .join("、")}
-              </p>
-            )}
-          </>
-        )}
-      </Drawer>
-      <Drawer
-        rootClassName="replay-drawer"
-        title={text[15]}
-        open={showHistory}
-        onClose={() => setShowHistory(false)}
-        width={380}
-      >
-        <Button onClick={() => setShowHistory(false)}>{text[23]}</Button>
-        <ol className="replay-history">
-          {orderHistory(
-            history
-              .flatMap((f) => describeEvents(f, t))
-              .map((line, i) => <li key={i}>{line}</li>),
-            settings.historyOrder,
+              {currentCard.declared && (
+                <p>
+                  {stateText.declared}：
+                  {fetchCard(currentCard.declared).text.name ||
+                    currentCard.declared}
+                </p>
+              )}
+              {!!currentCard.overlay.length && (
+                <p>
+                  {stateText.materials} {currentCard.overlay.length}：
+                  {currentCard.overlay
+                    .map((n) => fetchCard(n).text.name || n)
+                    .join("、")}
+                </p>
+              )}
+            </CardDetailContent>
           )}
-        </ol>
-      </Drawer>
+        </DuelPanel>
+        <DuelPanel
+          open={!!historyCode}
+          onClose={() => setHistoryCode(0)}
+          title={fetchCard(historyCode).text.name || historyCode}
+          testId="replay-history-card-detail"
+          zIndex={1100}
+          compact
+        >
+          {!!historyCode && (
+            <CardDetailContent
+              code={historyCode}
+              language={language}
+              imageClassName="replay-detail-image"
+              descriptionClassName="replay-description"
+            />
+          )}
+        </DuelPanel>
+        <DuelPanel
+          open={showHistory && !wide}
+          onClose={() => setShowHistory(false)}
+          title={text[15]}
+          testId="replay-history-panel"
+          followControlSide
+        >
+          {historyList}
+        </DuelPanel>
+        <DuelPanel
+          open={extracting}
+          onClose={() => setExtracting(false)}
+          title={preview.extractDecks}
+          testId="replay-extract-panel"
+          followControlSide
+        >
+          {extracting && (
+            <DeckExtract
+              replayId={id}
+              closeLabel={text[23]}
+              onClose={() => setExtracting(false)}
+            />
+          )}
+        </DuelPanel>
+      </DuelSidebarContext.Provider>
     </main>
   );
 }
@@ -1142,45 +1366,3 @@ const phaseName = (phase: number, t: (key: string) => string) =>
     256: "MP2",
     512: "EP",
   })[phase] || String(phase);
-function describeEvents(frame: ReplayHistoryFrame, t: (key: string) => string) {
-  return frame.events.flatMap((e) => {
-    const v = new DataView(new Uint8Array(e).buffer),
-      code = (p: number) =>
-        fetchCard(v.getUint32(p, true)).text.name ||
-        String(v.getUint32(p, true)),
-      prefix = `T${frame.turn} `;
-    if (e[0] === 40)
-      return [`${prefix}${frame.names[e[1]]} ${t("TurnStarted")}`];
-    if (e[0] === 41) return [`${prefix}${phaseName(v.getUint16(1, true), t)}`];
-    if ([60, 62, 64].includes(e[0]))
-      return [
-        `${prefix}${code(1)} ${
-          e[0] === 60
-            ? t("Summon")
-            : e[0] === 62
-            ? t("SpecialSummon")
-            : t("FlipSummon")
-        }`,
-      ];
-    if (e[0] === 70) return [`${prefix}${t("Chain")}: ${code(1)}`];
-    if (e[0] === 50)
-      return [`${prefix}${code(1)} ${t("Move")} ${e[6]} → ${e[10]}`];
-    if (e[0] === 2 && [8, 10].includes(e[1]))
-      return [`${prefix}${t("DeclareHint")}: ${code(3)}`];
-    if (e[0] === 160 && e[5] === 2)
-      return [`${prefix}${t("DeclareCard")}: ${code(6)}`];
-    if ([91, 92, 100].includes(e[0]))
-      return [
-        `${prefix}${frame.names[e[1]]} ${
-          e[0] === 92 ? t("Recover") : t("Decrease")
-        } LP ${v.getUint32(2, true)}`,
-      ];
-    if (e[0] === 5)
-      return [
-        `${prefix}${e[1] < 2 ? frame.names[e[1]] : t("Draw")} · ${t(
-          "EndReason",
-        )} ${e[2]}`,
-      ];
-    return [];
-  });
-}

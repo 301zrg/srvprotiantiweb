@@ -4,8 +4,7 @@ import {
   removeAudio,
 } from "@/infra/audio/core/resource";
 import { AudioActionType as Sound } from "@/infra/audio/type";
-
-import type { SceneAction } from "./scene";
+import type { SceneAction } from "@/ui/Shared/DuelBoard/scene";
 
 export function replaySound(action: SceneAction): string {
   const effects: Record<string, Sound> = {

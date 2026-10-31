@@ -1,6 +1,10 @@
 import type { PracticeRequest } from "@/practice/prompts";
 import type { ReplayFrame } from "@/replay/engine";
-import { type SceneAction, sceneSteps, seedScene } from "@/ui/Replay/scene";
+import {
+  type SceneAction,
+  sceneSteps,
+  seedScene,
+} from "@/ui/Shared/DuelBoard/scene";
 import type { DuelResult } from "@/variant/duelResults";
 
 import { practiceMaterialFrames, type PracticeSceneFrame } from "./materials";
@@ -22,7 +26,22 @@ export function advancePracticeScene(
   const entries: PracticeHistoryEntry[] = [];
   for (const step of steps) {
     if (step.action && step.action !== last) {
-      entries.push({ action: step.action, turn: step.turn, phase: step.phase });
+      const { action } = step;
+      // Attacks name only the attacker's spot; the log shows its card.
+      const attacker =
+        action.kind === "attack" && action.from
+          ? step.cards.find(
+              (card) =>
+                card.player === action.from!.player &&
+                card.location === action.from!.location &&
+                card.sequence === action.from!.sequence,
+            )
+          : undefined;
+      entries.push({
+        action: attacker ? { ...action, code: attacker.code } : action,
+        turn: step.turn,
+        phase: step.phase,
+      });
       last = step.action;
     }
   }

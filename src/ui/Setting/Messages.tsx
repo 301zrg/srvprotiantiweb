@@ -1,6 +1,8 @@
-import { Checkbox, Radio, Typography } from "antd";
+import { Button, Checkbox, Radio, Typography } from "antd";
+import { useState } from "react";
 import { useSnapshot } from "valtio";
 
+import { clearCardImageCache } from "@/api/cardImageCache";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
@@ -14,11 +16,18 @@ export const MessageSetting = () => {
     hidePlayerIds,
     controlPanelSide,
     historyOrder,
+    historyStyle,
+    chatOrder,
+    spectatorKeepSeat,
+    showZoneIndexes,
   } = useSnapshot(settingStore);
   const { language } = useI18N();
   const text = previewMessages(language);
   const revision = clientRevisionMessages(language);
   const panel = controlPanelMessages(language);
+  const [cacheState, setCacheState] = useState<"" | "busy" | "done" | "none">(
+    "",
+  );
   return (
     <>
       <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
@@ -56,6 +65,64 @@ export const MessageSetting = () => {
           {panel.historyOrderHelp}
         </Typography.Paragraph>
       </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.historyStyle}</legend>
+        <Radio.Group
+          value={historyStyle}
+          onChange={(event) => {
+            settingStore.historyStyle = event.target.value;
+          }}
+        >
+          <Radio data-testid="setting-history-style-auto" value="auto">
+            {panel.historyStyleAuto}
+          </Radio>
+          <Radio data-testid="setting-history-style-image" value="image">
+            {panel.historyStyleImage}
+          </Radio>
+          <Radio data-testid="setting-history-style-text" value="text">
+            {panel.historyStyleText}
+          </Radio>
+        </Radio.Group>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {panel.historyStyleHelp}
+        </Typography.Paragraph>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.chatOrder}</legend>
+        <Radio.Group
+          value={chatOrder}
+          onChange={(event) => {
+            settingStore.chatOrder = event.target.value;
+          }}
+        >
+          <Radio data-testid="setting-chat-history" value="history">
+            {panel.chatFollowHistory}
+          </Radio>
+          <Radio data-testid="setting-chat-oldest" value="oldest">
+            {panel.oldestFirst}
+          </Radio>
+          <Radio data-testid="setting-chat-newest" value="newest">
+            {panel.newestFirst}
+          </Radio>
+        </Radio.Group>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {panel.chatOrderHelp}
+        </Typography.Paragraph>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <Checkbox
+          data-testid="setting-spectator-keep-seat"
+          checked={spectatorKeepSeat}
+          onChange={(event) => {
+            settingStore.spectatorKeepSeat = event.target.checked;
+          }}
+        >
+          {panel.spectatorKeepSeat}
+        </Checkbox>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+          {panel.spectatorKeepSeatHelp}
+        </Typography.Paragraph>
+      </fieldset>
       <Checkbox
         data-testid="setting-zone-counts"
         checked={showZoneCounts}
@@ -67,6 +134,18 @@ export const MessageSetting = () => {
       </Checkbox>
       <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
         {revision.showZoneCountsHelp}
+      </Typography.Paragraph>
+      <Checkbox
+        data-testid="setting-zone-indexes"
+        checked={showZoneIndexes}
+        onChange={(event) => {
+          settingStore.showZoneIndexes = event.target.checked;
+        }}
+      >
+        {panel.zoneIndexes}
+      </Checkbox>
+      <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
+        {panel.zoneIndexesHelp}
       </Typography.Paragraph>
       <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
         <Checkbox
@@ -102,6 +181,30 @@ export const MessageSetting = () => {
         </Radio.Group>
         <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
           {text.messageHelp}
+        </Typography.Paragraph>
+      </fieldset>
+      <fieldset style={{ border: 0, padding: 0, margin: "16px 0" }}>
+        <legend style={{ fontSize: 14 }}>{panel.cardCache}</legend>
+        <Button
+          data-testid="setting-clear-card-cache"
+          loading={cacheState === "busy"}
+          onClick={async () => {
+            setCacheState("busy");
+            setCacheState((await clearCardImageCache()) ? "done" : "none");
+          }}
+        >
+          {panel.clearCardCache}
+        </Button>
+        <Typography.Paragraph
+          type="secondary"
+          style={{ marginTop: 12 }}
+          data-testid="setting-card-cache-status"
+        >
+          {cacheState === "done"
+            ? panel.cardCacheCleared
+            : cacheState === "none"
+            ? panel.cardCacheEmpty
+            : panel.cardCacheHelp}
         </Typography.Paragraph>
       </fieldset>
     </>

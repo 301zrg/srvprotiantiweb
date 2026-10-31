@@ -87,8 +87,15 @@ async function prepareDuel(page) {
         },
       },
       isClosed: false,
+      signal: new AbortController().signal,
     };
     initUIContainer(conn);
+    // Idle commands open an action request; actions without one are refused.
+    const { getUIContainer } = await import("/src/container/compat.ts");
+    const { beginActionRequest } = await import(
+      "/src/service/duel/actionRequest.ts"
+    );
+    beginActionRequest(getUIContainer());
     matStore.initInfo.me.life = 8000;
     matStore.initInfo.op.life = 8000;
     matStore.selfType = 1;
@@ -430,17 +437,23 @@ try {
         { sender, content },
       );
     const popup = page.locator(".ant-notification-notice");
+    const summary = page.getByTestId("duel-message-summary");
+    // Default "auto": portrait gets the unread summary row, landscape a popup.
     await notify(14, "服务器弹窗测试");
-    await expect(popup).toContainText("服务器弹窗测试");
+    if (viewport.height > viewport.width)
+      await expect(summary).toContainText("服务器弹窗测试");
+    else await expect(popup).toContainText("服务器弹窗测试");
     await page.getByTestId("duel-settings").tap();
-    await page.getByRole("tab", { name: /消息/ }).tap();
-    const serverMessages = page.getByTestId("server-message-popups");
-    await expect(serverMessages).toBeChecked();
-    const serverMessageLabel = serverMessages.locator("xpath=ancestor::label");
-    await bounds(serverMessageLabel, viewport, 44, 44);
-    await serverMessageLabel.tap();
+    const settingsNav = page.getByTestId("settings-navigation");
+    if (await settingsNav.isVisible())
+      await settingsNav.getByRole("button", { name: /消息/ }).tap();
+    const recordOnly = page.getByTestId("setting-message-record");
+    await recordOnly.scrollIntoViewIfNeeded();
+    await recordOnly.tap();
+    await expect(recordOnly).toBeChecked();
     await page.getByTestId("settings-close").tap();
     await expect(popup.filter({ hasText: "服务器弹窗测试" })).toHaveCount(0);
+    await expect(summary).toHaveCount(0);
     await notify(8, "已关闭的服务器提示");
     await page.waitForTimeout(150);
     await expect(popup.filter({ hasText: "已关闭的服务器提示" })).toHaveCount(
@@ -448,23 +461,46 @@ try {
     );
     await notify(1, "另一名玩家的聊天");
     await expect(popup).toContainText("另一名玩家的聊天");
-    await page.getByTestId("duel-chat").tap();
+    // Landscape uses the sidebar: history/chat are tabs, not drawers.
+    const sidebar = (await page.getByTestId("duel-sidebar").count()) > 0;
+    await page.getByTestId(sidebar ? "duel-chat-tab" : "duel-chat").tap();
     await expect(page.getByTestId("duel-chat-panel")).toContainText(
       "已关闭的服务器提示",
     );
     await expect(page.getByTestId("duel-chat-panel")).toContainText(
       "另一名玩家的聊天",
     );
-    await page.getByTestId("duel-chat-panel-close").tap();
-    for (const id of [
-      "duel-phase-select",
-      "duel-chain-setting",
-      "duel-history",
-      "duel-chat",
-      "duel-surrender",
-      "duel-settings",
-    ]) {
-      await bounds(page.getByTestId(id), viewport, 44, 44);
+    if (sidebar) {
+      await page.getByTestId("duel-history-tab").tap();
+      // Short landscape expands the log over the controls; collapse it.
+      const expandLogs = page.getByTestId("duel-expand-logs");
+      if ((await expandLogs.getAttribute("aria-expanded")) === "true")
+        await expandLogs.tap();
+    } else await page.getByTestId("duel-chat-panel-close").tap();
+    for (const id of sidebar
+      ? [
+          "duel-phase-select",
+          "duel-chain-setting",
+          "duel-history-tab",
+          "duel-chat-tab",
+          "duel-surrender",
+          "duel-settings",
+        ]
+      : [
+          "duel-phase-select",
+          "duel-chain-setting",
+          "duel-history",
+          "duel-chat",
+          "duel-surrender",
+          "duel-settings",
+        ]) {
+      // The short-landscape sidebar intentionally uses 30 px compact rows.
+      await bounds(
+        page.getByTestId(id),
+        viewport,
+        sidebar ? 30 : 44,
+        sidebar ? 30 : 44,
+      );
     }
     await page.screenshot({ path: `${folder}/${name}-04-duel.png` });
     const handCard = page
@@ -481,7 +517,9 @@ try {
       await page.evaluate(() => window.__uiPackets[0]),
       [5, 0, 1, 13, 0, 0, 0],
     );
-    await page.getByTestId("duel-card-panel-close").tap();
+    // Portrait touch is action-first: the menu opens without a detail panel.
+    const summonClose = page.getByTestId("duel-card-panel-close");
+    if (await summonClose.isVisible()) await summonClose.tap();
     await page.getByTestId("duel-chain-setting").tap();
     await bounds(page.getByTestId("duel-chain-setting-all"), viewport, 44, 44);
     await page.getByTestId("duel-chain-setting-all").tap();
@@ -500,7 +538,12 @@ try {
     await bounds(page.getByTestId("duel-card-panel-close"), viewport, 44, 44);
     const description = page.getByTestId("duel-card-detail");
     const width = await description.evaluate((el) => el.clientWidth);
-    assert.ok(width >= 250, `Card detail squeezed to ${width}px`);
+    // Docked in the sidebar the detail follows its documented width (208 px
+    // at ≤ 1024 px); drawers keep at least 250 px.
+    assert.ok(
+      width >= (sidebar ? 180 : 250),
+      `Card detail squeezed to ${width}px`,
+    );
     await page.screenshot({ path: `${folder}/${name}-05-card.png` });
     await page.getByTestId("duel-card-panel-close").tap();
     await page.evaluate(async () => {
@@ -581,69 +624,74 @@ try {
     await expect(
       page.locator('[data-testid="duel-select-cards-modal"]:visible'),
     ).toHaveCount(0);
-    await page.getByTestId("duel-history").tap();
-    await expect(page.getByTestId("duel-history-panel")).toBeVisible();
-    await bounds(
-      page.getByTestId("duel-history-panel-close"),
-      viewport,
-      44,
-      44,
-    );
-    const historyBody = page.getByTestId("duel-history-panel").locator("..");
-    const historyScroll = await historyBody.evaluate((el) => ({
-      height: el.clientHeight,
-      scroll: el.scrollHeight,
-    }));
-    assert.ok(
-      historyScroll.scroll > historyScroll.height,
-      "Long history has no scrollable viewport",
-    );
-    await page.screenshot({ path: `${folder}/${name}-06-history.png` });
-    const bodyRect = await historyBody.boundingBox();
-    const cdp = await context.newCDPSession(page);
-    for (let index = 0; index <= 8; index++) {
+    // History/chat drawers (scrolling, closing) exist only without the sidebar.
+    if (!sidebar) {
+      await page.getByTestId("duel-history").tap();
+      await expect(page.getByTestId("duel-history-panel")).toBeVisible();
+      await bounds(
+        page.getByTestId("duel-history-panel-close"),
+        viewport,
+        44,
+        44,
+      );
+      const historyBody = page.getByTestId("duel-history-panel").locator("..");
+      const historyScroll = await historyBody.evaluate((el) => ({
+        height: el.clientHeight,
+        scroll: el.scrollHeight,
+      }));
+      assert.ok(
+        historyScroll.scroll > historyScroll.height,
+        "Long history has no scrollable viewport",
+      );
+      await page.screenshot({ path: `${folder}/${name}-06-history.png` });
+      const bodyRect = await historyBody.boundingBox();
+      const cdp = await context.newCDPSession(page);
+      for (let index = 0; index <= 8; index++) {
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: index === 0 ? "touchStart" : "touchMove",
+          touchPoints: [
+            {
+              x: bodyRect.x + bodyRect.width / 2,
+              y: bodyRect.y + bodyRect.height * (0.8 - index * 0.06),
+            },
+          ],
+        });
+        await page.waitForTimeout(25);
+      }
       await cdp.send("Input.dispatchTouchEvent", {
-        type: index === 0 ? "touchStart" : "touchMove",
-        touchPoints: [
-          {
-            x: bodyRect.x + bodyRect.width / 2,
-            y: bodyRect.y + bodyRect.height * (0.8 - index * 0.06),
-          },
-        ],
+        type: "touchEnd",
+        touchPoints: [],
       });
-      await page.waitForTimeout(25);
+      await expect
+        .poll(() => historyBody.evaluate((el) => el.scrollTop))
+        .toBeGreaterThan(0);
+      // A tap during native momentum scrolling stops the fling instead of clicking.
+      await expect
+        .poll(async () => {
+          const before = await historyBody.evaluate((el) => el.scrollTop);
+          await page.waitForTimeout(100);
+          return Math.abs(
+            before - (await historyBody.evaluate((el) => el.scrollTop)),
+          );
+        })
+        .toBeLessThan(1);
+      await cdp.detach();
+      await page.getByTestId("duel-history-panel-close").tap();
+      await expect(page.getByTestId("duel-history-panel")).not.toBeVisible();
+      await page.getByTestId("duel-chat").tap();
+      await bounds(page.getByTestId("duel-chat-panel-close"), viewport, 44, 44);
+      await page.getByTestId("duel-chat-panel-close").tap();
     }
-    await cdp.send("Input.dispatchTouchEvent", {
-      type: "touchEnd",
-      touchPoints: [],
-    });
-    await expect
-      .poll(() => historyBody.evaluate((el) => el.scrollTop))
-      .toBeGreaterThan(0);
-    // A tap during native momentum scrolling stops the fling instead of clicking.
-    await expect
-      .poll(async () => {
-        const before = await historyBody.evaluate((el) => el.scrollTop);
-        await page.waitForTimeout(100);
-        return Math.abs(
-          before - (await historyBody.evaluate((el) => el.scrollTop)),
-        );
-      })
-      .toBeLessThan(1);
-    await cdp.detach();
-    await page.getByTestId("duel-history-panel-close").tap();
-    await expect(page.getByTestId("duel-history-panel")).not.toBeVisible();
-    await page.getByTestId("duel-chat").tap();
-    await bounds(page.getByTestId("duel-chat-panel-close"), viewport, 44, 44);
-    await page.getByTestId("duel-chat-panel-close").tap();
     await page.getByTestId("duel-settings").tap();
     await page.getByTestId("settings-close").tap();
     await expect(page.getByTestId("duel-menu")).toBeVisible();
     // A new page load must restore the preference, without changing audio settings.
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.getByTestId("open-settings").tap();
-    await page.getByRole("tab", { name: /消息/ }).tap();
-    await expect(page.getByTestId("server-message-popups")).not.toBeChecked();
+    const reloadedNav = page.getByTestId("settings-navigation");
+    if (await reloadedNav.isVisible())
+      await reloadedNav.getByRole("button", { name: /消息/ }).tap();
+    await expect(page.getByTestId("setting-message-record")).toBeChecked();
     await page.getByTestId("settings-close").tap();
     const layout = await page.evaluate(() => ({
       width: innerWidth,

@@ -1,5 +1,9 @@
-import { CheckOutlined, UndoOutlined } from "@ant-design/icons";
-import { App, Button } from "antd";
+import {
+  CheckOutlined,
+  MessageOutlined,
+  UndoOutlined,
+} from "@ant-design/icons";
+import { App, Badge, Button } from "antd";
 import { HTML5toTouch } from "rdndmb-html5-to-touch";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd-multi-backend";
@@ -9,15 +13,18 @@ import { useSnapshot } from "valtio";
 import { CardMeta, fetchCard, sendUpdateDeck } from "@/api";
 import { isExtraDeckCard } from "@/common";
 import { getUIContainer } from "@/container/compat";
+import { useMediaQuery } from "@/hook";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { IDeck, matStore, roomStore, SideStage, sideStore } from "@/stores";
 import { requireSession } from "@/ui/requireSession";
 import { deckMessages } from "@/variant/deckMessages";
+import { mobileMessages } from "@/variant/mobileMessages";
 
 import { CardDetail } from "../BuildDeck/CardDetail";
 import { EndModal } from "../Duel/Message/EndModal";
 import { useI18N } from "../I18N";
 import { Background, DeckZone, Type, useChat } from "../Shared";
+import { DuelPanel } from "../Shared/DuelPanel";
 import { Chat } from "../WaitRoom/Chat";
 import styles from "./index.module.scss";
 import { TpModal } from "./TpModal";
@@ -31,7 +38,8 @@ export const loader: LoaderFunction = async () => {
 };
 
 export const Component: React.FC = () => {
-  const chat = useChat();
+  // Siding is part of the match: same chat order as the duel.
+  const chat = useChat(false, true);
   const { language } = useI18N();
   const text = deckMessages(language);
   const container = getUIContainer();
@@ -47,6 +55,21 @@ export const Component: React.FC = () => {
     "resetDone" | "sideInvalid" | "sideChanged"
   >();
   const navigate = useNavigate();
+  // Same breakpoint that hides the chat column: there chat (system notices
+  // included) opens in an overlay panel instead of squeezing the deck grid.
+  const compact = useMediaQuery(
+    "(max-width: 1024px), (max-height: 600px) and (pointer: coarse), (hover: none) and (pointer: coarse)",
+  );
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatSeen, setChatSeen] = useState(0);
+  const unread = chatOpen ? 0 : chat.dialogs.length - chatSeen;
+  useEffect(() => {
+    if (!chatOpen) return;
+    setChatSeen(chat.dialogs.length);
+    const viewport = chat.ref.current?.osInstance()?.elements().viewport;
+    if (viewport)
+      viewport.scrollTop = chat.newestFirst ? 0 : viewport.scrollHeight;
+  }, [chatOpen, chat.dialogs.length, chat.newestFirst]);
   useLayoutEffect(() => {
     if (scrollRef.current)
       scrollRef.current.scrollTop = sideStore.getEditor().scrollTop;
@@ -155,14 +178,28 @@ export const Component: React.FC = () => {
         data-testid="side-page"
         data-language={language}
       >
-        <div className={styles.sider}>
-          <Chat controller={chat} />
-        </div>
+        {!compact && (
+          <div className={styles.sider}>
+            <Chat controller={chat} />
+          </div>
+        )}
         <div className={styles.content}>
           <div className={styles["deck-container"]}>
             <div className={styles.title}>
               <h2>{text.sideTitle}</h2>
               <div className={styles.actions}>
+                {compact && (
+                  <Badge count={unread} size="small" overflowCount={99}>
+                    <Button
+                      data-testid="side-chat"
+                      size="small"
+                      icon={<MessageOutlined />}
+                      onClick={() => setChatOpen(true)}
+                    >
+                      {mobileMessages(language).chat}
+                    </Button>
+                  </Badge>
+                )}
                 <Button
                   data-testid="side-reset"
                   size="small"
@@ -261,6 +298,17 @@ export const Component: React.FC = () => {
           />
         </div>
       </div>
+      {compact && (
+        <DuelPanel
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          title={mobileMessages(language).chat}
+          testId="side-chat-panel"
+          bodyClassName={styles.chatPanel}
+        >
+          <Chat controller={chat} />
+        </DuelPanel>
+      )}
       <EndModal />
       <TpModal />
     </DndProvider>

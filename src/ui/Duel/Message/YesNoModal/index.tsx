@@ -25,35 +25,39 @@ export const YesNoModal: React.FC = () => {
 
   const preHintMsg = hint?.esHint || "";
 
+  // Also on the minimized bar, to answer while looking at the board.
+  const buttons = (prefix = "") => (
+    <>
+      <Button
+        data-testid={`duel-yesno-${prefix}no`}
+        onClick={() => {
+          sendSelectEffectYnResponse(container.conn, false);
+          rs(false);
+        }}
+      >
+        {t("Cancel")}
+      </Button>
+      <Button
+        data-testid={`duel-yesno-${prefix}yes`}
+        type="primary"
+        onClick={() => {
+          sendSelectEffectYnResponse(container.conn, true);
+          rs(true);
+        }}
+      >
+        {t("Confirm")}
+      </Button>
+    </>
+  );
+
   return (
     <NeosModal
       title={`${preHintMsg} ${msg}`}
       open={isOpen}
       width={"25rem"}
       afterClose={() => (matStore.hint.esHint = undefined)}
-      footer={
-        <>
-          <Button
-            data-testid="duel-yesno-no"
-            onClick={() => {
-              sendSelectEffectYnResponse(container.conn, false);
-              rs(false);
-            }}
-          >
-            {t("Cancel")}
-          </Button>
-          <Button
-            data-testid="duel-yesno-yes"
-            type="primary"
-            onClick={() => {
-              sendSelectEffectYnResponse(container.conn, true);
-              rs(true);
-            }}
-          >
-            {t("Confirm")}
-          </Button>
-        </>
-      }
+      footer={buttons()}
+      minimizedActions={buttons("mini-")}
     >
       <div data-testid="duel-yesno-modal" />
     </NeosModal>

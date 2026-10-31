@@ -1,17 +1,11 @@
-import { Progress } from "antd";
-import classNames from "classnames";
 import React, { useEffect, useState } from "react";
 import { useSnapshot } from "valtio";
 
 import { ygopro } from "@/api";
-import { useEnv } from "@/hook";
 import { matStore, type Player, roomStore } from "@/stores";
-import { settingStore } from "@/stores/settingStore";
-import { displayPlayerId } from "@/variant/playerIds";
-
-import styles from "./index.module.scss";
-
-const LIFE_ANIMATION_DURATION = 500;
+import { LifeBarView } from "@/ui/Shared/DuelShell/LifeBarView";
+import { clockLeft, duelClock } from "@/variant/duelClock";
+import { matchGame } from "@/variant/matchGame";
 
 export function spectatorName(
   players: readonly (Readonly<Player> | undefined)[],
@@ -29,6 +23,7 @@ export function spectatorName(
   return players[seat]?.name ?? "?";
 }
 
+/** Online life bars: names, LP and turn clocks from the live duel state. */
 export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
   const snapInitInfo = useSnapshot(matStore.initInfo);
   const snapPlayer = useSnapshot(roomStore);
@@ -40,184 +35,64 @@ export const LifeBar: React.FC<{ docked?: boolean }> = ({ docked = false }) => {
   const nearController = observing ? observerView : matStore.isMe(0) ? 0 : 1;
   const farController = 1 - nearController;
 
-  const [meLife, setMeLife] = React.useState(0);
-  const [opLife, setOpLife] = React.useState(0);
-
+  // Clocks are derived from the last calibration and the elapsed time; the
+  // interval only repaints, so missed or throttled callbacks cannot drift.
+  const clock = useSnapshot(duelClock);
+  const game = useSnapshot(matchGame);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    setMeLife(snapInitInfo.me.life);
-  }, [snapInitInfo.me.life]);
-
-  useEffect(() => {
-    setOpLife(snapInitInfo.op.life);
-  }, [snapInitInfo.op.life]);
-
-  const snapTimeLimit = useSnapshot(matStore.timeLimits);
-  const [myTimeLimit, setMyTimeLimit] = useState(snapTimeLimit.me);
-  const [opTimeLimit, setOpTimeLimit] = useState(snapTimeLimit.op);
-  useEffect(() => {
-    setMyTimeLimit(snapTimeLimit.me);
-  }, [snapTimeLimit.me]);
-  useEffect(() => {
-    setOpTimeLimit(snapTimeLimit.op);
-  }, [snapTimeLimit.op]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMyTimeLimit((time) => time - 1);
-      setOpTimeLimit((time) => time - 1);
-    }, 1000);
-
+    setNow(Date.now());
+    if (clock.running === null) return;
+    const interval = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [clock.running, clock.seq]);
+  const timeOf = (controller: number) =>
+    duelClock.limit ? clockLeft(controller, now) : undefined;
 
-  useEffect(() => {
-    if (useEnv().VITE_IS_AI_MODE) {
-      // 如果是AI模式
-      // FIXME: 探索一个优雅的、判断当前是不是AI模式的方法，用户手动输入AI也是AI模式
-      setMyTimeLimit(240);
-      setOpTimeLimit(240);
-    }
-  }, [currentPlayer]);
-
+  const meLife = snapInitInfo.me.life;
+  const opLife = snapInitInfo.op.life;
+  const farName = observing
+    ? spectatorName(
+        snapPlayer.players,
+        snapPlayer.hostInfo?.mode === 2,
+        farController,
+        observerSwapped,
+      )
+    : snapPlayer.getOpPlayer()?.name ?? "?";
+  const nearName = observing
+    ? spectatorName(
+        snapPlayer.players,
+        snapPlayer.hostInfo?.mode === 2,
+        nearController,
+        observerSwapped,
+      )
+    : snapPlayer.getMePlayer()?.name ?? "?";
   return (
-    <div className={classNames(styles.container, { [styles.sidebar]: docked })}>
-      <LifeBarItem
-        active={
-          observing
-            ? currentPlayer === farController
-            : !matStore.isMe(currentPlayer)
-        }
-        name={
-          observing
-            ? spectatorName(
-                snapPlayer.players,
-                snapPlayer.hostInfo?.mode === 2,
-                farController,
-                observerSwapped,
-              )
-            : snapPlayer.getOpPlayer()?.name ?? "?"
-        }
-        life={flipped ? meLife : opLife}
-        timeLimit={flipped ? myTimeLimit : opTimeLimit}
-        controller={farController}
-        isMe={false}
-      />
-      <LifeBarItem
-        active={
-          observing
-            ? currentPlayer === nearController
-            : matStore.isMe(currentPlayer)
-        }
-        name={
-          observing
-            ? spectatorName(
-                snapPlayer.players,
-                snapPlayer.hostInfo?.mode === 2,
-                nearController,
-                observerSwapped,
-              )
-            : snapPlayer.getMePlayer()?.name ?? "?"
-        }
-        life={flipped ? opLife : meLife}
-        timeLimit={flipped ? opTimeLimit : myTimeLimit}
-        controller={nearController}
-        isMe={true}
-      />
-    </div>
-  );
-};
-
-const LifeBarItem: React.FC<{
-  active: boolean;
-  name: string;
-  life: number;
-  timeLimit: number;
-  isMe: boolean;
-  controller: number;
-}> = ({ active, name, life, timeLimit, isMe, controller }) => {
-  const { hidePlayerIds } = useSnapshot(settingStore);
-  const animatedLife = useAnimatedLifeNumber(life);
-  const mm = Math.floor(timeLimit / 60);
-  const ss = timeLimit % 60;
-  const timeText =
-    timeLimit < 0
-      ? "00:00"
-      : `${mm < 10 ? "0" + mm : mm}:${ss < 10 ? "0" + ss : ss}`;
-  return (
-    <div
-      data-testid="duel-player-life"
-      data-player={isMe ? "me" : "op"}
-      data-controller={controller}
-      data-life={life}
-      style={{
-        flexDirection: isMe ? "column-reverse" : "column",
-        overflow: "hidden",
-        display: "flex",
-        gap: "0.5rem",
-        position: "relative",
+    <LifeBarView
+      docked={docked}
+      game={snapPlayer.hostInfo?.mode === 1 ? game.number : undefined}
+      far={{
+        active: observing
+          ? currentPlayer === farController
+          : !matStore.isMe(currentPlayer),
+        name: farName,
+        life: flipped ? meLife : opLife,
+        timeLimit: timeOf(farController),
+        timeTotal: clock.limit,
+        timing: clock.running === farController,
+        controller: farController,
       }}
-    >
-      <div
-        className={classNames(styles["life-bar"], {
-          "life-bar-activated": active,
-        })}
-      >
-        <div className={styles.name} data-testid="duel-player-name">
-          {displayPlayerId(name, hidePlayerIds)}
-        </div>
-        <div
-          className={styles.life}
-          data-testid="duel-player-life-value"
-          data-player={isMe ? "me" : "op"}
-          data-target-life={life}
-        >
-          {animatedLife}
-        </div>
-      </div>
-      {active && (
-        <div className={styles["timer-container"]}>
-          <Progress
-            type="circle"
-            percent={Math.floor((timeLimit / 240) * 100)}
-            strokeWidth={20}
-            size={14}
-          />
-          <div className={styles["timer-text"]}>{timeText}</div>
-        </div>
-      )}
-    </div>
+      near={{
+        active: observing
+          ? currentPlayer === nearController
+          : matStore.isMe(currentPlayer),
+        name: nearName,
+        life: flipped ? opLife : meLife,
+        timeLimit: timeOf(nearController),
+        timeTotal: clock.limit,
+        timing: clock.running === nearController,
+        controller: nearController,
+      }}
+    />
   );
-};
-
-const useAnimatedLifeNumber = (life: number) => {
-  const [displayLife, setDisplayLife] = useState(life);
-  const displayLifeRef = React.useRef(life);
-
-  useEffect(() => {
-    const from = displayLifeRef.current;
-    const to = life;
-
-    if (from === to) return;
-
-    let frame = 0;
-    const start = performance.now();
-    const animate = (now: number) => {
-      const progress = Math.min(1, (now - start) / LIFE_ANIMATION_DURATION);
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      const next = Math.round(from + (to - from) * easedProgress);
-
-      displayLifeRef.current = next;
-      setDisplayLife(next);
-
-      if (progress < 1) {
-        frame = requestAnimationFrame(animate);
-      }
-    };
-
-    frame = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(frame);
-  }, [life]);
-
-  return displayLife;
 };

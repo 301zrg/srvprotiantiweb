@@ -4,7 +4,7 @@ import { createServer } from 'vite';
 const vite = await createServer({ server: { middlewareMode: true, watch: null }, optimizeDeps: { disabled: true }, logLevel: 'error' });
 try {
   const { default: becomeTarget } = await vite.ssrLoadModule('/src/service/duel/becomeTarget.ts');
-  const { seedScene } = await vite.ssrLoadModule('/src/ui/Replay/scene.ts');
+  const { seedScene } = await vite.ssrLoadModule('/src/ui/Shared/DuelBoard/scene.ts');
   const { advancePracticeScene } = await vite.ssrLoadModule('/src/ui/Practice/presentation.ts');
   const location = { controller: 0, zone: 4, sequence: 0 };
   const card = { code: 46986414, meta: { text: { name: 'Public fixture' } }, location, targeted: false };

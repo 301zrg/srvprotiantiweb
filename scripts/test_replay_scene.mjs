@@ -10,8 +10,11 @@ const server = await createServer({
   logLevel: "error",
 });
 try {
-  const { seedScene, sceneSteps, scenePoint } = await server.ssrLoadModule(
-    "/src/ui/Replay/scene.ts",
+  const { seedScene, sceneSteps, sceneSpot } = await server.ssrLoadModule(
+    "/src/ui/Shared/DuelBoard/scene.ts",
+  );
+  const { boardGeometry, zoneRect } = await server.ssrLoadModule(
+    "/src/ui/Shared/DuelBoard/geometry.ts",
   );
   const { ReplayEngine } = await server.ssrLoadModule("/src/replay/engine.ts");
   const create = (
@@ -60,11 +63,46 @@ try {
       );
       assert.ok(steps.length <= 129, "Only one bounded Core batch is queued");
       const final = steps.at(-1);
+      // Core fields must match the full query exactly. Only these display-only
+      // fields are added by the scene layer; they are checked separately below.
       assert.deepEqual(
-        final.cards.map(({ sceneId, ...card }) => card),
+        final.cards.map(
+          ({
+            sceneId,
+            targeted,
+            targetFlash,
+            equipTarget,
+            cardTargets,
+            ...card
+          }) => card,
+        ),
         next.cards,
         "Every batch settles to exact full Core query",
       );
+      const idAt = (place) =>
+        final.cards.find(
+          (c) =>
+            c.player === place.player &&
+            c.location === place.location &&
+            c.sequence === place.sequence,
+        )?.sceneId;
+      const ids = new Set(final.cards.map((c) => c.sceneId));
+      for (const card of final.cards) {
+        if (card.equipLocation)
+          assert.equal(
+            card.equipTarget,
+            idAt(card.equipLocation),
+            "Equip link follows the Core-reported location",
+          );
+        if (card.targetLocations)
+          assert.deepEqual(
+            card.cardTargets,
+            card.targetLocations.map(idAt).filter(Boolean),
+            "Card targets follow the Core-reported locations",
+          );
+        for (const id of [card.equipTarget, ...(card.cardTargets ?? [])])
+          if (id) assert.ok(ids.has(id), "Links only reference live cards");
+      }
       assert.deepEqual(final.lp, next.lp);
       assert.equal(
         new Set(final.cards.map((c) => c.sceneId)).size,
@@ -81,17 +119,15 @@ try {
   }
   for (const kind of ["move", "draw", "attack", "chain", "damage", "position"])
     assert.ok(kinds.has(kind), `Native samples must exercise ${kind}`);
-  assert.deepEqual(scenePoint({ player: 0, location: 4, sequence: 0 }, 0), {
-    x: 215,
-    y: 535,
-  });
-  assert.deepEqual(scenePoint({ player: 0, location: 4, sequence: 0 }, 1), {
-    x: 785,
-    y: 385,
-  });
+  // Replays share the online board geometry: a slot is mirrored between views
+  // and piles never coincide with each other.
+  const g = boardGeometry({ wide: false, masterRule: 2, roomy: false });
+  const near = zoneRect(g, sceneSpot({ player: 0, location: 4, sequence: 0 }, 0));
+  const far = zoneRect(g, sceneSpot({ player: 0, location: 4, sequence: 0 }, 1));
+  assert.deepEqual([far.x, far.y], [-near.x, -near.y]);
   assert.notDeepEqual(
-    scenePoint({ player: 0, location: 1, sequence: 0 }, 0),
-    scenePoint({ player: 0, location: 16, sequence: 0 }, 0),
+    zoneRect(g, sceneSpot({ player: 0, location: 1, sequence: 0 }, 0)),
+    zoneRect(g, sceneSpot({ player: 0, location: 16, sequence: 0 }, 0)),
   );
   console.log(
     JSON.stringify({

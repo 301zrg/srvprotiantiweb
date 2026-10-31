@@ -8,7 +8,12 @@ declare const classNames: {
   readonly contents: "contents";
   readonly sidebar: "sidebar";
   readonly primary: "primary";
+  readonly "ant-select": "ant-select";
   readonly phaseLabel: "phaseLabel";
+  readonly "ant-select-selector": "ant-select-selector";
+  readonly replayJump: "replayJump";
+  readonly "ant-input-number": "ant-input-number";
+  readonly replayMore: "replayMore";
   readonly observing: "observing";
   readonly phaseText: "phaseText";
   readonly optionalLabel: "optionalLabel";

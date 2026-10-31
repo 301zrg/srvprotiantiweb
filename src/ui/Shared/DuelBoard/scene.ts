@@ -2,6 +2,8 @@ import type { ReplayFrame } from "@/replay/engine";
 import type { ReplayCard } from "@/replay/messages";
 import { type CardLinks, clearCardLinks } from "@/variant/cardInformation";
 
+import type { BoardSpot, BoardZone } from "./geometry";
+
 export type SceneCard = ReplayCard &
   CardLinks & {
     sceneId: string;
@@ -370,39 +372,19 @@ export function sceneSteps(
   return steps;
 }
 
-export function scenePoint(
-  place: Spot,
-  view: number,
-): { x: number; y: number } {
-  const near = place.player === view;
-  if (place.location === 0) return { x: 500, y: near ? 890 : 30 };
-  if (place.location === 4 || place.location === 8) {
-    if (place.location === 8 && place.sequence >= 5)
-      return { x: near ? 80 : 920, y: near ? 695 : 225 };
-    return {
-      x: 215 + (near ? place.sequence : 4 - place.sequence) * 142.5,
-      y: place.location === 4 ? (near ? 535 : 385) : near ? 695 : 225,
-    };
-  }
-  if (place.location === 2) return { x: 500, y: near ? 845 : 75 };
-  const x = near
-    ? place.location === 64 || place.location === 32
-      ? 80
-      : 920
-    : place.location === 64 || place.location === 32
-    ? 920
-    : 80;
-  const y =
-    place.location === 64
-      ? near
-        ? 845
-        : 75
-      : [16, 32].includes(place.location)
-      ? near
-        ? 535
-        : 385
-      : near
-      ? 695
-      : 225;
-  return { x, y };
-}
+const coreZones: Record<number, BoardZone> = {
+  1: "deck",
+  2: "hand",
+  4: "monster",
+  8: "spell",
+  16: "grave",
+  32: "removed",
+  64: "extra",
+};
+
+/** Core location bits -> shared board spot; `view` is the bottom player. */
+export const sceneSpot = (spot: Spot, view: number): BoardSpot => ({
+  zone: coreZones[spot.location & 127],
+  near: spot.player === view,
+  sequence: spot.sequence,
+});

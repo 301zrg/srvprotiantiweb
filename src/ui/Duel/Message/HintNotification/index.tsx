@@ -35,7 +35,7 @@ export const HintNotification = () => {
   const handResults = matSnap.handResults;
   const error = matSnap.error;
 
-  const { dialogs } = useChat(true);
+  const { dialogs, latest: newestDialog } = useChat(true);
   const seenDialogs = useRef(0);
   const chatVisible = useRef(false);
   const [summary, setSummary] = useState<{ name: string; content: string }>();
@@ -107,7 +107,7 @@ export const HintNotification = () => {
   useEffect(() => {
     if (dialogs.length <= seenDialogs.current) return;
     seenDialogs.current = dialogs.length;
-    const latest = dialogs.at(-1);
+    const latest = newestDialog;
     if (!latest) return;
     const presentation = chatPresentation(
       serverMessageMode,

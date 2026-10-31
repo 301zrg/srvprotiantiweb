@@ -77,7 +77,7 @@ try{for(const kind of cases){
      await expect(page.getByTestId('phase-ep')).toBeEnabled();
    }
  }
- await page.getByTestId('practice-history').click();await expect(page.getByTestId('practice-history-content').locator('li')).not.toHaveCount(0);
+ await page.getByTestId('practice-history').click();await expect(page.getByTestId('practice-history-content').locator('[data-history-kind]')).not.toHaveCount(0);
  const historyCard=page.getByTestId('practice-history-card').first();if(kind!=='inspect'){await expect(historyCard).toBeVisible();const code=await historyCard.getAttribute('data-card-code');await historyCard.click();await expect(page.getByTestId('practice-history-content')).not.toBeVisible();await expect(page.locator('.practice-detail-image')).toBeVisible();assert.ok((await page.locator('.practice-detail-image').getAttribute('src')).includes(code));await page.locator('.ant-drawer-close:visible').click();}else await page.locator('.ant-drawer-close:visible').click();
  await page.screenshot({path:'.audit-tmp/practice-followup/'+kind+'.png'});
  assert.deepEqual(errors,[]);console.log('PASS native spell/set/monster/trap/pile continuation',kind);

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { replayControl, replayJump } from "./replay_controls.mjs";
 import { chromium, expect } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 const origin = process.env.SMOKE_URL || "http://127.0.0.1:4173";
@@ -27,6 +28,12 @@ try {
     );
     await context.addInitScript(() => {
       localStorage.setItem("language", "cn");
+      // Steps are driven explicitly; first-open autoplay has its own test.
+      if (!localStorage.getItem("__neo_setting_config__"))
+        localStorage.setItem(
+          "__neo_setting_config__",
+          JSON.stringify({ replayAutoPlay: false }),
+        );
       const card = (player, location, sequence, position, extra = {}) => ({
         code: 46986414,
         type: 1,
@@ -135,55 +142,58 @@ try {
       .setInputFiles("tests/fixtures/replay/native-deckout.yrp");
     await page.getByRole("button", { name: "播放", exact: true }).click();
     await expect(page.locator(".replay-field-board")).toBeVisible();
+    // Duel layout: the board fills the area left by the sidebar (or the top
+    // life bars and bottom toolbar) without scrolling, and that chrome stays
+    // on screen.
     const checkFieldFit = async () => {
-      // Let initial mobile-to-desktop positioning transitions finish.
       await page.waitForTimeout(350);
-      const size = await page
-        .locator(".replay-field-viewport")
-        .evaluate((el) => {
-          const board = el
-            .querySelector(".replay-field-canvas")
-            .getBoundingClientRect();
-          const player = el.closest(".replay-player");
-          return {
-            width: board.width,
-            height: board.height,
-            viewportWidth: innerWidth,
-            viewportHeight: innerHeight,
-            availableWidth: el.clientWidth,
-            availableHeight: parseFloat(el.style.maxHeight),
-            scrollWidth: el.scrollWidth,
-            scrollHeight: el.scrollHeight,
-            clientHeight: el.clientHeight,
-            scrollTop: el.scrollTop,
-            scrollLeft: el.scrollLeft,
-            bottom: el.getBoundingClientRect().bottom,
-            playerBottom: player.getBoundingClientRect().bottom,
-            footerBottom: el.nextElementSibling.getBoundingClientRect().bottom,
-            playerFits: player.scrollHeight <= player.clientHeight + 1,
-            outside: [
-              ...el.querySelectorAll(
-                ".replay-field-card, .replay-field-pile, .replay-field-slot",
-              ),
-            ].flatMap((card) => {
-              const r = card.getBoundingClientRect();
-              return r.left >= board.left - 1 &&
-                r.right <= board.right + 1 &&
-                r.top >= board.top - 1 &&
-                r.bottom <= board.bottom + 1
-                ? []
-                : [
-                    {
-                      card: card.outerHTML.slice(0, 240),
-                      left: r.left - board.left,
-                      right: r.right - board.right,
-                      top: r.top - board.top,
-                      bottom: r.bottom - board.bottom,
-                    },
-                  ];
-            }),
-          };
-        });
+      const size = await page.evaluate(() => {
+        const el = document.querySelector(".replay-field-viewport");
+        const board = el
+          .querySelector(".scene-board-canvas")
+          .getBoundingClientRect();
+        const chrome = [
+          ...document.querySelectorAll('[data-testid="duel-player-life"]'),
+          document.querySelector('[data-testid="duel-sidebar-controls"]') ??
+            document.querySelector('[data-testid="duel-menu"]'),
+        ].map((node) => node.getBoundingClientRect());
+        return {
+          width: board.width,
+          height: board.height,
+          viewportWidth: innerWidth,
+          viewportHeight: innerHeight,
+          availableWidth: el.clientWidth,
+          availableHeight: el.clientHeight,
+          scrollWidth: el.scrollWidth,
+          scrollHeight: el.scrollHeight,
+          clientHeight: el.clientHeight,
+          scrollTop: el.scrollTop,
+          scrollLeft: el.scrollLeft,
+          chromeFits: chrome.every(
+            (r) =>
+              r.top >= -1 &&
+              r.left >= -1 &&
+              r.bottom <= innerHeight + 1 &&
+              r.right <= innerWidth + 1,
+          ),
+          pageFits:
+            document.documentElement.scrollWidth <= innerWidth + 1 &&
+            document.documentElement.scrollHeight <= innerHeight + 1,
+          outside: [
+            ...el.querySelectorAll(
+              ".replay-field-card, .replay-field-pile, .replay-field-slot",
+            ),
+          ].flatMap((card) => {
+            const r = card.getBoundingClientRect();
+            return r.left >= board.left - 1 &&
+              r.right <= board.right + 1 &&
+              r.top >= board.top - 1 &&
+              r.bottom <= board.bottom + 1
+              ? []
+              : [{ card: card.outerHTML.slice(0, 240) }];
+          }),
+        };
+      });
       assert.ok(
         size.scrollWidth <= size.availableWidth + 1 &&
           size.scrollHeight <= size.clientHeight + 1 &&
@@ -200,10 +210,8 @@ try {
         "The full field uses the maximum size allowed by width or remaining height",
       );
       assert.ok(
-        size.playerFits &&
-          size.footerBottom <= size.playerBottom &&
-          size.footerBottom <= size.viewportHeight,
-        "The full field and both player labels fit on one screen",
+        size.chromeFits && size.pageFits,
+        `Life bars and controls fit on one screen: ${JSON.stringify(size)}`,
       );
       console.log(
         `Desktop field ${size.viewportWidth}px: ${Math.round(
@@ -212,14 +220,17 @@ try {
       );
     };
     if (name === "desktop") {
-      await expect(page.locator(".replay-field-desktop")).toBeVisible();
+      await expect(page.getByTestId("duel-sidebar")).toBeVisible();
       await checkFieldFit();
-      assert.deepEqual(
-        await page.locator(".replay-field-player > span").allTextContents(),
-        ["手牌 1 · LP 8000", "手牌 1 · LP 8000"],
-      );
-      await page.getByRole("button", { name: /放大场地/ }).click();
-      await page.getByRole("button", { name: "恢复大小", exact: true }).click();
+      // Hand counts and LP sit in the shared life bars.
+      for (const life of await page
+        .getByTestId("duel-player-life")
+        .all()) {
+        await expect(life).toHaveAttribute("data-life", "8000");
+        await expect(life).toContainText("手牌 1");
+      }
+      await replayControl(page, "放大场地 1×");
+      await replayControl(page, "恢复大小");
       await checkFieldFit();
       for (const size of [
         { width: 1920, height: 1080 },
@@ -233,21 +244,15 @@ try {
       }
       await page.setViewportSize(viewport);
       await page.waitForTimeout(150);
-      await page
-        .getByRole("button", { name: "查看里侧卡片", exact: true })
-        .click();
+      await replayControl(page, "查看里侧卡片");
       await page.waitForTimeout(150);
       await checkFieldFit();
-      await page
-        .getByRole("button", { name: "查看里侧卡片", exact: true })
-        .click();
+      await replayControl(page, "查看里侧卡片");
       await page.setViewportSize({ width: 1280, height: 600 });
       await page.waitForTimeout(150);
       await checkFieldFit();
       await page.setViewportSize(viewport);
       await page.waitForTimeout(150);
-    } else {
-      await expect(page.locator(".replay-field-desktop")).toHaveCount(0);
     }
     if (name !== "desktop") {
       const facedownCard = page.locator(
@@ -266,7 +271,7 @@ try {
       await expect(detailClose).not.toBeVisible();
     }
     assert.deepEqual(
-      await page.locator(".replay-field-player strong").allTextContents(),
+      await page.locator('[data-testid="duel-player-name"]').allTextContents(),
       ["FieldFixtureB", "FieldFixtureA"],
     );
     const hand = page.locator(
@@ -305,7 +310,8 @@ try {
     const monster = page.locator(
       '.replay-field-card[data-player="0"][data-location="4"][data-sequence="1"]',
     );
-    await expect(monster).toContainText("守备表示");
+    // Shared board: defense is shown by rotation, as online.
+    await expect(monster).toHaveAttribute("data-position", /^(4|8)$/);
     await page.getByRole("button", { name: "继续播放", exact: true }).click();
     await page.getByRole("button", { name: "暂停", exact: true }).click();
     const pausedAction = await page
@@ -318,37 +324,43 @@ try {
       "Pause must stop queued visual actions",
     );
     await until("chain");
-    await expect(page.locator(".replay-field-chain")).toHaveCount(1);
-    await page.getByRole("button", { name: "跳到回合", exact: true }).click();
-    await expect(page.locator(".replay-field-chain")).toHaveCount(0);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(1);
+    await replayJump(page, 1);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(0);
     await expect(page.locator(".replay-field-action")).toHaveAttribute(
       "data-action",
       "ready",
     );
     await until("chain");
-    await expect(page.locator(".replay-field-chain")).toHaveCount(1);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(1);
     await until("attack");
     await expect(page.locator(".replay-field-arrows line")).toHaveCount(1);
     const before = await page
       .locator(".replay-field-arrows line")
       .getAttribute("y1");
-    await page.getByRole("button", { name: "切换视角", exact: true }).click();
+    await replayControl(page, "切换视角");
     assert.notEqual(
       await page.locator(".replay-field-arrows line").getAttribute("y1"),
       before,
     );
     assert.deepEqual(
-      await page.locator(".replay-field-player strong").allTextContents(),
+      await page.locator('[data-testid="duel-player-name"]').allTextContents(),
       ["FieldFixtureA", "FieldFixtureB"],
     );
-    await page.getByRole("button", { name: "切换视角", exact: true }).click();
+    await replayControl(page, "切换视角");
     await until("counter");
-    await expect(monster).toContainText("指示物 2");
+    const counterBadge = page.locator(
+      '[data-testid="card-counter-badge"][data-counter-count="2"]',
+    );
+    await expect(counterBadge).toBeVisible();
     await page.getByRole("button", { name: "继续播放", exact: true }).click();
     await monster.click();
-    await expect(page.locator(".ant-drawer-open")).toContainText(
-      "魔力指示物 × 2",
-    );
+    // Shared detail content lists counters like the online panel.
+    await expect(
+      page
+        .locator(".ant-drawer-open")
+        .locator('[data-testid="card-counter-detail"][data-counter-count="2"]'),
+    ).toContainText("魔力指示物");
     const inspectedAction = await page
       .locator(".replay-field-action")
       .getAttribute("data-action");
@@ -362,25 +374,39 @@ try {
       .locator(".ant-drawer-open")
       .getByRole("button", { name: "关闭", exact: true })
       .click();
+    await page.waitForTimeout(400);
     await until("chainEnd");
-    await expect(page.locator(".replay-field-chain")).toHaveCount(0);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(0);
     await page.getByRole("button", { name: "单步", exact: true }).click();
-    await expect(page.locator(".replay-field-player").first()).toContainText(
-      "LP 7000",
-    );
     await expect(
-      page.locator('.replay-field-pile[data-pile="32"][data-player="0"] img'),
-    ).toHaveAttribute("src", /card_back\.jpg$/);
+      page.locator('[data-testid="duel-player-life"][data-life="7000"]'),
+    ).toHaveCount(1);
+    assert.match(
+      await page
+        .locator('.replay-field-pile[data-pile="32"][data-player="0"] .scene-board-face')
+        .evaluate((el) => el.style.getPropertyValue("--src")),
+      /card_back\.jpg/,
+    );
     const pile = page.locator(
       '.replay-field-pile[data-player="0"][data-pile="32"]',
     );
+    await pile.scrollIntoViewIfNeeded();
+    // Small piles keep a 44 px wide touch target; vertically they reach the
+    // neighbouring pile's gap but never overlap it.
     assert.ok(
-      (await pile.boundingBox()).height >= 43,
-      "Pile controls preserve physical touch height",
-    );
-    assert.ok(
-      (await pile.boundingBox()).width >= 43,
-      "Pile controls preserve physical touch width",
+      await pile.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2,
+          cy = r.top + r.height / 2;
+        const reach = Math.max(r.height / 2 - 1, Math.min(21, r.height / 2 + 1));
+        return [
+          [cx - 21, cy],
+          [cx + 21, cy],
+          [cx, cy - reach],
+          [cx, cy + reach],
+        ].every(([x, y]) => el.contains(document.elementFromPoint(x, y)));
+      }),
+      "Pile controls preserve a physical touch target",
     );
     await pile.click();
     await expect(page.locator(".ant-drawer-open")).toContainText("除外");
@@ -388,7 +414,8 @@ try {
       .locator(".ant-drawer-open")
       .getByRole("button", { name: "关闭", exact: true })
       .click();
-    await page.getByRole("button", { name: "重新开始", exact: true }).click();
+    await page.waitForTimeout(400);
+    await replayControl(page, "重新开始");
     await expect(page.locator(".replay-field-action")).toHaveAttribute(
       "data-action",
       "ready",
@@ -428,12 +455,12 @@ try {
       "chainEnd",
     ])
       assert.ok(actions.includes(kind), `16× must still display ${kind}`);
-    await expect(monster).toContainText("指示物 2");
-    await expect(page.locator(".replay-field-player").first()).toContainText(
-      "LP 7000",
-    );
-    await expect(page.locator(".replay-field-chain")).toHaveCount(0);
-    await page.getByRole("button", { name: /放大场地/ }).click();
+    await expect(counterBadge).toBeVisible();
+    await expect(
+      page.locator('[data-testid="duel-player-life"][data-life="7000"]'),
+    ).toHaveCount(1);
+    await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(0);
+    await replayControl(page, "放大场地 1×");
     assert.ok(
       await page
         .locator(".replay-field-viewport")
@@ -444,7 +471,7 @@ try {
         ),
       "Zoom scrolls within field",
     );
-    await page.getByRole("button", { name: "恢复大小", exact: true }).click();
+    await replayControl(page, "恢复大小");
     if (name === "desktop") await checkFieldFit();
     assert.ok(
       await page.evaluate(
@@ -456,11 +483,11 @@ try {
       path: `.audit-tmp/replay-field-ui/${name}.png`,
       fullPage: true,
     });
-    await page.getByRole("button", { name: "列表视图", exact: true }).click();
+    await replayControl(page, "列表视图");
     await expect(page.locator(".replay-board")).toBeVisible();
-    await page.getByRole("button", { name: "场地视图", exact: true }).click();
+    await replayControl(page, "场地视图");
     await expect(page.locator(".replay-field-board")).toBeVisible();
-    await page.getByRole("link", { name: "录像列表", exact: true }).click();
+    await replayControl(page, "退出播放");
     await expect(page.locator(".replay-page")).toBeVisible();
     assert.equal(sockets, 0);
     await context.close();

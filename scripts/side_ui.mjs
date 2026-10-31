@@ -42,6 +42,14 @@ const words = {
     confirm: "확인",
   },
 };
+// STOC_CHAT: the notices SRVPro sends while the peer leaves and returns.
+const chatPacket = (player, text) => {
+  const body = [];
+  for (const ch of `${text}\0`)
+    body.push(ch.charCodeAt(0) & 255, ch.charCodeAt(0) >> 8);
+  const length = 3 + body.length;
+  return [length & 255, length >> 8, 25, player & 255, player >> 8, ...body];
+};
 const profiles = [
   { name: "portrait", width: 390, height: 844, columns: 6 },
   { name: "landscape", width: 844, height: 390, columns: 13 },
@@ -320,7 +328,9 @@ try {
         }));
       for (const bytes of [
         [1, 0, 21],
+        chatPacket(8, "Opponent disconnected, waiting for reconnection"),
         [1, 0, 8],
+        chatPacket(11, "x".repeat(300)),
         [1, 0, 21],
       ]) {
         await page.evaluate((bytes) => window.__sideTest.receive(bytes), bytes);
@@ -399,6 +409,23 @@ try {
         "role",
         "status",
       );
+      // Chat stays reachable: a column on desktop, a button with an unread
+      // count and an overlay panel on touch layouts.
+      if (mobile) {
+        await expect(page.getByTestId("waitroom-chat")).toHaveCount(0);
+        await expect(page.getByTestId("side-chat").locator("..").locator(".ant-badge-count")).toBeVisible();
+        const before = await scroll.evaluate((element) => element.clientWidth);
+        await page.getByTestId("side-chat").click();
+        const panel = page.getByTestId("side-chat-panel");
+        await expect(panel.getByTestId("waitroom-chat-message").last()).toContainText("x".repeat(300));
+        await expect(panel.getByTestId("waitroom-chat-input")).toBeVisible();
+        assert.equal(await scroll.evaluate((element) => element.clientWidth), before, "The chat panel overlays the editor");
+        await page.getByTestId("side-chat-panel-close").click();
+        await expect(page.getByTestId("side-chat").locator("..").locator(".ant-badge-count")).toHaveCount(0);
+      } else {
+        await expect(page.getByTestId("side-chat")).toHaveCount(0);
+        await expect(page.getByTestId("waitroom-chat-message").last()).toContainText("x".repeat(300));
+      }
       if (lang === "zh") {
         await scroll.evaluate((element) => {
           element.scrollTop = 0;
