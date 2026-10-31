@@ -18,6 +18,7 @@
     "scripts/test_deck_limits.mjs",
     "scripts/test_deck_visibility.mjs",
     "scripts/test_duel_action_request.mjs",
+    "scripts/test_duel_animation.mjs",
     "scripts/test_duel_clock.mjs",
     "scripts/test_duel_diagnostics.mjs",
     "scripts/test_duel_phases.mjs",
@@ -30,11 +31,13 @@
     "scripts/test_field_selection_session.mjs",
     "scripts/test_https_entry.mjs",
     "scripts/test_join_form.mjs",
+    "scripts/test_language_hints.mjs",
     "scripts/test_language_links.mjs",
     "scripts/test_match_game.mjs",
     "scripts/test_message_presentation.mjs",
     "scripts/test_observer_seat.mjs",
     "scripts/test_old_ruling_ep_core.mjs",
+    "scripts/test_online_audio.mjs",
     "scripts/test_packet_framer.mjs",
     "scripts/test_pm2_tunnel.mjs",
     "scripts/test_practice_base.mjs",
@@ -65,9 +68,5 @@
     "scripts/test_web_entry.mjs",
     "scripts/test_windows_tunnel_scripts.mjs"
   ],
-  "knownFailing": {
-    "scripts/test_duel_animation.mjs": "loading src/infra/eventbus.ts fails after #37 (2026-10-25)",
-    "scripts/test_language_hints.mjs": "the @/api test shim lacks the DESCRIPTION_LIMIT export",
-    "scripts/test_online_audio.mjs": "the window test shim lacks addEventListener"
-  }
+  "knownFailing": {}
 }

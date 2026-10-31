@@ -10,10 +10,11 @@ const names = ["Chinese", "English", "Japanese", "Korean"];
 const catalogs = Object.fromEntries(languages.map((lang, i) => [lang, JSON.parse(readFileSync(`src/ui/I18N/Source/${names[i]}/translation.json`, "utf8"))]));
 await i18next.init({resources: Object.fromEntries(languages.map(lang => [lang, catalogs[lang]])), lng: "cn"});
 const shims = {
-  "@/api": `export const ygopro={StocErrorMsg:{ErrorType:{JOINERROR:1,DECKERROR:2,SIDEERROR:3,VERSIONERROR:4}}}; export const Region={System:0}; export const fetchCard=code=>({text:{name:'card-'+code}}); export const fetchStrings=(r,code)=>'system-'+code;`,
+  "@/api": `export const DESCRIPTION_LIMIT=10000; export const ygopro={StocErrorMsg:{ErrorType:{JOINERROR:1,DECKERROR:2,SIDEERROR:3,VERSIONERROR:4}}}; export const Region={System:0}; export const fetchCard=code=>({text:{name:'card-'+code}}); export const fetchStrings=(r,code)=>'system-'+code; export const getStrings=d=>d<10000?fetchStrings(0,d):'card-'+(d>>>4)+'-str'+(d&15);`,
   "@/api/cards": `export const fetchCard=code=>({text:{name:'card-'+code+'-'+globalThis.__hintLanguage}});`,
-  "@/api/strings": `export const Region={System:0}; export const fetchStrings=(r,code)=>'system-'+code+'-'+globalThis.__hintLanguage;`,
+  "@/api/strings": `export const Region={System:0}; export const fetchStrings=(r,code)=>'system-'+code+'-'+globalThis.__hintLanguage; export const getStrings=d=>d<10000?fetchStrings(0,d):'card-'+(d>>>4)+'-str'+(d&15)+'-'+globalThis.__hintLanguage;`,
   "@/infra/audio": `export const AudioActionType={SOUND_INFO:1}; export const playEffect=()=>{};`,
+  "@/stores": `export const SideStage={NONE:0,SIDE_CHANGING:1,SIDE_CHANGED:2,TP_SELECTING:5,TP_SELECTED:6,DUEL_START:7,WAITING:8};`,
   "@/variant": `export const getLanguage=()=>globalThis.__hintLanguage;`,
   "@/variant/connection": `export const connectionStore={pendingJoinMessage:'',detail:''};`,
 };
@@ -32,7 +33,7 @@ const expected = {
 };
 for (const language of languages) {
   globalThis.__hintLanguage = language; await i18next.changeLanguage(language);
-  const context = {context: {roomStore: {}}};
+  const context = {context: {roomStore: {}, sideStore: {stage: 2}}};
   await handleError(context, {error_type: 2, error_code: (6 << 28)});
   assert.equal(context.context.roomStore.errorMsg, expected[language].main);
   await handleError(context, {error_type: 2, error_code: (1 << 28) | 89631139});
@@ -40,6 +41,7 @@ for (const language of languages) {
   assert.ok(context.context.roomStore.errorMsg.includes("card-89631139"));
   await handleError(context, {error_type: 3, error_code: 0});
   assert.equal(context.context.roomStore.errorMsg, expected[language].side);
+  assert.equal(context.context.sideStore.stage, 1, "a rejected side deck reopens side decking");
   assert.equal(formatDuelHint({originMsg: "「[?]」攻击时", cardID: 89631139}, language), expected[language].hint);
   assert.equal(formatDuelHint({originMsg: 1600}, language), `system-1600-${language}`);
   assert.equal(localizeReplayText("双打录像暂仅保存与下载", language), expected[language].legacy);
