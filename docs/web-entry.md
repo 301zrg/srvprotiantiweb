@@ -6,13 +6,13 @@
 
 | intent | 行为 | 测试链接 |
 | --- | --- | --- |
-| regular | 普通联机表单，不自动入房 | `https://test.ocg1103nexus.com/?intent=regular&lang=zh` |
+| regular | 普通联机表单；带 room（非 TT 等模式指令）且已有有效昵称时自动连接一次，与桌面助手一致，否则手动填写 | `https://test.ocg1103nexus.com/?intent=regular&room=ExampleRoom&lang=zh` |
 | ladder | 预填 TT；已有有效昵称时自动连接一次，否则手动填写 | `https://test.ocg1103nexus.com/?intent=ladder&lang=zh` |
 | deck-editor | 现有卡组列表／编辑器 | `https://test.ocg1103nexus.com/?intent=deck-editor&lang=zh` |
 | replay-list | 现有录像列表 | `https://test.ocg1103nexus.com/?intent=replay-list&lang=zh` |
 | spectate | 按实际房间名观战 | `https://test.ocg1103nexus.com/?intent=spectate&room=ExampleRoom&lang=zh` |
 
-也支持 `#/entry?v=1&intent=...`；v 缺省为 1，仅支持 1。四语参数沿用 [语言入口](language-links.md)。可选 room 用于普通联机或观战，按原样 URL 编码，最多 19 个 UTF-16 码元，不得在公开链接携带 `$` 后的房间密码；需要密码时手动补入表单。spectate 拒绝 TT 等模式命令。`autojoin=0` 使 ladder/spectate 停在表单；regular 即使传入 1 也不自动连接。
+也支持 `#/entry?v=1&intent=...`；v 缺省为 1，仅支持 1。四语参数沿用 [语言入口](language-links.md)。可选 room 用于普通联机或观战，按原样 URL 编码，最多 19 个 UTF-16 码元，不得在公开链接携带 `$` 后的房间密码；需要密码时手动补入表单。spectate 拒绝 TT 等模式命令。`autojoin=0` 使 ladder/spectate/regular 停在表单（官网房间列表对需密码的房间传 0）；不带 room 的 regular 不自动连接（2026-11-04）。
 
 相同入口字段重复或同时出现在 query/hash 会拒绝。外层 intent 不覆盖已有明确的 `#/replays` 等路由，部署子目录与 index.html 保留。入口不能指定 WSS、自动准备或自动开始比赛。卡组／录像仍属于当前 Origin 的本地库，不迁移其他域名、HTTP 或浏览器缓存。
 

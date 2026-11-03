@@ -180,6 +180,27 @@ try {
     await page.getByTestId("waitroom-leave").click();
     await expect(page.locator("#player-nickname")).toHaveValue("Saved$old");
     await expect(page.locator("#room-name")).toHaveValue("TT");
+    // A room list link to a waiting room joins it once with the saved
+    // nickname, like the desktop helper; password rooms (autojoin=0) and mode
+    // commands stay on the prefilled form.
+    // The wire log restarts with every loaded page.
+    const joins = () => page.evaluate(() => window.__entryWire.urls.length);
+    await page.goto(`${base}?intent=regular&room=WaitingRoom&lang=zh`);
+    await ready(page);
+    await expect(page.getByTestId("waitroom-leave")).toBeVisible();
+    assert.equal(await joins(), 1);
+    await page.getByTestId("waitroom-leave").click();
+    await expect(page.locator("#room-name")).toHaveValue("WaitingRoom");
+    assert.equal(await joins(), 1, "exit never rejoins the room");
+    for (const query of ["room=PassRoom&autojoin=0", "room=TT"]) {
+      await page.goto(`${base}?intent=regular&${query}&lang=zh`);
+      await ready(page);
+      await expect(page.locator("#room-name")).toHaveValue(
+        query.startsWith("room=TT") ? "TT" : "PassRoom",
+      );
+      await page.waitForTimeout(500);
+      assert.equal(await joins(), 0, `${query} stays on the form`);
+    }
 
     const parent = await context.newPage();
     await parent.goto(sourceOrigin);

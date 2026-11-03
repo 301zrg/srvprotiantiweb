@@ -4,7 +4,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { readJoinForm } from "@/variant/joinForm";
 import { siteMessages } from "@/variant/messages";
-import { type RoomLink, websiteObserverNickname } from "@/variant/roomLink";
+import {
+  isRoomCommand,
+  type RoomLink,
+  websiteObserverNickname,
+} from "@/variant/roomLink";
 import {
   validEntryNickname,
   type WebEntry,
@@ -95,6 +99,11 @@ function ReadyEntry({
 }) {
   const navigate = useNavigate();
   const destination = webEntryRoute(entry.intent);
+  // A room list link names a real waiting room: join it like the desktop
+  // helper does once a saved nickname exists. Mode commands (TT, AI, ...) and
+  // password rooms (autojoin=0) stay on the form.
+  const regularRoom =
+    entry.intent === "regular" && !!entry.room && !isRoomCommand(entry.room);
   const [link] = useState<RoomLink>(() => {
     const spectate = entry.intent === "spectate";
     const cached = readJoinForm();
@@ -110,7 +119,8 @@ function ReadyEntry({
       autojoin:
         entry.autojoin &&
         (spectate ||
-          (entry.intent === "ladder" && validEntryNickname(nickname))),
+          ((entry.intent === "ladder" || regularRoom) &&
+            validEntryNickname(nickname))),
       invalid: false,
     };
   });
@@ -121,7 +131,7 @@ function ReadyEntry({
   return (
     <JoinRoomForm
       link={link}
-      autoConnect={entry.intent === "ladder"}
+      autoConnect={entry.intent === "ladder" || regularRoom}
       claimAutojoin={session.claimAutojoin}
     />
   );
