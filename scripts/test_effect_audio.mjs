@@ -82,6 +82,10 @@ try {
     0,
     "suspended context drops effects",
   );
+  const { audioBlocked } = await server.ssrLoadModule(
+    "/src/infra/audio/blocked.ts",
+  );
+  assert.equal(audioBlocked.online, true, "dropped effects show the hint");
   // Gestures only unlock when sound effects are on, and never create a
   // context by themselves (replays must not get an online context).
   listeners.get("pointerdown")();
@@ -93,6 +97,8 @@ try {
     "a tap resumes the shared context",
   );
   contexts[0].state = "running";
+  contexts[0].onstatechange?.();
+  assert.equal(audioBlocked.online, false, "the hint hides once audio runs");
   // The 20 earlier requests must not play now (that was the burst).
   await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(
@@ -120,7 +126,7 @@ try {
   );
   assert.equal(contexts.length, 1);
   console.log(
-    "Effect audio: shared context, suspended drops, gesture unlock, no backlog burst, voice cap and stop passed.",
+    "Effect audio: shared context, suspended drops with tap hint, gesture unlock, no backlog burst, voice cap and stop passed.",
   );
 } finally {
   await server.close();

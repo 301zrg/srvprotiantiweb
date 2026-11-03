@@ -7,6 +7,7 @@ import { useEnv, useMediaQuery } from "@/hook";
 import { AudioActionType, changeScene } from "@/infra/audio";
 import { matStore, SideStage, sideStore } from "@/stores";
 import { requireSession } from "@/ui/requireSession";
+import { AudioUnlockHint } from "@/ui/Shared/AudioUnlockHint";
 import { DuelSidebarContext, duelSidebarQuery } from "@/ui/Shared/DuelPanel";
 
 import {
@@ -94,6 +95,7 @@ export const Component: React.FC = () => {
       <EndModal />
       <HandChain />
       <ActionHistory />
+      <AudioUnlockHint source="online" />
     </DuelSidebarContext.Provider>
   );
 };
