@@ -43,6 +43,24 @@ export function ReplaySetting() {
       >
         {statsPlaybackMessages(language).autoPlay}
       </Checkbox>
+      <Checkbox
+        data-testid="setting-replay-peek"
+        checked={setting.replayPeekFaceDown}
+        onChange={(event) => {
+          settingStore.replayPeekFaceDown = event.target.checked;
+        }}
+      >
+        {statsPlaybackMessages(language).peekFaceDown}
+      </Checkbox>
+      <Checkbox
+        data-testid="setting-replay-hands"
+        checked={setting.replayShowHands}
+        onChange={(event) => {
+          settingStore.replayShowHands = event.target.checked;
+        }}
+      >
+        {statsPlaybackMessages(language).showHands}
+      </Checkbox>
     </Space>
   );
 }

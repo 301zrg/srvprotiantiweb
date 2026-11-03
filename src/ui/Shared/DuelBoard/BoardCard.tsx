@@ -40,6 +40,8 @@ export const BoardCard = forwardRef<
     hand: boolean;
     code: number;
     isBack?: boolean;
+    /** Translucent back over the face (replay face-down cards). */
+    peek?: boolean;
     targeted?: boolean;
     targetFlash?: number;
     /** Negated look, as on the online board. */
@@ -54,6 +56,7 @@ export const BoardCard = forwardRef<
     hand,
     code,
     isBack = false,
+    peek,
     targeted,
     targetFlash,
     disabled,
@@ -76,6 +79,7 @@ export const BoardCard = forwardRef<
         className="scene-board-face"
         code={code}
         isBack={isBack}
+        peek={peek}
         targeted={targeted}
         targetFlash={targetFlash}
         disabled={disabled}

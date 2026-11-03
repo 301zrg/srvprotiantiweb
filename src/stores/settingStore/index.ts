@@ -53,6 +53,8 @@ class SettingStore implements NeosStore {
   hidePlayerIds = defaultSetting.hidePlayerIds;
   replaySpeed = defaultSetting.replaySpeed;
   replayAutoPlay = defaultSetting.replayAutoPlay;
+  replayPeekFaceDown = defaultSetting.replayPeekFaceDown;
+  replayShowHands = defaultSetting.replayShowHands;
   controlPanelSide = defaultSetting.controlPanelSide;
   historyOrder = defaultSetting.historyOrder;
   historyStyle = defaultSetting.historyStyle;
@@ -93,6 +95,8 @@ class SettingStore implements NeosStore {
     this.hidePlayerIds = defaultSetting.hidePlayerIds;
     this.replaySpeed = defaultSetting.replaySpeed;
     this.replayAutoPlay = defaultSetting.replayAutoPlay;
+    this.replayPeekFaceDown = defaultSetting.replayPeekFaceDown;
+    this.replayShowHands = defaultSetting.replayShowHands;
     this.controlPanelSide = defaultSetting.controlPanelSide;
     this.historyOrder = defaultSetting.historyOrder;
     this.historyStyle = defaultSetting.historyStyle;
@@ -123,6 +127,8 @@ subscribe(settingStore, () => {
             "hidePlayerIds",
             "replaySpeed",
             "replayAutoPlay",
+            "replayPeekFaceDown",
+            "replayShowHands",
             "controlPanelSide",
             "historyOrder",
             "historyStyle",

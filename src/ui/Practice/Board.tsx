@@ -14,6 +14,7 @@ import { BoardCard } from "@/ui/Shared/DuelBoard/BoardCard";
 import {
   positionLabel,
   replayCardWords,
+  REVEAL_ALL,
 } from "@/ui/Shared/DuelBoard/cardState";
 import {
   materialCard,
@@ -316,7 +317,12 @@ export const PracticeBoard = ({
         chains={frame.chains}
         view={0}
         masterRule={practiceProfile.rules}
-        information={sceneInformationCards(frame.cards, language, 0, true)}
+        information={sceneInformationCards(
+          frame.cards,
+          language,
+          0,
+          REVEAL_ALL,
+        )}
         showCounts={showZoneCounts}
         showIndexes={showZoneIndexes}
         names={{ slot: "practice-field-slot", pile: "practice-field-pile" }}

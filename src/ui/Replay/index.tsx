@@ -26,7 +26,7 @@ import {
   Modal,
   Pagination,
 } from "antd";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
@@ -65,6 +65,7 @@ import {
   replayCardWords,
 } from "@/ui/Shared/DuelBoard/cardState";
 import {
+  type SceneCard,
   type SceneFrame,
   sceneSteps,
   seedScene,
@@ -594,7 +595,9 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [historyCode, setHistoryCode] = useState(0),
     [showHistory, setShowHistory] = useState(false),
     [title, setTitle] = useState("");
-  const [reveal, setReveal] = useState(false);
+  const peek = settings.replayPeekFaceDown,
+    hands = settings.replayShowHands;
+  const reveal = useMemo(() => ({ peek, hands }), [peek, hands]);
   const historyCursor = useRef<HistoryCursor>({ turn: 0 });
   const historySerial = useRef(0);
   const resetHistory = () => {
@@ -603,6 +606,10 @@ function Player({ id, text }: { id: string; text: string[] }) {
   };
   const [zoom, setZoom] = useState(1);
   const wide = useMediaQuery(duelSidebarQuery);
+  // Wide screens dock card and pile details beside the board, so inspecting
+  // keeps playing; elsewhere they cover the field and pause.
+  const wideRef = useRef(wide);
+  wideRef.current = wide;
   const short = useMediaQuery(
     "(orientation: landscape) and (max-height: 600px)",
   );
@@ -837,14 +844,17 @@ function Player({ id, text }: { id: string; text: string[] }) {
       );
     }
   };
+  // Follow the inspected card while playback continues (wide screens).
+  const inspectedId = (card as SceneCard | undefined)?.sceneId;
   const currentCard =
     card &&
-    frame?.cards.find(
-      (c) =>
-        c.player === card.player &&
-        c.location === card.location &&
-        c.sequence === card.sequence &&
-        c.code === card.code,
+    frame?.cards.find((c) =>
+      inspectedId
+        ? c.sceneId === inspectedId
+        : c.player === card.player &&
+          c.location === card.location &&
+          c.sequence === card.sequence &&
+          c.code === card.code,
     );
   const selected = currentCard ? fetchCard(currentCard.code) : undefined;
   const selectedIdentity =
@@ -862,10 +872,12 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [nameA, nameB],
   );
   const inspectHistory = useCallback((code: number) => {
-    paused.current = true;
-    setPlaying(false);
-    clearTimeout(timer.current);
-    audio.current?.stop();
+    if (!wideRef.current) {
+      paused.current = true;
+      setPlaying(false);
+      clearTimeout(timer.current);
+      audio.current?.stop();
+    }
     setShowHistory(false);
     setCard(undefined);
     setHistoryCode(code);
@@ -926,7 +938,6 @@ function Player({ id, text }: { id: string; text: string[] }) {
           </div>
         </>
       )}
-      {reveal && <p className="replay-note">{stateText.revealNote}</p>}
       {(status || seeking) && (
         <p className="replay-note" role="status">
           {seeking
@@ -1034,8 +1045,10 @@ function Player({ id, text }: { id: string; text: string[] }) {
       pinned: true,
       label: stateText.reveal,
       icon: <EyeOutlined />,
-      pressed: reveal,
-      onClick: () => setReveal(!reveal),
+      pressed: reveal.peek,
+      onClick: () => {
+        settingStore.replayPeekFaceDown = !settingStore.replayPeekFaceDown;
+      },
     },
     {
       key: "list",
@@ -1189,9 +1202,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
                   language={language}
                   text={text}
                   zoom={zoom}
-                  onPause={stop}
+                  onPause={() => {
+                    if (!wide) stop();
+                  }}
                   onInspect={(selectedCard) => {
-                    stop();
+                    if (!wide) stop();
                     setCard(selectedCard);
                   }}
                 />
@@ -1221,8 +1236,10 @@ function Player({ id, text }: { id: string; text: string[] }) {
                                   reveal={reveal}
                                   zoneLabel={text[16 + i]}
                                   onInspect={(selectedCard) => {
-                                    stop();
-                                    clearTimeout(timer.current);
+                                    if (!wide) {
+                                      stop();
+                                      clearTimeout(timer.current);
+                                    }
                                     setCard(selectedCard);
                                   }}
                                 />

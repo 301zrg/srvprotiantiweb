@@ -3,14 +3,18 @@ import type { ReplayCard } from "@/replay/messages";
 import type { InformationCard } from "@/ui/Shared/CardInformation";
 import { fieldPositionLabel } from "@/variant/fieldSelection";
 
-import { concealReplayCard, replayCardWords } from "./cardState";
+import {
+  concealReplayCard,
+  replayCardWords,
+  type ReplayReveal,
+} from "./cardState";
 import type { SceneCard } from "./scene";
 
 export function sceneInformationCards(
   cards: readonly SceneCard[],
   language: string,
   view: number,
-  reveal: boolean,
+  reveal: ReplayReveal,
 ): InformationCard[] {
   return cards.map((card) => {
     const hidden = !card.code || concealReplayCard(card, reveal);
