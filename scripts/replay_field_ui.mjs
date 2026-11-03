@@ -244,10 +244,10 @@ try {
       }
       await page.setViewportSize(viewport);
       await page.waitForTimeout(150);
-      await replayControl(page, "查看里侧卡片");
+      await replayControl(page, "里侧卡半透明显示");
       await page.waitForTimeout(150);
       await checkFieldFit();
-      await replayControl(page, "查看里侧卡片");
+      await replayControl(page, "里侧卡半透明显示");
       await page.setViewportSize({ width: 1280, height: 600 });
       await page.waitForTimeout(150);
       await checkFieldFit();

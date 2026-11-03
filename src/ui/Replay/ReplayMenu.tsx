@@ -1,6 +1,6 @@
 import { EllipsisOutlined } from "@ant-design/icons";
 import { Button, InputNumber, Modal, Select } from "antd";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import styles from "@/ui/Shared/DuelShell/menu.module.scss";
@@ -35,6 +35,7 @@ export const ReplayMenu = ({
   speed,
   jump,
   moreLabel,
+  onOverlay,
 }: {
   docked: boolean;
   compact: boolean;
@@ -61,9 +62,14 @@ export const ReplayMenu = ({
     disabled: boolean;
   };
   moreLabel: string;
+  /** "more" panel / jump dialog shown or hidden. Reported after the render,
+   * so an action picked in "more" (e.g. opening settings) acts first. */
+  onOverlay?: (key: "more" | "jump", open: boolean) => void;
 }) => {
   const [jumping, setJumping] = useState(false);
   const [more, setMore] = useState(false);
+  useEffect(() => onOverlay?.("more", more), [more]);
+  useEffect(() => onOverlay?.("jump", jumping), [jumping]);
   const button = (action: ReplayAction, withLabel = docked) => (
     <Button
       key={action.key}

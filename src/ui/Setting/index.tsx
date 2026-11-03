@@ -115,7 +115,11 @@ export const SettingPanel = () => {
     window.addEventListener("neos:open-settings", open);
     return () => window.removeEventListener("neos:open-settings", open);
   }, []);
-  const close = () => setProps(undefined);
+  const close = () => {
+    setProps(undefined);
+    // Pages that paused for the panel (replay playback) resume on this.
+    window.dispatchEvent(new CustomEvent("neos:settings-closed"));
+  };
   return (
     <Modal
       open={props !== undefined}
