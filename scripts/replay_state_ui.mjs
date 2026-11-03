@@ -183,14 +183,23 @@ try {
       "none",
     );
     await expect(at(8, 0)).toContainText("魔力指示物 × 1");
-    assert.equal(await replayControlPressed(page, "查看里侧卡片"), "true");
-    await replayControl(page, "查看里侧卡片");
+    assert.equal(await replayControlPressed(page, "里侧卡半透明显示"), "true");
+    await replayControl(page, "里侧卡半透明显示");
     await expect(at(32, 0)).toContainText("里侧 · 除外");
     await expect(at(32, 0).locator("img")).toHaveAttribute(
       "src",
       /card_back\.jpg$/,
     );
-    assert.equal(await replayControlPressed(page, "查看里侧卡片"), "false");
+    assert.equal(await replayControlPressed(page, "里侧卡半透明显示"), "false");
+    // The menu toggles hands too, under the same wording as the setting.
+    assert.equal(await replayControlPressed(page, "显示双方手牌"), "true");
+    await replayControl(page, "显示双方手牌");
+    await expect(at(2, 0).locator("img")).toHaveAttribute(
+      "src",
+      /card_back\.jpg$/,
+    );
+    assert.equal(await replayControlPressed(page, "显示双方手牌"), "false");
+    await replayControl(page, "显示双方手牌");
     // Hands follow their own setting; a hidden hand shows only backs.
     await page.evaluate(() =>
       window.dispatchEvent(

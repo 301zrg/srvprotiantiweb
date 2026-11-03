@@ -191,6 +191,34 @@ try {
     const pausedProgress = await page.locator(".replay-progress").innerText();
     await page.waitForTimeout(250);
     await expect(page.locator(".replay-progress")).toHaveText(pausedProgress);
+    // Panels covering the field pause playback and resume it on close; a
+    // "more" panel docked beside a wide field keeps playing.
+    const wideLayout =
+      viewport.width > viewport.height && viewport.width >= 480;
+    const play = page
+      .getByRole("button", { name: "继续播放", exact: true })
+      .first();
+    const pause = page.getByRole("button", { name: "暂停", exact: true }).first();
+    await play.click();
+    await expect(pause).toBeAttached();
+    await page.getByTestId("replay-more").click();
+    await expect(page.getByTestId("replay-more-panel")).toBeVisible();
+    await expect(wideLayout ? pause : play).toBeAttached();
+    await page.getByTestId("replay-more-panel-close").click();
+    await expect(page.getByTestId("replay-more-panel")).toBeHidden();
+    await expect(pause).toBeAttached();
+    await replayControl(page, "设置");
+    await expect(page.getByTestId("settings-close")).toBeVisible();
+    await expect(play).toBeAttached();
+    await page.getByTestId("settings-close").click();
+    await expect(page.getByTestId("settings-close")).toBeHidden();
+    await expect(pause).toBeAttached();
+    // A manual pause is never undone by closing a panel.
+    await pause.click();
+    await page.getByTestId("replay-more").click();
+    await page.getByTestId("replay-more-panel-close").click();
+    await expect(page.getByTestId("replay-more-panel")).toBeHidden();
+    await expect(play).toBeAttached();
     const audio = await page.evaluate(() => window.replayAudioAudit);
     assert.ok(
       audio.started > 0,
@@ -279,7 +307,7 @@ try {
     }
     await context.close();
     console.log(
-      `Replay UI ${name}: native playback, actual decoded audio, bounded voices, mute persistence, pause/restart/seek/view passed`,
+      `Replay UI ${name}: native playback, actual decoded audio, bounded voices, mute persistence, pause/panel pause/restart/seek/view passed`,
     );
   }
   assert.deepEqual(errors, []);

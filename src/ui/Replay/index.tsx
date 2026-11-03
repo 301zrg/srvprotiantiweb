@@ -4,6 +4,7 @@ import {
   AppstoreOutlined,
   CaretRightOutlined,
   CompressOutlined,
+  ContainerOutlined,
   DownloadOutlined,
   ExportOutlined,
   EyeOutlined,
@@ -95,6 +96,7 @@ import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { corePhaseKey } from "@/variant/duelPhases";
 import { mobileMessages } from "@/variant/mobileMessages";
 import { previewMessages } from "@/variant/previewMessages";
+import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
 import { ReplayAudio } from "./audio";
 import { ReplayCardTile } from "./CardTile";
@@ -614,13 +616,42 @@ function Player({ id, text }: { id: string; text: string[] }) {
     "(orientation: landscape) and (max-height: 600px)",
   );
   const rate = settings.replaySpeed;
+  // Panels covering the field (portrait "more", settings, jump dialog) pause
+  // playback and resume it when the last one closes, unless anything else
+  // stopped playback meanwhile (stop() clears the flag).
+  const overlays = useRef(new Set<string>());
+  const resumeAfterOverlay = useRef(false);
   const stop = () => {
+    resumeAfterOverlay.current = false;
     autoStartPending.current = false;
     paused.current = true;
     setPlaying(false);
     clearTimeout(timer.current);
     audio.current?.stop();
   };
+  const holdOverlay = (key: string) => {
+    if (!overlays.current.size && !paused.current) {
+      stop();
+      resumeAfterOverlay.current = true;
+    }
+    overlays.current.add(key);
+  };
+  const releaseOverlay = (key: string) => {
+    if (!overlays.current.delete(key) || overlays.current.size) return;
+    if (!resumeAfterOverlay.current || scene.current?.end) return;
+    resumeAfterOverlay.current = false;
+    audio.current?.unlock();
+    paused.current = false;
+    setPlaying(true);
+    requestRef.current();
+  };
+  const releaseOverlayRef = useRef(releaseOverlay);
+  releaseOverlayRef.current = releaseOverlay;
+  useEffect(() => {
+    const closed = () => releaseOverlayRef.current("settings");
+    window.addEventListener("neos:settings-closed", closed);
+    return () => window.removeEventListener("neos:settings-closed", closed);
+  }, []);
   const updateFrame = (next: SceneFrame) => {
     scene.current = next;
     setFrame(next);
@@ -1043,11 +1074,22 @@ function Player({ id, text }: { id: string; text: string[] }) {
     {
       key: "reveal",
       pinned: true,
-      label: stateText.reveal,
+      // Same wording as the replay settings these buttons toggle.
+      label: statsPlaybackMessages(language).peekFaceDown,
       icon: <EyeOutlined />,
       pressed: reveal.peek,
       onClick: () => {
         settingStore.replayPeekFaceDown = !settingStore.replayPeekFaceDown;
+      },
+    },
+    {
+      key: "hands",
+      pinned: true,
+      label: statsPlaybackMessages(language).showHands,
+      icon: <ContainerOutlined />,
+      pressed: reveal.hands,
+      onClick: () => {
+        settingStore.replayShowHands = !settingStore.replayShowHands;
       },
     },
     {
@@ -1090,7 +1132,10 @@ function Player({ id, text }: { id: string; text: string[] }) {
       key: "settings",
       label: mobileMessages(language).settings,
       icon: <SettingOutlined />,
-      onClick: () => openSettingPanel({ defaultKey: "replay" }),
+      onClick: () => {
+        holdOverlay("settings");
+        openSettingPanel({ defaultKey: "replay" });
+      },
     },
     {
       key: "exit",
@@ -1148,6 +1193,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
           : undefined,
       }}
       moreLabel={words.more}
+      onOverlay={(key, open) => {
+        if (!open) releaseOverlay(key);
+        // A docked "more" panel sits beside the field and keeps playing.
+        else if (key === "jump" || !wide) holdOverlay(key);
+      }}
     />
   );
   return (
