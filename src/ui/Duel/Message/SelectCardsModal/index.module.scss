@@ -97,6 +97,15 @@
   }
 }
 
+// Short landscape phones (e.g. 568x320) leave about 165 px of scrollable
+// body; a three-line location label made one option taller than that, so the
+// last row could never be shown whole. Keep the 44 px "view" button, shrink
+// the art and the label lines instead.
+@media (orientation: landscape) and (max-height: 420px) {
+  .fieldCover { height: 44px; }
+  .optionLocation { line-height: 1.2; padding: 2px 0; }
+}
+
 // Phone portrait has no room for a third button in the minimized bar.
 @media (orientation: portrait) and (max-width: 479px) {
   .miniCancel { display: none; }
