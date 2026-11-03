@@ -7,7 +7,14 @@ import { useSnapshot } from "valtio";
 import { sendChat, ygopro } from "@/api";
 import { getUIContainer } from "@/container/compat";
 // TODO: access store via `Container`
-import { chatStore, isMe, matStore, roomStore } from "@/stores";
+import {
+  chatStore,
+  isMe,
+  matStore,
+  roomStore,
+  SideStage,
+  sideStore,
+} from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { displayPlayerId } from "@/variant/playerIds";
 
@@ -51,7 +58,13 @@ export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
   // 获取消息发送者的名字
   const getSenderName = (sender: number) => {
     if (sender < 4) {
-      if (isDuel) {
+      // Between games (Side, waiting for Side, first-player choice) the host
+      // restores room seats as chat IDs, as in YGOPro's ChatLocalPlayer; a
+      // spectator's duel chat stays mounted then and must not swap them.
+      const betweenGames =
+        sideStore.stage !== SideStage.NONE &&
+        sideStore.stage !== SideStage.DUEL_START;
+      if (isDuel && !betweenGames) {
         // Like YGOPro's ChatLocalPlayer/OppositePlayer: duel IDs follow Core
         // order; the roster follows room seats. A view flip changes neither.
         const teamBit = roomStore.hostInfo?.mode === 2 ? 2 : 1;
