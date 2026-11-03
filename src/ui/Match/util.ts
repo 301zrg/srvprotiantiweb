@@ -169,9 +169,16 @@ export function reconnectSrvpro() {
         original.resume = undefined;
         connectionStore.state = "connected";
         connectionStore.detail = "";
+        // A spectator is restored on TYPE_CHANGE, before the host replays the
+        // match history; it never edits a Side deck, so keep it on the duel
+        // instead of flashing the Side (or room) page until MSG_START arrives.
         connectionStore.resumeRoute =
-          sideStore.stage !== SideStage.NONE &&
-          sideStore.stage !== SideStage.DUEL_START
+          saved.kind === "observer"
+            ? saved.fieldExpected
+              ? "/duel"
+              : "/waitroom"
+            : sideStore.stage !== SideStage.NONE &&
+              sideStore.stage !== SideStage.DUEL_START
             ? "/side"
             : roomStore.stage === RoomStage.DUEL_START
             ? "/duel"
