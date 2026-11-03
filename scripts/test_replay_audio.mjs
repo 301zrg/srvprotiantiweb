@@ -125,6 +125,46 @@ try {
     "16x simultaneous cues must be throttled",
   );
   retry.dispose();
+  // Auto-play without a gesture: the context stays suspended. Sounds are
+  // skipped (flagging the tap hint) and any later tap resumes it, not only
+  // Play / Step.
+  const { audioBlocked } = await server.ssrLoadModule(
+    "/src/infra/audio/blocked.ts",
+  );
+  const gestures = new Map();
+  class Suspended extends Audio {
+    state = "suspended";
+    resume() {
+      if (!this.allowed) return new Promise(() => {});
+      this.state = "running";
+      this.onstatechange?.();
+      return Promise.resolve();
+    }
+  }
+  globalThis.window = {
+    location: mockLocation,
+    AudioContext: Suspended,
+    addEventListener: (type, handler) => gestures.set(type, handler),
+    removeEventListener: (type, handler) => {
+      if (gestures.get(type) === handler) gestures.delete(type);
+    },
+  };
+  const autoplay = new ReplayAudio(async () => new ArrayBuffer(8));
+  autoplay.unlock();
+  const blockedContext = contexts.at(-1);
+  autoplay.play({ kind: "draw" }, 1);
+  await flush();
+  assert.equal(blockedContext.sources.length, 0, "suspended audio is skipped");
+  assert.equal(audioBlocked.replay, true, "the tap-to-enable hint is shown");
+  blockedContext.allowed = true;
+  gestures.get("pointerdown")();
+  assert.equal(blockedContext.state, "running", "any tap resumes the replay");
+  assert.equal(audioBlocked.replay, false, "the hint hides once audio runs");
+  autoplay.play({ kind: "draw" }, 1);
+  await flush();
+  assert.equal(blockedContext.sources.length, 1, "later cues play again");
+  autoplay.dispose();
+  assert.equal(gestures.size, 0, "leaving the replay removes the listeners");
   globalThis.window = { location: mockLocation };
   const unsupported = new ReplayAudio(async () => {
     throw new Error("Must not fetch");
@@ -151,7 +191,7 @@ try {
   assert.equal(replaySound({ kind: "move", reason: 1 }), "destroyed.wav");
   assert.equal(replaySound({ kind: "chainEnd" }), "");
   console.log(
-    "Replay audio: late-load cancellation, volume, mute, retry, bounded voices, 16x throttle, unsupported browser and cue mapping passed.",
+    "Replay audio: late-load cancellation, autoplay tap resume, volume, mute, retry, bounded voices, 16x throttle, unsupported browser and cue mapping passed.",
   );
 } finally {
   if (originalWindow === undefined) delete globalThis.window;

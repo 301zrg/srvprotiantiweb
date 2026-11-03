@@ -16,6 +16,9 @@ export interface Spot {
   sequence: number;
 }
 export interface SceneAction {
+  /** Unique per displayed action. A batch without visible events keeps the
+   * previous action; keyed effects must not replay for it. */
+  id?: string;
   kind: string;
   code?: number;
   player?: number;
@@ -109,7 +112,7 @@ export function sceneSteps(
   const emit = (action: SceneAction) => {
     scene = {
       ...scene,
-      action,
+      action: { ...action, id: `${next.step}:${steps.length}` },
       cards: scene.cards.map(copy),
       chains: [...scene.chains],
     };
