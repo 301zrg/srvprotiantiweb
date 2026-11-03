@@ -105,6 +105,7 @@ export function SceneBoard({
   showCounts,
   showIndexes = false,
   conceal = () => false,
+  peek = () => false,
   names,
   renderCard,
   slotProps,
@@ -127,6 +128,8 @@ export function SceneBoard({
   showIndexes?: boolean;
   /** Whether a card's face is hidden (replay without reveal). */
   conceal?: (card: SceneCard) => boolean;
+  /** Whether a face-down card shows its face under a translucent back. */
+  peek?: (card: SceneCard) => boolean;
   /** Mode class names kept for styling and tests. */
   names: { slot: string; pile: string };
   renderCard: (props: SceneCardRender) => ReactNode;
@@ -358,6 +361,7 @@ export function SceneBoard({
                       <BoardPileTop
                         code={top.code}
                         isBack={location === 1 || conceal(top)}
+                        peek={location !== 1 && peek(top)}
                       />
                     )}
                     {showCounts && (
@@ -408,17 +412,34 @@ export function SceneBoard({
   );
 }
 
-const BoardPileTop = ({ code, isBack }: { code: number; isBack: boolean }) => (
+const BoardPileTop = ({
+  code,
+  isBack,
+  peek,
+}: {
+  code: number;
+  isBack: boolean;
+  peek: boolean;
+}) => (
   <div className="scene-board-pile-top">
-    <YgoCardFace code={code} isBack={isBack} />
+    <YgoCardFace code={code} isBack={isBack} peek={peek} />
   </div>
 );
 
-const YgoCardFace = ({ code, isBack }: { code: number; isBack: boolean }) => (
+const YgoCardFace = ({
+  code,
+  isBack,
+  peek,
+}: {
+  code: number;
+  isBack: boolean;
+  peek: boolean;
+}) => (
   <YgoCard
     className="scene-board-face"
     code={code}
     isBack={isBack}
+    peek={peek}
     style={{ left: 0, top: 0, width: "100%", height: "100%" }}
   />
 );

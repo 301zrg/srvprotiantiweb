@@ -1,6 +1,7 @@
 import classNames from "classnames";
 import { CSSProperties, useMemo } from "react";
 
+import { getCardImgUrl } from "@/api/cards";
 import { useConfig } from "@/config";
 import { useCardImage } from "@/hook/useCardImage";
 
@@ -11,6 +12,8 @@ const { assetsPath } = useConfig();
 interface Props {
   className?: string;
   isBack?: boolean;
+  /** Face with a translucent card back over it (replay face-down cards). */
+  peek?: boolean;
   code?: number;
   targeted?: boolean;
   targetFlash?: number;
@@ -28,6 +31,7 @@ export const YgoCard: React.FC<Props> = (props) => {
     code = 0,
     // cardName,
     isBack = false,
+    peek = false,
     targeted = false,
     targetFlash,
     disabled = false,
@@ -55,6 +59,14 @@ export const YgoCard: React.FC<Props> = (props) => {
       >
         {/* 暂时不能这么写...但如果用onload的话来判断可能又很消耗性能，再看看吧 */}
         {/* {cardName} */}
+        {peek && !isBack && (
+          <div
+            className={styles.peekBack}
+            style={{ backgroundImage: `url(${getCardImgUrl(code, true)})` }}
+            data-testid="card-peek-back"
+            aria-hidden="true"
+          />
+        )}
         {!!targetFlash && (
           <div
             key={targetFlash}
@@ -83,6 +95,7 @@ export const YgoCard: React.FC<Props> = (props) => {
       image,
       code,
       isBack,
+      peek,
       targeted,
       targetFlash,
       disabled,

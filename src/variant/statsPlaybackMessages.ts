@@ -5,6 +5,8 @@ const words = {
     printed: "卡面",
     replay: "录像播放",
     autoPlay: "打开录像时自动播放",
+    peekFaceDown: "里侧卡半透明显示（保留卡背，可看到卡图）",
+    showHands: "显示双方手牌",
   },
   en: {
     current: "Current",
@@ -12,6 +14,8 @@ const words = {
     printed: "Printed",
     replay: "Replay playback",
     autoPlay: "Play replays automatically when opened",
+    peekFaceDown: "See through face-down cards (translucent card back)",
+    showHands: "Show both players' hands",
   },
   ja: {
     current: "現在",
@@ -19,6 +23,8 @@ const words = {
     printed: "カード記載",
     replay: "リプレイ再生",
     autoPlay: "リプレイを開いたときに自動再生",
+    peekFaceDown: "裏側のカードを半透明で表示（カード裏面越しに確認）",
+    showHands: "両プレイヤーの手札を表示",
   },
   ko: {
     current: "현재",
@@ -26,6 +32,8 @@ const words = {
     printed: "카드 표기",
     replay: "리플레이 재생",
     autoPlay: "리플레이를 열 때 자동 재생",
+    peekFaceDown: "뒷면 카드를 반투명하게 표시 (카드 뒷면 너머로 확인)",
+    showHands: "양쪽 패 표시",
   },
 };
 export function statsPlaybackMessages(language: string) {

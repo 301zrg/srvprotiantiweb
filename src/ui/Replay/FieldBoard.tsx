@@ -10,8 +10,10 @@ import { settingStore } from "@/stores/settingStore";
 import { BoardCard } from "@/ui/Shared/DuelBoard/BoardCard";
 import {
   concealReplayCard,
+  peekReplayCard,
   positionLabel,
   replayCardWords,
+  type ReplayReveal,
 } from "@/ui/Shared/DuelBoard/cardState";
 import type { SceneFrame, Spot } from "@/ui/Shared/DuelBoard/scene";
 import {
@@ -49,7 +51,7 @@ export function FieldBoard({
 }: {
   frame: SceneFrame;
   view: number;
-  reveal: boolean;
+  reveal: ReplayReveal;
   language: string;
   text: string[];
   zoom: number;
@@ -102,6 +104,7 @@ export function FieldBoard({
         showCounts={showZoneCounts}
         showIndexes={showZoneIndexes}
         conceal={(card) => concealReplayCard(card, reveal)}
+        peek={(card) => peekReplayCard(card, reveal)}
         names={{ slot: "replay-field-slot", pile: "replay-field-pile" }}
         pileProps={({ player, location }, cards) => ({
           role: "button",
@@ -150,6 +153,7 @@ export function FieldBoard({
               hand={hand}
               code={card.code}
               isBack={concealReplayCard(card, reveal)}
+              peek={peekReplayCard(card, reveal)}
               disabled={!!(status & 1)}
               targeted={card.targeted}
               targetFlash={card.targetFlash}
@@ -202,6 +206,7 @@ export function FieldBoard({
                     hand={false}
                     code={moving.code}
                     isBack={concealReplayCard(moving, reveal)}
+                    peek={peekReplayCard(moving, reveal)}
                     className="replay-field-card replay-field-enter replay-field-leave"
                     style={motion(point(action.from), point(action.to))}
                     tabIndex={-1}

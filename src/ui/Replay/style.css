@@ -177,6 +177,7 @@
   align-self: stretch;
 }
 .replay-card-image {
+  position: relative;
   height: 96px;
   display: flex;
   align-items: center;
@@ -221,6 +222,13 @@
 .replay-facedown {
   border-style: dashed;
   border-color: #c3a061;
+}
+/* Face-down card seen through its back; the back stays recognisable. */
+.replay-card:not(.scene-board-card) .replay-peek-back {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
 }
 .replay-detail-image {
   display: block;

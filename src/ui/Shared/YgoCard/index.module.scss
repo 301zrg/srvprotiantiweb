@@ -15,6 +15,17 @@
   text-align: center;
 }
 
+// The back stays recognisable; the face shows through it.
+.peekBack {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.5;
+}
+
 .targetFlash {
   position: absolute;
   inset: 0;
