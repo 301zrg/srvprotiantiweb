@@ -25,6 +25,8 @@ try {
   const fresh = await load();
   assert.equal(fresh.replaySpeed, 1, "Fresh replay speed is 1x");
   assert.equal(fresh.replayAutoPlay, true, "New replays start automatically by default");
+  assert.equal(fresh.replayPeekFaceDown, true, "Replay face-down cards are translucent by default");
+  assert.equal(fresh.replayShowHands, true, "Replay hands are shown by default");
   assert.equal(fresh.controlPanelSide, "left", "All control panels start on the left");
   assert.equal(fresh.showZoneCounts, true, "Zone counts are visible by default");
   assert.equal(fresh.hidePlayerIds, false, "Player IDs remain visible by default");
@@ -53,6 +55,8 @@ try {
   configured.hidePlayerIds = true;
   configured.replaySpeed = 4;
   configured.replayAutoPlay = false;
+  configured.replayPeekFaceDown = false;
+  configured.replayShowHands = false;
   configured.controlPanelSide = "right";
   configured.historyStyle = "text";
   configured.chatOrder = "newest";
@@ -66,6 +70,8 @@ try {
   assert.equal(reopened.hidePlayerIds, true, "ID masking persists after reopening");
   assert.equal(reopened.replaySpeed, 4, "Replay speed survives reopening");
   assert.equal(reopened.replayAutoPlay, false, "Explicit autoplay opt-out survives reopening");
+  assert.equal(reopened.replayPeekFaceDown, false, "Plain card backs survive reopening");
+  assert.equal(reopened.replayShowHands, false, "Hidden replay hands survive reopening");
   assert.equal(reopened.controlPanelSide, "right", "Panel side survives reopening");
   assert.equal(reopened.historyStyle, "text", "Log style survives reopening");
   assert.equal(reopened.chatOrder, "newest", "Chat order survives reopening");

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { fetchCard } from "@/api";
+import { getCardImgUrl } from "@/api/cards";
 import type { ReplayCard } from "@/replay/messages";
 import { CardImg } from "@/ui/Shared/CardImg";
 import { counterDescription } from "@/ui/Shared/CardInformation";
@@ -9,9 +10,11 @@ import {
   concealReplayCard,
   isDefense,
   isFaceDown,
+  peekReplayCard,
   positionLabel,
   replayCardWords,
   replayCounters,
+  type ReplayReveal,
 } from "@/ui/Shared/DuelBoard/cardState";
 
 export function ReplayCardTile({
@@ -26,7 +29,7 @@ export function ReplayCardTile({
 }: {
   card: ReplayCard;
   language: string;
-  reveal: boolean;
+  reveal: ReplayReveal;
   zoneLabel: string;
   onInspect: (card: ReplayCard) => void;
   className?: string;
@@ -57,6 +60,14 @@ export function ReplayCardTile({
     >
       <div className="replay-card-image">
         <CardImg code={card.code} back={hidden} alt={name} />
+        {peekReplayCard(card, reveal) && (
+          <img
+            className="replay-peek-back"
+            src={getCardImgUrl(card.code, true)}
+            alt=""
+            aria-hidden="true"
+          />
+        )}
       </div>
       <span>{name}</span>
       <span className="replay-position">{positionLabel(card, language)}</span>

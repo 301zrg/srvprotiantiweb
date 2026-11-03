@@ -55,8 +55,14 @@ try {
   ]);
   assert.equal(state.positionLabel(card, "cn"), "里侧 · 守备表示");
   assert.equal(state.isDefense(card), true);
-  assert.equal(state.concealReplayCard(card, false), true);
-  assert.equal(state.concealReplayCard(card, true), false);
+  const plain = { peek: false, hands: true },
+    peek = { peek: true, hands: true };
+  assert.equal(state.concealReplayCard(card, plain), true);
+  assert.equal(state.peekReplayCard(card, plain), false);
+  // Peeking shows the identity through a translucent back, not face up.
+  assert.equal(state.concealReplayCard(card, peek), false);
+  assert.equal(state.peekReplayCard(card, peek), true);
+  assert.equal(state.peekReplayCard({ ...card, position: 1 }, peek), false);
   assert.equal(
     state.positionLabel({ ...card, position: 2 }, "cn"),
     "里侧 · 攻击表示",
@@ -72,7 +78,13 @@ try {
   );
   assert.equal(state.positionLabel({ ...card, location: 8 }, "cn"), "盖放");
   assert.equal(state.isDefense({ ...card, location: 32 }), false);
-  assert.equal(state.concealReplayCard({ ...card, location: 2 }, false), false);
+  // Hands follow their own switch and are never "peeked".
+  assert.equal(state.concealReplayCard({ ...card, location: 2 }, plain), false);
+  assert.equal(
+    state.concealReplayCard({ ...card, location: 2 }, { peek: true, hands: false }),
+    true,
+  );
+  assert.equal(state.peekReplayCard({ ...card, location: 2 }, peek), false);
   for (const language of ["cn", "en", "ja", "ko"])
     assert.ok(state.positionLabel(card, language));
   console.log(

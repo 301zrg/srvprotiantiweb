@@ -244,10 +244,10 @@ try {
       }
       await page.setViewportSize(viewport);
       await page.waitForTimeout(150);
-      await replayControl(page, "查看里侧卡片");
+      await replayControl(page, "里侧卡半透明显示");
       await page.waitForTimeout(150);
       await checkFieldFit();
-      await replayControl(page, "查看里侧卡片");
+      await replayControl(page, "里侧卡半透明显示");
       await page.setViewportSize({ width: 1280, height: 600 });
       await page.waitForTimeout(150);
       await checkFieldFit();
@@ -361,15 +361,23 @@ try {
         .locator(".ant-drawer-open")
         .locator('[data-testid="card-counter-detail"][data-counter-count="2"]'),
     ).toContainText("魔力指示物");
-    const inspectedAction = await page
-      .locator(".replay-field-action")
-      .getAttribute("data-action");
-    await page.waitForTimeout(850);
-    assert.equal(
-      await page.locator(".replay-field-action").getAttribute("data-action"),
-      inspectedAction,
-      "Inspecting a card automatically pauses the remaining visual actions",
-    );
+    if (viewport.width > viewport.height && viewport.width >= 480) {
+      // Wide layouts dock the details beside the field: keep playing.
+      const pause = page.getByRole("button", { name: "暂停", exact: true });
+      await expect(pause).toBeVisible();
+      await expect(page.getByTestId("replay-card-detail")).toBeVisible();
+      await pause.click();
+    } else {
+      const inspectedAction = await page
+        .locator(".replay-field-action")
+        .getAttribute("data-action");
+      await page.waitForTimeout(850);
+      assert.equal(
+        await page.locator(".replay-field-action").getAttribute("data-action"),
+        inspectedAction,
+        "Inspecting a card automatically pauses the remaining visual actions",
+      );
+    }
     await page
       .locator(".ant-drawer-open")
       .getByRole("button", { name: "关闭", exact: true })
@@ -381,10 +389,18 @@ try {
     await expect(
       page.locator('[data-testid="duel-player-life"][data-life="7000"]'),
     ).toHaveCount(1);
+    // A face-down banished top keeps its back, translucent over the face.
+    const banishedTop = page.locator(
+      '.replay-field-pile[data-pile="32"][data-player="0"] .scene-board-face',
+    );
+    assert.doesNotMatch(
+      await banishedTop.evaluate((el) => el.style.getPropertyValue("--src")),
+      /card_back\.jpg/,
+    );
     assert.match(
-      await page
-        .locator('.replay-field-pile[data-pile="32"][data-player="0"] .scene-board-face')
-        .evaluate((el) => el.style.getPropertyValue("--src")),
+      await banishedTop
+        .getByTestId("card-peek-back")
+        .evaluate((el) => el.style.backgroundImage),
       /card_back\.jpg/,
     );
     const pile = page.locator(

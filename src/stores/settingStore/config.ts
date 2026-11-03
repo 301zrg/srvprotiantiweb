@@ -22,6 +22,10 @@ export interface SettingConfig {
   hidePlayerIds: boolean;
   replaySpeed: number;
   replayAutoPlay: boolean;
+  /** Replays: face-down cards keep a translucent back over their face. */
+  replayPeekFaceDown: boolean;
+  /** Replays: both hands face up; off shows card backs. */
+  replayShowHands: boolean;
   controlPanelSide: "left" | "right";
   historyOrder: HistoryOrder;
   historyStyle: HistoryStyle;
@@ -62,6 +66,8 @@ export function normalizeSetting(value: unknown): SettingConfig {
       ? config.replaySpeed!
       : 1,
     replayAutoPlay: config.replayAutoPlay !== false,
+    replayPeekFaceDown: config.replayPeekFaceDown !== false,
+    replayShowHands: config.replayShowHands !== false,
     controlPanelSide: config.controlPanelSide === "right" ? "right" : "left",
     historyOrder: config.historyOrder === "newest" ? "newest" : "oldest",
     historyStyle:

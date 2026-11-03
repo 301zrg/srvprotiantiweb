@@ -37,7 +37,7 @@ import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { openSettingPanel } from "@/ui/Setting";
 import { CardDetailContent } from "@/ui/Shared/DuelBoard/CardDetail";
-import { positionLabel } from "@/ui/Shared/DuelBoard/cardState";
+import { positionLabel, REVEAL_ALL } from "@/ui/Shared/DuelBoard/cardState";
 import {
   sceneInformationCards,
   sceneInformationId,
@@ -708,7 +708,7 @@ export const Component = () => {
                       session.scene?.cards ?? [],
                       language,
                       0,
-                      true,
+                      REVEAL_ALL,
                     ),
                     onLocate: () => setInspected(undefined),
                   }

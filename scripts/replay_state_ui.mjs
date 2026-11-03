@@ -134,7 +134,12 @@ try {
     await expect(at(4, 1)).toContainText("表侧 · 守备表示");
     await expect(at(4, 2)).toContainText("里侧 · 守备表示");
     await expect(at(4, 3)).toContainText("里侧 · 攻击表示");
-    await expect(at(4, 2).locator("img")).toHaveAttribute(
+    // Face-down cards default to the face under a translucent back.
+    await expect(at(4, 2).locator("img").first()).not.toHaveAttribute(
+      "src",
+      /card_back\.jpg$/,
+    );
+    await expect(at(4, 2).locator(".replay-peek-back")).toHaveAttribute(
       "src",
       /card_back\.jpg$/,
     );
@@ -145,11 +150,9 @@ try {
       "none",
     );
     await expect(at(32, 0)).toContainText("里侧 · 除外");
-    await expect(at(32, 0).locator("img")).toHaveAttribute(
-      "src",
-      /card_back\.jpg$/,
-    );
+    await expect(at(32, 0).locator(".replay-peek-back")).toHaveCount(1);
     await expect(at(32, 1)).toContainText("表侧 · 除外");
+    await expect(at(32, 1).locator(".replay-peek-back")).toHaveCount(0);
     await expect(at(2, 0).locator("img")).not.toHaveAttribute(
       "src",
       /card_back\.jpg$/,
@@ -180,13 +183,45 @@ try {
       "none",
     );
     await expect(at(8, 0)).toContainText("魔力指示物 × 1");
-    await replayControl(page, "查看里侧卡片");
+    assert.equal(await replayControlPressed(page, "里侧卡半透明显示"), "true");
+    await replayControl(page, "里侧卡半透明显示");
     await expect(at(32, 0)).toContainText("里侧 · 除外");
-    await expect(at(32, 0).locator("img")).not.toHaveAttribute(
+    await expect(at(32, 0).locator("img")).toHaveAttribute(
       "src",
       /card_back\.jpg$/,
     );
-    assert.equal(await replayControlPressed(page, "查看里侧卡片"), "true");
+    assert.equal(await replayControlPressed(page, "里侧卡半透明显示"), "false");
+    // The menu toggles hands too, under the same wording as the setting.
+    assert.equal(await replayControlPressed(page, "显示双方手牌"), "true");
+    await replayControl(page, "显示双方手牌");
+    await expect(at(2, 0).locator("img")).toHaveAttribute(
+      "src",
+      /card_back\.jpg$/,
+    );
+    assert.equal(await replayControlPressed(page, "显示双方手牌"), "false");
+    await replayControl(page, "显示双方手牌");
+    // Hands follow their own setting; a hidden hand shows only backs.
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "replay" },
+        }),
+      ),
+    );
+    await page.getByTestId("setting-replay-hands").uncheck();
+    if (await page.getByTestId("settings-close").isVisible())
+      await page.getByTestId("settings-close").click();
+    else await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(at(2, 0).locator("img")).toHaveAttribute(
+      "src",
+      /card_back\.jpg$/,
+    );
+    const persisted = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("__neo_setting_config__")),
+    );
+    assert.equal(persisted.replayPeekFaceDown, false);
+    assert.equal(persisted.replayShowHands, false);
     assert.ok(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth + 1,

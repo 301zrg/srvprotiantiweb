@@ -16,8 +16,6 @@ const words = {
     materials: "素材",
     disabled: "效果无效",
     forbidden: "不能使用",
-    reveal: "查看里侧卡片",
-    revealNote: "查看内容不会改变卡片的实际表里侧状态。",
     slot: "位置",
     declared: "宣言卡片",
     empty: "无",
@@ -39,8 +37,6 @@ const words = {
     materials: "Materials",
     disabled: "Effects negated",
     forbidden: "Forbidden",
-    reveal: "Reveal face-down cards",
-    revealNote: "Revealing a card does not change its actual position.",
     slot: "Slot",
     declared: "Declared card",
     empty: "None",
@@ -62,8 +58,6 @@ const words = {
     materials: "素材",
     disabled: "効果無効",
     forbidden: "使用不可",
-    reveal: "裏側カードを確認",
-    revealNote: "内容を確認しても実際の表示形式は変わりません。",
     slot: "位置",
     declared: "宣言カード",
     empty: "なし",
@@ -85,8 +79,6 @@ const words = {
     materials: "소재",
     disabled: "효과 무효",
     forbidden: "사용 불가",
-    reveal: "뒷면 카드 확인",
-    revealNote: "내용을 확인해도 실제 표시 형식은 변하지 않습니다.",
     slot: "위치",
     declared: "선언한 카드",
     empty: "없음",
@@ -103,9 +95,24 @@ export function isFaceDown(card: ReplayCard) {
 export function isDefense(card: ReplayCard) {
   return card.location === 4 && !!(card.position & 12);
 }
-export function concealReplayCard(card: ReplayCard, reveal: boolean) {
-  // A replay may show both hands; field and pile positions remain explicit.
-  return !reveal && card.location !== 2 && isFaceDown(card);
+/** What a replay viewer chose to see; both persist in the replay settings. */
+export interface ReplayReveal {
+  /** Face-down cards keep their back, made translucent over the face. */
+  peek: boolean;
+  /** Both hands face up. */
+  hands: boolean;
+}
+/** Practice and other omniscient views: every identity is shown. */
+export const REVEAL_ALL: ReplayReveal = { peek: true, hands: true };
+/** True when only a card back is drawn and the identity stays hidden. */
+export function concealReplayCard(card: ReplayCard, reveal: ReplayReveal) {
+  if (card.location === 2) return !reveal.hands;
+  return !reveal.peek && isFaceDown(card);
+}
+/** Face-down card shown through a translucent back; the position stays
+ * explicit and the actual face-up/face-down state is unchanged. */
+export function peekReplayCard(card: ReplayCard, reveal: ReplayReveal) {
+  return reveal.peek && card.location !== 2 && isFaceDown(card);
 }
 export function positionLabel(card: ReplayCard, language: string) {
   const t = replayCardWords(language);
