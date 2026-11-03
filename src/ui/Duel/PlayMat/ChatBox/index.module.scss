@@ -5,6 +5,19 @@
   max-height: 100%;
 }
 .container.embedded { height: 100%; min-height: 0; }
+// The panel opens beside the board at full height (phones in portrait too):
+// fill it so the input sits at the bottom, right above an on-screen keyboard
+// (the panel follows the visual viewport), instead of floating mid-screen.
+.panelBody {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  .container {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+}
 .embedded > button { align-self: flex-end; flex-shrink: 0; }
 
 .input {

@@ -31,7 +31,11 @@ try {
   );
   const kinds = new Set();
   let batches = 0,
-    visible = 0;
+    visible = 0,
+    carried = 0;
+  // Keyed one-shot effects (the departing card) follow the action id; it is
+  // unique within one replay.
+  const actionIds = new Set();
   const fixtures = [
     "native-deckout",
     "native-battle-equip",
@@ -42,6 +46,7 @@ try {
     fixtures.push(process.env.SRVPRO_REPLAY_FIXTURE);
   for (const fixture of fixtures) {
     let scene = seedScene(engine.open(readFileSync(fixture)));
+    actionIds.clear();
     assert.deepEqual(
       seedScene(scene, {
         ...scene,
@@ -113,10 +118,22 @@ try {
         if (step.action) kinds.add(step.action.kind);
         visible++;
       }
+      for (const step of steps.slice(0, -1)) {
+        assert.ok(step.action?.id, "Every displayed action has an id");
+        assert.ok(!actionIds.has(step.action.id), "Action ids are unique");
+        actionIds.add(step.action.id);
+      }
+      if (steps.length === 1 && scene.action) {
+        // No visible event: the previous action stays, with the same id, so
+        // its departing card does not fly again.
+        assert.equal(final.action?.id, scene.action.id);
+        carried++;
+      }
       scene = final;
       batches++;
     }
   }
+  assert.ok(carried > 0, "Samples include batches without visible events");
   for (const kind of ["move", "draw", "attack", "chain", "damage", "position"])
     assert.ok(kinds.has(kind), `Native samples must exercise ${kind}`);
   // Replays share the online board geometry: a slot is mirrored between views

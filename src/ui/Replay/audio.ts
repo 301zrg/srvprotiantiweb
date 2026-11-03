@@ -1,3 +1,4 @@
+import { audioBlocked, UNLOCK_GESTURES } from "@/infra/audio/blocked";
 import {
   getEffectName,
   loadAudio,
@@ -51,6 +52,13 @@ export class ReplayAudio {
   private enabled = true;
   private volume = 0.7;
   private lastStarted = -Infinity;
+  private listening = false;
+  // Autoplay leaves the context suspended; any later tap or key resumes it,
+  // not only Play / Step (clicking a card pauses, so that never helped).
+  private readonly resumeOnGesture = () => {
+    if (this.enabled && this.context && this.context.state !== "running")
+      void this.context.resume().catch(() => {});
+  };
 
   constructor(
     private readonly load: (name: string) => Promise<ArrayBuffer> = loadAudio,
@@ -60,7 +68,10 @@ export class ReplayAudio {
     this.enabled = enabled && volume > 0;
     this.volume = Math.max(0, Math.min(1, volume));
     if (this.gain) this.gain.gain.value = this.volume;
-    if (!this.enabled) this.stop();
+    if (!this.enabled) {
+      this.stop();
+      audioBlocked.replay = false;
+    }
   }
 
   // Called synchronously inside Play / Step / Sound-on click handlers, before
@@ -77,10 +88,16 @@ export class ReplayAudio {
             }
           ).webkitAudioContext;
         if (!Audio) return;
-        this.context = new Audio();
-        this.gain = this.context.createGain();
+        const context = new Audio();
+        this.context = context;
+        this.gain = context.createGain();
         this.gain.gain.value = this.volume;
-        this.gain.connect(this.context.destination);
+        this.gain.connect(context.destination);
+        context.onstatechange = () => {
+          if (this.context === context && context.state === "running")
+            audioBlocked.replay = false;
+        };
+        this.listen(true);
       }
       if (this.context.state !== "running")
         void this.context.resume().catch(() => {});
@@ -92,8 +109,12 @@ export class ReplayAudio {
   play(action: SceneAction, speed: number) {
     const name = replaySound(action),
       context = this.context;
-    if (!name || !this.enabled || !context || context.state !== "running")
+    if (!name || !this.enabled || !context) return;
+    if (context.state !== "running") {
+      // Skipped, never queued: show the tap-to-enable hint instead.
+      audioBlocked.replay = true;
       return;
+    }
     const generation = this.generation,
       requested = performance.now();
     let buffer = this.buffers.get(name);
@@ -140,6 +161,22 @@ export class ReplayAudio {
       .catch(() => {});
   }
 
+  private listen(on: boolean) {
+    if (on === this.listening || typeof window.addEventListener !== "function")
+      return;
+    this.listening = on;
+    for (const type of UNLOCK_GESTURES)
+      if (on)
+        window.addEventListener(type, this.resumeOnGesture, {
+          capture: true,
+          passive: true,
+        });
+      else
+        window.removeEventListener(type, this.resumeOnGesture, {
+          capture: true,
+        });
+  }
+
   stop() {
     this.generation++;
     for (const source of this.sources) source.stop();
@@ -149,6 +186,8 @@ export class ReplayAudio {
 
   dispose() {
     this.stop();
+    this.listen(false);
+    audioBlocked.replay = false;
     if (this.context) void this.context.close().catch(() => {});
     this.context = undefined;
     this.gain = undefined;

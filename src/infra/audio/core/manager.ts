@@ -1,3 +1,4 @@
+import { audioBlocked, UNLOCK_GESTURES } from "../blocked";
 import { AudioActionType } from "../type";
 import { NeosAudioContext } from "./context";
 import {
@@ -71,7 +72,11 @@ class AudioManager {
     // Mobile Safari keeps a context created without a gesture suspended and
     // used to start every effect once the next tap resumed it, all at once.
     // Effects are momentary: if the shared context is not running now, skip.
-    if (!context || context.state !== "running") return;
+    if (!context || context.state !== "running") {
+      // e.g. a spectator link opened without a click: offer tap-to-enable.
+      if (context && context.state !== "closed") audioBlocked.online = true;
+      return;
+    }
     const generation = this.effectGeneration,
       requested = performance.now();
     this.effectVolume = volume;
@@ -135,11 +140,16 @@ class AudioManager {
             }
           ).webkitAudioContext;
         if (!Audio) return;
-        this.effectContext = new Audio();
-        this.effectGain = this.effectContext.createGain();
+        const context = new Audio();
+        this.effectContext = context;
+        this.effectGain = context.createGain();
         this.effectGain.gain.value = this.effectVolume;
-        this.effectGain.connect(this.effectContext.destination);
+        this.effectGain.connect(context.destination);
         this.effectBuffers.clear();
+        context.onstatechange = () => {
+          if (this.effectContext === context && context.state === "running")
+            audioBlocked.online = false;
+        };
       }
       if (this.effectContext.state !== "running")
         void this.effectContext.resume().catch(() => {});
@@ -154,13 +164,14 @@ class AudioManager {
     const unlock = () => {
       if (this.effectsWanted && this.effectContext) this.unlockEffects();
     };
-    for (const type of ["pointerdown", "touchend", "click", "keydown"])
+    for (const type of UNLOCK_GESTURES)
       window.addEventListener(type, unlock, { capture: true, passive: true });
   }
 
   /** Also cancels downloads/decodes which have not started a source yet. */
   public stopEffects() {
     this.effectGeneration++;
+    audioBlocked.online = false;
     for (const source of this.effectSources) source.stop();
     this.effectSources.clear();
   }
