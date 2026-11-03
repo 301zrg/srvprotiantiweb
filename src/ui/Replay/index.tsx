@@ -57,6 +57,7 @@ import { type HistoryOrder, settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
 import { openSettingPanel } from "@/ui/Setting";
+import { AudioUnlockHint } from "@/ui/Shared/AudioUnlockHint";
 import { CardDetailContent } from "@/ui/Shared/DuelBoard/CardDetail";
 import {
   concealReplayCard,
@@ -1160,6 +1161,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
       }
     >
       <DuelSidebarContext.Provider value={wide}>
+        <AudioUnlockHint source="replay" />
         <DuelBackground near={!frame || frame.turnPlayer === view} />
         <SidebarFrame
           wide={wide}

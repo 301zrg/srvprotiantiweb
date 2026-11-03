@@ -311,6 +311,35 @@ try {
       await page.evaluate(() => window.__spectatorTest.historyOrder("newest"));
       await expect.poll(order).toBe("newest");
       await page.evaluate(() => window.__spectatorTest.historyOrder("oldest"));
+      // The full-height panel keeps its input at the bottom, also when a
+      // keyboard shrinks the viewport, instead of floating mid-screen.
+      const inputGap = () =>
+        page.evaluate(() => {
+          const wrapper = document
+            .querySelector('[data-testid="duel-chat-panel"]')
+            .closest(".ant-drawer-content-wrapper")
+            .getBoundingClientRect();
+          const input = document
+            .querySelector('[data-testid="duel-chat-panel"] textarea')
+            .getBoundingClientRect();
+          return {
+            gap: wrapper.bottom - input.bottom,
+            inside: input.bottom <= innerHeight,
+          };
+        });
+      await page.waitForTimeout(500);
+      let placed = await inputGap();
+      assert.ok(placed.gap < 80, `chat input near the bottom: ${placed.gap}`);
+      await page.locator('[data-testid="duel-chat-panel"] textarea').tap();
+      await page.setViewportSize({ width: 390, height: 470 });
+      await page.waitForTimeout(500);
+      placed = await inputGap();
+      assert.ok(
+        placed.inside && placed.gap < 80,
+        `chat input stays above a keyboard: ${JSON.stringify(placed)}`,
+      );
+      await page.screenshot({ path: `${folder}/390-chat-keyboard.png` });
+      await page.setViewportSize({ width: 390, height: 844 });
     }
     await context.close();
   }

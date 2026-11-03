@@ -200,7 +200,9 @@ export function FieldBoard({
                 [2, 4, 8].includes(action.from.location) &&
                 [1, 16, 32, 64].includes(action.to.location) && (
                   <BoardCard
-                    key={`depart:${frame.step}:${moving.sceneId}`}
+                    // Not the batch step: a following batch with no visible
+                    // event keeps this action and must not fly the card again.
+                    key={`depart:${action.id ?? frame.step}:${moving.sceneId}`}
                     geometry={geometry}
                     pose={{ ...pose({ ...moving, ...action.to }), zIndex: 30 }}
                     hand={false}

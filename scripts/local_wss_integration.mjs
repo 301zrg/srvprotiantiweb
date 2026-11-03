@@ -908,6 +908,21 @@ try {
       if (continuingSpectator) {
         await expect(continuingSpectator.getByTestId("duel-observer-wait")).toBeVisible({ timeout: 30000 });
         await expect(continuingSpectator.getByTestId("duel-end-modal")).toBeHidden();
+        // Reconnecting while waiting for Side replays the match history; the
+        // spectator stays on the duel instead of flashing the Side page.
+        await continuingSpectator.evaluate(() => {
+          window.__routes = [];
+          const started = Date.now();
+          const timer = setInterval(() => {
+            window.__routes.push(location.hash);
+            if (Date.now() - started > 60000) clearInterval(timer);
+          }, 10);
+        });
+        await recoverPage(continuingSpectator, "Spectator restore while waiting for Side", false);
+        await expect(continuingSpectator.getByTestId("duel-observer-wait")).toBeVisible({ timeout: 30000 });
+        const routes = [...new Set(await continuingSpectator.evaluate(() => window.__routes))];
+        assert.ok(!routes.some((route) => route.startsWith("#/side")), `Spectator restore visited ${routes.join(", ")}`);
+        console.log("Spectator restored during Side waiting without visiting the Side page");
       }
       await sideAndStart(ladderB, ladderA, "TT G3");
       if (continuingSpectator) {

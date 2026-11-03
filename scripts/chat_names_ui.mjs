@@ -9,7 +9,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { useChat } from "@/ui/Shared/chatHook";
 import { initUIContainer, getUIContainer } from "@/container/compat";
-import { chatStore, roomStore, matStore } from "@/stores";
+import { chatStore, roomStore, matStore, SideStage, sideStore } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import handle from "@/service/onSocketMessage";
 
@@ -30,6 +30,7 @@ window.__chat = {
   async setup({ duel, observer, swapped = false, second = false, tag = false, selfSeat = 0 }) {
     chatStore.reset();
     roomStore.reset();
+    sideStore.stage = SideStage.NONE;
     roomStore.joined = true;
     roomStore.hostInfo = { mode: tag ? 2 : 1 };
     const names = ["Seat A", "Seat B", ...(tag ? ["Seat C", "Seat D"] : [])];
@@ -55,6 +56,9 @@ window.__chat = {
     await packet(0x19, payload);
   },
   flip() { matStore.observerView = 1 - matStore.observerView; },
+  // STOC_WAITING_SIDE: the host has restored room seats as chat IDs.
+  waitingSide: () => packet(0x08, new Uint8Array(0)),
+  nextGame() { sideStore.stage = SideStage.DUEL_START; },
   mask(hidden) { settingStore.hidePlayerIds = hidden; },
 };
 `;
@@ -218,11 +222,21 @@ try {
         await send(10, "anonymous message", "********");
         await send(20, "unknown source", "********");
         await send(11, "[Server]: colored notice", "System");
+        // Between games a spectator keeps the duel chat open, but the host
+        // sends room seats again, as YGOPro's ChatLocalPlayer expects.
+        await page.evaluate(() => window.__chat.waitingSide());
+        const seats = tag
+          ? ["Seat A", "Seat B", "Seat C", "Seat D"]
+          : ["Seat A", "Seat B"];
+        for (let sender = 0; sender < seats.length; sender++)
+          await send(sender, `siding ${sender}`, seats[sender]);
+        await page.evaluate(() => window.__chat.nextGame());
+        await send(0, "next game", names[0]);
       }
     }
     assert.deepEqual(errors, []);
     console.log(
-      `PASS ${width}x${height}: lobby, both duel orders, spectator seat/team swaps, view flip, ID masking, server/observer messages`,
+      `PASS ${width}x${height}: lobby, both duel orders, spectator seat/team swaps, chat while siding, view flip, ID masking, server/observer messages`,
     );
     await context.close();
   }

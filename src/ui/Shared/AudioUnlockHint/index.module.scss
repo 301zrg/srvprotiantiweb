@@ -1,0 +1,18 @@
+.hint {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  left: 50%;
+  z-index: 1200;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid #ffca57;
+  border-radius: 18px;
+  background: rgba(20, 31, 48, 0.92);
+  color: #ffe2a1;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
