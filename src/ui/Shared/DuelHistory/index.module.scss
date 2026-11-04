@@ -133,7 +133,23 @@
 // Shared rows added for replays and the hand test: turn/phase tag, turn and
 // battle-phase separators, and text-only rows (LP, draws).
 .entry { display: flex; flex-direction: column; gap: 2px; }
-.tag { font-size: 11px; line-height: 1.3; color: #9fb3c8; }
+.tag {
+  display: flex;
+  gap: 0.35em;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #9fb3c8;
+}
+.tagText { flex: none; white-space: nowrap; }
+.tagId {
+  min-width: 0;
+  overflow: hidden;
+  color: #c9dcf0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .divider {
   padding: 3px 8px;
   border-left: 3px solid #8bddff;

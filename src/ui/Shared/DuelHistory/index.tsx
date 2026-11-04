@@ -197,6 +197,8 @@ export interface HistoryRowProps {
   language: string;
   /** Stable across renders, so memoized rows stay put. */
   playerLabel: (player: number) => string;
+  /** Player ID after the label; undefined when absent or masked. Stable too. */
+  playerName?: (player: number) => string | undefined;
   onInspect: (code: number) => void;
   /** Test id prefix of the mode: duel, replay or practice. */
   testPrefix: string;
@@ -268,18 +270,27 @@ const HistoryCardName = ({
 // Memoized: logs stay mounted and grow all match long, so a new entry must
 // not re-render every earlier one.
 export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
-  function HistoryRow({ entry, language, playerLabel, onInspect, testPrefix }) {
+  function HistoryRow({
+    entry,
+    language,
+    playerLabel,
+    playerName,
+    onInspect,
+    testPrefix,
+  }) {
     const { t } = useTranslation("ClientUI");
     const { assetsPath } = useConfig();
     const textMode = useContext(TextModeContext);
     const words = replayFieldWords(language);
     const { kind, code = 0, player, turn, phase } = entry;
     const who = player === undefined ? "" : playerLabel(player);
+    const id = player === undefined ? undefined : playerName?.(player);
+    const whoWithId = id ? `${who} ${id}` : who;
     const turnText = turn ? `T${turn}` : "";
     if (kind === "turn")
       return (
         <div className={styles.divider} data-history-kind={kind}>
-          {[turnText, who, words.turn].filter(Boolean).join(" · ")}
+          {[turnText, whoWithId, words.turn].filter(Boolean).join(" · ")}
         </div>
       );
     if (kind === "phase")
@@ -293,13 +304,17 @@ export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
       );
     // Declarations and results name the player in their own title, as before.
     const titled = kind === "result" || kind === "announce";
-    const titleOf = (title: string) => (who ? `${who} · ${title}` : title);
+    const titleOf = (title: string) =>
+      whoWithId ? `${whoWithId} · ${title}` : title;
     const tag = [
       [turnText, phase?.toUpperCase()].filter(Boolean).join(" · "),
       titled ? "" : who,
     ]
       .filter(Boolean)
       .join(" · ");
+    // One line in narrow rails: a long ID is cut here and shown whole on hover
+    // and in the turn separator, so touch screens still get the full ID.
+    const tagId = titled ? undefined : id;
     const card = (width?: string, className?: string) => (
       <HistoryCard
         code={code}
@@ -436,7 +451,16 @@ export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
         className={classNames(styles.entry, { [styles.textEntry]: textMode })}
         data-history-kind={kind}
       >
-        {tag && <div className={styles.tag}>{tag}</div>}
+        {tag && (
+          <div className={styles.tag} title={tagId}>
+            <span className={styles.tagText}>{tag}</span>
+            {tagId && (
+              <span className={styles.tagId} data-testid="history-player-id">
+                {tagId}
+              </span>
+            )}
+          </div>
+        )}
         {body}
       </div>
     );

@@ -266,6 +266,36 @@ try {
       .waitFor({ state: "visible", timeout: 1500 })
       .catch(() => {});
     await expect(page.locator(".replay-history")).toBeVisible();
+    // Rows name the first or second player and the ID; the masking setting
+    // leaves only the label, here and everywhere else on the player page.
+    const history = page.locator(".replay-history");
+    await expect(history).toContainText("先攻方 ReplayFixtureB");
+    await expect(history.getByTestId("history-player-id").first()).toBeAttached();
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "messages" },
+        }),
+      ),
+    );
+    await page.getByTestId("setting-hide-player-ids").check();
+    await page.getByTestId("settings-close").click();
+    await expect(page.getByTestId("settings-close")).toBeHidden();
+    await expect(history.getByTestId("history-player-id")).toHaveCount(0);
+    await expect(history).toContainText("先攻方");
+    await expect(page.getByTestId("replay-player")).not.toContainText(
+      "ReplayFixture",
+    );
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "messages" },
+        }),
+      ),
+    );
+    await page.getByTestId("setting-hide-player-ids").uncheck();
+    await page.getByTestId("settings-close").click();
+    await expect(page.getByTestId("settings-close")).toBeHidden();
     if (await historyClose.isVisible()) {
       await historyClose.click();
       await expect(historyClose).toBeHidden();
@@ -307,7 +337,7 @@ try {
     }
     await context.close();
     console.log(
-      `Replay UI ${name}: native playback, actual decoded audio, bounded voices, mute persistence, pause/panel pause/restart/seek/view passed`,
+      `Replay UI ${name}: native playback, actual decoded audio, bounded voices, mute persistence, pause/panel pause/restart/seek/view/history IDs passed`,
     );
   }
   assert.deepEqual(errors, []);
