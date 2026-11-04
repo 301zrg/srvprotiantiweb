@@ -5,6 +5,7 @@ import { AudioActionType, playEffect } from "@/infra/audio";
 import { settingStore } from "@/stores/settingStore";
 import { callCardFocus, callCardMove } from "@/ui/Duel/PlayMat/Card";
 import { getRevealHoldDuration } from "@/variant/duelAnimation";
+import { keepsConfirmedCode } from "@/variant/rememberedCard";
 
 const { MZONE, SZONE, HAND, DECK } = ygopro.CardZone;
 const { FACEUP_ATTACK, FACEDOWN_ATTACK, FACEDOWN_DEFENSE, FACEDOWN } =
@@ -88,7 +89,8 @@ export default async (
         delete target.confirmedDeckCode;
         target.location.position = position;
         // A confirmation grants a temporary view, not permanent hand identity.
-        if (wasHidden) {
+        // A set card on the field stays known, shown as remembered.
+        if (wasHidden && !keepsConfirmedCode(target.location)) {
           target.code = 0;
           target.meta = originalMeta;
         }

@@ -9,13 +9,13 @@ const server = await createServer({
   logLevel: "error",
 });
 try {
-  const { rememberedCode } = await server.ssrLoadModule(
+  const { keepsConfirmedCode, rememberedCode } = await server.ssrLoadModule(
     "/src/variant/rememberedCard.ts",
   );
   const { ygopro } = await server.ssrLoadModule(
     "/src/api/ocgcore/idl/ocgcore.ts",
   );
-  const { MZONE, SZONE, GRAVE, DECK, REMOVED } = ygopro.CardZone;
+  const { MZONE, SZONE, GRAVE, DECK, REMOVED, HAND, EXTRA } = ygopro.CardZone;
   const { FACEDOWN_DEFENSE, FACEDOWN_ATTACK, FACEDOWN, FACEUP_ATTACK } =
     ygopro.CardPosition;
   const card = (location, code = 98765) => ({ code, location });
@@ -49,6 +49,21 @@ try {
       0,
       "Only the field: a code left on a deck card may be stale after shuffling",
     );
+  // After a confirmation: set field cards stay known, the rest was a brief view.
+  for (const location of [
+    set,
+    { zone: MZONE, position: FACEDOWN_ATTACK },
+    { zone: SZONE, position: FACEDOWN },
+  ])
+    assert.equal(keepsConfirmedCode(location), true, "A confirmed set card");
+  for (const location of [
+    { zone: HAND, position: FACEDOWN },
+    { zone: DECK, position: FACEDOWN },
+    { zone: EXTRA, position: FACEDOWN },
+    { zone: MZONE, position: FACEUP_ATTACK },
+    { ...set, is_overlay: true },
+  ])
+    assert.equal(keepsConfirmedCode(location), false, "Only a temporary view");
   console.log(
     "Remembered card: flipped-down and confirmed field cards, own cards, unseen cards, face-up, materials and other zones passed.",
   );
