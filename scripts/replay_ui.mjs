@@ -126,6 +126,32 @@ try {
     await page.locator('input[type="file"]').setInputFiles(fixture);
     await expect(page.locator(".replay-entry")).toHaveCount(1);
     assert.equal(resources.length, 0, "File import must not load Core");
+    // The library follows the file name setting, still without loading Core.
+    const entryTitle = page.getByTestId("replay-entry-title");
+    await expect(entryTitle).toHaveText("native-deckout");
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "replay" },
+        }),
+      ),
+    );
+    await page.getByTestId("setting-replay-hide-titles").check();
+    await page.getByTestId("settings-close").click();
+    await expect(page.getByTestId("settings-close")).toBeHidden();
+    await expect(entryTitle).toHaveText(/^录像 · \d{4}/);
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "replay" },
+        }),
+      ),
+    );
+    await page.getByTestId("setting-replay-hide-titles").uncheck();
+    await page.getByTestId("settings-close").click();
+    await expect(page.getByTestId("settings-close")).toBeHidden();
+    await expect(entryTitle).toHaveText("native-deckout");
+    assert.equal(resources.length, 0, "Library titles must not load Core");
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "下载", exact: true }).click();
     const download = await downloadPromise;
@@ -296,6 +322,31 @@ try {
     await page.getByTestId("setting-hide-player-ids").uncheck();
     await page.getByTestId("settings-close").click();
     await expect(page.getByTestId("settings-close")).toBeHidden();
+    // File names are their own setting: any title becomes "Replay · date".
+    const pageTitle = page.locator(".replay-title");
+    await expect(pageTitle).toHaveText("native-deckout");
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "replay" },
+        }),
+      ),
+    );
+    await page.getByTestId("setting-replay-hide-titles").check();
+    await page.getByTestId("settings-close").click();
+    await expect(page.getByTestId("settings-close")).toBeHidden();
+    await expect(pageTitle).toHaveText(/^录像 · \d{4}/);
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "replay" },
+        }),
+      ),
+    );
+    await page.getByTestId("setting-replay-hide-titles").uncheck();
+    await page.getByTestId("settings-close").click();
+    await expect(page.getByTestId("settings-close")).toBeHidden();
+    await expect(pageTitle).toHaveText("native-deckout");
     if (await historyClose.isVisible()) {
       await historyClose.click();
       await expect(historyClose).toBeHidden();

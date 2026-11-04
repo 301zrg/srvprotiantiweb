@@ -105,6 +105,7 @@ import { ReplayCardTile } from "./CardTile";
 import { DeckExtract } from "./DeckExtract";
 import { FieldBoard, replayFieldWords } from "./FieldBoard";
 import { ReplayMenu } from "./ReplayMenu";
+import { replayDisplayTitle } from "./title";
 
 const extraWords = {
   cn: {
@@ -291,6 +292,9 @@ function Library({ text }: { text: string[] }) {
     [error, setError] = useState(""),
     [editing, setEditing] = useState<ReplayEntry>(),
     [title, setTitle] = useState("");
+  const hideTitles = useSnapshot(settingStore).replayHideTitles;
+  const shownTitle = (entry: ReplayEntry) =>
+    replayDisplayTitle(entry, hideTitles, language);
   const matching = entries.filter((e) =>
     e.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
   );
@@ -419,7 +423,7 @@ function Library({ text }: { text: string[] }) {
           .map((entry) => (
             <article key={entry.id} className="replay-entry">
               <div>
-                <h2>{entry.title}</h2>
+                <h2 data-testid="replay-entry-title">{shownTitle(entry)}</h2>
                 <p>
                   {new Date(entry.createdAt).toLocaleString(
                     languageLocales[language as Language],
@@ -509,7 +513,7 @@ function Library({ text }: { text: string[] }) {
                   danger
                   onClick={() =>
                     Modal.confirm({
-                      title: `${text[4]}：${entry.title}？`,
+                      title: `${text[4]}：${shownTitle(entry)}？`,
                       content: t("ReplayDeleteWarning"),
                       onOk: () => run(() => deleteReplay(entry.id)),
                     })
@@ -598,7 +602,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
     ),
     [historyCode, setHistoryCode] = useState(0),
     [showHistory, setShowHistory] = useState(false),
-    [title, setTitle] = useState("");
+    [titleSource, setTitleSource] = useState<ReplayEntry>();
   const peek = settings.replayPeekFaceDown,
     hands = settings.replayShowHands;
   const reveal = useMemo(() => ({ peek, hands }), [peek, hands]);
@@ -726,7 +730,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
         if ((await sha256(bytes)) !== entry.hash)
           throw new Error(t("ReplayHashError"));
         if (disposed) return;
-        setTitle(entry.title);
+        setTitleSource(entry);
         const w = new Worker(
           new URL("../../replay/worker.ts", import.meta.url),
           { type: "module" },
@@ -964,8 +968,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
   // Persistent: errors and the end state never auto-dismiss.
   const statusPanel = (
     <div className="replay-status" data-testid="replay-status">
-      {/* Stored titles default to the file name, which often holds the IDs. */}
-      <h1 className="replay-title">{(!hideIds && title) || text[2]}</h1>
+      <h1 className="replay-title">
+        {titleSource
+          ? replayDisplayTitle(titleSource, settings.replayHideTitles, language)
+          : text[2]}
+      </h1>
       {frame && (
         <>
           <div className="replay-progress">

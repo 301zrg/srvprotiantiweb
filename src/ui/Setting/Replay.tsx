@@ -61,6 +61,15 @@ export function ReplaySetting() {
       >
         {statsPlaybackMessages(language).showHands}
       </Checkbox>
+      <Checkbox
+        data-testid="setting-replay-hide-titles"
+        checked={setting.replayHideTitles}
+        onChange={(event) => {
+          settingStore.replayHideTitles = event.target.checked;
+        }}
+      >
+        {statsPlaybackMessages(language).hideTitles}
+      </Checkbox>
     </Space>
   );
 }
