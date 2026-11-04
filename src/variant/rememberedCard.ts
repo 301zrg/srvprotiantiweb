@@ -3,6 +3,16 @@ import { ygopro } from "@/api/ocgcore/idl/ocgcore";
 const { MZONE, SZONE } = ygopro.CardZone;
 const { FACEDOWN, FACEDOWN_ATTACK, FACEDOWN_DEFENSE } = ygopro.CardPosition;
 
+/** Whether a confirmed card keeps its code afterwards: a set card on the field
+ * does, for rememberedCode. Hand and Deck cards get only a temporary view. */
+export function keepsConfirmedCode(location: {
+  zone: number;
+  position: number;
+  is_overlay?: boolean;
+}) {
+  return rememberedCode({ code: 1, location }, false) > 0;
+}
+
 /** A card that is face-down now but that this client has already been shown:
  * flipped down after being face-up (Scrap-Iron Scarecrow, Book of Moon) or
  * confirmed by an effect. Returns its code, 0 when not applicable.
