@@ -172,6 +172,12 @@ export async function acquireCardImage(
   return { url, owned: true };
 }
 
+/** Fetch art before it is shown; the idle pool keeps it for the first paint. */
+export async function preloadCardImage(src: string) {
+  const { owned } = await acquireCardImage(src);
+  if (owned) releaseCardImage(src);
+}
+
 export function releaseCardImage(src: string) {
   const current = live.get(src);
   if (!current || --current.refs > 0) return;

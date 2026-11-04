@@ -23,6 +23,7 @@ export const fieldWords = {
     lp: "LP 更新",
     counter: "指示物变化",
     turn: "开始回合",
+    confirm: "确认卡片",
     phase: "阶段变化",
   },
   en: {
@@ -48,6 +49,7 @@ export const fieldWords = {
     lp: "LP update",
     counter: "Counters changed",
     turn: "New turn",
+    confirm: "Reveal card",
     phase: "Phase changed",
   },
   ja: {
@@ -73,6 +75,7 @@ export const fieldWords = {
     lp: "LP更新",
     counter: "カウンター変更",
     turn: "ターン開始",
+    confirm: "カード確認",
     phase: "フェイズ変更",
   },
   ko: {
@@ -98,6 +101,7 @@ export const fieldWords = {
     lp: "LP 갱신",
     counter: "카운터 변경",
     turn: "턴 시작",
+    confirm: "카드 확인",
     phase: "페이즈 변경",
   },
 };

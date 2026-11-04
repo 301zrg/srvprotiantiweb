@@ -29,6 +29,9 @@ export interface SceneAction {
   reason?: number;
   arrivals?: string[];
   moving?: SceneCard;
+  /** One card of a long reveal, which goes by quicker (as native YGOPro does
+   * past 5 cards: 12 frames each instead of 45). */
+  brief?: boolean;
 }
 export type SceneFrame = Omit<ReplayFrame, "cards"> & {
   cards: SceneCard[];
@@ -98,6 +101,9 @@ export function seedScene(
 export function sceneSteps(
   previous: SceneFrame,
   next: ReplayFrame,
+  /** Replays show cards revealed by effects, one step per card like the online
+   * board. The hand test has its own prompts for them. */
+  options: { confirmations?: boolean } = {},
 ): SceneFrame[] {
   let scene: SceneFrame = {
     ...previous,
@@ -361,10 +367,28 @@ export function sceneSteps(
     } else if (kind === 41) {
       scene.phase = event[1] | (event[2] << 8);
       emit({ kind: "phase" });
+    } else if (options.confirmations && [30, 31, 42].includes(kind)) {
+      // MSG_CONFIRM_DECKTOP / _EXTRATOP: player, count, cards.
+      // MSG_CONFIRM_CARDS: player, skip panel, count, cards.
+      const head = kind === 31 ? 4 : 3,
+        count = event[head - 1];
+      for (let n = 0; n < count; n++) {
+        const base = head + n * 7;
+        emit({
+          kind: "confirm",
+          code: packed(event, base),
+          to: spot(event, base + 4),
+          brief: count > 5,
+        });
+      }
     }
   }
   const final = seedScene(next, scene);
-  final.action = scene.action;
+  // A reveal lasts its own step: the batch end must not keep the card shown.
+  final.action =
+    scene.action?.kind === "confirm"
+      ? { kind: "ready", id: `${next.step}:end` }
+      : scene.action;
   final.chains = scene.chains;
   for (const card of final.cards) {
     const previous = scene.cards.find((old) => old.sceneId === card.sceneId);

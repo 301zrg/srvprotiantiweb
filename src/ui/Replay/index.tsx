@@ -33,6 +33,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSnapshot } from "valtio";
 
 import { fetchCard } from "@/api";
+import { preloadCardImage } from "@/api/cardImageCache";
+import { getCardImgUrl } from "@/api/cards";
 import { useMediaQuery } from "@/hook";
 import type { ReplayFrame } from "@/replay/engine";
 import { MAX_REPLAY_BYTES } from "@/replay/format";
@@ -676,7 +678,10 @@ function Player({ id, text }: { id: string; text: string[] }) {
       return;
     }
     if (!paused.current)
-      timer.current = window.setTimeout(() => request(), 600 / speed.current);
+      timer.current = window.setTimeout(
+        () => request(),
+        (next.action?.brief ? 150 : 600) / speed.current,
+      );
   };
   useEffect(() => {
     audio.current?.configure(
@@ -791,7 +796,30 @@ function Player({ id, text }: { id: string; text: string[] }) {
           if (firstTurn && next.turn <= 1)
             setFirstPlayer(firstTurn.entry.player ?? 0);
           if (!seek.current && next.step > 0 && scene.current) {
-            queue.current = sceneSteps(scene.current, next);
+            queue.current = sceneSteps(scene.current, next, {
+              confirmations: true,
+            });
+            // Cards from the Deck were never on the board, so their art is not
+            // loaded yet and a step is too short to download it. Wait for it,
+            // not for long: a slow network still has the name and the log.
+            const reveals = queue.current.flatMap(({ action }) =>
+              action?.kind === "confirm" && action.code
+                ? [preloadCardImage(getCardImgUrl(action.code))]
+                : [],
+            );
+            if (reveals.length && !paused.current) {
+              const wait = window.setTimeout(
+                () => requestRef.current(),
+                1200 / speed.current,
+              );
+              timer.current = wait;
+              void Promise.all(reveals).then(() => {
+                if (timer.current !== wait || paused.current) return;
+                clearTimeout(wait);
+                requestRef.current();
+              });
+              return;
+            }
             if (!requestedAuto.current || !paused.current) advance();
             return;
           }
@@ -1232,9 +1260,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
     <main
       className="replay-player replay-duel"
       data-testid="replay-player"
+      data-paused={!playing || undefined}
       style={
         {
           "--replay-motion-ms": `${Math.min(300, 600 / rate)}ms`,
+          "--replay-step-ms": `${600 / rate}ms`,
         } as React.CSSProperties
       }
     >

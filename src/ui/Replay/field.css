@@ -42,6 +42,33 @@
   animation: replay-field-depart var(--replay-motion-ms, 300ms) ease forwards;
   pointer-events: none;
 }
+.replay-field-reveal {
+  animation: replay-field-reveal var(--replay-step-ms, 600ms) ease both;
+  pointer-events: none;
+}
+.replay-field-reveal-brief {
+  animation-duration: calc(var(--replay-step-ms, 600ms) / 4);
+}
+/* Paused or stepping: stay lifted so the card can be read. */
+[data-paused] .replay-field-reveal {
+  animation: none;
+  translate: 0 var(--replay-reveal-y, -120px);
+}
+@keyframes replay-field-reveal {
+  0% {
+    translate: 0 0;
+    opacity: 1;
+  }
+  25%,
+  75% {
+    translate: 0 var(--replay-reveal-y, -120px);
+    opacity: 1;
+  }
+  100% {
+    translate: 0 0;
+    opacity: 0;
+  }
+}
 @keyframes replay-field-arrive {
   from {
     translate: var(--replay-from-x, 0) var(--replay-from-y, 0);
