@@ -28,6 +28,18 @@
   gap: 8px;
 }
 
+.remembered {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px solid #c3a061;
+  border-radius: 8px;
+  background: #3a3020;
+  color: #ffe2a1;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .hint {
   display: flex;
   flex-direction: column;

@@ -184,6 +184,26 @@
 }
 .targetSelected .targetLabel { border-color: #ffdb75; color: #ffedb1; background: #302710f5; }
 
+// On the back of the card: it stays a plain card back with a small "seen" mark.
+.rememberedMark {
+  position: absolute;
+  top: 6%;
+  left: 8%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42%;
+  aspect-ratio: 1;
+  border: 2px solid #ffd978;
+  border-radius: 50%;
+  background: #29231af0;
+  color: #ffd978;
+  font-size: 22px;
+  pointer-events: none;
+  transform: translateZ(-0.6px) rotateY(180deg);
+}
+
 .materialCount {
   position: absolute;
   right: -4px;

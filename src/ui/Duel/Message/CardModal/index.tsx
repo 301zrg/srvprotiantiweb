@@ -6,8 +6,10 @@ import { cardStore, type CardType, matStore } from "@/stores";
 import { onlineInformationCards } from "@/ui/Duel/PlayMat/cardInformation";
 import { useI18N } from "@/ui/I18N";
 import { CardDetailContent } from "@/ui/Shared/DuelBoard/CardDetail";
+import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { rememberedCode } from "@/variant/rememberedCard";
 
 import { extraCardTypes, TYPE_LINK, TYPE_MONSTER } from "../../../../common";
 import styles from "./index.module.scss";
@@ -58,7 +60,11 @@ export const CardModal = () => {
     liveCard.location.is_overlay ||
     !information.find((card) => card.id === liveCard.uuid)?.hidden;
   const { meta: sourceMeta, counters, hint } = liveCard ?? snap;
-  const meta = visible ? sourceMeta : fetchCard(0);
+  // Already seen but face-down again: the printed card, labelled as a memory
+  // aid, with nothing that would claim to be its current state.
+  const remembered = !visible && liveCard ? rememberedCode(liveCard, false) : 0;
+  const cardWords = replayCardWords(language);
+  const meta = visible ? sourceMeta : fetchCard(remembered);
 
   const types = extraCardTypes(meta?.data.type ?? 0);
   const atk = meta?.data.atk;
@@ -87,13 +93,16 @@ export const CardModal = () => {
     ? fetchCard(currentIdentity.currentCode).text.name
     : printed?.text.name ?? meta?.text.name;
   const desc = printed?.text.desc ?? meta?.text.desc;
+  const title = remembered
+    ? `${cardWords.facedown} · ${cardWords.remembered}：${name ?? remembered}`
+    : name;
 
   return (
     <DuelPanel
       open={isOpen}
       placement="left"
       onClose={() => (store.isOpen = false)}
-      title={name}
+      title={title}
       testId="duel-card-panel"
       zIndex={1100}
       compact
@@ -104,6 +113,16 @@ export const CardModal = () => {
         data-testid="duel-card-detail"
         data-card-code={meta?.id}
       >
+        {/* First: a short phone panel must not scroll the caveat away. */}
+        {!!remembered && (
+          <div
+            className={styles.remembered}
+            data-testid="duel-card-remembered"
+            role="note"
+          >
+            {cardWords.rememberedNote}
+          </div>
+        )}
         <CardDetailContent
           code={meta?.id ?? 0}
           language={language}
@@ -114,8 +133,8 @@ export const CardModal = () => {
               ? {
                   attack: atk,
                   defense: def,
-                  baseAttack: liveCard?.baseAttack,
-                  baseDefense: liveCard?.baseDefense,
+                  baseAttack: remembered ? undefined : liveCard?.baseAttack,
+                  baseDefense: remembered ? undefined : liveCard?.baseDefense,
                   printedAttack: printed?.data.atk,
                   printedDefense: printed?.data.def,
                   hasDefense: !types.includes(TYPE_LINK),
@@ -123,7 +142,7 @@ export const CardModal = () => {
               : undefined
           }
           live={faceUp && !!((meta.data.type ?? 0) & TYPE_MONSTER)}
-          counters={counters}
+          counters={remembered ? {} : counters}
           countersTestId="duel-card-counter"
           identity={currentIdentity}
           related={{
