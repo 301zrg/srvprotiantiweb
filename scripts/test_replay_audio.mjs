@@ -189,6 +189,7 @@ try {
     "banished.wav",
   );
   assert.equal(replaySound({ kind: "move", reason: 1 }), "destroyed.wav");
+  assert.equal(replaySound({ kind: "confirm" }), "reveal.wav");
   assert.equal(replaySound({ kind: "chainEnd" }), "");
   console.log(
     "Replay audio: late-load cancellation, autoplay tap resume, volume, mute, retry, bounded voices, 16x throttle, unsupported browser and cue mapping passed.",
