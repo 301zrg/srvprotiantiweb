@@ -34,6 +34,7 @@
     "scripts/test_language_hints.mjs",
     "scripts/test_language_links.mjs",
     "scripts/test_match_game.mjs",
+    "scripts/test_match_history.mjs",
     "scripts/test_message_presentation.mjs",
     "scripts/test_observer_seat.mjs",
     "scripts/test_old_ruling_ep_core.mjs",

@@ -50,6 +50,18 @@ window.__spectatorTest = {
     ];
   },
   hideIds(on) { settingFixture.hidePlayerIds = on; },
+  // A match: seats swapped in G2, so the first player differs per game.
+  matchLog() {
+    roomFixture.hostInfo = { mode: 1 };
+    historyFixture.games = [
+      { game: 1, swapped: false, selfFirst: false },
+      { game: 2, swapped: true, selfFirst: false },
+    ];
+    historyFixture.historys = [
+      { card: 0, opponent: false, operation: HistoryFixtureOp.DRAW, player: 0, turn: 1, amount: 1, game: 1 },
+      { card: 0, opponent: false, operation: HistoryFixtureOp.DRAW, player: 0, turn: 1, amount: 2, game: 2 },
+    ];
+  },
   chatOrder(order) { settingFixture.chatOrder = order; }
 };`;
 const P = {
@@ -347,6 +359,15 @@ try {
       await expect(log).not.toContainText("SeatZero");
       await expect(log).not.toContainText("SeatOneWithAVeryLong");
       await page.evaluate(() => window.__spectatorTest.hideIds(false));
+      // Earlier games of a match start folded under a header with the order.
+      await page.evaluate(() => window.__spectatorTest.matchLog());
+      const games = log.getByTestId("duel-history-game");
+      await expect(games).toHaveCount(2);
+      await expect(games.nth(0)).toHaveAttribute("aria-expanded", "false");
+      await expect(games.nth(1)).toHaveAttribute("aria-expanded", "true");
+      await expect(ids).toHaveText(["SeatOneWithAVeryLong"]);
+      await games.nth(0).click();
+      await expect(ids).toHaveText(["SeatZero", "SeatOneWithAVeryLong"]);
       await page.getByTestId("duel-history-panel-close").click();
       await expect(log).toBeHidden();
       await page.getByTestId("duel-chat").tap();
