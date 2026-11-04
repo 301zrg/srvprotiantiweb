@@ -60,5 +60,5 @@ export const resetDuel = () => {
   cardStore.reset();
   matStore.reset();
   placeStore.reset();
-  historyStore.reset();
+  historyStore.closeGame();
 };

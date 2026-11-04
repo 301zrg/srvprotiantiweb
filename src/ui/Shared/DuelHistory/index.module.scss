@@ -158,6 +158,24 @@
   font-size: 13px;
   font-weight: bold;
 }
+.gameHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #537eaa;
+  border-radius: 6px;
+  background: #223247;
+  color: #a8d4ff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
 .divider.phase { border-left-color: #ffb86b; font-weight: normal; }
 .note { font-size: 13px; color: #e7eef7; overflow-wrap: anywhere; }
 .note.damage { color: #ff9b8a; }

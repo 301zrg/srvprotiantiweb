@@ -1,5 +1,6 @@
 import {
   CheckOutlined,
+  FileSearchOutlined,
   MessageOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
@@ -21,6 +22,7 @@ import { deckMessages } from "@/variant/deckMessages";
 import { mobileMessages } from "@/variant/mobileMessages";
 
 import { CardDetail } from "../BuildDeck/CardDetail";
+import { ActionHistoryContent } from "../Duel/Message/ActionHistory";
 import { EndModal } from "../Duel/Message/EndModal";
 import { useI18N } from "../I18N";
 import { Background, DeckZone, Type, useChat } from "../Shared";
@@ -62,14 +64,18 @@ export const Component: React.FC = () => {
   );
   const [chatOpen, setChatOpen] = useState(false);
   const [chatSeen, setChatSeen] = useState(0);
-  const unread = chatOpen ? 0 : chat.dialogs.length - chatSeen;
+  // Wide screens swap the side column; touch layouts open a panel for each.
+  const [siderTab, setSiderTab] = useState<"chat" | "history">("chat");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const chatShown = compact ? chatOpen : siderTab === "chat";
+  const unread = chatShown ? 0 : chat.dialogs.length - chatSeen;
   useEffect(() => {
-    if (!chatOpen) return;
+    if (!chatShown) return;
     setChatSeen(chat.dialogs.length);
     const viewport = chat.ref.current?.osInstance()?.elements().viewport;
     if (viewport)
       viewport.scrollTop = chat.newestFirst ? 0 : viewport.scrollHeight;
-  }, [chatOpen, chat.dialogs.length, chat.newestFirst]);
+  }, [chatShown, chat.dialogs.length, chat.newestFirst]);
   useLayoutEffect(() => {
     if (scrollRef.current)
       scrollRef.current.scrollTop = sideStore.getEditor().scrollTop;
@@ -180,7 +186,47 @@ export const Component: React.FC = () => {
       >
         {!compact && (
           <div className={styles.sider}>
-            <Chat controller={chat} />
+            <div className={styles.siderTabs}>
+              <Badge count={unread} size="small" overflowCount={99}>
+                <Button
+                  data-testid="side-chat-tab"
+                  size="small"
+                  type={siderTab === "chat" ? "primary" : "default"}
+                  aria-pressed={siderTab === "chat"}
+                  onClick={() => setSiderTab("chat")}
+                >
+                  {mobileMessages(language).chat}
+                </Button>
+              </Badge>
+              <Button
+                data-testid="side-history-tab"
+                size="small"
+                type={siderTab === "history" ? "primary" : "default"}
+                aria-pressed={siderTab === "history"}
+                onClick={() => setSiderTab("history")}
+              >
+                {mobileMessages(language).history}
+              </Button>
+            </div>
+            {/* Stays mounted: the chat keeps its draft and scroll position. */}
+            <div
+              className={styles.siderPane}
+              style={siderTab === "chat" ? undefined : { display: "none" }}
+            >
+              <Chat controller={chat} />
+            </div>
+            {siderTab === "history" && (
+              <div
+                className={`${styles.siderPane} ${styles.siderHistory}`}
+                data-testid="side-history"
+              >
+                <ActionHistoryContent
+                  embedded
+                  expandEarlier
+                  onInspect={setSelectedCard}
+                />
+              </div>
+            )}
           </div>
         )}
         <div className={styles.content}>
@@ -189,15 +235,25 @@ export const Component: React.FC = () => {
               <h2>{text.sideTitle}</h2>
               <div className={styles.actions}>
                 {compact && (
+                  <Button
+                    data-testid="side-history"
+                    size="small"
+                    icon={<FileSearchOutlined />}
+                    aria-label={mobileMessages(language).history}
+                    title={mobileMessages(language).history}
+                    onClick={() => setHistoryOpen(true)}
+                  />
+                )}
+                {compact && (
                   <Badge count={unread} size="small" overflowCount={99}>
                     <Button
                       data-testid="side-chat"
                       size="small"
                       icon={<MessageOutlined />}
+                      aria-label={mobileMessages(language).chat}
+                      title={mobileMessages(language).chat}
                       onClick={() => setChatOpen(true)}
-                    >
-                      {mobileMessages(language).chat}
-                    </Button>
+                    />
                   </Badge>
                 )}
                 <Button
@@ -307,6 +363,23 @@ export const Component: React.FC = () => {
           bodyClassName={styles.chatPanel}
         >
           <Chat controller={chat} />
+        </DuelPanel>
+      )}
+      {compact && (
+        <DuelPanel
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          title={mobileMessages(language).history}
+          testId="side-history-panel"
+        >
+          <ActionHistoryContent
+            expandEarlier
+            onInspect={(code) => {
+              // The card detail is a panel of its own on these layouts.
+              setHistoryOpen(false);
+              setSelectedCard(code);
+            }}
+          />
         </DuelPanel>
       )}
       <EndModal />
