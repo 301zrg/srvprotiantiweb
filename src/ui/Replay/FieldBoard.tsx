@@ -23,6 +23,7 @@ import {
 import { sceneInformationCards } from "@/ui/Shared/DuelBoard/sceneInformation";
 import { replayFieldWords } from "@/ui/Shared/DuelBoard/sceneWords";
 import { DuelPanel } from "@/ui/Shared/DuelPanel";
+import { displayPlayerId } from "@/variant/playerIds";
 
 import { ReplayCardTile } from "./CardTile";
 
@@ -61,7 +62,8 @@ export function FieldBoard({
   const t = replayFieldWords(language),
     cardWords = replayCardWords(language),
     board = useRef<SceneBoardHandle>(null);
-  const { showZoneCounts, showZoneIndexes } = useSnapshot(settingStore);
+  const { showZoneCounts, showZoneIndexes, hidePlayerIds } =
+    useSnapshot(settingStore);
   const desktop = useMediaQuery("(min-width: 1024px) and (min-height: 600px)");
   const [pile, setPile] = useState<Spot>();
   useEffect(() => {
@@ -110,9 +112,10 @@ export function FieldBoard({
           role: "button",
           tabIndex: 0,
           "data-pile": location,
-          "aria-label": `${frame.names[player]} · ${label(location)} ${
-            cards.length
-          }`,
+          "aria-label": `${displayPlayerId(
+            frame.names[player],
+            settingStore.hidePlayerIds,
+          )} · ${label(location)} ${cards.length}`,
           onClick: () => {
             onPause();
             setPile({ player, location, sequence: 0 });
@@ -252,7 +255,12 @@ export function FieldBoard({
         open={!!pile}
         onClose={() => setPile(undefined)}
         title={
-          pile ? `${frame.names[pile.player]} · ${label(pile.location)}` : ""
+          pile
+            ? `${displayPlayerId(
+                frame.names[pile.player],
+                hidePlayerIds,
+              )} · ${label(pile.location)}`
+            : ""
         }
         testId="replay-pile-panel"
         compact

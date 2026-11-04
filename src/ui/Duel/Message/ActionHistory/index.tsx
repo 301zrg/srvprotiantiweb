@@ -3,7 +3,13 @@ import { proxy, useSnapshot } from "valtio";
 
 import { fetchCard, ygopro } from "@/api";
 import { useMediaQuery } from "@/hook";
-import { History, HistoryOp, historyStore, matStore } from "@/stores";
+import {
+  History,
+  HistoryOp,
+  historyStore,
+  matStore,
+  roomStore,
+} from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import {
@@ -21,6 +27,7 @@ import {
 import { duelResultMessages } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
 
+import { spectatorName } from "../../PlayMat/LifeBar";
 import { showCardModal } from "../CardModal";
 
 const defaultStore = {
@@ -56,8 +63,9 @@ export const ActionHistoryContent = ({
 }) => {
   const { language } = useI18N();
   const { historys } = useSnapshot(historyStore);
-  const { historyOrder } = useSnapshot(settingStore);
-  const { selfType } = useSnapshot(matStore);
+  const { historyOrder, hidePlayerIds } = useSnapshot(settingStore);
+  const { selfType, observerSwapped } = useSnapshot(matStore);
+  const { players, hostInfo } = useSnapshot(roomStore);
   const words = duelResultMessages(language);
   const observer =
     selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
@@ -71,6 +79,17 @@ export const ActionHistoryContent = ({
         ? words.self
         : words.opponent,
     [observer, words],
+  );
+  // Spectators see who the first and second players are; a player already
+  // knows "self" and "opponent". Strings as deps keep the callback stable.
+  const tag = hostInfo?.mode === 2;
+  const firstId = spectatorName(players, tag, 0, observerSwapped);
+  const secondId = spectatorName(players, tag, 1, observerSwapped);
+  const showIds = observer && !hidePlayerIds;
+  const playerName = useCallback(
+    (player: number) =>
+      showIds ? (player === 0 ? firstId : secondId) : undefined,
+    [showIds, firstId, secondId],
   );
   // Keys stay the append index so reordering never re-renders memoized rows.
   const entries = historys.map((history, idx) => [idx, history] as const);
@@ -88,6 +107,7 @@ export const ActionHistoryContent = ({
           history={history as History}
           language={language}
           playerLabel={playerLabel}
+          playerName={playerName}
         />
       ))}
     </HistoryTimeline>
@@ -160,16 +180,19 @@ const OnlineRow = React.memo(function OnlineRow({
   history,
   language,
   playerLabel,
+  playerName,
 }: {
   history: History;
   language: string;
   playerLabel: (player: number) => string;
+  playerName: (player: number) => string | undefined;
 }) {
   return (
     <HistoryRow
       entry={onlineHistoryEntry(history)}
       language={language}
       playerLabel={playerLabel}
+      playerName={playerName}
       onInspect={inspect}
       testPrefix="duel"
     />

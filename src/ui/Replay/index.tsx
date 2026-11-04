@@ -94,7 +94,9 @@ import { MobileHomeLink } from "@/ui/Shared/MobileHomeLink";
 import { type Language, languageLocales } from "@/variant";
 import { clientRevisionMessages } from "@/variant/clientRevisionMessages";
 import { corePhaseKey } from "@/variant/duelPhases";
+import { duelResultMessages } from "@/variant/duelResults";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { displayPlayerId } from "@/variant/playerIds";
 import { previewMessages } from "@/variant/previewMessages";
 import { statsPlaybackMessages } from "@/variant/statsPlaybackMessages";
 
@@ -602,6 +604,8 @@ function Player({ id, text }: { id: string; text: string[] }) {
   const reveal = useMemo(() => ({ peek, hands }), [peek, hands]);
   const historyCursor = useRef<HistoryCursor>({ turn: 0 });
   const historySerial = useRef(0);
+  // Who took the first turn: replays do not always number that player 0.
+  const [firstPlayer, setFirstPlayer] = useState(0);
   const resetHistory = () => {
     historyCursor.current = { turn: 0 };
     setHistory([]);
@@ -777,6 +781,11 @@ function Player({ id, text }: { id: string; text: string[] }) {
           );
           if (added.length)
             setHistory((old) => [...old, ...added].slice(-1000));
+          const firstTurn = added.find(
+            (item: { entry: DuelHistoryEntry }) => item.entry.kind === "turn",
+          );
+          if (firstTurn && next.turn <= 1)
+            setFirstPlayer(firstTurn.entry.player ?? 0);
           if (!seek.current && next.step > 0 && scene.current) {
             queue.current = sceneSteps(scene.current, next);
             if (!requestedAuto.current || !paused.current) advance();
@@ -897,10 +906,19 @@ function Player({ id, text }: { id: string; text: string[] }) {
       : undefined;
   const fieldWords = replayFieldWords(language);
   const [nameA, nameB] = frame?.names ?? [];
+  const hideIds = settings.hidePlayerIds;
+  const orderWords = duelResultMessages(language);
   const replayPlayer = useCallback(
     (player: number) =>
-      (player === 0 ? nameA : nameB) || `Player ${player + 1}`,
-    [nameA, nameB],
+      player === firstPlayer ? orderWords.first : orderWords.second,
+    [firstPlayer, orderWords],
+  );
+  const replayPlayerId = useCallback(
+    (player: number) =>
+      hideIds
+        ? undefined
+        : (player === 0 ? nameA : nameB) || `Player ${player + 1}`,
+    [hideIds, nameA, nameB],
   );
   const inspectHistory = useCallback((code: number) => {
     if (!wideRef.current) {
@@ -934,6 +952,7 @@ function Player({ id, text }: { id: string; text: string[] }) {
             entry={entry}
             language={language}
             playerLabel={replayPlayer}
+            playerName={replayPlayerId}
             onInspect={inspectHistory}
             testPrefix="replay"
           />
@@ -945,13 +964,15 @@ function Player({ id, text }: { id: string; text: string[] }) {
   // Persistent: errors and the end state never auto-dismiss.
   const statusPanel = (
     <div className="replay-status" data-testid="replay-status">
-      <h1 className="replay-title">{title || text[2]}</h1>
+      {/* Stored titles default to the file name, which often holds the IDs. */}
+      <h1 className="replay-title">{(!hideIds && title) || text[2]}</h1>
       {frame && (
         <>
           <div className="replay-progress">
             {t("ReplayTurn")} {frame.turn} · {phaseName(frame.phase, t)} ·{" "}
-            {frame.names[frame.turnPlayer]} · {t("ReplayStep")} {frame.step} ·{" "}
-            {t("ReplayResponse")} {frame.consumed}/{frame.total}
+            {displayPlayerId(frame.names[frame.turnPlayer], hideIds)} ·{" "}
+            {t("ReplayStep")} {frame.step} · {t("ReplayResponse")}{" "}
+            {frame.consumed}/{frame.total}
             {frame.end && (
               <strong data-testid="replay-end" data-end={frame.end}>
                 {frame.end === "complete"
@@ -1265,7 +1286,12 @@ function Player({ id, text }: { id: string; text: string[] }) {
                   {[1 - view, view].map((player) => (
                     <section className="replay-side" key={player}>
                       <header>
-                        <h2>{frame.names[player] || `Player ${player + 1}`}</h2>
+                        <h2>
+                          {displayPlayerId(
+                            frame.names[player] || `Player ${player + 1}`,
+                            hideIds,
+                          )}
+                        </h2>
                         <strong>LP {frame.lp[player]}</strong>
                       </header>
                       {[2, 4, 8, 1, 64, 16, 32].map((location, i) => {

@@ -15,7 +15,7 @@ const folder = `.audit-tmp/mobile-spectator-menu-ui/${
 const outDir = `${folder}/web-dist`;
 const fixtureCode = `
 import { initUIContainer as initFixture } from "@/container/compat";
-import { roomStore as roomFixture, matStore as matFixture, cardStore as cardFixture, sideStore as sideFixture, chatStore as chatFixture, SideStage as SideFixtureStage, RoomStage as RoomFixtureStage } from "@/stores";
+import { roomStore as roomFixture, matStore as matFixture, cardStore as cardFixture, sideStore as sideFixture, chatStore as chatFixture, historyStore as historyFixture, HistoryOp as HistoryFixtureOp, SideStage as SideFixtureStage, RoomStage as RoomFixtureStage } from "@/stores";
 import { settingStore as settingFixture } from "@/stores/settingStore";
 import { fetchCard as fixtureCard, ygopro as fixtureProtocol } from "@/api";
 const makeCard = (zone,sequence,code) => ({uuid:"spectator-"+zone+"-"+sequence,code,meta:fixtureCard(code),location:{controller:0,zone,sequence,position:fixtureProtocol.CardPosition.FACEUP_ATTACK,is_overlay:false},idleInteractivities:[],counters:{},isToken:false,targeted:false,status:0,selectInfo:{selectable:false,selected:false}});
@@ -38,6 +38,18 @@ window.__spectatorTest = {
   // System chat lines (sender 8) and one logged summon for the spectator log.
   chat(text) { chatFixture.sender = 8; chatFixture.message = text; },
   historyOrder(order) { settingFixture.historyOrder = order; },
+  // Core player 0 went first, but sits in room seat 1 this game.
+  log(swapped) {
+    roomFixture.players[0] = { name: "SeatZero", state: 0, isMe: false };
+    roomFixture.players[1] = { name: "SeatOneWithAVeryLong", state: 0, isMe: false };
+    matFixture.observerSwapped = swapped;
+    historyFixture.historys = [
+      { card: 0, opponent: false, operation: HistoryFixtureOp.TURN, player: 0, turn: 1 },
+      { card: 0, opponent: false, operation: HistoryFixtureOp.DRAW, player: 0, turn: 1, amount: 1 },
+      { card: 0, opponent: true, operation: HistoryFixtureOp.DRAW, player: 1, turn: 1, amount: 1 },
+    ];
+  },
+  hideIds(on) { settingFixture.hidePlayerIds = on; },
   chatOrder(order) { settingFixture.chatOrder = order; }
 };`;
 const P = {
@@ -311,6 +323,34 @@ try {
       await page.evaluate(() => window.__spectatorTest.historyOrder("newest"));
       await expect.poll(order).toBe("newest");
       await page.evaluate(() => window.__spectatorTest.historyOrder("oldest"));
+      // The log names the first and second players by ID: whole in the turn
+      // separator, cut to one line in the rows, and absent when masked.
+      await page.getByTestId("duel-chat-panel-close").click();
+      await expect(panel).toBeHidden();
+      await page.evaluate(() => window.__spectatorTest.log(true));
+      await page.getByTestId("duel-history").tap();
+      const log = page.getByTestId("duel-history-content");
+      await expect(log.locator('[data-history-kind="turn"]')).toContainText(
+        "SeatOneWithAVeryLong",
+      );
+      const ids = log.getByTestId("history-player-id");
+      await expect(ids).toHaveText(["SeatOneWithAVeryLong", "SeatZero"]);
+      const row = await ids.first().evaluate((el) => {
+        const tag = el.parentElement.getBoundingClientRect();
+        return { height: tag.height, right: tag.right, max: innerWidth };
+      });
+      assert.ok(row.height < 24 && row.right <= row.max, JSON.stringify(row));
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: `${folder}/390-history-ids.png` });
+      await page.evaluate(() => window.__spectatorTest.hideIds(true));
+      await expect(ids).toHaveCount(0);
+      await expect(log).not.toContainText("SeatZero");
+      await expect(log).not.toContainText("SeatOneWithAVeryLong");
+      await page.evaluate(() => window.__spectatorTest.hideIds(false));
+      await page.getByTestId("duel-history-panel-close").click();
+      await expect(log).toBeHidden();
+      await page.getByTestId("duel-chat").tap();
+      await expect(panel).toBeVisible();
       // The full-height panel keeps its input at the bottom, also when a
       // keyboard shrinks the viewport, instead of floating mid-screen.
       const inputGap = () =>

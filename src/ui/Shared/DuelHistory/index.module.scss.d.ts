@@ -14,6 +14,8 @@ declare const classNames: {
   readonly embedded: "embedded";
   readonly entry: "entry";
   readonly tag: "tag";
+  readonly tagText: "tagText";
+  readonly tagId: "tagId";
   readonly divider: "divider";
   readonly phase: "phase";
   readonly note: "note";
