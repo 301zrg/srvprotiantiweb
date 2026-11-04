@@ -4,6 +4,9 @@ const words = {
   cn: {
     faceup: "表侧",
     facedown: "里侧",
+    remembered: "曾公开",
+    rememberedNote:
+      "这张卡现在是里侧表示，规则上仍是非公开卡。以下是它上次公开时的信息，仅供回忆。",
     attack: "攻击表示",
     defense: "守备表示",
     set: "盖放",
@@ -25,6 +28,9 @@ const words = {
   en: {
     faceup: "Face-up",
     facedown: "Face-down",
+    remembered: "Previously revealed",
+    rememberedNote:
+      "This card is face-down now and, by the rules, still private. This is what it showed when last revealed, as a reminder only.",
     attack: "Attack position",
     defense: "Defense position",
     set: "Set",
@@ -46,6 +52,9 @@ const words = {
   ja: {
     faceup: "表側",
     facedown: "裏側",
+    remembered: "公開済み",
+    rememberedNote:
+      "このカードは現在裏側表示で、ルール上は非公開です。以下は最後に公開されたときの情報で、確認用の参考です。",
     attack: "攻撃表示",
     defense: "守備表示",
     set: "セット",
@@ -67,6 +76,9 @@ const words = {
   ko: {
     faceup: "앞면",
     facedown: "뒷면",
+    remembered: "공개된 적 있음",
+    rememberedNote:
+      "이 카드는 현재 뒷면 표시이며 규칙상 비공개입니다. 아래는 마지막으로 공개되었을 때의 정보로, 참고용입니다.",
     attack: "공격 표시",
     defense: "수비 표시",
     set: "세트",

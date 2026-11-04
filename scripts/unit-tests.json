@@ -54,6 +54,7 @@
     "scripts/test_preview_config.mjs",
     "scripts/test_preview_entry.mjs",
     "scripts/test_public_operator_config.mjs",
+    "scripts/test_remembered_card.mjs",
     "scripts/test_replay_audio.mjs",
     "scripts/test_replay_card_state.mjs",
     "scripts/test_replay_extract.mjs",

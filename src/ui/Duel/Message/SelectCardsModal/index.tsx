@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { INTERNAL_Snapshot as Snapshot, useSnapshot } from "valtio";
 
-import { type CardMeta, Region, ygopro } from "@/api";
+import { type CardMeta, fetchCard, Region, ygopro } from "@/api";
 import { fetchStrings } from "@/api";
 import { getUIContainer, hasUIContainer } from "@/container/compat";
 import { useMobileInterface } from "@/hook";
@@ -20,6 +20,7 @@ import {
 import { FieldSelectionGrid } from "@/ui/Duel/FieldSelection";
 import { useI18N } from "@/ui/I18N";
 import { ChainTag, ScrollableArea, YgoCard } from "@/ui/Shared";
+import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
 import { duelInteractionMessages } from "@/variant/duelInteraction";
 import { duelResultMessages } from "@/variant/duelResultMessages";
 import { type DuelTiming, formatChainContext } from "@/variant/duelTiming";
@@ -29,6 +30,7 @@ import {
   fieldSelectionMessages,
 } from "@/variant/fieldSelection";
 import { mobileMessages } from "@/variant/mobileMessages";
+import { rememberedCode } from "@/variant/rememberedCard";
 
 import { groupBy } from "../../utils";
 import { closeCardModal, showCardModal } from "../CardModal";
@@ -207,6 +209,19 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
       ? 0
       : option.meta.id;
   };
+  // A hidden option this client has already seen keeps its back; the name
+  // beside it saves remembering it.
+  const remembered = (option: Snapshot<Option>) => {
+    if (displayCode(option) !== 0 || !option.location || !hasUIContainer())
+      return "";
+    const live = getUIContainer().context.cardStore.find(
+      option.location as ygopro.CardLocation,
+    );
+    const code = live ? rememberedCode(live, false) : 0;
+    if (!code) return "";
+    const words = replayCardWords(language);
+    return `${words.remembered}：${fetchCard(code).text.name ?? code}`;
+  };
   const liveTargeted = (option: Snapshot<Option>) => {
     const location = option.location;
     if (!location || !hasUIContainer()) return !!option.targeted;
@@ -355,6 +370,14 @@ export const SelectCardsModal: React.FC<SelectCardsModalProps> = ({
                 showCardModal({ ...card, meta: card.meta } as Option);
             }}
           />
+          {remembered(card) && (
+            <span
+              className={styles.optionLocation}
+              data-testid="duel-selection-remembered"
+            >
+              {remembered(card)}
+            </span>
+          )}
           {!position && label(card) && (
             <span
               className={styles.optionLocation}
