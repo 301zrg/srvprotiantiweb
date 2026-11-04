@@ -28,6 +28,8 @@ export enum HistoryOp {
   DRAW = 17,
   POSITION = 18,
   WIN = 19,
+  /** The connection dropped here; what happened meanwhile was not received. */
+  GAP = 20,
 }
 
 export interface History {
@@ -58,6 +60,13 @@ export interface HistoryGame {
   swapped: boolean;
   /** This client's player went first (meaningless for spectators). */
   selfFirst: boolean;
+}
+
+/** A player's log across a reconnection, which rebuilds every other store. */
+export interface HistorySnapshot {
+  rows: History[];
+  games: HistoryGame[];
+  game: number;
 }
 
 export class HistoryStore implements NeosStore {
@@ -330,6 +339,29 @@ export class HistoryStore implements NeosStore {
       player,
       text,
     });
+  }
+
+  snapshotMatch(): HistorySnapshot {
+    return {
+      rows: [...this.historys],
+      games: [...this.games],
+      game: matchGame.number,
+    };
+  }
+
+  /** Back after a reconnection, with the gap marked: the host sends the field
+   * again but not what happened while the connection was down. */
+  restoreMatch({ rows, games, game }: HistorySnapshot) {
+    const last = rows.at(-1);
+    this.historys =
+      last && last.operation !== HistoryOp.GAP
+        ? [
+            ...rows,
+            { card: 0, opponent: false, operation: HistoryOp.GAP, game },
+          ]
+        : [...rows];
+    this.games = [...games];
+    matchGame.number = game;
   }
 
   reset(): void {

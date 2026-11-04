@@ -68,9 +68,24 @@ try {
   assert.equal(history.games.length, 2, "The same game, not a new one");
   assert.equal(history.historys.length, 3);
 
+  // A reconnection rebuilds every store; the log comes back with the gap
+  // marked once, and the game count survives (it used to fall back to 0).
+  const snapshot = history.snapshotMatch();
   history.reset();
+  matchGame.number = 0;
   assert.equal(history.historys.length, 0, "Leaving the room clears it");
   assert.equal(history.games.length, 0);
+  history.restoreMatch(snapshot);
+  assert.equal(matchGame.number, 2);
+  assert.equal(history.historys.length, 4);
+  assert.equal(history.historys.at(-1).game, 2);
+  const gap = history.historys.at(-1).operation;
+  history.restoreMatch(history.snapshotMatch());
+  assert.equal(history.historys.length, 4, "No second gap without new rows");
+  assert.equal(history.historys.at(-1).operation, gap);
+  history.reset();
+  history.restoreMatch({ rows: [], games: [], game: 0 });
+  assert.equal(history.historys.length, 0, "Nothing to mark before any row");
 
   // These two used to clear the log on every game of a match.
   const stores = readFileSync("src/stores/index.ts", "utf8");

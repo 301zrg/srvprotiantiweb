@@ -30,16 +30,27 @@ try {
             import { connectSrvpro as fixtureConnect } from "@/ui/Match/util";
             import { getUIContainer as fixtureContainer } from "@/container/compat";
             import { sendUpdateDeck as fixtureUpload } from "@/api";
-            import { sideStore as fixtureSide, roomStore as fixtureRoom, RoomStage as FixtureRoomStage } from "@/stores";
+            import { sideStore as fixtureSide, roomStore as fixtureRoom, historyStore as fixtureHistory, HistoryOp as FixtureOp, RoomStage as FixtureRoomStage } from "@/stores";
+            import { ygopro as fixtureProtocol } from "@/api";
+            import { matchGame as fixtureGame } from "@/variant/matchGame";
             import { connectionStore as fixtureConnection } from "@/variant/connection";
             window.__sideRecovery = {
-              connect() { return fixtureConnect({ip:"wss://side-recovery.invalid/neos",player:"SyntheticPlayer",passWd:"M#SyntheticSide"}); },
+              connect(player = "SyntheticPlayer") { return fixtureConnect({ip:"wss://side-recovery.invalid/neos",player,passWd:"M#SyntheticSide"}); },
               beginSide(deck) {
                 fixtureSide.setSideDeck(deck);
                 fixtureUpload(fixtureContainer().conn, deck);
                 fixtureContainer().conn.duelStarted = true;
                 fixtureRoom.stage = FixtureRoomStage.DUEL_START;
               },
+              seedHistory() {
+                fixtureGame.number = 2;
+                fixtureHistory.games = [{game:1,swapped:false,selfFirst:true},{game:2,swapped:true,selfFirst:false}];
+                fixtureHistory.historys = [
+                  {card:69247929,opponent:true,operation:FixtureOp.EFFECT,player:1,turn:1,game:1,currentLocation:new fixtureProtocol.CardLocation({controller:1,zone:fixtureProtocol.CardZone.MZONE,sequence:2})},
+                  {card:0,opponent:false,operation:FixtureOp.DRAW,player:0,turn:1,amount:1,game:2},
+                ];
+              },
+              history() { return {rows:fixtureHistory.historys.map((row) => [row.operation,row.game,row.currentLocation?.sequence]),games:fixtureHistory.games.length,game:fixtureGame.number,gap:FixtureOp.GAP}; },
               state() { return {stage:fixtureSide.stage,joined:fixtureRoom.joined,connection:fixtureConnection.state,epoch:fixtureConnection.epoch,cancelled:fixtureContainer().conn.cancelled}; }
             };
           `;
@@ -96,7 +107,7 @@ try {
           const packet = [...new Uint8Array(value)];
           mock.packets.push({ socket: this.id, bytes: packet });
           if (packet[2] === 18) setTimeout(() => {
-            if (this.id) this.chat("You will be reconnected to your previous game. Please pick your previous deck.");
+            if (this.id || sessionStorage.getItem("__forceReconnectOffer")) this.chat("You will be reconnected to your previous game. Please pick your previous deck.");
             const host = new Uint8Array(20), view = new DataView(host.buffer);
             view.setUint32(0, 0x73ec4051, true);
             host[4] = 1; host[5] = 1; host[6] = 2;
@@ -162,6 +173,7 @@ try {
       await move("main", 69247929); await move("side", 89631139);
       const changed = await deckSnapshot();
       assert.notDeepEqual(changed, fixture);
+      await page.evaluate(() => window.__sideRecovery.seedHistory());
       const beforeChat = await geometry();
       const longNotice = 'Synthetic server notice ' + 'long-message-'.repeat(80);
       await page.evaluate((text) => window.__sideTransport.sockets[0].chat(text), longNotice);
@@ -179,6 +191,12 @@ try {
       await expect.poll(() => page.evaluate(() => window.__sideRecovery.state().connection), { timeout: 15000 }).toBe("connected");
       await expect(page.getByTestId("side-page")).toBeVisible();
       await expect.poll(() => page.url()).toMatch(/#\/side$/);
+      // The log survives the reconnection with the gap marked; the game count too.
+      const kept = await page.evaluate(() => window.__sideRecovery.history());
+      assert.equal(kept.rows.length, 3, "Rows before the drop are kept");
+      assert.equal(kept.rows[2][0], kept.gap, "The gap is marked");
+      assert.equal(kept.game, 2);
+      assert.equal(kept.games, 2);
       const recoveredDeck = await deckSnapshot(), after = await geometry();
       const caseName = `${mobile ? "mobile" : "desktop"}/${submitted ? "submitted" : "editing"}`;
       for (const [label, actual, expected] of [["draft", recoveredDeck, changed], ["geometry", after, before]]) {
@@ -210,6 +228,30 @@ try {
       reports.push({ mobile, submitted, before, after, draftPreserved: JSON.stringify(recoveredDeck) === JSON.stringify(changed), recoveryUploadOnly: true, confirmUsesNewSocket: true, route: "side", realSockets });
       await page.screenshot({ path: `${folder}/${mobile ? "mobile" : "desktop"}-${submitted ? "submitted" : "editing"}.png` });
     }
+    // A reloaded page connects by hand: the host's reconnect offer brings this
+    // tab's log back, and a different identity or a finished match does not.
+    await page.goto(`${origin}?lang=zh&side-case=reload#/`, { waitUntil: "domcontentloaded" });
+    await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
+    await page.evaluate(() => window.__sideRecovery.connect("SyntheticPlayer$secret1"));
+    await expect.poll(() => page.evaluate(() => window.__sideRecovery.state().joined)).toBe(true);
+    await page.evaluate(() => window.__sideRecovery.seedHistory());
+    await page.waitForTimeout(1300);
+    const stored = await page.evaluate(() => Object.keys(sessionStorage).find((key) => key.includes("duel-history-resume")));
+    assert.ok(stored, "The log is written to this tab");
+    const raw = await page.evaluate((key) => sessionStorage.getItem(key), stored);
+    assert.ok(!raw.includes("secret1"), "No password part is stored");
+    await page.evaluate(() => sessionStorage.setItem("__forceReconnectOffer", "1"));
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
+    assert.equal((await page.evaluate(() => window.__sideRecovery.history())).rows.length, 0);
+    await page.evaluate(() => window.__sideRecovery.connect("SyntheticPlayer$secret1"));
+    await expect.poll(() => page.evaluate(() => window.__sideRecovery.history().rows.length)).toBe(3);
+    const reloaded = await page.evaluate(() => window.__sideRecovery.history());
+    assert.equal(reloaded.rows[0][2], 2, "Card places are restored");
+    assert.equal(reloaded.rows[2][0], reloaded.gap);
+    assert.equal(reloaded.game, 2);
+    assert.deepEqual(errors, []);
+    await page.evaluate(() => sessionStorage.removeItem("__forceReconnectOffer"));
     await context.close();
   }
   writeFileSync(`${folder}/metrics.json`, JSON.stringify({ reports, failures }, null, 2));
