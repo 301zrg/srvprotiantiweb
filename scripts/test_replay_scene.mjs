@@ -4,6 +4,16 @@ import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { createServer } from "vite";
+// The history conversion reads the language settings on import.
+globalThis.window = {
+  location: new URL("http://localhost/"),
+  addEventListener() {},
+  navigator: { userAgent: "test" },
+};
+globalThis.localStorage = {
+  getItem: (key) => (key === "language" ? "cn" : null),
+  setItem() {},
+};
 const server = await createServer({
   server: { middlewareMode: true, watch: null },
   optimizeDeps: { disabled: true },
@@ -15,6 +25,9 @@ try {
   );
   const { boardGeometry, zoneRect } = await server.ssrLoadModule(
     "/src/ui/Shared/DuelBoard/geometry.ts",
+  );
+  const { eventHistoryEntries } = await server.ssrLoadModule(
+    "/src/ui/Shared/DuelHistory/convert.ts",
   );
   const { ReplayEngine } = await server.ssrLoadModule("/src/replay/engine.ts");
   const create = (
@@ -60,7 +73,7 @@ try {
     while (!scene.end) {
       const next = engine.next(),
         original = JSON.stringify(scene),
-        steps = sceneSteps(scene, next);
+        steps = sceneSteps(scene, next, { confirmations: true });
       assert.equal(
         JSON.stringify(scene),
         original,
@@ -134,7 +147,66 @@ try {
     }
   }
   assert.ok(carried > 0, "Samples include batches without visible events");
-  for (const kind of ["move", "draw", "attack", "chain", "damage", "position"])
+  // The top of the Deck revealed one card at a time (Pot of Duality, Reasoning),
+  // ending with its batch so a card does not stay shown.
+  {
+    const u32 = (n) => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+    const base = {
+      names: ["A", "B"], lp: [8000, 8000], turn: 1, phase: 4, turnPlayer: 0,
+      step: 0, consumed: 0, total: 1, events: [], cards: [],
+    };
+    const before = seedScene(base);
+    const frame = {
+      ...base,
+      step: 1,
+      events: [
+        [30, 1, 2, ...u32(111), 1, 1, 35, ...u32(222), 1, 1, 34],
+        [31, 0, 0, 1, ...u32(333), 0, 8, 2],
+      ],
+    };
+    const steps = sceneSteps(before, frame, { confirmations: true });
+    assert.deepEqual(
+      steps.slice(0, -1).map(({ action }) => [action.kind, action.code, action.to]),
+      [
+        ["confirm", 111, { player: 1, location: 1, sequence: 35 }],
+        ["confirm", 222, { player: 1, location: 1, sequence: 34 }],
+        ["confirm", 333, { player: 0, location: 8, sequence: 2 }],
+      ],
+    );
+    assert.equal(steps.at(-1).action.kind, "ready", "The reveal ends with its batch");
+    assert.ok(!steps[0].action.brief, "A short reveal keeps the full step");
+    const long = sceneSteps(
+      before,
+      {
+        ...frame,
+        events: [
+          [30, 1, 6, ...Array.from({ length: 6 }, (_, n) => [...u32(100 + n), 1, 1, n]).flat()],
+        ],
+      },
+      { confirmations: true },
+    );
+    assert.equal(long.length, 7);
+    assert.ok(long.slice(0, -1).every(({ action }) => action.brief), "Past 5 cards go quicker");
+    assert.deepEqual(
+      eventHistoryEntries(frame.events, { turn: 1 }).map(({ kind, code, player }) => [
+        kind,
+        code,
+        player,
+      ]),
+      [
+        ["confirmed", 111, 1],
+        ["confirmed", 222, 1],
+        ["confirmed", 333, 0],
+      ],
+      "The log names every revealed card",
+    );
+    assert.equal(
+      sceneSteps(before, frame).length,
+      1,
+      "The hand test keeps its own prompts for these",
+    );
+  }
+  for (const kind of ["move", "draw", "attack", "chain", "damage", "position", "confirm"])
     assert.ok(kinds.has(kind), `Native samples must exercise ${kind}`);
   // Replays share the online board geometry: a slot is mirrored between views
   // and piles never coincide with each other.
@@ -160,3 +232,5 @@ try {
 } finally {
   await server.close();
 }
+// The history conversion pulls in the app's stores, whose handles keep Node open.
+process.exit(0);

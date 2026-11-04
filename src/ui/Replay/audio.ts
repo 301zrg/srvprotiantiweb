@@ -20,6 +20,7 @@ export function replaySound(action: SceneAction): string {
     recover: Sound.SOUND_RECOVER,
     turn: Sound.SOUND_NEXT_TURN,
     phase: Sound.SOUND_PHASE,
+    confirm: Sound.SOUND_REVEAL,
   };
   let effect = effects[action.kind];
   if (action.kind === "attack")

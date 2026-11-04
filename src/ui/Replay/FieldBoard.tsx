@@ -15,7 +15,7 @@ import {
   replayCardWords,
   type ReplayReveal,
 } from "@/ui/Shared/DuelBoard/cardState";
-import type { SceneFrame, Spot } from "@/ui/Shared/DuelBoard/scene";
+import type { SceneCard, SceneFrame, Spot } from "@/ui/Shared/DuelBoard/scene";
 import {
   SceneBoard,
   type SceneBoardHandle,
@@ -78,6 +78,9 @@ export function FieldBoard({
     c.player === action.to.player &&
     c.location === (action.to.location & 127) &&
     c.sequence === action.to.sequence;
+  // Shown by an effect for this one step, whatever the viewing settings hide;
+  // a pile has no card of its own to turn, so one lifts out of it (see overlay).
+  const revealing = (c: Spot) => action?.kind === "confirm" && focus(c);
   const cardName = (card: ReplayCard) =>
     concealReplayCard(card, reveal)
       ? cardWords.facedown
@@ -155,8 +158,8 @@ export function FieldBoard({
               pose={pose}
               hand={hand}
               code={card.code}
-              isBack={concealReplayCard(card, reveal)}
-              peek={peekReplayCard(card, reveal)}
+              isBack={concealReplayCard(card, reveal) && !revealing(card)}
+              peek={peekReplayCard(card, reveal) && !revealing(card)}
               disabled={!!(status & 1)}
               targeted={card.targeted}
               targetFlash={card.targetFlash}
@@ -195,8 +198,35 @@ export function FieldBoard({
         }}
         overlay={({ geometry, point, pose }) => {
           const moving = action?.moving;
+          const shown = action?.kind === "confirm" ? action : undefined;
+          const lifted =
+            shown?.to && [1, 16, 32, 64].includes(shown.to.location)
+              ? pose({ ...shown.to, position: 1 } as SceneCard)
+              : undefined;
           return (
             <>
+              {shown?.to && lifted && (
+                // As on the online board: out of the pile, face up, and back.
+                <BoardCard
+                  key={`reveal:${shown.id}`}
+                  geometry={geometry}
+                  pose={{ ...lifted, zIndex: 30 }}
+                  hand={false}
+                  code={shown.code ?? 0}
+                  className={`replay-field-card replay-field-reveal ${
+                    shown.brief ? "replay-field-reveal-brief" : ""
+                  }`}
+                  style={
+                    {
+                      "--replay-reveal-y": `${
+                        (shown.to.player === view ? -0.9 : 0.9) * lifted.height
+                      }px`,
+                    } as CSSProperties
+                  }
+                  tabIndex={-1}
+                  aria-hidden
+                />
+              )}
               {moving &&
                 action.from &&
                 action.to &&

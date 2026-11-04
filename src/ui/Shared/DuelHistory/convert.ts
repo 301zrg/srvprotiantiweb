@@ -191,7 +191,20 @@ export function eventHistoryEntries(
       push({ kind: "announce", player: e[2], code: packed(e, 3) });
     else if (kind === 160 && e[5] === 2)
       push({ kind: "announce", code: packed(e, 6) });
-    else if (kind === 5)
+    else if ([30, 31, 42].includes(kind)) {
+      // Cards revealed by an effect, e.g. the top of the Deck.
+      const head = kind === 31 ? 4 : 3;
+      for (let n = 0; n < e[head - 1]; n++) {
+        const base = head + n * 7;
+        const place = spot(e, base + 4);
+        push({
+          kind: "confirmed",
+          code: packed(e, base),
+          player: place.player,
+          from: corePlace(place),
+        });
+      }
+    } else if (kind === 5)
       push({
         kind: "win",
         player: e[1] < 2 ? e[1] : undefined,

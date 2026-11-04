@@ -101,6 +101,8 @@ try {
           [101, 1, 0, 0, 4, 1, 2, 0],
           [91, 1, ...u32(1000)],
           [74],
+          // Pot of Duality style: a Deck card shown out of its pile.
+          [30, 0, 1, ...u32(46986414), 0, 1, 0],
         ],
       };
       let requests = 0;
@@ -386,6 +388,26 @@ try {
     await until("chainEnd");
     await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(0);
     await page.getByRole("button", { name: "单步", exact: true }).click();
+    await expect(page.locator(".replay-field-action")).toHaveAttribute(
+      "data-action",
+      "confirm",
+    );
+    assert.match(
+      await page
+        .locator(".replay-field-reveal .scene-board-face")
+        .evaluate((el) => el.style.getPropertyValue("--src")),
+      /46986414/,
+      "The revealed Deck card shows its face",
+    );
+    // Stepping holds the card out of its pile, fully visible.
+    const held = await page.locator(".replay-field-reveal").evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { translate: style.translate, opacity: style.opacity };
+    });
+    assert.notEqual(held.translate, "none", "A stepped reveal stays lifted");
+    assert.equal(held.opacity, "1", "A stepped reveal stays readable");
+    await page.getByRole("button", { name: "单步", exact: true }).click();
+    await expect(page.locator(".replay-field-reveal")).toHaveCount(0);
     await expect(
       page.locator('[data-testid="duel-player-life"][data-life="7000"]'),
     ).toHaveCount(1);
@@ -469,6 +491,7 @@ try {
       "counter",
       "damage",
       "chainEnd",
+      "confirm",
     ])
       assert.ok(actions.includes(kind), `16× must still display ${kind}`);
     await expect(counterBadge).toBeVisible();
