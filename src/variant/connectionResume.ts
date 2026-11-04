@@ -70,18 +70,33 @@ export function finishConnectionResume(conn: WebSocketStream, ok: boolean) {
   resume.complete(ok);
 }
 
+let reconnectOffered: (() => void) | undefined;
+/** The host offers a reconnection to a connection without a live resume: a
+ * reloaded page that connected by hand. */
+export function onReconnectOffer(listener: () => void) {
+  reconnectOffered = listener;
+}
+
+const serverText = (pb: ygopro.YgoStocMsg) =>
+  pb.msg === "stoc_chat" && pb.stoc_chat.player >= 8
+    ? pb.stoc_chat.msg
+        .replace(/\0+$/, "")
+        .trim()
+        .replace(/^\[Server\]:\s*/u, "")
+        .replace(/\s+/gu, " ")
+    : undefined;
+
 export function checkConnectionResume(
   conn: WebSocketStream,
   pb: ygopro.YgoStocMsg,
 ) {
   const resume = resumes.get(conn);
-  if (!resume) return;
-  if (pb.msg === "stoc_chat" && pb.stoc_chat.player >= 8) {
-    const text = pb.stoc_chat.msg
-      .replace(/\0+$/, "")
-      .trim()
-      .replace(/^\[Server\]:\s*/u, "")
-      .replace(/\s+/gu, " ");
+  const text = serverText(pb);
+  if (!resume) {
+    if (text !== undefined && offers.has(text)) reconnectOffered?.();
+    return;
+  }
+  if (text !== undefined) {
     if (offers.has(text)) resume.offered = true;
     if (
       resume.kind === "player" &&

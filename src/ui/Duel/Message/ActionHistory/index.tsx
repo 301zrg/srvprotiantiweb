@@ -286,6 +286,7 @@ const kinds: Record<HistoryOp, HistoryKind> = {
   [HistoryOp.DRAW]: "draw",
   [HistoryOp.POSITION]: "position",
   [HistoryOp.WIN]: "win",
+  [HistoryOp.GAP]: "gap",
 };
 
 export function onlineHistoryEntry(history: History): DuelHistoryEntry {
