@@ -196,6 +196,7 @@ try {
         },
       },
       tips: { enabled: false },
+      ...(languageMode ? { welcome: "Local welcome line" } : {}),
       dialogues: { enabled: false },
       ...(roomLinksMode
         ? { cloud_replay: { enabled: true, enable_halfway_watch: true } }
@@ -727,6 +728,8 @@ try {
       ]) {
         const page = await joinRoom(`Language-${language}`, `LANGUAGE-${language}`, "Single", language);
         await expect(page.getByTestId("waitroom-chat-dialogs")).toContainText(confirmation, { timeout: 15000 });
+        const joinLog = await page.getByTestId("waitroom-chat-dialogs").innerText();
+        assert.ok(joinLog.includes("Local welcome line"), `Join messages must all be kept: ${joinLog}`);
         assert.deepEqual(languageCommands.get(page), [command], "One language command after each acknowledged join");
         await expect(page.getByTestId("waitroom-ready-toggle")).toHaveAttribute("aria-pressed", "false");
         await page.getByTestId("waitroom-leave").click();

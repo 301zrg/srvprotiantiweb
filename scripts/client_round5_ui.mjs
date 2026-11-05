@@ -39,7 +39,7 @@ try {
    if(width>height) {
     for(const expanded of [false,true]) {
      if(expanded)await page.getByTestId('duel-expand-logs').click();
-     await page.evaluate(()=>{const c=window.__followup.stores.chatStore;c.sender=8;c.message='Readable message '+Math.random();});
+     await page.evaluate(()=>{const c=window.__followup.stores.chatStore;c.receive(8,'Readable message '+Math.random());});
      const notice=page.getByTestId('duel-chat-feedback').locator('.ant-notification-notice');await expect(notice).toBeVisible();await page.waitForTimeout(350);const r=await notice.boundingBox();if(r.x+r.width>width+1||r.y+r.height>height+1)console.log('CHAT GEOMETRY',await page.getByTestId('duel-chat-feedback').evaluate(e=>[e,...e.querySelectorAll('*')].slice(0,9).map(e=>({class:e.className,box:e.getBoundingClientRect().toJSON(),width:getComputedStyle(e).width,transform:getComputedStyle(e).transform}))));assert.ok(r.height>=40&&r.y+r.height<=height+1,'Collapsed and expanded chat popups have room for content: '+JSON.stringify(r));await notice.locator('.ant-notification-notice-close').click();await expect(notice).not.toBeVisible();
      if(expanded)await page.getByTestId('duel-expand-logs').click();
     }

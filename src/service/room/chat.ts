@@ -10,8 +10,7 @@ export default function handleChat(
   playEffect(AudioActionType.SOUND_CHAT);
   const context = container.context;
   const chat = pb.stoc_chat;
-  context.chatStore.message = chat.msg;
-  context.chatStore.sender = chat.player;
+  context.chatStore.receive(chat.player, chat.msg);
   if (!context.roomStore.joined) {
     connectionStore.pendingJoinMessage = chat.msg.replace(/\0+$/, "").trim();
   }

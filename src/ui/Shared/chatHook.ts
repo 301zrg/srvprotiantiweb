@@ -4,26 +4,12 @@ import { OverlayScrollbarsComponentRef } from "overlayscrollbars-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 
-import { sendChat, ygopro } from "@/api";
+import { sendChat } from "@/api";
 import { getUIContainer } from "@/container/compat";
 // TODO: access store via `Container`
-import {
-  chatStore,
-  isMe,
-  matStore,
-  roomStore,
-  SideStage,
-  sideStore,
-} from "@/stores";
+import { chatStore, isServerSender } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { displayPlayerId } from "@/variant/playerIds";
-
-interface ChatItem {
-  name: string;
-  time: string;
-  content: string;
-  isServer: boolean;
-}
 
 export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
   const { hidePlayerIds, chatOrder, historyOrder } = useSnapshot(settingStore);
@@ -33,9 +19,8 @@ export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
     (chatOrder === "newest" ||
       (chatOrder === "history" && historyOrder === "newest"));
   const container = getUIContainer();
-  const [chatList, setChatList] = useState<ChatItem[]>([]);
   const [input, setInput] = useState<string | undefined>(undefined);
-  const chat = useSnapshot(chatStore);
+  const { entries } = useSnapshot(chatStore);
   /** 滚动条的ref */
   const ref = useRef<OverlayScrollbarsComponentRef<"div">>(null);
 
@@ -55,73 +40,24 @@ export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
     }
   };
 
-  // 获取消息发送者的名字
-  const getSenderName = (sender: number) => {
-    if (sender < 4) {
-      // Between games (Side, waiting for Side, first-player choice) the host
-      // restores room seats as chat IDs, as in YGOPro's ChatLocalPlayer; a
-      // spectator's duel chat stays mounted then and must not swap them.
-      const betweenGames =
-        sideStore.stage !== SideStage.NONE &&
-        sideStore.stage !== SideStage.DUEL_START;
-      if (isDuel && !betweenGames) {
-        // Like YGOPro's ChatLocalPlayer/OppositePlayer: duel IDs follow Core
-        // order; the roster follows room seats. A view flip changes neither.
-        const teamBit = roomStore.hostInfo?.mode === 2 ? 2 : 1;
-        let swapped = matStore.observerSwapped;
-        if (
-          matStore.selfType !==
-          ygopro.StocGameMessage.MsgStart.PlayerType.Observer
-        ) {
-          const selfSeat = roomStore.players.findIndex(
-            (player) => player?.isMe,
-          );
-          if (selfSeat < 0) return;
-          swapped = (selfSeat & teamBit) !== (isMe(0) ? 0 : teamBit);
-        }
-        return roomStore.players[sender ^ (swapped ? teamBit : 0)]?.name;
-      } else {
-        return roomStore.players[sender]?.name;
-      }
-    } else if (sender === 8 || (sender >= 11 && sender <= 19)) {
-      return "System";
-    }
-    // Native STOC_CHAT uses a hidden-name prefix for watchers/unknown sources.
-    // SRVPro may already include a watcher nickname in the message body.
-    return "********";
-  };
-
-  useEffect(() => {
-    if (chatStore.sender >= 0 && chatStore.message.length !== 0) {
-      const { sender } = chatStore;
-      const name = getSenderName(sender) ?? "?";
-      setChatList((prev) => [
-        ...prev,
-        {
-          name: name,
-          time: formatTimeToHHMMSS(),
-          content: chatStore.message,
-          isServer: sender === 8 || (sender >= 11 && sender <= 19),
-        },
-      ]);
-      scrollToLatest();
-    }
-  }, [chat]);
-
-  // Switching the order jumps to the newest message as well.
+  // New lines, and switching the order, jump to the newest message.
   useEffect(() => {
     requestAnimationFrame(scrollToLatest);
-  }, [newestFirst]);
+  }, [newestFirst, entries.length]);
 
   const dialogs = useMemo(() => {
-    const list = chatList.map((item) => ({
-      ...item,
-      name: item.isServer
-        ? item.name
-        : displayPlayerId(item.name, hidePlayerIds),
-    }));
+    const list = entries.map((entry) => {
+      const name = (isDuel ? entry.duelName : entry.seatName) ?? "?";
+      const isServer = isServerSender(entry.sender);
+      return {
+        name: isServer ? name : displayPlayerId(name, hidePlayerIds),
+        time: entry.time,
+        content: entry.message,
+        isServer,
+      };
+    });
     return newestFirst ? list.reverse() : list;
-  }, [chatList, hidePlayerIds, newestFirst]);
+  }, [entries, isDuel, hidePlayerIds, newestFirst]);
   return {
     dialogs,
     /** Newest message whatever the display order (for notifications). */
@@ -133,11 +69,3 @@ export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
     onSend,
   };
 };
-
-function formatTimeToHHMMSS() {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${hours}:${minutes}:${seconds}`;
-}

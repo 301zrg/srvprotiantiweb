@@ -63,7 +63,7 @@ export const Component: React.FC = () => {
     "(max-width: 1024px), (max-height: 600px) and (pointer: coarse), (hover: none) and (pointer: coarse)",
   );
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatSeen, setChatSeen] = useState(0);
+  const [chatSeen, setChatSeen] = useState(chat.dialogs.length);
   // Wide screens swap the side column; touch layouts open a panel for each.
   const [siderTab, setSiderTab] = useState<"chat" | "history">("chat");
   const [historyOpen, setHistoryOpen] = useState(false);

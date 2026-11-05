@@ -36,7 +36,7 @@ window.__spectatorTest = {
   },
   waiting(on) { sideFixture.stage = on ? SideFixtureStage.WAITING : SideFixtureStage.NONE; },
   // System chat lines (sender 8) and one logged summon for the spectator log.
-  chat(text) { chatFixture.sender = 8; chatFixture.message = text; },
+  chat(text) { chatFixture.receive(8, text); },
   historyOrder(order) { settingFixture.historyOrder = order; },
   // Core player 0 went first, but sits in room seat 1 this game.
   log(swapped) {
