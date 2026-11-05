@@ -106,9 +106,21 @@ try {
         try {
           assert.ok(metrics.top >= offset - 1 && metrics.bottom <= offset + keyboardHeight + 1, `${name}/${mode}: input must fit above keyboard ${JSON.stringify(metrics)}`);
           assert.ok(metrics.height <= 90, "Long drafts must scroll within at most three lines");
+          assert.ok(metrics.scroll - metrics.client - metrics.scrollTop <= 1,
+            "The typed end of the draft must remain visible after the keyboard shrinks the input");
           assert.ok(Math.abs(metrics.bottom - metrics.sendBottom) <= 8, "Send arrow aligns with the last input line");
           assert.deepEqual(errors, []);
           if (before) continue;
+          await input.evaluate(element => { element.setSelectionRange(2, 2); element.scrollTop = 0; });
+          await page.evaluate(({ keyboardHeight, offset }) => window.__keyboard(keyboardHeight + 20, offset), { keyboardHeight, offset });
+          await page.waitForTimeout(150);
+          assert.equal(await input.evaluate(element => element.selectionStart), 2, "Resizing must preserve a middle edit");
+          assert.equal(await input.evaluate(element => element.scrollTop), 0, "Resizing must not jump a middle edit to the end");
+            await input.evaluate(element => { element.setSelectionRange(2, element.value.length, "backward"); element.scrollTop = 0; });
+            await page.evaluate(({ keyboardHeight, offset }) => window.__keyboard(keyboardHeight + 40, offset), { keyboardHeight, offset });
+            await page.waitForTimeout(150);
+            assert.deepEqual(await input.evaluate(element => [element.selectionStart, element.selectionEnd]), [2, (await input.inputValue()).length], "Resizing must preserve the selected text");
+            assert.equal(await input.evaluate(element => element.scrollTop), 0, "Resizing must not jump a backward selection to the end");
           await input.fill("composition");
           const sent = await page.evaluate(() => window.__chatTest.sent.length);
           await input.dispatchEvent("keydown", { key: "Enter", code: "Enter", isComposing: true });
