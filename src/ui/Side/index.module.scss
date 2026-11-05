@@ -22,6 +22,24 @@
   min-height: 0;
 }
 
+.siderTabs {
+  display: flex;
+  gap: 8px;
+  height: 40px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.siderPane {
+  height: calc(100% - 40px);
+  min-height: 0;
+}
+.siderHistory {
+  padding: 0 8px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
 .content {
   display: flex;
   flex: 1;

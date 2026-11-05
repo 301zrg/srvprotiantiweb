@@ -18,6 +18,7 @@ declare const classNames: {
   readonly dropdown: "dropdown";
   readonly "ant-dropdown-menu": "ant-dropdown-menu";
   readonly "dropdown-disabled": "dropdown-disabled";
+  readonly rememberedMark: "rememberedMark";
   readonly materialCount: "materialCount";
 };
 export = classNames;

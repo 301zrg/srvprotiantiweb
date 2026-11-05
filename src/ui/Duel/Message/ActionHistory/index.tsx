@@ -1,4 +1,5 @@
-import React, { useCallback } from "react";
+import { DownOutlined, RightOutlined } from "@ant-design/icons";
+import React, { useCallback, useMemo, useState } from "react";
 import { proxy, useSnapshot } from "valtio";
 
 import { fetchCard, ygopro } from "@/api";
@@ -19,6 +20,7 @@ import {
   HistoryRow,
   HistoryTimeline,
 } from "@/ui/Shared/DuelHistory";
+import historyStyles from "@/ui/Shared/DuelHistory/index.module.scss";
 import {
   DuelPanel,
   duelSidebarQuery,
@@ -58,42 +60,84 @@ export const ActionHistory: React.FC = () => {
 
 export const ActionHistoryContent = ({
   embedded = false,
+  onInspect = inspect,
+  expandEarlier = false,
 }: {
   embedded?: boolean;
+  onInspect?: (code: number) => void;
+  /** Earlier games start open (siding); during a duel they stay folded, so a
+   * long match does not keep thousands of rows mounted. */
+  expandEarlier?: boolean;
 }) => {
   const { language } = useI18N();
-  const { historys } = useSnapshot(historyStore);
+  const { historys, games } = useSnapshot(historyStore);
   const { historyOrder, hidePlayerIds } = useSnapshot(settingStore);
   const { selfType, observerSwapped } = useSnapshot(matStore);
   const { players, hostInfo } = useSnapshot(roomStore);
   const words = duelResultMessages(language);
   const observer =
     selfType === ygopro.StocGameMessage.MsgStart.PlayerType.Observer;
-  const playerLabel = useCallback(
-    (player: number) =>
-      observer
-        ? player === 0
-          ? words.first
-          : words.second
-        : matStore.isMe(player)
-        ? words.self
-        : words.opponent,
-    [observer, words],
+  // Rows keep the Core player of their own game, and who went first changes
+  // between games: a player's labels come from what was recorded at the time,
+  // never from the live duel state.
+  const orderLabel = useCallback(
+    (player: number) => (player === 0 ? words.first : words.second),
+    [words],
   );
+  const selfLabel = useCallback(() => words.self, [words]);
+  const opponentLabel = useCallback(() => words.opponent, [words]);
   // Spectators see who the first and second players are; a player already
-  // knows "self" and "opponent". Strings as deps keep the callback stable.
+  // knows "self" and "opponent". Strings as deps keep the callbacks stable.
   const tag = hostInfo?.mode === 2;
-  const firstId = spectatorName(players, tag, 0, observerSwapped);
-  const secondId = spectatorName(players, tag, 1, observerSwapped);
+  const seatZero = spectatorName(players, tag, 0, false);
+  const seatOne = spectatorName(players, tag, 1, false);
   const showIds = observer && !hidePlayerIds;
-  const playerName = useCallback(
-    (player: number) =>
-      showIds ? (player === 0 ? firstId : secondId) : undefined,
-    [showIds, firstId, secondId],
-  );
+  const liveSwapped = observerSwapped;
+  const swappedGames = games
+    .filter((item) => item.swapped)
+    .map((item) => item.game)
+    .join();
+  const playerNames = useMemo(() => {
+    const swappedIn = new Set(swappedGames.split(",").map(Number));
+    const named = (swapped: boolean) => (player: number) =>
+      showIds ? (Number(swapped) === player ? seatZero : seatOne) : undefined;
+    const straight = named(false),
+      crossed = named(true);
+    return (game: number | undefined, live: boolean) =>
+      (game === undefined || game === 0 ? live : swappedIn.has(game))
+        ? crossed
+        : straight;
+  }, [showIds, seatZero, seatOne, swappedGames]);
+  const rowsOf = (rows: (readonly [number, History])[]) =>
+    rows.map(([idx, history]) => (
+      <OnlineRow
+        key={idx}
+        history={history}
+        language={language}
+        playerLabel={
+          observer ? orderLabel : history.opponent ? opponentLabel : selfLabel
+        }
+        playerName={playerNames(history.game, liveSwapped)}
+        onInspect={onInspect}
+      />
+    ));
   // Keys stay the append index so reordering never re-renders memoized rows.
-  const entries = historys.map((history, idx) => [idx, history] as const);
+  const entries = (historys as History[]).map(
+    (history, idx) => [idx, history] as const,
+  );
   if (historyOrder === "newest") entries.reverse();
+  // A single duel has one flat list; a match groups its games under headers.
+  const current = games.at(-1)?.game ?? 0;
+  const grouped = hostInfo?.mode === 1 && games.length > 0;
+  const groups = new Map<number, (readonly [number, History])[]>();
+  if (grouped)
+    for (const entry of entries) {
+      const game = entry[1].game ?? current;
+      const rows = groups.get(game);
+      if (rows) rows.push(entry);
+      else groups.set(game, [entry]);
+    }
+  const [folds, setFolds] = useState<Record<number, boolean>>({});
   return (
     <HistoryTimeline
       language={language}
@@ -101,18 +145,111 @@ export const ActionHistoryContent = ({
       embedded={embedded}
       testId="duel-history-content"
     >
-      {entries.map(([idx, history]) => (
-        <OnlineRow
-          key={idx}
-          history={history as History}
-          language={language}
-          playerLabel={playerLabel}
-          playerName={playerName}
-        />
-      ))}
+      {grouped
+        ? [...groups].map(([game, rows]) => {
+            const folded = folds[game] ?? (game < current && !expandEarlier);
+            const info = games.find((item) => item.game === game);
+            return (
+              <React.Fragment key={`game-${game}`}>
+                <GameHeader
+                  game={game}
+                  folded={folded}
+                  order={gameOrder(info, {
+                    observer,
+                    hidden: hidePlayerIds,
+                    names: [seatZero, seatOne],
+                    self: words.self,
+                    opponent: words.opponent,
+                    me: roomStore.getMePlayer()?.name,
+                    rival: roomStore.getOpPlayer()?.name,
+                    language,
+                  })}
+                  language={language}
+                  onToggle={() =>
+                    setFolds((old) => ({ ...old, [game]: !folded }))
+                  }
+                />
+                {!folded && rowsOf(rows)}
+              </React.Fragment>
+            );
+          })
+        : rowsOf(entries)}
     </HistoryTimeline>
   );
 };
+
+/** "First A / Second B" for a game header; masked IDs leave what is known. */
+function gameOrder(
+  info: { swapped: boolean; selfFirst: boolean } | undefined,
+  {
+    observer,
+    hidden,
+    names,
+    self,
+    opponent,
+    me,
+    rival,
+    language,
+  }: {
+    observer: boolean;
+    hidden: boolean;
+    names: string[];
+    self: string;
+    opponent: string;
+    me?: string;
+    rival?: string;
+    language: string;
+  },
+) {
+  if (!info) return "";
+  const text = mobileMessages(language);
+  const [first, second] = observer
+    ? hidden
+      ? []
+      : info.swapped
+      ? [names[1], names[0]]
+      : names
+    : info.selfFirst
+    ? hidden
+      ? [self, opponent]
+      : [me ?? self, rival ?? opponent]
+    : hidden
+    ? [opponent, self]
+    : [rival ?? opponent, me ?? self];
+  return first
+    ? `${text.historyFirst} ${first} / ${text.historySecond} ${second}`
+    : "";
+}
+
+const GameHeader = ({
+  game,
+  folded,
+  order,
+  language,
+  onToggle,
+}: {
+  game: number;
+  folded: boolean;
+  order: string;
+  language: string;
+  onToggle: () => void;
+}) => (
+  <button
+    type="button"
+    className={historyStyles.gameHeader}
+    data-testid="duel-history-game"
+    data-game={game}
+    aria-expanded={!folded}
+    onClick={onToggle}
+  >
+    {folded ? <RightOutlined aria-hidden /> : <DownOutlined aria-hidden />}
+    <span>
+      {[mobileMessages(language).historyGame(game), order]
+        .filter(Boolean)
+        .join(" · ")}
+    </span>
+  </button>
+);
 
 const inspect = (code: number) => showCardModal({ meta: fetchCard(code) });
 const place = (
@@ -149,6 +286,7 @@ const kinds: Record<HistoryOp, HistoryKind> = {
   [HistoryOp.DRAW]: "draw",
   [HistoryOp.POSITION]: "position",
   [HistoryOp.WIN]: "win",
+  [HistoryOp.GAP]: "gap",
 };
 
 export function onlineHistoryEntry(history: History): DuelHistoryEntry {
@@ -181,11 +319,13 @@ const OnlineRow = React.memo(function OnlineRow({
   language,
   playerLabel,
   playerName,
+  onInspect,
 }: {
   history: History;
   language: string;
   playerLabel: (player: number) => string;
   playerName: (player: number) => string | undefined;
+  onInspect: (code: number) => void;
 }) {
   return (
     <HistoryRow
@@ -193,7 +333,7 @@ const OnlineRow = React.memo(function OnlineRow({
       language={language}
       playerLabel={playerLabel}
       playerName={playerName}
-      onInspect={inspect}
+      onInspect={onInspect}
       testPrefix="duel"
     />
   );

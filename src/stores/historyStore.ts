@@ -4,6 +4,7 @@ import { ygopro } from "@/api";
 import { Context } from "@/container";
 import { onlinePhaseKey, type PhaseKey } from "@/variant/duelPhases";
 import type { DuelResult } from "@/variant/duelResults";
+import { matchGame } from "@/variant/matchGame";
 
 import { NeosStore } from "./shared";
 
@@ -27,6 +28,8 @@ export enum HistoryOp {
   DRAW = 17,
   POSITION = 18,
   WIN = 19,
+  /** The connection dropped here; what happened meanwhile was not received. */
+  GAP = 20,
 }
 
 export interface History {
@@ -46,10 +49,30 @@ export interface History {
   phase?: PhaseKey;
   amount?: number;
   text?: string;
+  /** Game of the match this row belongs to. */
+  game?: number;
+}
+
+/** What a row needs from its game once the live duel state has moved on. */
+export interface HistoryGame {
+  game: number;
+  /** Room seats differ from Core order: Core player 0 sits in seat 1. */
+  swapped: boolean;
+  /** This client's player went first (meaningless for spectators). */
+  selfFirst: boolean;
+}
+
+/** A player's log across a reconnection, which rebuilds every other store. */
+export interface HistorySnapshot {
+  rows: History[];
+  games: HistoryGame[];
+  game: number;
 }
 
 export class HistoryStore implements NeosStore {
+  /** The whole match: players side with the opponent's earlier cards in view. */
   historys: History[] = [];
+  games: HistoryGame[] = [];
   declaration?: { serial: number; result: DuelResult };
   private declarationSerial = 0;
   private lastPhase?: PhaseKey;
@@ -59,8 +82,28 @@ export class HistoryStore implements NeosStore {
     this.historys.push({
       turn: context.matStore.turnCount,
       phase: onlinePhaseKey(context.matStore.phase.currentPhase),
+      game: matchGame.number,
       ...entry,
     });
+  }
+
+  /** MSG_START: a new game, or the current one again after a reconnection. */
+  beginGame(context: Context) {
+    this.closeGame();
+    const game = {
+      game: matchGame.number,
+      swapped: context.matStore.observerSwapped,
+      selfFirst: context.matStore.isMe(0),
+    };
+    const known = this.games.findIndex((item) => item.game === game.game);
+    if (known >= 0) this.games[known] = game;
+    else this.games.push(game);
+  }
+
+  /** The rows stay; only state tied to the finished game goes. */
+  closeGame() {
+    this.lastPhase = undefined;
+    this.declaration = undefined;
   }
 
   private notifyDeclaration(result: DuelResult) {
@@ -298,10 +341,33 @@ export class HistoryStore implements NeosStore {
     });
   }
 
+  snapshotMatch(): HistorySnapshot {
+    return {
+      rows: [...this.historys],
+      games: [...this.games],
+      game: matchGame.number,
+    };
+  }
+
+  /** Back after a reconnection, with the gap marked: the host sends the field
+   * again but not what happened while the connection was down. */
+  restoreMatch({ rows, games, game }: HistorySnapshot) {
+    const last = rows.at(-1);
+    this.historys =
+      last && last.operation !== HistoryOp.GAP
+        ? [
+            ...rows,
+            { card: 0, opponent: false, operation: HistoryOp.GAP, game },
+          ]
+        : [...rows];
+    this.games = [...games];
+    matchGame.number = game;
+  }
+
   reset(): void {
     this.historys = [];
-    this.lastPhase = undefined;
-    this.declaration = undefined;
+    this.games = [];
+    this.closeGame();
   }
 }
 

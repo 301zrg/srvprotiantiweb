@@ -4,6 +4,7 @@ import { onlineFieldSpot } from "@/stores/fieldSelectionStore";
 import type { InformationCard } from "@/ui/Shared/CardInformation";
 import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
 import { fieldPositionLabel } from "@/variant/fieldSelection";
+import { rememberedCode } from "@/variant/rememberedCard";
 
 type OnlineInformationSource = Pick<
   CardType,
@@ -43,11 +44,22 @@ export function onlineInformationCards(
             ygopro.CardPosition.FACEDOWN_DEFENSE,
           ].includes(card.location.position));
       const spot = onlineFieldSpot(card.location);
+      const words = replayCardWords(language);
+      const remembered =
+        hidden &&
+        rememberedCode(
+          card,
+          card.location.controller === view && knowsOwnCards,
+        );
       return {
         id: card.uuid,
         code: hidden ? 0 : card.code,
-        name: hidden
-          ? replayCardWords(language).facedown
+        name: remembered
+          ? `${words.facedown}（${words.remembered}：${
+              card.meta.text.name || card.code
+            }）`
+          : hidden
+          ? words.facedown
           : card.meta.text.name || String(card.code),
         position: spot
           ? fieldPositionLabel(spot, view, language, (id) =>

@@ -50,6 +50,30 @@ window.__spectatorTest = {
     ];
   },
   hideIds(on) { settingFixture.hidePlayerIds = on; },
+  // Book of Moon on a monster the spectator has seen, then a shuffle.
+  remembered() {
+    const card = makeCard(fixtureProtocol.CardZone.MZONE, 1, 44508094);
+    card.location.position = fixtureProtocol.CardPosition.FACEDOWN_DEFENSE;
+    cardFixture.inner.push(card);
+  },
+  shuffled() {
+    cardFixture.inner.find((card) => card.location.zone === fixtureProtocol.CardZone.MZONE).code = 0;
+  },
+  removeRemembered() {
+    cardFixture.inner = cardFixture.inner.filter((card) => card.location.zone !== fixtureProtocol.CardZone.MZONE);
+  },
+  // A match: seats swapped in G2, so the first player differs per game.
+  matchLog() {
+    roomFixture.hostInfo = { mode: 1 };
+    historyFixture.games = [
+      { game: 1, swapped: false, selfFirst: false },
+      { game: 2, swapped: true, selfFirst: false },
+    ];
+    historyFixture.historys = [
+      { card: 0, opponent: false, operation: HistoryFixtureOp.DRAW, player: 0, turn: 1, amount: 1, game: 1 },
+      { card: 0, opponent: false, operation: HistoryFixtureOp.DRAW, player: 0, turn: 1, amount: 2, game: 2 },
+    ];
+  },
   chatOrder(order) { settingFixture.chatOrder = order; }
 };`;
 const P = {
@@ -292,6 +316,27 @@ try {
       }
     }
     if (!before && profile.name === "390") {
+      // A card seen before and face-down again: still a back on the board, a
+      // labelled reminder in the detail. A shuffle forgets it.
+      await page.evaluate(() => window.__spectatorTest.remembered());
+      const known = page.locator(
+        '[data-testid="duel-card"][data-card-remembered="true"]',
+      );
+      await expect(known).toHaveCount(1);
+      await known.tap();
+      const cardPanel = page.getByTestId("duel-card-panel");
+      await expect(cardPanel.getByTestId("duel-card-remembered")).toBeVisible();
+      await expect(page.getByTestId("duel-card-detail")).toHaveAttribute(
+        "data-card-code",
+        "44508094",
+      );
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: `${folder}/390-remembered.png` });
+      await page.getByTestId("duel-card-panel-close").click();
+      await expect(cardPanel).toBeHidden();
+      await page.evaluate(() => window.__spectatorTest.shuffled());
+      await expect(known).toHaveCount(0);
+      await page.evaluate(() => window.__spectatorTest.removeRemembered());
       // Duel chat order: oldest first by default (as the action log), newest
       // first when chosen; spectators get the text action log on phones.
       await page.evaluate(() => {
@@ -347,6 +392,15 @@ try {
       await expect(log).not.toContainText("SeatZero");
       await expect(log).not.toContainText("SeatOneWithAVeryLong");
       await page.evaluate(() => window.__spectatorTest.hideIds(false));
+      // Earlier games of a match start folded under a header with the order.
+      await page.evaluate(() => window.__spectatorTest.matchLog());
+      const games = log.getByTestId("duel-history-game");
+      await expect(games).toHaveCount(2);
+      await expect(games.nth(0)).toHaveAttribute("aria-expanded", "false");
+      await expect(games.nth(1)).toHaveAttribute("aria-expanded", "true");
+      await expect(ids).toHaveText(["SeatOneWithAVeryLong"]);
+      await games.nth(0).click();
+      await expect(ids).toHaveText(["SeatZero", "SeatOneWithAVeryLong"]);
       await page.getByTestId("duel-history-panel-close").click();
       await expect(log).toBeHidden();
       await page.getByTestId("duel-chat").tap();

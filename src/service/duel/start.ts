@@ -32,7 +32,6 @@ export default async (
     context.cardStore.reset();
     context.matStore.reset();
     context.placeStore.reset();
-    context.historyStore.reset();
   }
   // 先初始化`matStore`
   context.matStore.selfType = start.playerType;
@@ -54,6 +53,7 @@ export default async (
       )
     : 0;
   countGameStart();
+  context.historyStore.beginGame(context);
   // Spectator connections never receive TIME_LIMIT from the server.
   if (observing) hideClock();
   else resetClock(context.roomStore.hostInfo?.timeLimit ?? 0);

@@ -13,10 +13,12 @@ declare const classNames: {
   readonly resultText: "resultText";
   readonly embedded: "embedded";
   readonly entry: "entry";
+  readonly gap: "gap";
   readonly tag: "tag";
   readonly tagText: "tagText";
   readonly tagId: "tagId";
   readonly divider: "divider";
+  readonly gameHeader: "gameHeader";
   readonly phase: "phase";
   readonly note: "note";
   readonly damage: "damage";

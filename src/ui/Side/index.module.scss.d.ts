@@ -1,14 +1,17 @@
 declare const classNames: {
   readonly container: "container";
   readonly sider: "sider";
+  readonly siderTabs: "siderTabs";
+  readonly siderPane: "siderPane";
+  readonly siderHistory: "siderHistory";
   readonly content: "content";
   readonly "deck-container": "deck-container";
   readonly title: "title";
+  readonly "deck-zone": "deck-zone";
   readonly actions: "actions";
   readonly help: "help";
   readonly counts: "counts";
   readonly feedback: "feedback";
-  readonly "deck-zone": "deck-zone";
   readonly "detail-container": "detail-container";
   readonly chatPanel: "chatPanel";
 };

@@ -11,7 +11,22 @@ const compiled = await build({
   bundle: true, write: false, format: "esm", platform: "node", external: ["google-protobuf"], tsconfig: "tsconfig.json",
 });
 writeFileSync(out, compiled.outputFiles[0].text);
-const { prepareConnectionResume, checkConnectionResume, finishConnectionResume } = await import(pathToFileURL(out));
+const { prepareConnectionResume, checkConnectionResume, finishConnectionResume, onReconnectOffer } = await import(pathToFileURL(out));
+// A reloaded page connects without a live resume; only the host's own offer
+// (never a player's chat) may bring its saved log back.
+{
+  let offers = 0;
+  onReconnectOffer(() => offers++);
+  const conn = {};
+  const chat = (player, msg) =>
+    checkConnectionResume(conn, { msg: "stoc_chat", stoc_chat: { player, msg } });
+  chat(8, "An unrelated server notice");
+  chat(0, "You will be reconnected to your previous game. Please pick your previous deck.");
+  assert.equal(offers, 0);
+  chat(8, "[Server]: You will be reconnected to your previous game. Please pick your previous deck.");
+  assert.equal(offers, 1);
+  onReconnectOffer(() => {});
+}
 const fixture = (kind = "player", field = true) => {
   const sent = [], results = [];
   const deck = Uint8Array.of(3, 0, 2, 99);

@@ -36,7 +36,8 @@ export type HistoryKind =
   | "phase"
   | "announce"
   | "result"
-  | "win";
+  | "win"
+  | "gap";
 
 /** A zone as the online protocol counts it (deck 0 … extra 6). */
 export interface HistoryPlace {
@@ -287,6 +288,15 @@ export const HistoryRow: React.FC<HistoryRowProps> = React.memo(
     const id = player === undefined ? undefined : playerName?.(player);
     const whoWithId = id ? `${who} ${id}` : who;
     const turnText = turn ? `T${turn}` : "";
+    if (kind === "gap")
+      return (
+        <div
+          className={classNames(styles.divider, styles.gap)}
+          data-history-kind={kind}
+        >
+          {mobileMessages(language).historyGap}
+        </div>
+      );
     if (kind === "turn")
       return (
         <div className={styles.divider} data-history-kind={kind}>

@@ -1,9 +1,13 @@
+import { subscribe } from "valtio";
+
 import { sendChat, ygopro } from "@/api";
 import { getUIContainer, initUIContainer } from "@/container/compat";
 import { WebSocketStream } from "@/infra";
 import { initSocket } from "@/middleware/socket";
 import { pollSocketLooper } from "@/service/executor";
 import {
+  type HistorySnapshot,
+  historyStore,
   initStore,
   matStore,
   resetUniverse,
@@ -16,9 +20,17 @@ import { getLanguage, serverLanguageCommand } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import {
   finishConnectionResume,
+  onReconnectOffer,
   prepareConnectionResume,
   type ResumeKind,
 } from "@/variant/connectionResume";
+import {
+  clearSavedHistory,
+  restoreSavedHistory,
+  saveHistory,
+  setHistoryOwner,
+} from "@/variant/historyResume";
+import { matchGame } from "@/variant/matchGame";
 import { siteMessages } from "@/variant/messages";
 import { isRoomCommand } from "@/variant/roomLink";
 import { requestSpectatorSeat } from "@/variant/spectatorSession";
@@ -42,6 +54,8 @@ let session:
         sideStage: SideStage;
         fieldExpected: boolean;
         deadline: number;
+        /** Spectators get the whole match from the host instead. */
+        history?: HistorySnapshot;
       };
     }
   | undefined;
@@ -54,6 +68,10 @@ const delay = (ms: number) =>
 
 export const disconnectSrvpro = () => {
   session = undefined;
+  // Leaving on purpose. A reloaded page has no connection yet and keeps its
+  // saved log until the host says whether this game can be rejoined.
+  if (activeConnection) clearSavedHistory();
+  setHistoryOwner(undefined);
   if (activeConnection) finishConnectionResume(activeConnection, false);
   activeConnection?.close();
   activeConnection = undefined;
@@ -108,6 +126,8 @@ export function reconnectSrvpro() {
         ? JSON.parse(JSON.stringify(sideStore.editor))
         : undefined,
       sideStage: sideStore.stage,
+      history:
+        !observer && old.duelStarted ? historyStore.snapshotMatch() : undefined,
       fieldExpected:
         roomStore.stage === RoomStage.DUEL_START &&
         ![
@@ -133,6 +153,7 @@ export function reconnectSrvpro() {
       if (session !== original || document.hidden) break;
       activeConnection?.close();
       resetUniverse();
+      if (saved.history) historyStore.restoreMatch(saved.history);
       sideStore.setSideDeck(saved.side);
       sideStore.editor = saved.editor
         ? JSON.parse(JSON.stringify(saved.editor))
@@ -205,9 +226,25 @@ export function reconnectSrvpro() {
   return recovery;
 }
 
+let saveTimer = 0;
+const persistHistory = () => {
+  window.clearTimeout(saveTimer);
+  saveHistory();
+};
+
 function installForegroundRecovery() {
   if (installed) return;
   installed = true;
+  // Batched: a burst of rows is written once, and the last ones on leaving.
+  const scheduleHistorySave = () => {
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(persistHistory, 1000);
+  };
+  subscribe(historyStore, scheduleHistorySave);
+  subscribe(matchGame, scheduleHistorySave);
+  window.addEventListener("pagehide", persistHistory);
+  // This tab's saved log belongs to the game the host now offers to rejoin.
+  onReconnectOffer(restoreSavedHistory);
   const check = async () => {
     if (document.hidden || recovery || !session || navigator.onLine === false)
       return;
@@ -292,6 +329,7 @@ export const connectSrvpro = async (params: Join) => {
 
   disconnectSrvpro();
   session = { join: { ...params } };
+  setHistoryOwner(params);
   installForegroundRecovery();
   const conn = wire(params);
   initUIContainer(conn);

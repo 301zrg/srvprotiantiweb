@@ -1,4 +1,4 @@
-import { AimOutlined, CheckOutlined } from "@ant-design/icons";
+import { AimOutlined, CheckOutlined, EyeOutlined } from "@ant-design/icons";
 import { animated, to, useSpring } from "@react-spring/web";
 import { Dropdown, type MenuProps } from "antd";
 import classnames from "classnames";
@@ -17,6 +17,7 @@ import {
   InteractType,
   isCardDisabled,
   isMe,
+  matStore,
 } from "@/stores";
 import {
   fieldSelectionStore,
@@ -32,6 +33,7 @@ import { counterDescription } from "@/ui/Shared/CardInformation";
 import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
 import { fieldPosition, fieldPositionLabel } from "@/variant/fieldSelection";
 import { previewMessages } from "@/variant/previewMessages";
+import { rememberedCode } from "@/variant/rememberedCard";
 
 import {
   displayActiveOptionModal,
@@ -468,6 +470,11 @@ export const Card: React.FC<{
       ? snap.meta.id
       : snap.code;
   const disabled = isCardDisabled(snap as CardType);
+  const remembered = rememberedCode(
+    snap,
+    matStore.selfType !== ygopro.StocGameMessage.MsgStart.PlayerType.Observer &&
+      isMe(location.controller),
+  );
   const idleActions = snap.idleInteractivities
     .map(({ interactType }) => InteractType[interactType])
     .join(" ");
@@ -495,6 +502,7 @@ export const Card: React.FC<{
         !location.is_overlay && fieldSpot ? snap.uuid : undefined
       }
       data-card-code={location.zone === DECK ? shownCode : snap.code}
+      data-card-remembered={remembered > 0}
       data-card-controller={location.controller}
       data-card-zone={ygopro.CardZone[location.zone]}
       data-card-zone-value={location.zone}
@@ -502,7 +510,13 @@ export const Card: React.FC<{
       data-card-position={ygopro.CardPosition[location.position]}
       data-card-position-value={location.position}
       data-card-is-overlay={location.is_overlay}
-      title={location.is_overlay ? snap.meta.text.name : undefined}
+      title={
+        location.is_overlay
+          ? snap.meta.text.name
+          : remembered
+          ? `${replayCardWords(language).remembered}：${snap.meta.text.name}`
+          : undefined
+      }
       data-material-count={location.is_overlay ? undefined : overlayCount}
       data-card-overlay-sequence={location.overlay_sequence}
       data-card-is-token={snap.isToken}
@@ -622,6 +636,11 @@ export const Card: React.FC<{
             targetFlash={snap.targetFlash}
           />
           <YgoCard className={styles.back} isBack />
+          {!!remembered && (
+            <span className={styles.rememberedMark} aria-hidden>
+              <EyeOutlined />
+            </span>
+          )}
         </div>
       </Dropdown>
       {!location.is_overlay && overlayCount > 0 && (

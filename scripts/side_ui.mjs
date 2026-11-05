@@ -75,7 +75,7 @@ try {
               `
         import { initUIContainer as initSideFixture, getUIContainer as sideFixtureContainer } from "@/container/compat";
         import handleSideFixtureMessage from "@/service/onSocketMessage";
-        import { roomStore as fixtureRoomStore, sideStore as fixtureSideStore, SideStage as FixtureStage } from "@/stores";
+        import { roomStore as fixtureRoomStore, sideStore as fixtureSideStore, historyStore as fixtureHistory, HistoryOp as FixtureOp, SideStage as FixtureStage } from "@/stores";
         window.__sideTest = {
           prepare(deck) {
             window.__sidePackets = [];
@@ -83,6 +83,12 @@ try {
             fixtureSideStore.setSideDeck(deck);
             fixtureSideStore.stage = FixtureStage.SIDE_CHANGING;
             fixtureRoomStore.selfType = 1;
+            fixtureRoomStore.hostInfo = {mode: 1};
+            fixtureHistory.games = [{game: 1, swapped: false, selfFirst: false}];
+            fixtureHistory.historys = [
+              {card: 0, opponent: true, operation: FixtureOp.TURN, player: 0, turn: 1, game: 1},
+              {card: 69247929, opponent: true, operation: FixtureOp.EFFECT, player: 0, turn: 1, game: 1},
+            ];
             location.hash = "#/side";
           },
           async receive(bytes) {
@@ -425,6 +431,40 @@ try {
       } else {
         await expect(page.getByTestId("side-chat")).toHaveCount(0);
         await expect(page.getByTestId("waitroom-chat-message").last()).toContainText("x".repeat(300));
+      }
+      // The earlier game's log, open by default: what the opponent used decides
+      // the swap. Its cards open the same detail as the deck cards.
+      const log = mobile
+        ? page.getByTestId("side-history-panel")
+        : page.getByTestId("side-history");
+      if (mobile) await page.getByTestId("side-history").click();
+      else {
+        await page.getByTestId("side-history-tab").click();
+        await expect(page.getByTestId("side-history-tab")).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+        await expect(page.getByTestId("side-chat-tab")).toHaveAttribute(
+          "aria-pressed",
+          "false",
+        );
+      }
+      const game = log.getByTestId("duel-history-game");
+      await expect(game).toHaveAttribute("aria-expanded", "true");
+      await expect(game).toHaveAttribute("data-game", "1");
+      const loggedCard = log.locator('[data-card-code="69247929"]').first();
+      await expect(loggedCard).toBeVisible();
+      if (lang === "zh" && !mobile)
+        await page.screenshot({ path: `${folder}/${profile.name}-history.png` });
+      await loggedCard.click();
+      if (mobile) {
+        await expect(page.getByTestId("side-history-panel")).toBeHidden();
+        await expect(page.getByTestId("deck-card-panel")).toBeVisible();
+        await page.getByTestId("deck-card-panel-close").click();
+        await expect(page.getByTestId("deck-card-panel")).toBeHidden();
+      } else {
+        await page.getByTestId("side-chat-tab").click();
+        await expect(page.getByTestId("waitroom-chat")).toBeVisible();
       }
       if (lang === "zh") {
         await scroll.evaluate((element) => {
