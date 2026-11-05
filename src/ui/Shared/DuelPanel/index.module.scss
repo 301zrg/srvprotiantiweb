@@ -21,6 +21,10 @@
   min-width: 0;
 }
 
+.fitViewport :global(.ant-drawer-body) {
+  overflow: hidden;
+}
+
 .root.sidebar {
   :global(.ant-drawer-content-wrapper) {
     width: 100% !important;
