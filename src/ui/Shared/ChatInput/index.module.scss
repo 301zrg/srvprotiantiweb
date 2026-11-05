@@ -1,0 +1,32 @@
+.composer {
+  display: flex;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px;
+  border-radius: 6px;
+  background: #ffffff10;
+
+  textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    // Leave space for the panel header even with a landscape keyboard open.
+    max-height: min(88px, max(44px, calc(var(--neos-adaptive-height, 100dvh) - 112px))) !important;
+    padding: 10px 8px;
+    font-size: 16px;
+    line-height: 22px;
+    overflow-y: auto !important;
+    resize: none;
+  }
+  button {
+    flex: 0 0 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 18px;
+  }
+}

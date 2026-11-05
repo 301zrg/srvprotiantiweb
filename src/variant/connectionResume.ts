@@ -2,7 +2,7 @@ import { ygopro } from "@/api/ocgcore/idl/ocgcore";
 import type { WebSocketStream } from "@/infra";
 
 import { forgetClock } from "./duelClock";
-import { prepareMatchGameResume } from "./matchGame";
+import { enterMatchIntermission, prepareMatchGameResume } from "./matchGame";
 
 export type ResumeKind = "player" | "observer" | "waiting";
 interface Resume {
@@ -90,6 +90,15 @@ export function checkConnectionResume(
   conn: WebSocketStream,
   pb: ygopro.YgoStocMsg,
 ) {
+  if (
+    [
+      "stoc_change_side",
+      "stoc_waiting_side",
+      "stoc_select_hand",
+      "stoc_select_tp",
+    ].includes(pb.msg)
+  )
+    enterMatchIntermission();
   const resume = resumes.get(conn);
   const text = serverText(pb);
   if (!resume) {

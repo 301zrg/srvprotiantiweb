@@ -42,15 +42,16 @@ try {
                 fixtureContainer().conn.duelStarted = true;
                 fixtureRoom.stage = FixtureRoomStage.DUEL_START;
               },
-              seedHistory() {
+              seedHistory(inDuel = false) {
                 fixtureGame.number = 2;
+                fixtureGame.inDuel = inDuel;
                 fixtureHistory.games = [{game:1,swapped:false,selfFirst:true},{game:2,swapped:true,selfFirst:false}];
                 fixtureHistory.historys = [
                   {card:69247929,opponent:true,operation:FixtureOp.EFFECT,player:1,turn:1,game:1,currentLocation:new fixtureProtocol.CardLocation({controller:1,zone:fixtureProtocol.CardZone.MZONE,sequence:2})},
                   {card:0,opponent:false,operation:FixtureOp.DRAW,player:0,turn:1,amount:1,game:2},
                 ];
               },
-              history() { return {rows:fixtureHistory.historys.map((row) => [row.operation,row.game,row.currentLocation?.sequence]),games:fixtureHistory.games.length,game:fixtureGame.number,gap:FixtureOp.GAP}; },
+              history() { return {rows:fixtureHistory.historys.map((row) => [row.operation,row.game,row.currentLocation?.sequence]),games:fixtureHistory.games.length,game:fixtureGame.number,inDuel:fixtureGame.inDuel,resuming:fixtureGame.resuming,gap:FixtureOp.GAP}; },
               state() { return {stage:fixtureSide.stage,joined:fixtureRoom.joined,connection:fixtureConnection.state,epoch:fixtureConnection.epoch,cancelled:fixtureContainer().conn.cancelled}; }
             };
           `;
@@ -234,7 +235,7 @@ try {
     await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
     await page.evaluate(() => window.__sideRecovery.connect("SyntheticPlayer$secret1"));
     await expect.poll(() => page.evaluate(() => window.__sideRecovery.state().joined)).toBe(true);
-    await page.evaluate(() => window.__sideRecovery.seedHistory());
+    await page.evaluate(() => window.__sideRecovery.seedHistory(true));
     await page.waitForTimeout(1300);
     const stored = await page.evaluate(() => Object.keys(sessionStorage).find((key) => key.includes("duel-history-resume")));
     assert.ok(stored, "The log is written to this tab");
@@ -250,6 +251,24 @@ try {
     assert.equal(reloaded.rows[0][2], 2, "Card places are restored");
     assert.equal(reloaded.rows[2][0], reloaded.gap);
     assert.equal(reloaded.game, 2);
+    const pendingSnapshot = await page.evaluate((key) => sessionStorage.getItem(key), stored);
+    await page.waitForTimeout(1300);
+    assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), stored), pendingSnapshot,
+      "The reconnect-ready page must not overwrite the saved phase");
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
+    await page.evaluate(() => window.__sideRecovery.connect("SyntheticPlayer$secret1"));
+    await expect.poll(() => page.evaluate(() => window.__sideRecovery.history().rows.length)).toBe(3);
+    await expect.poll(() => page.evaluate(() => window.__sideRecovery.state().joined)).toBe(true);
+    await page.evaluate(() => { location.hash = "#/waitroom"; });
+    await expect(page.getByTestId("waitroom")).toBeVisible();
+    await page.evaluate((deck) => window.__sideRecovery.beginSide(deck), fixture);
+    await expect(page.getByTestId("side-page")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__sideRecovery.history().resuming)).toBe(false);
+    await expect.poll(() => page.evaluate(() => window.__sideRecovery.history().inDuel)).toBe(false);
+    await page.waitForTimeout(1300);
+    assert.equal(JSON.parse(await page.evaluate((key) => sessionStorage.getItem(key), stored)).inDuel, false);
+    reports.push({ mobile, repeatedReloadKeptPhase: true, serverSidingClearedRepeatedStart: true });
     assert.deepEqual(errors, []);
     await page.evaluate(() => sessionStorage.removeItem("__forceReconnectOffer"));
     await context.close();

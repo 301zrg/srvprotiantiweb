@@ -32,6 +32,13 @@ const setViewportScale = ({
   const roundedScale = Number(scale.toFixed(4));
   const rootStyle = document.documentElement.style;
 
+  rootStyle.setProperty(
+    "--neos-viewport-top",
+    `${
+      window.visualViewport?.scale === 1 ? window.visualViewport.offsetTop : 0
+    }px`,
+  );
+
   rootStyle.setProperty("--neos-adaptive-scale", `${roundedScale}`);
   rootStyle.setProperty(
     "--neos-adaptive-width",
@@ -62,11 +69,13 @@ export const useAdaptiveViewportScale = (
     setViewportScale({ designWidth, designHeight, minScale });
     window.addEventListener("resize", scheduleUpdate);
     window.visualViewport?.addEventListener("resize", scheduleUpdate);
+    window.visualViewport?.addEventListener("scroll", scheduleUpdate);
 
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", scheduleUpdate);
       window.visualViewport?.removeEventListener("resize", scheduleUpdate);
+      window.visualViewport?.removeEventListener("scroll", scheduleUpdate);
     };
   }, [designWidth, designHeight, minScale]);
 };

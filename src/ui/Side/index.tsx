@@ -360,6 +360,7 @@ export const Component: React.FC = () => {
           onClose={() => setChatOpen(false)}
           title={mobileMessages(language).chat}
           testId="side-chat-panel"
+          fitViewport
           bodyClassName={styles.chatPanel}
         >
           <Chat controller={chat} />

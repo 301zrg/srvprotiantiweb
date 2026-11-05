@@ -32,6 +32,7 @@ export function DuelPanel({
   closeControl = "button",
   desktopWidth = "340px",
   followControlSide = false,
+  fitViewport = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -46,6 +47,8 @@ export function DuelPanel({
   closeControl?: "button" | "icon";
   desktopWidth?: string;
   followControlSide?: boolean;
+  /** Chat stays inside the visible area above a touch keyboard. */
+  fitViewport?: boolean;
 }) {
   const mobile = useMobileInterface();
   const { controlPanelSide } = useSnapshot(settingStore);
@@ -75,7 +78,9 @@ export function DuelPanel({
           : placement
       }
       height={
-        bottom
+        fitViewport && mobile
+          ? "100%"
+          : bottom
           ? compact && mobile
             ? "min(calc(var(--neos-adaptive-height, 100dvh) * 0.34), 300px)"
             : "min(calc(var(--neos-adaptive-height, 100dvh) * 0.65), 620px)"
@@ -90,7 +95,16 @@ export function DuelPanel({
       }
       mask={!sidebar && mobile && !compact}
       rootStyle={
-        sidebar
+        fitViewport && mobile
+          ? {
+              top: "var(--neos-viewport-top, 0px)",
+              bottom: "auto",
+              left: 0,
+              right: 0,
+              width: "auto",
+              height: "var(--neos-adaptive-height, 100dvh)",
+            }
+          : sidebar
           ? {
               top: shortSidebar
                 ? "max(8px, env(safe-area-inset-top))"
@@ -111,6 +125,7 @@ export function DuelPanel({
         [styles.docked]: !mobile && !sidebar,
         [styles.compact]: mobile && compact && !sidebar,
         [styles.sidebar]: sidebar,
+        [styles.fitViewport]: fitViewport && mobile,
       })}
       className={styles.panel}
       closable={

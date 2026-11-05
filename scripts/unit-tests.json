@@ -30,6 +30,7 @@
     "scripts/test_field_selection.mjs",
     "scripts/test_field_selection_session.mjs",
     "scripts/test_https_entry.mjs",
+    "scripts/test_history_resume_stage.mjs",
     "scripts/test_join_form.mjs",
     "scripts/test_language_hints.mjs",
     "scripts/test_language_links.mjs",

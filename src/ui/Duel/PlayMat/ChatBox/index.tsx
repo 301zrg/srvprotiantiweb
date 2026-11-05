@@ -1,12 +1,12 @@
 import { CloseOutlined } from "@ant-design/icons";
-import { Button, Input } from "antd";
+import { Button } from "antd";
 import classNames from "classnames";
 import React, { useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { proxy, useSnapshot } from "valtio";
 
 import { useI18N } from "@/ui/I18N";
-import { IconFont, ScrollableArea, useChat } from "@/ui/Shared";
+import { ScrollableArea, useChat } from "@/ui/Shared";
+import { ChatInput } from "@/ui/Shared/ChatInput";
 import { DuelPanel, hasDuelSidebar } from "@/ui/Shared/DuelPanel";
 import { mobileMessages } from "@/variant/mobileMessages";
 
@@ -26,8 +26,8 @@ export const ChatBox: React.FC<{
 }> = ({ embedded = false, visible = true, onCloseEmbedded }) => {
   const { language } = useI18N();
   const { open } = useSnapshot(store);
-  const { dialogs, input, setInput, ref, onSend } = useChat(true);
-  const { t: i18n } = useTranslation("Chat");
+  const chat = useChat(true);
+  const { dialogs, ref } = chat;
   const onClose = () => (store.open = false);
   useEffect(() => {
     window.dispatchEvent(
@@ -49,6 +49,7 @@ export const ChatBox: React.FC<{
           size="small"
           aria-label={mobileMessages(language).close}
           icon={<CloseOutlined />}
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             onClose();
             onCloseEmbedded?.();
@@ -64,25 +65,7 @@ export const ChatBox: React.FC<{
           <DialogItem key={idx} {...item} />
         ))}
       </ScrollableArea>
-      <div className={styles.input}>
-        <Input.TextArea
-          variant="borderless"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          autoSize
-          placeholder={i18n("PleaseEnterChatContent")}
-          onPressEnter={(e) => {
-            e.preventDefault();
-            onSend();
-          }}
-        />
-        <Button
-          aria-label={i18n("PleaseEnterChatContent")}
-          type="text"
-          icon={<IconFont type="icon-send" size={14} />}
-          onClick={onSend}
-        />
-      </div>
+      <ChatInput controller={chat} testId="duel-chat" />
     </div>
   );
   if (embedded) return content;
@@ -93,6 +76,7 @@ export const ChatBox: React.FC<{
       title={mobileMessages(language).chat}
       testId="duel-chat-panel"
       followControlSide
+      fitViewport
       bodyClassName={styles.panelBody}
       onClose={onClose}
     >
