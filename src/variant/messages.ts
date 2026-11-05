@@ -42,7 +42,7 @@ const messages = {
     copied: "已复制（不含密码）",
     copyFailed: "复制失败，请手动复制昵称或房间号，不要包含密码。",
     nicknameHint:
-      "天梯账号按「昵称$密码」输入；未注册的昵称会自动注册，账号密码设为首次输入的密码。昵称和房间名自动保留，密码仅留在当前标签页内存。",
+      "天梯账号按「昵称$密码」输入；未注册的昵称会自动注册，账号密码设为首次输入的密码。昵称、$ 和密码合计最多 19 个字符（按 UTF-16 计数，常用中英文各占 1，部分表情占 2）。完整输入会保存在本浏览器，下次自动回填。",
     roomHintBefore: "输入 TT 进入天梯匹配；其他房间名按",
     fillLadderRoom: "点击把房间名填为 TT（天梯匹配）",
     roomRules: "原版 YGOPro 联机规则",
@@ -119,7 +119,7 @@ const messages = {
     copyFailed:
       "Could not copy. Please manually copy the nickname or room name without its password.",
     nicknameHint:
-      "For ladder accounts, enter nickname$password. An unregistered nickname is registered automatically using the password you first enter. Nickname and room are remembered; passwords stay only in this tab's memory.",
+      "For ladder accounts, enter nickname$password. An unregistered nickname is registered automatically using the password you first enter. Nickname, $ and password together allow up to 19 UTF-16 units (ordinary letters and Chinese characters use 1; some emoji use 2). The full entry is saved in this browser and filled in next time.",
     roomHintBefore:
       "Enter TT for ladder matchmaking. Other room names follow the ",
     fillLadderRoom: "Click to set the room name to TT (ladder matchmaking)",
@@ -204,7 +204,7 @@ const messages = {
     copyFailed:
       "コピーできませんでした。パスワードを除く名前またはルーム名を手動でコピーしてください。",
     nicknameHint:
-      "ランク戦は 名前$パスワード を入力します。未登録の名前は自動登録され、最初に入力したパスワードが設定されます。名前とルーム名を保存し、パスワードはこのタブのメモリだけに保持します。",
+      "ランク戦は 名前$パスワード を入力します。未登録の名前は自動登録され、最初に入力したパスワードが設定されます。名前・$・パスワードの合計は UTF-16 で最大19文字です（通常の文字は1、一部の絵文字は2と数えます）。入力全体をこのブラウザに保存し、次回自動入力します。",
     roomHintBefore: "TT でランク戦に参加します。それ以外のルーム名は",
     fillLadderRoom: "クリックでルーム名を TT（ランク戦）にします",
     roomRules: "従来の YGOPro 接続ルール",
@@ -282,7 +282,7 @@ const messages = {
     copyFailed:
       "복사하지 못했습니다. 비밀번호를 제외한 이름 또는 방 이름을 직접 복사해 주세요.",
     nicknameHint:
-      "래더 계정은 이름$비밀번호를 입력하세요. 미등록 이름은 자동 등록되며 처음 입력한 비밀번호가 계정 비밀번호로 설정됩니다. 이름과 방 이름은 저장하며 비밀번호는 현재 탭의 메모리에만 유지됩니다.",
+      "래더 계정은 이름$비밀번호를 입력하세요. 미등록 이름은 자동 등록되며 처음 입력한 비밀번호가 계정 비밀번호로 설정됩니다. 이름, $, 비밀번호를 합쳐 UTF-16 기준 최대 19자입니다(일반 문자는 1자, 일부 이모지는 2자). 전체 입력은 이 브라우저에 저장되어 다음에 자동으로 채워집니다.",
     roomHintBefore: "TT를 입력하면 래더 매칭에 참여합니다. 다른 방 이름은 ",
     fillLadderRoom: "클릭하면 방 이름을 TT(래더 매칭)로 채웁니다",
     roomRules: "기존 YGOPro 온라인 규칙",
