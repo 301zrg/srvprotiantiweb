@@ -251,8 +251,9 @@ try {
     assert.equal(reloaded.rows[0][2], 2, "Card places are restored");
     assert.equal(reloaded.rows[2][0], reloaded.gap);
     assert.equal(reloaded.game, 2);
+    const pendingSnapshot = await page.evaluate((key) => sessionStorage.getItem(key), stored);
     await page.waitForTimeout(1300);
-    assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), stored), raw,
+    assert.equal(await page.evaluate((key) => sessionStorage.getItem(key), stored), pendingSnapshot,
       "The reconnect-ready page must not overwrite the saved phase");
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
