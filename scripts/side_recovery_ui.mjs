@@ -259,6 +259,9 @@ try {
     await expect(page.locator('main[data-ready="true"]')).toBeVisible({ timeout: 45000 });
     await page.evaluate(() => window.__sideRecovery.connect("SyntheticPlayer$secret1"));
     await expect.poll(() => page.evaluate(() => window.__sideRecovery.history().rows.length)).toBe(3);
+    await expect.poll(() => page.evaluate(() => window.__sideRecovery.state().joined)).toBe(true);
+    await page.evaluate(() => { location.hash = "#/waitroom"; });
+    await expect(page.getByTestId("waitroom")).toBeVisible();
     await page.evaluate((deck) => window.__sideRecovery.beginSide(deck), fixture);
     await expect(page.getByTestId("side-page")).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__sideRecovery.history().resuming)).toBe(false);
