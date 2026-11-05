@@ -30,6 +30,7 @@ import {
   saveHistory,
   setHistoryOwner,
 } from "@/variant/historyResume";
+import { matchGame } from "@/variant/matchGame";
 import { siteMessages } from "@/variant/messages";
 import { isRoomCommand } from "@/variant/roomLink";
 import { requestSpectatorSeat } from "@/variant/spectatorSession";
@@ -228,20 +229,19 @@ export function reconnectSrvpro() {
 let saveTimer = 0;
 const persistHistory = () => {
   window.clearTimeout(saveTimer);
-  saveHistory(
-    sideStore.stage === SideStage.NONE ||
-      sideStore.stage === SideStage.DUEL_START,
-  );
+  saveHistory();
 };
 
 function installForegroundRecovery() {
   if (installed) return;
   installed = true;
   // Batched: a burst of rows is written once, and the last ones on leaving.
-  subscribe(historyStore, () => {
+  const scheduleHistorySave = () => {
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(persistHistory, 1000);
-  });
+  };
+  subscribe(historyStore, scheduleHistorySave);
+  subscribe(matchGame, scheduleHistorySave);
   window.addEventListener("pagehide", persistHistory);
   // This tab's saved log belongs to the game the host now offers to rejoin.
   onReconnectOffer(restoreSavedHistory);

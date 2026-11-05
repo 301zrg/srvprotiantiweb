@@ -42,8 +42,9 @@ export function setHistoryOwner(
       : undefined;
 }
 
-export function saveHistory(inDuel: boolean) {
-  if (!owner || !historyStore.historys.length) return;
+export function saveHistory() {
+  if (!owner || !historyStore.historys.length || matchGame.inDuel === undefined)
+    return;
   const rows = historyStore.historys.slice(-MAX_ROWS).map((row) => {
     const plain = { ...row } as Record<string, unknown>;
     for (const key of LOCATIONS) {
@@ -66,7 +67,7 @@ export function saveHistory(inDuel: boolean) {
       JSON.stringify({
         owner,
         savedAt: Date.now(),
-        inDuel,
+        inDuel: matchGame.inDuel,
         game: matchGame.number,
         games: historyStore.games,
         rows,
