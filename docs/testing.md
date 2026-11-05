@@ -8,6 +8,7 @@
 | 各 `test:*` 专项脚本 | 单个模块的逻辑测试或界面回归，见 `package.json` | 视脚本而定 |
 | `node scripts/<名称>_ui.mjs`（约 60 个） | 浏览器界面回归，Playwright 驱动 Chromium/WebKit；部分支持 `--built` 用构建产物验证 | 需要 `npx playwright install` 的浏览器；带 `--built` 时先 `npm run build` |
 | `npm run build:cloudflare` | 资源校验、类型检查与正式构建 | 与 Cloudflare 构建相同 |
+| `npm run test:chat-input-ui` | 准备页、对局、换备聊天的手机／iPad 横竖屏输入；模拟键盘缩小可见区域和视口上移，检查长草稿、发送对齐、输入法与旋转保留 | 先 `node scripts/restore_environment_assets.mjs`；本地 Edge，截图写入 `.audit-tmp/`，不等于 iOS 真机键盘验收 |
 
 维护规则：
 

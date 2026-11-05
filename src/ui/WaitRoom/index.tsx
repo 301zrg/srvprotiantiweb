@@ -161,6 +161,7 @@ export const Component: React.FC = () => {
           onClose={() => setMobileChatOpen(false)}
           title={text.chat}
           testId="waitroom-chat-panel"
+          fitViewport
           followControlSide
           bodyClassName={styles.chatPanelBody}
         >

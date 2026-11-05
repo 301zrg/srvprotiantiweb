@@ -9,24 +9,6 @@
   flex: 1;
   min-height: 0;
 }
-.input {
-  flex: none;
-  width: 100%;
-  background: #ffffff10;
-  padding: 8px;
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  textarea {
-    min-height: 44px;
-    padding: 10px 8px;
-    font-size: 16px;
-  }
-  button {
-    min-width: 44px;
-    height: 44px;
-  }
-}
 .dialogs {
   padding: 8px 0;
   display: flex;

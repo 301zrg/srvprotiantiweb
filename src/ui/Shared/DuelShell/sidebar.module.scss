@@ -42,6 +42,16 @@
   [data-testid="duel-menu"], [data-testid="duel-turn-status"] { display: none; }
 }
 @media (max-height: 400px) { .status { margin: 4px 0; font-size: 11px; } }
+@media (max-width: 1024px), (hover: none) and (pointer: coarse) {
+  // While typing, give chat the sidebar's full visible height and more width.
+  .sidebar:has([data-testid="chat-composer"]:focus-within) {
+    top: var(--neos-viewport-top, 0px);
+    bottom: auto;
+    width: min(420px, 100vw);
+    .controls, .feedbackSlot, .tabs { display: none; }
+    .content { overflow: hidden; }
+  }
+}
 @media (orientation: landscape) and (max-height: 600px) {
   .sidebar { gap: 4px; }
   .tabs button { min-height: 30px; height: 30px; padding: 2px; }
