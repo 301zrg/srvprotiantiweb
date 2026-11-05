@@ -12,10 +12,17 @@ const fixture = `
 import { initUIContainer as initChatFixture } from "@/container/compat";
 import { roomStore as chatRoom, matStore as chatMat, sideStore as chatSide, SideStage as chatSideStage, RoomStage as chatRoomStage } from "@/stores";
 import { settingStore as chatSettings } from "@/stores/settingStore";
+import { chatStore as chatLines } from "@/stores";
+import { noteChatArrival as chatArrival } from "@/variant/quickCommands";
 window.__chatTest = {
   sent: [],
+  arrive(player) { chatArrival(window.__chatTest.conn, Uint8Array.of(player, 0)); },
+  display(player, message) {
+    chatLines.receive(player, message);
+  },
   enter(mode, side) {
-    initChatFixture({signal:new AbortController().signal, ws:{readyState:1,send(data){window.__chatTest.sent.push(Array.from(data));}}, cancelled:false, isClosed:false, close(){}});
+    window.__chatTest.conn = {signal:new AbortController().signal, ws:{readyState:1,send(data){window.__chatTest.sent.push(Array.from(data));}}, cancelled:false, isClosed:false, close(){}};
+    initChatFixture(window.__chatTest.conn);
     chatRoom.reset(); chatRoom.joined = true;
     chatSettings.controlPanelSide = side;
     chatMat.initInfo.me.life = 8000; chatMat.initInfo.op.life = 8000;
@@ -111,6 +118,10 @@ try {
           assert.ok(Math.abs(metrics.bottom - metrics.sendBottom) <= 8, "Send arrow aligns with the last input line");
           assert.deepEqual(errors, []);
           if (before) continue;
+          const commandId = mode === "duel" ? "duel-chat" : "waitroom-chat";
+          const commands = panel.getByTestId(`${commandId}-commands`);
+          const cramped = keyboardHeight < 300;
+          assert.equal(await commands.count(), cramped ? 0 : 1, "Only a cramped keyboard view drops the command row");
           await input.evaluate(element => { element.setSelectionRange(2, 2); element.scrollTop = 0; });
           await page.evaluate(({ keyboardHeight, offset }) => window.__keyboard(keyboardHeight + 20, offset), { keyboardHeight, offset });
           await page.waitForTimeout(150);
@@ -138,6 +149,44 @@ try {
             await page.getByTestId("duel-chat-tab").click();
           }
           await page.evaluate(({ height }) => window.__keyboard(height, 0), { height });
+          await input.fill("draft stays");
+          await expect(commands).toBeVisible();
+          const tip = panel.getByTestId(`${commandId}-command-tip`);
+          const roomname = panel.getByTestId(`${commandId}-command-roomname`);
+          const row = await commands.evaluate(element => {
+            const box = element.getBoundingClientRect();
+            const buttons = [...element.querySelectorAll("button")].map(button => button.getBoundingClientRect());
+            const composer = element.parentElement.querySelector('[data-testid="chat-composer"]').getBoundingClientRect();
+            return { top: box.top, bottom: box.bottom, width: box.width, scroll: element.scrollWidth, client: element.clientWidth, composerTop: composer.top, heights: buttons.map(b => b.height), right: Math.max(...buttons.map(b => b.right)), boxRight: box.right };
+          });
+          report.push({ name, mode, row });
+          assert.deepEqual(row.heights.map(value => value >= 44), [true, true], `Touch targets ${JSON.stringify(row)}`);
+          assert.ok(row.scroll <= row.client + 1 && row.right <= row.boxRight + 1, `Both commands fit ${JSON.stringify(row)}`);
+          assert.ok(row.bottom <= row.composerTop + 1, "The commands sit directly above the input");
+          const decode = packet => new TextDecoder("utf-16le").decode(Uint8Array.from(packet.slice(3))).replace(/\0+$/, "");
+          const sentCommands = async () => (await page.evaluate(() => window.__chatTest.sent)).map(decode);
+          const beforeTip = (await sentCommands()).length;
+          await tip.click();
+          await expect(tip).toBeDisabled();
+          await expect(roomname).toBeEnabled();
+          assert.equal(await input.inputValue(), "draft stays", "A command must not touch the draft");
+          await page.evaluate(() => { window.__chatTest.display(0, "player chat"); window.__chatTest.arrive(0); });
+          await expect(tip).toBeDisabled();
+          await tip.click({ force: true });
+          assert.deepEqual((await sentCommands()).slice(beforeTip), ["/tip"], "A locked command sends once");
+          await page.screenshot({ path: `${folder}/${name}-${mode}-locked.png` });
+          await page.evaluate(() => window.__chatTest.arrive(8));
+          await expect(tip).toBeEnabled();
+          await roomname.click();
+          await expect(roomname).toBeDisabled();
+          await page.evaluate(() => window.__chatTest.arrive(14));
+          await expect(roomname).toBeEnabled();
+          assert.deepEqual((await sentCommands()).slice(beforeTip), ["/tip", "/roomname"]);
+          // Host replies are not unique: a repeated line still has to appear.
+          await page.evaluate(() => { window.__chatTest.display(8, "Tip: repeated"); });
+          await expect(panel.getByText("Tip: repeated")).toHaveCount(1);
+          await page.evaluate(() => { window.__chatTest.display(8, "Tip: repeated"); });
+          await expect(panel.getByText("Tip: repeated")).toHaveCount(2);
           await input.fill("kept after rotation");
           await page.setViewportSize({ width: height, height: width });
           await page.evaluate(() => window.__keyboard(innerHeight, 0));

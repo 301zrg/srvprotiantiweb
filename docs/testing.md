@@ -9,6 +9,7 @@
 | `node scripts/<名称>_ui.mjs`（约 60 个） | 浏览器界面回归，Playwright 驱动 Chromium/WebKit；部分支持 `--built` 用构建产物验证 | 需要 `npx playwright install` 的浏览器；带 `--built` 时先 `npm run build` |
 | `npm run build:cloudflare` | 资源校验、类型检查与正式构建 | 与 Cloudflare 构建相同 |
 | `npm run test:chat-input-ui` | 准备页、对局、换备聊天的手机／iPad 横竖屏输入；模拟键盘缩小可见区域和视口上移，检查长草稿、发送对齐、输入法与旋转保留 | 先 `node scripts/restore_environment_assets.mjs`；本地 Edge，截图写入 `.audit-tmp/`，不等于 iOS 真机键盘验收 |
+| `npm run test:quick-commands` | 隔离的本地 SRVPro 和真实 Core：四语 `/tip`、`/roomname` 回复与解锁、连续相同回复都要显示、回复只给发送者，以及对局双方和观战 | 本机 ygopro、Python 和 Edge；不连接正式服，服务器配置是测试默认值，不代表正式服开关 |
 
 维护规则：
 

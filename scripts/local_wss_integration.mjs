@@ -30,7 +30,8 @@ const manualCheck = process.argv.includes("--manual-check");
 const tunnelMode = process.argv.includes("--tunnel");
 const roomLinksMode = process.argv.includes("--room-links");
 const replayMode = process.argv.includes("--replays");
-const languageMode = process.argv.includes("--languages");
+const quickCommandsMode = process.argv.includes("--quick-commands");
+const languageMode = quickCommandsMode || process.argv.includes("--languages");
 const resumeMode = process.argv.includes("--resume");
 const builtClient = process.argv.includes("--built");
 const notes = [];
@@ -195,7 +196,9 @@ try {
           key: join(certDir, "key.pem"),
         },
       },
-      tips: { enabled: false },
+      tips: quickCommandsMode
+        ? { enabled: true, interval: 0, interval_ingame: 0 }
+        : { enabled: false },
       ...(languageMode ? { welcome: "Local welcome line" } : {}),
       dialogues: { enabled: false },
       ...(roomLinksMode
@@ -719,7 +722,69 @@ try {
       );
       return page;
     }
-    if (languageMode) {
+    if (quickCommandsMode) {
+      const occurrences = async (locator, text) =>
+        (await locator.innerText()).split(text).length - 1;
+      // Reply text comes from the real host dictionary and config/tips.json.
+      async function press(page, button) {
+        await expect(button).toBeEnabled({ timeout: 15000 });
+        await button.click();
+        await expect(button).toBeEnabled({ timeout: 15000 });
+      }
+      for (const [language, roomReply] of [
+        ["cn", "您当前的房间名是"],
+        ["en", "Room name is"],
+        ["ja", "ルーム名は"],
+        ["ko", "방 이름:"],
+      ]) {
+        const roomName = `QUICK-${language}`;
+        const page = await joinRoom(`Quick-${language}`, roomName, "Single", language);
+        const dialogs = page.getByTestId("waitroom-chat-dialogs");
+        const tip = page.getByTestId("waitroom-chat-command-tip");
+        const roomname = page.getByTestId("waitroom-chat-command-roomname");
+        await expect(dialogs).toBeVisible({ timeout: 15000 });
+        await page.waitForTimeout(500);
+        const tipsBefore = await occurrences(dialogs, "Tip: ");
+        for (let index = 0; index < 8; index++) await press(page, tip);
+        await expect.poll(() => occurrences(dialogs, "Tip: ")).toBe(tipsBefore + 8);
+        await press(page, roomname);
+        await press(page, roomname);
+        await expect.poll(() => occurrences(dialogs, roomReply)).toBe(2);
+        assert.equal(await occurrences(dialogs, roomName), 2, "The reply names this room");
+        console.log(`PASS ${language}: 8 /tip and 2 identical /roomname replies all shown`);
+        await page.screenshot({ path: join(auditRoot, `quick-commands-${language}.png`) });
+        await page.getByTestId("waitroom-leave").click();
+        await expect(page.locator("#player-nickname")).toBeVisible({ timeout: 15000 });
+        await page.close();
+      }
+      const first = await joinRoom("QuickA", "QUICK-DUEL", "Single");
+      const second = await joinRoom("QuickB", "QUICK-DUEL", "Single");
+      const othersBefore = await second.getByTestId("waitroom-chat-dialogs").innerText();
+      await press(first, first.getByTestId("waitroom-chat-command-tip"));
+      await press(first, first.getByTestId("waitroom-chat-command-roomname"));
+      await second.waitForTimeout(1000);
+      assert.equal(await second.getByTestId("waitroom-chat-dialogs").innerText(), othersBefore, "Replies reach only the sender");
+      await startDuel(first, second, "Quick commands");
+      for (const page of [first, second]) {
+        await page.bringToFront();
+        await page.getByTestId("duel-chat-tab").click();
+        const panel = page.getByTestId("duel-chat-panel");
+        const tipsBefore = await occurrences(panel, "Tip: ");
+        await press(page, page.getByTestId("duel-chat-command-tip"));
+        await press(page, page.getByTestId("duel-chat-command-roomname"));
+        await expect.poll(() => occurrences(panel, "Tip: ")).toBe(tipsBefore + 1);
+        await expect(panel).toContainText("QUICK-DUEL");
+      }
+      await first.bringToFront();
+      await expect(first.getByTestId("duel-phase-select")).toBeEnabled({ timeout: 15000 });
+      console.log("PASS duel: both seats get replies and the turn stays playable");
+      const observer = await joinSpectator("QUICK-DUEL", true, { keep: true });
+      await observer.getByTestId("duel-chat-tab").click();
+      await press(observer, observer.getByTestId("duel-chat-command-tip"));
+      await press(observer, observer.getByTestId("duel-chat-command-roomname"));
+      await expect(observer.getByTestId("duel-chat-panel")).toContainText("QUICK-DUEL");
+      console.log("PASS spectator: replies arrive and unlock");
+    } else if (languageMode) {
       for (const [language, command, confirmation] of [
         ["cn", "/zh", "提示语言已切换"],
         ["en", "/en", "Message language switched"],
