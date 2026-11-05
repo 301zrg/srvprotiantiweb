@@ -125,6 +125,7 @@
     "test:mock-duel": "python scripts/build_environment_assets.py && node scripts/mock_duel_ui.mjs",
     "test:local-wss": "python scripts/build_environment_assets.py && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs",
     "test:room-languages": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --languages",
+    "test:quick-commands": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --quick-commands",
     "test:session-resume": "node scripts/restore_environment_assets.mjs && python scripts/make_local_cert.py .audit-tmp/local-cert && node scripts/local_wss_integration.mjs --resume",
     "test:connection-resume": "node scripts/test_connection_resume.mjs",
     "test:connection-health": "node scripts/test_connection_health.mjs",
