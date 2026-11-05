@@ -123,13 +123,13 @@ try {
     if (!only || only === "messages") {
       await page.evaluate(() => { window.__settingsTest.settingStore.serverMessageMode = "auto"; location.hash = "#/duel"; });
       await expect(page.getByTestId("duel-menu")).toBeVisible();
-      await page.evaluate(() => { const { chatStore } = window.__settingsTest; chatStore.sender = 8; chatStore.message = "Ordinary system notice"; });
+      await page.evaluate(() => { const { chatStore } = window.__settingsTest; chatStore.receive(8, "Ordinary system notice"); });
       if (touch) {
         await expect(page.getByTestId("duel-message-summary")).toContainText("Ordinary system notice");
         await expect(page.locator(".ant-notification-notice")).toHaveCount(0);
         await page.getByTestId("duel-message-summary").click();
         await expect(page.getByTestId("duel-chat-panel")).toContainText("Ordinary system notice");
-        await page.evaluate(() => { window.__settingsTest.chatStore.message = "Already reading this chat"; });
+        await page.evaluate(() => { window.__settingsTest.chatStore.receive(8, "Already reading this chat"); });
         await expect(page.getByTestId("duel-chat-panel")).toContainText("Already reading this chat");
         await expect(page.getByTestId("duel-message-summary")).toHaveCount(0);
         await page.getByTestId("duel-chat-panel-close").click();
@@ -141,7 +141,7 @@ try {
       await page.evaluate(() => { window.__settingsTest.matStore.phase.currentPhase = 4; });
       await page.waitForTimeout(100);
       await expect(page.locator(".ant-message-notice")).toHaveCount(0);
-      await page.evaluate(() => { window.__settingsTest.settingStore.serverMessageMode = "record"; window.__settingsTest.chatStore.message = "Record only notice"; });
+      await page.evaluate(() => { window.__settingsTest.settingStore.serverMessageMode = "record"; window.__settingsTest.chatStore.receive(8, "Record only notice"); });
       await expect(page.locator(".ant-notification-notice")).toHaveCount(0);
       await expect(page.getByTestId("duel-message-summary")).toHaveCount(0);
       await page.evaluate(() => { window.__settingsTest.matStore.error = "Critical duel error"; });
@@ -209,8 +209,7 @@ try {
       if (height > 600) await page.getByTestId("duel-card-panel-close").click();
       await page.evaluate(async () => {
         const { chatStore } = window.__settingsTest;
-        chatStore.sender = 8;
-        chatStore.message = "Rotation keeps the chat log";
+        chatStore.receive(8, "Rotation keeps the chat log");
       });
       await rail.getByTestId("duel-chat-tab").click();
       await expect(page.getByTestId("duel-chat-panel")).toContainText("Rotation keeps the chat log");

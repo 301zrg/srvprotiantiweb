@@ -133,8 +133,7 @@ async function fixture(page, mode = 0, host = true) {
           ...JSON.parse(JSON.stringify(deckStore.decks[0])),
           deckName: "备用测试卡组",
         });
-      chatStore.sender = 0;
-      chatStore.message = "欢迎进入测试房间，请选好卡组后准备。";
+      chatStore.receive(0, "欢迎进入测试房间，请选好卡组后准备。");
       location.hash = "#/waitroom";
     },
     { mode, host },
@@ -323,7 +322,7 @@ try {
       await expect(page.getByTestId("waitroom-chat-panel")).not.toBeVisible();
       await page.evaluate(async () => {
         const { chatStore } = await import("/src/stores/index.ts");
-        chatStore.message = "聊天收起时收到的消息";
+        chatStore.receive(0, "聊天收起时收到的消息");
       });
       await click(page.getByTestId("waitroom-chat-toggle"));
       await expect(page.getByTestId("waitroom-chat-input")).toHaveValue(

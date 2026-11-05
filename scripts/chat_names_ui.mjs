@@ -27,7 +27,7 @@ function Probe({ duel }) {
   return <pre id="dialogs">{JSON.stringify(dialogs)}</pre>;
 }
 window.__chat = {
-  async setup({ duel, observer, swapped = false, second = false, tag = false, selfSeat = 0 }) {
+  async setup({ duel, observer, swapped = false, second = false, tag = false, selfSeat = 0, mount = true }) {
     chatStore.reset();
     roomStore.reset();
     sideStore.stage = SideStage.NONE;
@@ -46,8 +46,26 @@ window.__chat = {
     matStore.observerSwapped = swapped;
     matStore.observerView = 0;
     settingStore.hidePlayerIds = false;
-    root.render(<Probe key={Math.random()} duel={duel} />);
+    if (mount) root.render(<Probe key={Math.random()} duel={duel} />);
   },
+  mount(duel) { root.render(<Probe key={Math.random()} duel={duel} />); },
+  // Several CHAT packets in one WebSocket frame.
+  frame(lines) {
+    const packets = lines.map(([sender, message]) => {
+      const bytes = new Uint8Array(3 + 4 + 2 * message.length);
+      const view = new DataView(bytes.buffer);
+      view.setUint16(0, bytes.length - 2, true);
+      bytes[2] = 0x19;
+      view.setUint16(3, sender, true);
+      for (let i = 0; i < message.length; i++) view.setUint16(5 + 2 * i, message.charCodeAt(i), true);
+      return bytes;
+    });
+    const data = new Uint8Array(packets.reduce((total, item) => total + item.length, 0));
+    let offset = 0;
+    for (const item of packets) { data.set(item, offset); offset += item.length; }
+    return handle(getUIContainer(), { data: data.buffer });
+  },
+  clear() { chatStore.reset(); },
   async send(sender, message) {
     const payload = new Uint8Array(4 + 2 * message.length);
     const view = new DataView(payload.buffer);
@@ -140,6 +158,88 @@ try {
       );
       assert.equal(item.content.replace(/\0+$/, ""), message);
     };
+
+    // Every received line stays, in order and once, however it arrived.
+    const contents = async () =>
+      (await read()).map((item) => [
+        item.name,
+        item.content.replace(/\0+$/, ""),
+      ]);
+    const waitForLines = (count) =>
+      page.waitForFunction(
+        (count) =>
+          JSON.parse(document.getElementById("dialogs").textContent).length >=
+          count,
+        count,
+        { timeout: 5000 },
+      );
+    const lines = (...items) => items.map((text) => [8, text]);
+    const named = (items) => items.map(([, text]) => ["System", text]);
+    await page.evaluate(() =>
+      window.__chat.setup({ duel: false, mount: false }),
+    );
+    const beforeMount = [...lines("welcome", "record"), [1, "before mount"]];
+    for (const [sender, text] of beforeMount)
+      await page.evaluate(
+        ({ sender, text }) => window.__chat.send(sender, text),
+        { sender, text },
+      );
+    await page.evaluate(() => window.__chat.mount(false));
+    await waitForLines(3).catch(() => {});
+    assert.deepEqual(
+      await contents(),
+      [["System", "welcome"], ["System", "record"], ["Seat B", "before mount"]],
+      `${width}px: lines received before the chat mounted`,
+    );
+    await page.evaluate(() => window.__chat.mount(false));
+    await waitForLines(3).catch(() => {});
+    assert.equal(
+      (await read()).length,
+      3,
+      `${width}px: a remount (page switch) must not repeat lines`,
+    );
+    await page.evaluate(() => window.__chat.clear());
+    await page.waitForFunction(
+      () => document.getElementById("dialogs").textContent === "[]",
+    );
+    const sameFrame = lines("frame 1", "frame 2", "frame 3", "frame 4");
+    await page.evaluate((items) => window.__chat.frame(items), sameFrame);
+    await waitForLines(4).catch(() => {});
+    assert.deepEqual(
+      await contents(),
+      named(sameFrame),
+      `${width}px: several CHAT packets in one frame`,
+    );
+    await page.evaluate(() => window.__chat.clear());
+    const separate = lines("task 1", "task 2", "task 3");
+    for (const [sender, text] of separate)
+      await page.evaluate(
+        ({ sender, text }) => {
+          window.__chat.send(sender, text);
+        },
+        { sender, text },
+      );
+    await waitForLines(3).catch(() => {});
+    assert.deepEqual(
+      await contents(),
+      named(separate),
+      `${width}px: separate messages`,
+    );
+    await page.evaluate(() => window.__chat.clear());
+    const repeated = lines("same line", "same line", "same line");
+    for (const [sender, text] of repeated) {
+      await page.evaluate(
+        ({ sender, text }) => window.__chat.send(sender, text),
+        { sender, text },
+      );
+      await page.waitForTimeout(50);
+    }
+    await waitForLines(3).catch(() => {});
+    assert.deepEqual(
+      await contents(),
+      named(repeated),
+      `${width}px: identical consecutive lines`,
+    );
 
     // Room sender IDs are seats; duel sender IDs follow the Core's first/second order.
     for (const observer of [false, true]) {

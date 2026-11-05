@@ -36,7 +36,8 @@ export const HintNotification = () => {
   const error = matSnap.error;
 
   const { dialogs, latest: newestDialog } = useChat(true);
-  const seenDialogs = useRef(0);
+  // What was said before this page opened stays in the log, without a popup.
+  const seenDialogs = useRef(dialogs.length);
   const chatVisible = useRef(false);
   const [summary, setSummary] = useState<{ name: string; content: string }>();
   const [unread, setUnread] = useState(0);
@@ -105,7 +106,8 @@ export const HintNotification = () => {
   }, [error]);
 
   useEffect(() => {
-    if (dialogs.length <= seenDialogs.current) return;
+    const fresh = dialogs.length - seenDialogs.current;
+    if (fresh <= 0) return;
     seenDialogs.current = dialogs.length;
     const latest = newestDialog;
     if (!latest) return;
@@ -116,7 +118,7 @@ export const HintNotification = () => {
     );
     if (presentation === "summary") {
       setSummary(latest);
-      if (!chatVisible.current) setUnread((count) => count + 1);
+      if (!chatVisible.current) setUnread((count) => count + fresh);
     } else if (presentation === "popup") {
       notiApi.open({
         key: latest.isServer ? serverChatKey : undefined,
