@@ -7,6 +7,7 @@
 import { YgoProPacketFramer } from "@/api/ocgcore/ocgAdapter/packet";
 import {
   CTOS_TIME_CONFIRM,
+  STOC_CHAT,
   STOC_DUEL_END,
 } from "@/api/ocgcore/ocgAdapter/protoDecl";
 import { ReplayCapture } from "@/replay/capture";
@@ -14,6 +15,7 @@ import { getLanguage } from "@/variant";
 import { connectionStore } from "@/variant/connection";
 import { markMessageArrival } from "@/variant/duelDiagnostics";
 import { siteMessages } from "@/variant/messages";
+import { noteChatArrival } from "@/variant/quickCommands";
 
 import { ConnectionControl } from "./connectionControl";
 
@@ -108,6 +110,8 @@ export class WebSocketStream {
               // arrival so a normal finished match never starts a recovery.
               for (const packet of lifecycle.push(event.data)) {
                 if (packet.proto === STOC_DUEL_END) owner.endedRoom = true;
+                if (packet.proto === STOC_CHAT)
+                  noteChatArrival(owner, packet.exData);
                 if (
                   owner.control.receive(packet) &&
                   ws.readyState === WebSocket.OPEN

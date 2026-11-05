@@ -32,6 +32,7 @@ import {
 } from "@/variant/historyResume";
 import { matchGame } from "@/variant/matchGame";
 import { siteMessages } from "@/variant/messages";
+import { resetQuickCommands } from "@/variant/quickCommands";
 import { isRoomCommand } from "@/variant/roomLink";
 import { requestSpectatorSeat } from "@/variant/spectatorSession";
 
@@ -80,6 +81,7 @@ export const disconnectSrvpro = () => {
 
 function wire(join: Join) {
   const conn = initSocket(join);
+  resetQuickCommands(conn);
   if (join.spectate) requestSpectatorSeat(conn);
   activeConnection = conn;
   conn.onUnexpectedClose = () => {

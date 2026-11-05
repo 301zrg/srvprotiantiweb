@@ -10,7 +10,7 @@ mkdirSync(folder, { recursive: true });
 const compiled = await build({
   stdin: {
     contents:
-      'export { WebSocketStream } from "./src/infra/stream.ts"; export { default as handleTimeLimit } from "./src/service/duel/timeLimit.ts";',
+      'export { WebSocketStream } from "./src/infra/stream.ts"; export { default as handleTimeLimit } from "./src/service/duel/timeLimit.ts"; export { quickCommandStore, sendQuickCommand, resetQuickCommands } from "./src/variant/quickCommands.ts";',
     resolveDir: process.cwd(),
   },
   bundle: true,
@@ -32,7 +32,7 @@ const compiled = await build({
           "@/variant/messages":
             'export const siteMessages = () => ({ connectionClosed: "closed", connectionFailed: "failed", packetFailed: "packet" });',
           "@/api":
-            "export const sendTimeConfirm = conn => conn.ws.send(Uint8Array.of(1, 0, 21));",
+            "export const sendTimeConfirm = conn => conn.ws.send(Uint8Array.of(1, 0, 21)); export const sendChat = conn => conn.ws.send(Uint8Array.of(1, 0, 22));",
         };
         builder.onResolve({ filter: /^@\// }, (args) =>
           args.path in stubs
@@ -74,9 +74,13 @@ class Socket {
   }
 }
 globalThis.WebSocket = Socket;
-const { WebSocketStream, handleTimeLimit } = await import(
-  pathToFileURL(output)
-);
+const {
+  WebSocketStream,
+  handleTimeLimit,
+  quickCommandStore,
+  sendQuickCommand,
+  resetQuickCommands,
+} = await import(pathToFileURL(output));
 const frame = (proto, payload = []) => [
   payload.length + 1,
   0,
@@ -220,6 +224,54 @@ assert.deepEqual(
 );
 assert.equal(tag.confirmsTimeLimitsOnArrival, false);
 tag.close();
+// An open prompt holds the chat line in the queue; the lock follows the network.
+const commandConn = fixture();
+let releaseCommands;
+const commandGate = new Promise((resolveGate) => {
+  releaseCommands = resolveGate;
+});
+const commandExecution = commandConn.execute(() => commandGate);
+commandConn.ws.receive(frame(19, [0x10]));
+const chat = (player) => frame(25, [player, 0, 65, 0, 0, 0]);
+sendQuickCommand(commandConn, "tip");
+sendQuickCommand(commandConn, "tip");
+sendQuickCommand(commandConn, "roomname");
+assert.equal(commandConn.ws.sent.length, 2, "A locked command sends once");
+assert.deepEqual({ ...quickCommandStore }, { tip: true, roomname: true });
+commandConn.ws.receive(chat(0));
+assert.deepEqual(
+  { ...quickCommandStore },
+  { tip: true, roomname: true },
+  "Another player's chat is not a reply",
+);
+const earlier = fixture();
+earlier.ws.receive(chat(8));
+assert.equal(quickCommandStore.tip, true, "Only the current connection answers");
+earlier.close();
+const reply = chat(8);
+commandConn.ws.receive(reply.slice(0, 3));
+assert.equal(quickCommandStore.tip, true, "A partial reply does not unlock");
+commandConn.ws.receive(reply.slice(3));
+assert.deepEqual(
+  { ...quickCommandStore },
+  { tip: false, roomname: true },
+  "The reply unlocks at arrival even though the UI queue is blocked",
+);
+const replacement = fixture();
+resetQuickCommands(replacement);
+assert.equal(quickCommandStore.roomname, false, "A new connection clears the lock");
+replacement.close();
+releaseCommands();
+commandConn.close();
+await commandExecution;
+
+const closedConn = fixture();
+closedConn.close();
+sendQuickCommand(closedConn, "tip");
+assert.deepEqual(closedConn.ws.sent, [], "A closed socket is not written to");
+assert.equal(quickCommandStore.tip, true, "No reply can come: it stays locked");
+resetQuickCommands(fixture());
+
 console.log(
   "PASS immediate TIME_CONFIRM: blocked UI, split/merged packets, G2 controller, Side, observer, cancellation and Tag fallback",
 );

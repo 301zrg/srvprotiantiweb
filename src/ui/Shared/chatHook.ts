@@ -10,6 +10,7 @@ import { getUIContainer } from "@/container/compat";
 import { chatStore, isServerSender } from "@/stores";
 import { settingStore } from "@/stores/settingStore";
 import { displayPlayerId } from "@/variant/playerIds";
+import { type QuickCommand, sendQuickCommand } from "@/variant/quickCommands";
 
 export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
   const { hidePlayerIds, chatOrder, historyOrder } = useSnapshot(settingStore);
@@ -40,6 +41,10 @@ export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
     }
   };
 
+  /** Leaves the draft alone. */
+  const onQuickCommand = (command: QuickCommand) =>
+    sendQuickCommand(container.conn, command);
+
   // New lines, and switching the order, jump to the newest message.
   useEffect(() => {
     requestAnimationFrame(scrollToLatest);
@@ -67,5 +72,6 @@ export const useChat = (isDuel: boolean = false, ordered = isDuel) => {
     setInput,
     ref,
     onSend,
+    onQuickCommand,
   };
 };

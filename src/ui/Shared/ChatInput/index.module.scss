@@ -30,3 +30,50 @@
     font-size: 18px;
   }
 }
+
+.quickCommands {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px 4px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  button {
+    flex: 0 0 auto;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 13px;
+    background: #ffffff10;
+  }
+  // The label stays put so a lock does not shift the row.
+  .awaiting {
+    opacity: 0.6;
+    cursor: wait;
+    animation: awaitingReply 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes awaitingReply {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickCommands .awaiting {
+    animation: none;
+  }
+}
+
+@media (max-width: 1024px),
+  (max-height: 600px) and (pointer: coarse),
+  (hover: none) and (pointer: coarse) {
+  .quickCommands button {
+    min-width: 44px;
+    height: 44px;
+  }
+}
