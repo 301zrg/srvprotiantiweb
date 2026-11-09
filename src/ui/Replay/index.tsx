@@ -790,7 +790,12 @@ function Player({
         if (override && !environments.some((e) => e.id === override)) {
           // Say so; never silently fall back to another version.
           setEnvironment(undefined);
-          throw new Error(t("ReplayEnvMissing", { id: override }));
+          throw new Error(
+            t("ReplayEnvMissing", {
+              id: override,
+              interpolation: { escapeValue: false },
+            }),
+          );
         }
         const chosen = override
           ? { id: override, basis: "manual" as const }
@@ -1637,6 +1642,8 @@ function Player({
                       date: new Date(e.effectiveFromUnix * 1000).toLocaleString(
                         languageLocales[language as Language],
                       ),
+                      // React escapes the text; i18next escaping would show "&#x2F;".
+                      interpolation: { escapeValue: false },
                     })}
               </Button>
             ))}

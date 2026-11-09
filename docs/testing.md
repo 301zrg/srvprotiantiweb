@@ -9,6 +9,8 @@
 | `node scripts/<名称>_ui.mjs`（约 60 个） | 浏览器界面回归，Playwright 驱动 Chromium/WebKit；部分支持 `--built` 用构建产物验证 | 需要 `npx playwright install` 的浏览器；带 `--built` 时先 `npm run build` |
 | `npm run build:cloudflare` | 资源校验、类型检查与正式构建 | 与 Cloudflare 构建相同 |
 | `npm run test:chat-input-ui` | 准备页、对局、换备聊天的手机／iPad 横竖屏输入；模拟键盘缩小可见区域和视口上移，检查长草稿、发送对齐、输入法与旋转保留 | 先 `node scripts/restore_environment_assets.mjs`；本地 Edge，截图写入 `.audit-tmp/`，不等于 iOS 真机键盘验收 |
+| `node scripts/test_replay_revisions.mjs`（已在 `test:unit` 中） | 录像规则环境：选环境边界、环境表规则、真实差异包合并后等于服务器摘要、16 种坏包拒绝、profile／差异包篡改、合并树完整播放 | `npm ci` 之后即可，不需要构建 |
+| `npm run test:replay-environment-ui` | 录像页规则版本：四种语言的自动选择、按时间推测、判断不了用最新；手动指定、重新加载、列表标记、恢复自动；加载中来回切换；手选环境不存在报错；网站环境列表过时或读不到的提示；手机和 iPad 横竖屏 | 先 `npm run build:static` 并 `node scripts/serve_dist.mjs`（127.0.0.1:4173）；子路径和相对路径部署：用 PowerShell 设 `VITE_BASE_PATH`（`/sub/` 或 `./`）构建、`STATIC_BASE_PATH` 起服务、`SMOKE_URL` 指向对应地址再跑。Git Bash 会把 `/sub/` 改写成本机路径，不要在 Git Bash 里设这些变量 |
 | `npm run test:card-fallback-name-ui` | 卡图加载失败时卡片显示卡名：桌面可读（屏幕上 9～13px）；卡号未知的暗牌不显示卡名；手机缩小后的场地上隐藏 | 先 `npm run build:static` 并 `node scripts/serve_dist.mjs`（127.0.0.1:4173）；本地 Edge |
 | `npm run test:quick-commands` | 隔离的本地 SRVPro 和真实 Core：四语 `/tip`、`/roomname` 回复与解锁、连续相同回复都要显示、回复只给发送者，以及对局双方和观战 | 本机 ygopro、Python 和 Edge；不连接正式服，服务器配置是测试默认值，不代表正式服开关 |
 

@@ -141,7 +141,9 @@
 }
 .replay-environment-hint {
   margin-bottom: 12px;
-  color: rgba(0, 0, 0, 0.65);
+  /* Follow the modal's theme colour: the duel shell uses a dark theme. */
+  color: inherit;
+  opacity: 0.8;
 }
 .replay-environment-list {
   display: grid;

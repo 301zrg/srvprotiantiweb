@@ -288,7 +288,7 @@ sequenceDiagram
   UI->>Worker: 离开 / 取消时终止
 ```
 
-固定 `706-v1` profile 与 SHA 锁保护重演环境，但录像头不能证明生产 Core／Lua 全部版本。
+固定 `706-v1` profile 与 SHA 锁保护重演的底稿；服务器每个规则环境是 v1 之上的差异包（`public/replay/revisions/`）。页面按录像开局时间选环境（`src/replay/revisions.ts`），玩家可手动指定并记在录像上；校验链为打包的环境列表 → 环境 profile 的 SHA → 差异包的大小和 SHA，任一级不符就停止，不换用别的版本。练习模式开局时固定使用最新环境。录像头不记录服务器，只能证明时间，不能证明生产 Core／Lua 全部版本；维护见 [规则维护说明](replay-script-maintenance.md)。
 标准双人 YRP2／UNIFORM `0x1362` 扩展头 1 是当前支持格式；其他格式可保存／下载。
 响应耗尽或不兼容时如实停止，不补造胜负。切视角、暂停和场地动画只影响展示；
 不运行在线选择 handler，不向 WSS 发送响应。详细格式和已有样本见 [录像使用](replay-usage.md)。
@@ -324,8 +324,12 @@ flowchart LR
   Restore --> Env
   Native["固定 Core / Lua / LZMA 源码<br/>third-party/replay + runtime/replay"] --> Compile["资源维护时编译 / 打包"]
   Compile --> Replay["public/replay/706-v1<br/>JS / WASM / scripts / cards / profile"]
+  ServerSnap["服务器分层快照（私有，不提交）<br/>+ 上线回执的摘要与分界"] --> Revision["build_replay_revision.mjs"]
+  Replay --> Revision
+  Revision --> Revisions["public/replay/revisions<br/>环境列表 / 各环境 profile + 差异包"]
   Env --> Dist["Vite + 资源复制 → dist"]
   Replay --> Dist
+  Revisions --> Dist
   Neos["neos-assets<br/>SQLite WASM / 音效 / UI 素材"] --> Dist
   Dist --> Host["外部静态托管"]
 ```
