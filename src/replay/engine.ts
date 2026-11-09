@@ -333,7 +333,12 @@ export async function loadReplayEngine(
   ]);
   let scripts = unpackScripts(compressed, profile.unpackedScriptBytes);
   if (environment)
-    scripts = await loadEnvironmentScripts(environment.revisionsBase, environment.id, scripts, status);
+    scripts = await loadEnvironmentScripts(
+      environment.revisionsBase,
+      environment.id,
+      scripts,
+      status,
+    );
   status("正在初始化旧裁定脚本");
   const engine = new ReplayEngine(core);
   engine.install(cards, scripts);

@@ -119,6 +119,40 @@
 .replay-progress strong {
   color: #ffda97;
 }
+/* Rule version line (plan 02 §3.5): reads as text, opens the picker. */
+.replay-environment {
+  display: block;
+  max-width: 100%;
+  margin: 2px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9fc2e8;
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  text-decoration: underline dotted;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.replay-environment:focus-visible {
+  outline: 2px solid #ffda97;
+  outline-offset: 2px;
+}
+.replay-environment-hint {
+  margin-bottom: 12px;
+  color: rgba(0, 0, 0, 0.65);
+}
+.replay-environment-list {
+  display: grid;
+  gap: 8px;
+}
+.replay-environment-list .ant-btn {
+  height: auto;
+  min-height: 40px;
+  white-space: normal;
+  text-align: start;
+}
 .replay-board {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

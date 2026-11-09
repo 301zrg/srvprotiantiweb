@@ -8,6 +8,7 @@ import {
   practiceHintResults,
   type PracticeRequest,
 } from "@/practice/prompts";
+import { latestEnvironment } from "@/replay/revisions";
 import { settingStore } from "@/stores/settingStore";
 import { duelResultSource } from "@/variant/duelResults";
 import { advanceCoreTiming, type DuelTiming } from "@/variant/duelTiming";
@@ -208,6 +209,14 @@ export function usePracticeSession(language: string) {
           // Same as replay playback: relative BASE_URL builds resolve beside the page, not at the site root.
           document.baseURI,
         ).href,
+        // Newest rule environment of this page, fixed for the whole game.
+        environment: {
+          id: latestEnvironment,
+          revisionsBase: new URL(
+            `${import.meta.env.BASE_URL}replay/revisions/`,
+            document.baseURI,
+          ).href,
+        },
         config,
       });
     },

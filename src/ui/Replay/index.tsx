@@ -8,6 +8,7 @@ import {
   DownloadOutlined,
   ExportOutlined,
   EyeOutlined,
+  FieldTimeOutlined,
   FileSearchOutlined,
   LogoutOutlined,
   PauseOutlined,
@@ -49,13 +50,20 @@ import {
   prepareReplayFile,
   renameReplay,
   type ReplayEntry,
+  replayFromThisServer,
   type ReplayOccurrence,
   saveReplay,
+  setReplayEnvironment,
   shareReplayFile,
   subscribeReplays,
 } from "@/replay/library";
 import { localizeReplayText } from "@/replay/localizedText";
 import type { ReplayCard } from "@/replay/messages";
+import {
+  environments,
+  type EnvironmentSelection,
+  selectEnvironment,
+} from "@/replay/revisions";
 import { type HistoryOrder, settingStore } from "@/stores/settingStore";
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
@@ -274,9 +282,20 @@ export function Component() {
   const text = labels[language as keyof typeof labels] || labels.cn;
   const [params] = useSearchParams();
   const id = params.get("id");
+  // A new rule environment remounts the player: fresh Worker, Core, frames and history.
+  const [generation, setGeneration] = useState(0);
   return (
     <ConfigProvider autoInsertSpaceInButton={false}>
-      {id ? <Player key={id} id={id} text={text} /> : <Library text={text} />}
+      {id ? (
+        <Player
+          key={`${id}:${generation}`}
+          id={id}
+          text={text}
+          onReload={() => setGeneration((g) => g + 1)}
+        />
+      ) : (
+        <Library text={text} />
+      )}
     </ConfigProvider>
   );
 }
@@ -437,6 +456,12 @@ function Library({ text }: { text: string[] }) {
                     : t("ReplayLocalImport")}
                 </p>
                 {entry.temporary && <strong>{t("ReplayTemporary")}</strong>}
+                {entry.environmentOverride && (
+                  <strong data-testid="replay-entry-environment">
+                    {" "}
+                    {t("ReplayEnvPicked")}: {entry.environmentOverride}
+                  </strong>
+                )}
                 {entry.header.reason && (
                   <p>
                     {localizeReplayText(
@@ -566,7 +591,15 @@ function Library({ text }: { text: string[] }) {
   );
 }
 
-function Player({ id, text }: { id: string; text: string[] }) {
+function Player({
+  id,
+  text,
+  onReload,
+}: {
+  id: string;
+  text: string[];
+  onReload: () => void;
+}) {
   const { t } = useTranslation("ClientUI");
   const { language } = useI18N();
   const stateText = replayCardWords(language);
@@ -605,6 +638,23 @@ function Player({ id, text }: { id: string; text: string[] }) {
     [historyCode, setHistoryCode] = useState(0),
     [showHistory, setShowHistory] = useState(false),
     [titleSource, setTitleSource] = useState<ReplayEntry>();
+  // Rule environment of this playback (plan 02 §3.5). A pick by hand restarts
+  // the whole load: a fresh Worker and Core, never a reused one.
+  const [environment, setEnvironment] = useState<
+    | (Omit<EnvironmentSelection, "basis"> & {
+        basis: EnvironmentSelection["basis"] | "manual";
+        fromServer: boolean;
+      })
+    | undefined
+  >();
+  const [environmentNotice, setEnvironmentNotice] = useState("");
+  const [environmentPicker, setEnvironmentPicker] = useState(false);
+  const pickEnvironment = (choice: string | null) =>
+    run(async () => {
+      setEnvironmentPicker(false);
+      await setReplayEnvironment(id, choice);
+      onReload();
+    });
   const peek = settings.replayPeekFaceDown,
     hands = settings.replayShowHands;
   const reveal = useMemo(() => ({ peek, hands }), [peek, hands]);
@@ -736,6 +786,40 @@ function Player({ id, text }: { id: string; text: string[] }) {
           throw new Error(t("ReplayHashError"));
         if (disposed) return;
         setTitleSource(entry);
+        const override = entry.environmentOverride;
+        if (override && !environments.some((e) => e.id === override)) {
+          // Say so; never silently fall back to another version.
+          setEnvironment(undefined);
+          throw new Error(t("ReplayEnvMissing", { id: override }));
+        }
+        const chosen = override
+          ? { id: override, basis: "manual" as const }
+          : selectEnvironment(
+              entry.header.timestamp,
+              Math.floor(Date.now() / 1000),
+            );
+        setEnvironment({ ...chosen, fromServer: replayFromThisServer(entry) });
+        // A tab opened before the site changed its list could pick a stale version.
+        // Same-origin and uncached; a failed check never blocks playback (R4).
+        void fetch(
+          new URL(
+            `${import.meta.env.BASE_URL}replay/revisions/index.json`,
+            document.baseURI,
+          ),
+          { cache: "no-store" },
+        )
+          .then((r) => (r.ok ? r.json() : Promise.reject()))
+          .then((live) => {
+            if (
+              !disposed &&
+              JSON.stringify(live?.environments) !==
+                JSON.stringify(environments)
+            )
+              setEnvironmentNotice(t("ReplayEnvStale"));
+          })
+          .catch(() => {
+            if (!disposed) setEnvironmentNotice(t("ReplayEnvIndexUnknown"));
+          });
         const w = new Worker(
           new URL("../../replay/worker.ts", import.meta.url),
           { type: "module" },
@@ -872,6 +956,13 @@ function Player({ id, text }: { id: string; text: string[] }) {
               `${import.meta.env.BASE_URL}replay/706-v1/`,
               document.baseURI,
             ).href,
+            environment: {
+              id: chosen.id,
+              revisionsBase: new URL(
+                `${import.meta.env.BASE_URL}replay/revisions/`,
+                document.baseURI,
+              ).href,
+            },
           },
           [bytes.buffer],
         );
@@ -1001,6 +1092,37 @@ function Player({ id, text }: { id: string; text: string[] }) {
           ? replayDisplayTitle(titleSource, settings.replayHideTitles, language)
           : text[2]}
       </h1>
+      {environment && (
+        <button
+          type="button"
+          className="replay-environment"
+          data-testid="replay-environment"
+          data-environment={environment.id}
+          data-basis={environment.basis}
+          onClick={() => {
+            stop();
+            setEnvironmentPicker(true);
+          }}
+        >
+          {t("ReplayEnvironment")}: {environment.id} ·{" "}
+          {environment.basis === "manual"
+            ? t("ReplayEnvManual")
+            : environment.basis === "fallback"
+            ? t("ReplayEnvFallback")
+            : environment.fromServer
+            ? t("ReplayEnvAuto")
+            : t("ReplayEnvGuess")}
+        </button>
+      )}
+      {environmentNotice && (
+        <p
+          className="replay-note"
+          role="status"
+          data-testid="replay-environment-notice"
+        >
+          {environmentNotice}
+        </p>
+      )}
       {frame && (
         <>
           <div className="replay-progress">
@@ -1174,6 +1296,16 @@ function Player({ id, text }: { id: string; text: string[] }) {
       label: text[3],
       icon: <DownloadOutlined />,
       onClick: () => run(() => downloadReplay(id)),
+    },
+    {
+      key: "environment",
+      label: t("ReplayEnvironment"),
+      icon: <FieldTimeOutlined />,
+      testId: "replay-environment-menu",
+      onClick: () => {
+        stop();
+        setEnvironmentPicker(true);
+      },
     },
     {
       key: "extract",
@@ -1478,6 +1610,47 @@ function Player({ id, text }: { id: string; text: string[] }) {
             />
           )}
         </DuelPanel>
+        <Modal
+          open={environmentPicker}
+          title={t("ReplayEnvironment")}
+          footer={null}
+          onCancel={() => setEnvironmentPicker(false)}
+          destroyOnClose
+        >
+          <p className="replay-environment-hint">{t("ReplayEnvHint")}</p>
+          <div
+            className="replay-environment-list"
+            data-testid="replay-environment-list"
+          >
+            {[...environments].reverse().map((e) => (
+              <Button
+                key={e.id}
+                block
+                type={environment?.id === e.id ? "primary" : "default"}
+                data-environment={e.id}
+                onClick={() => pickEnvironment(e.id)}
+              >
+                {e.id} ·{" "}
+                {e.effectiveFromUnix === null
+                  ? t("ReplayEnvEarliest")
+                  : t("ReplayEnvFrom", {
+                      date: new Date(e.effectiveFromUnix * 1000).toLocaleString(
+                        languageLocales[language as Language],
+                      ),
+                    })}
+              </Button>
+            ))}
+            {titleSource?.environmentOverride && (
+              <Button
+                block
+                data-environment="auto"
+                onClick={() => pickEnvironment(null)}
+              >
+                {t("ReplayEnvRestoreAuto")}
+              </Button>
+            )}
+          </div>
+        </Modal>
       </DuelSidebarContext.Provider>
     </main>
   );

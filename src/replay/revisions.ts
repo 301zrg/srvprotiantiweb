@@ -39,7 +39,11 @@ export function validateEnvironments(list: unknown): EnvironmentEntry[] {
       (i === 0
         ? e.effectiveFromUnix !== null
         : !Number.isSafeInteger(e.effectiveFromUnix) ||
-          (i > 1 && !((e.effectiveFromUnix as number) > (list[i - 1].effectiveFromUnix as number))))
+          (i > 1 &&
+            !(
+              (e.effectiveFromUnix as number) >
+              (list[i - 1].effectiveFromUnix as number)
+            )))
     )
       throw new Error("规则环境表异常");
     seen.add(e.id);
@@ -63,7 +67,8 @@ export function selectEnvironment(
     return { id: newest, basis: "fallback", reason: "future" };
   let id = list[0].id;
   for (const e of list)
-    if (e.effectiveFromUnix === null || e.effectiveFromUnix <= timestamp) id = e.id;
+    if (e.effectiveFromUnix === null || e.effectiveFromUnix <= timestamp)
+      id = e.id;
   return { id, basis: "auto" };
 }
 
@@ -99,7 +104,10 @@ function gunzipBounded(bytes: Uint8Array, expected: number): Uint8Array {
 
 function readIndex(bytes: Uint8Array): { header: any; dataStart: number } {
   if (bytes.length < 4) throw new Error("脚本包索引异常");
-  const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(0, true);
+  const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(
+    0,
+    true,
+  );
   if (length > 4 * 1024 * 1024 || length + 4 > bytes.length)
     throw new Error("脚本包索引长度异常");
   return {
@@ -136,8 +144,18 @@ export async function applyDelta(
 ): Promise<Uint8Array> {
   const base = readIndex(v1Unpacked);
   const files = new Map<string, Uint8Array>();
-  for (const e of base.header as { name: string; offset: number; bytes: number }[])
-    files.set(e.name, v1Unpacked.subarray(base.dataStart + e.offset, base.dataStart + e.offset + e.bytes));
+  for (const e of base.header as {
+    name: string;
+    offset: number;
+    bytes: number;
+  }[])
+    files.set(
+      e.name,
+      v1Unpacked.subarray(
+        base.dataStart + e.offset,
+        base.dataStart + e.offset + e.bytes,
+      ),
+    );
   const { header: delta, dataStart } = readIndex(deltaUnpacked);
   if (
     !delta ||
@@ -146,7 +164,8 @@ export async function applyDelta(
     !Array.isArray(delta.delete)
   )
     throw new Error("差异包底稿不符");
-  const names = new Set<string>(), lower = new Set<string>();
+  const names = new Set<string>(),
+    lower = new Set<string>();
   const claim = (name: unknown) => {
     if (typeof name !== "string" || !NAME.test(name) || name.includes(".."))
       throw new Error("差异包路径不规范");
@@ -169,7 +188,8 @@ export async function applyDelta(
       throw new Error("差异包偏移越界");
     end += e.bytes;
   }
-  if (dataStart + end !== deltaUnpacked.length) throw new Error("差异包剩余数据异常");
+  if (dataStart + end !== deltaUnpacked.length)
+    throw new Error("差异包剩余数据异常");
   for (const name of delta.delete) {
     claim(name);
     if (!files.has(name)) throw new Error("差异包要删除的文件不存在");
@@ -177,8 +197,12 @@ export async function applyDelta(
   for (const name of delta.delete) files.delete(name);
   const byLower = new Map([...files.keys()].map((n) => [n.toLowerCase(), n]));
   for (const e of delta.set) {
-    const bytes = deltaUnpacked.subarray(dataStart + e.offset, dataStart + e.offset + e.bytes);
-    if ((await sha256(bytes)) !== e.sha256) throw new Error("差异包文件校验失败");
+    const bytes = deltaUnpacked.subarray(
+      dataStart + e.offset,
+      dataStart + e.offset + e.bytes,
+    );
+    if ((await sha256(bytes)) !== e.sha256)
+      throw new Error("差异包文件校验失败");
     // A replacement must not differ from an existing name only by case.
     const existing = byLower.get(e.name.toLowerCase());
     if (existing !== undefined && existing !== e.name)
@@ -196,7 +220,11 @@ export async function applyDelta(
  * A profile's size is only known once fetched, so it is bounded by a ceiling and pinned
  * by the bundled SHA. A verified cached copy is used first, so playback works offline.
  */
-async function loadProfile(url: string, expected: string, cacheName: string): Promise<Uint8Array> {
+async function loadProfile(
+  url: string,
+  expected: string,
+  cacheName: string,
+): Promise<Uint8Array> {
   let cache: Cache | undefined;
   try {
     cache = await caches.open(cacheName);
@@ -206,7 +234,9 @@ async function loadProfile(url: string, expected: string, cacheName: string): Pr
   const verify = async (r: Response | undefined) => {
     if (!r?.ok) return undefined;
     const bytes = new Uint8Array(await r.arrayBuffer());
-    return bytes.length <= 64 * 1024 && (await sha256(bytes)) === expected ? bytes : undefined;
+    return bytes.length <= 64 * 1024 && (await sha256(bytes)) === expected
+      ? bytes
+      : undefined;
   };
   const cached = await verify(await cache?.match(url));
   if (cached) return cached;
@@ -239,7 +269,9 @@ export async function loadEnvironmentScripts(
     entry.profileSha256,
     cacheName,
   );
-  const p = JSON.parse(new TextDecoder().decode(profileBytes)) as RevisionProfile;
+  const p = JSON.parse(
+    new TextDecoder().decode(profileBytes),
+  ) as RevisionProfile;
   if (
     p.format !== 1 ||
     p.id !== id ||
@@ -247,12 +279,23 @@ export async function loadEnvironmentScripts(
     p.base.scriptsDataSha256 !== v1.files["scripts.data"].sha256 ||
     p.core !== v1.core ||
     p.cardsDataSha256 !== v1.files["cards.data"].sha256 ||
-    !(p.delta?.unpackedBytes > 0 && p.delta.unpackedBytes <= (p.limits?.maxUnpackedBytes ?? 0)) ||
+    !(
+      p.delta?.unpackedBytes > 0 &&
+      p.delta.unpackedBytes <= (p.limits?.maxUnpackedBytes ?? 0)
+    ) ||
     p.limits.maxUnpackedBytes > 64 * 1024 * 1024 ||
     p.limits.maxFiles > 20000 ||
     p.limits.maxFileBytes > 1024 * 1024
   )
     throw new Error("规则环境与底稿不符");
-  const delta = await loadVerifiedBytes(new URL(`${id}/delta.data`, revisionsBase).href, p.delta, cacheName);
-  return applyDelta(v1Unpacked, gunzipBounded(delta, p.delta.unpackedBytes), p.limits);
+  const delta = await loadVerifiedBytes(
+    new URL(`${id}/delta.data`, revisionsBase).href,
+    p.delta,
+    cacheName,
+  );
+  return applyDelta(
+    v1Unpacked,
+    gunzipBounded(delta, p.delta.unpackedBytes),
+    p.limits,
+  );
 }

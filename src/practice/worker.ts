@@ -1,5 +1,6 @@
 import { unpackScripts } from "../replay/engine";
 import profile from "../replay/profile.json";
+import { loadEnvironmentScripts } from "../replay/revisions";
 import { loadReplayResource, loadReplayRuntime } from "../replay/runtime";
 import { PracticeEngine } from "./engine";
 
@@ -17,10 +18,16 @@ self.onmessage = async ({ data }) => {
         loadReplayResource(data.base, profile, "scripts.data", status),
       ]);
       engine = new PracticeEngine(runtime);
-      engine.install(
-        cards,
-        unpackScripts(scripts, profile.unpackedScriptBytes),
-      );
+      let unpacked = unpackScripts(scripts, profile.unpackedScriptBytes);
+      // The environment is fixed when the game opens and never changes mid-game (02 §3.6).
+      if (data.environment)
+        unpacked = await loadEnvironmentScripts(
+          data.environment.revisionsBase,
+          data.environment.id,
+          unpacked,
+          status,
+        );
+      engine.install(cards, unpacked);
       engine.setChainMode(data.chainMode);
       self.postMessage({ type: "frame", frame: engine.open(data.config) });
     } else if (data.type === "next" && engine) {

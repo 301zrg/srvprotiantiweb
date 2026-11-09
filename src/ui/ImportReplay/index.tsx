@@ -93,7 +93,12 @@ function ImportFlow({ session }: { session: ReplayImportSession }) {
     if (snapshot.input && !snapshot.error && isCurrentReplayImport(session)) {
       let task = pending.get(session);
       if (!task) {
-        task = saveReplay(snapshot.input.bytes, snapshot.input.filename);
+        task = saveReplay(
+          snapshot.input.bytes,
+          snapshot.input.filename,
+          undefined,
+          snapshot.input.verified ? { sourceEvidence: "official-site" } : {},
+        );
         pending.set(session, task);
       }
       void task

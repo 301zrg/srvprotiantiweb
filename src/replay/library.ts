@@ -20,7 +20,17 @@ export interface ReplayEntry {
   header: ReplayHeader;
   source: "import" | "duel";
   temporary?: boolean;
+  /**
+   * Set only by the verified ranking-site bridge (origin + opener checked), never
+   * from a filename or user input. Plan 02 §3.5 R6.
+   */
+  sourceEvidence?: "official-site";
+  /** A rule environment the player picked by hand; absent means automatic selection. */
+  environmentOverride?: string;
 }
+/** Whether the replay is known to come from this server (web duel capture or verified site handoff). */
+export const replayFromThisServer = (entry: ReplayEntry) =>
+  entry.source === "duel" || entry.sourceEvidence === "official-site";
 export interface ReplayOccurrence {
   id: string;
   entry: string;
@@ -133,6 +143,7 @@ export async function saveReplay(
   bytes: Uint8Array,
   filename: string,
   occurrence?: Omit<ReplayOccurrence, "id" | "entry">,
+  options: { sourceEvidence?: "official-site" } = {},
 ): Promise<ReplayEntry> {
   const header = inspectReplay(bytes, filename);
   const hash = await sha256(bytes);
@@ -146,6 +157,9 @@ export async function saveReplay(
     createdAt: Date.now(),
     header,
     source: occurrence ? "duel" : "import",
+    ...(options.sourceEvidence
+      ? { sourceEvidence: options.sourceEvidence }
+      : {}),
   };
   const blob = new Blob([bytes], { type: "application/octet-stream" });
   let transaction: IDBTransaction | undefined;
@@ -163,7 +177,13 @@ export async function saveReplay(
     const prior = await req<ReplayEntry | undefined>(
       entries.index("hash").get(hash),
     );
-    const entry = prior || candidate;
+    let entry = prior || candidate;
+    // Same file imported earlier without proof: add the verified source inside this
+    // dedup transaction, keeping everything else (title, hand-picked environment).
+    if (prior && options.sourceEvidence && !prior.sourceEvidence) {
+      entry = { ...prior, sourceEvidence: options.sourceEvidence };
+      entries.put(entry);
+    }
     if (!prior) {
       const all = await req<{ bytes: number }[]>(blobs.getAll());
       if (
@@ -195,7 +215,11 @@ export async function saveReplay(
     const existing = Array.from(memory.values()).find(
       (v) => v.entry.hash === hash,
     );
-    if (existing) return existing.entry;
+    if (existing) {
+      if (options.sourceEvidence)
+        existing.entry.sourceEvidence = options.sourceEvidence;
+      return existing.entry;
+    }
     if (
       Array.from(memory.values()).reduce((n, v) => n + v.entry.bytes, 0) +
         bytes.length >
@@ -226,6 +250,40 @@ export async function renameReplay(id: string, title: string) {
   if (entry) store.put({ ...entry, title });
   await completion;
   changed();
+}
+/**
+ * Records (or clears, with null) the rule environment picked by hand. Read, modify and
+ * write in one transaction, so a rename or delete in another tab is never undone.
+ */
+export async function setReplayEnvironment(
+  id: string,
+  environment: string | null,
+) {
+  const apply = (entry: ReplayEntry): ReplayEntry => {
+    const next = { ...entry };
+    if (environment) next.environmentOverride = environment;
+    else delete next.environmentOverride;
+    return next;
+  };
+  if (memory.has(id)) {
+    const item = memory.get(id)!;
+    item.entry = apply(item.entry);
+    changed();
+    return item.entry;
+  }
+  const tx = (await db()).transaction("entries", "readwrite"),
+    completion = done(tx),
+    store = tx.objectStore("entries");
+  const entry = await req<ReplayEntry | undefined>(store.get(id));
+  if (!entry) {
+    await completion.catch(() => {});
+    throw new Error("录像已在其他页面删除");
+  }
+  const next = apply(entry);
+  store.put(next);
+  await completion;
+  changed();
+  return next;
 }
 export async function deleteReplay(id: string) {
   if (memory.delete(id)) {

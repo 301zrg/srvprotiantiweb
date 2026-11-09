@@ -40,10 +40,10 @@ export async function loadVerifiedBytes(
     !record ||
     !Number.isSafeInteger(record.bytes) ||
     record.bytes < 0 ||
-    record.bytes > 16 * 1024 * 1024 ||
-    !/^[a-f0-9]{64}$/.test(record.sha256)
+    record.bytes > 16 * 1024 * 1024
   )
     throw new Error("播放资源清单异常");
+  // A malformed SHA simply never matches below and is reported as a failed check.
   let cache: Cache | undefined;
   try {
     cache = await caches.open(cacheName);
