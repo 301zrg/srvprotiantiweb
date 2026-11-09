@@ -1,8 +1,8 @@
 {
   "format": 1,
   "id": "706-20261110",
-  "effectiveFromUnix": 1794276001,
-  "evidence": "provisional-rehearsal",
+  "effectiveFromUnix": 1794252902,
+  "evidence": "release-receipt",
   "base": {
     "revision": "706-v1",
     "scriptsDataSha256": "0f5164122d3be0c82d5a432daecee4598f7419eba0c62af2a61549dea5b3eadd",
