@@ -11,38 +11,46 @@
 | Core C/C++ 或 Lua 运行库                            | 重编译固定 WASM，重新打包对应脚本和规则卡表                |
 | 网页 UI、音效或显示文本                             | 普通静态构建和发布，不需要更新 Lua／WASM                   |
 
-Lua 更新通常不需要重编译 WASM，但不能复制一个散落的 `.lua` 就当作同步完成。目前资源包为 `706-v1`，固定来源、大小及 SHA-256 在 [公开 profile](../public/replay/706-v1/profile.json)，客户端也嵌入[相同清单](../src/replay/profile.json)。摘要不一致会停止加载。
+Lua 更新通常不需要重编译 WASM，但不能复制一个散落的 `.lua` 就当作同步完成。
 
-维护顺序：
+**资源结构（2026-11 起）**：`706-v1` 是不再改动的底稿，固定来源、大小及 SHA-256 在 [公开 profile](../public/replay/706-v1/profile.json)，客户端也嵌入[相同清单](../src/replay/profile.json)。服务器每个规则环境是 v1 之上的一个差异包：`public/replay/revisions/<环境ID>/{profile.json,delta.data}`。环境列表 `public/replay/revisions/index.json` 与打包进页面的 [src/replay/revisions.json](../src/replay/revisions.json) 必须逐字节相同；列表记每个 profile 的 SHA，profile 记差异包的大小和 SHA，任一级不符就停止加载，不换用别的版本。环境 ID、生效时间等规则见 specials 仓库的 `706-meta/`。
 
-1. 确认正式服务器实际使用的 Core、基础 Lua、扩展 Lua 和 706 覆盖版本，记录固定提交。输入仓库保持只读、干净，不直接把依赖更新到最新 master。
-2. 建立新 revision，例如 `706-v2`，保留 v1。当前生成器输出、提交锁、客户端入口和缓存名固定为 v1，更新时需一并调整；不能直接运行旧命令覆盖 v1。
-3. 检查基础 → 扩展 → 706 的覆盖顺序和 utility bootstrap，生成新的 `scripts.data`、卡表及两份 profile。仅 Core 改动时才先编译新 WASM。
-4. 使用匹配原生客户端／服务器生成的自有录像验证抽牌、响应、连锁、LP、攻守、终局及 special 边界，并回归旧录像；通过后发布完整静态包。
+**脚本更新时的维护顺序**（只换 Lua，不换 Core 和卡表）：
 
-现有工具：[规则打包](../scripts/build_replay_resources.py)、[Core 编译](../scripts/build_replay_runtime.py)。**先调整新 revision 和输入锁**，再执行：
+1. 服务器按一次性上线流程切换，取得回执：生效分界 T（整数秒）、切换前后的完整生效 Lua 树摘要。
+2. 取服务器的**分层**只读快照（`expansions/script`、`script` 分开保存，`specials/` 应不存在），放在本地私有目录，**不提交**。删除上层覆盖后会由下层同名文件生效，所以不能只拿合并后的树。
+3. 生成环境：
+
+   ```powershell
+   node scripts/build_replay_revision.mjs --id 706-YYYYMMDD --tree <分层快照目录> `
+     --digest <回执里切换后的摘要> --effective-from <T> --evidence release-receipt `
+     --specials <S 提交> --tree706 <S 的 706 子树>
+   npm run check:replay   # 也会校验 revisions/
+   node scripts/test_replay_revisions.mjs
+   npm run build:static
+   ```
+
+   生成器把目标树与 v1 逐文件比较（按 LF 归一后的内容），合并后的摘要必须等于回执的值；它也拒绝重复 ID、非首条分界为空、分界不严格递增。已发布的环境不改动，只追加。
+4. 用正式服切换后实测得到的自有录像核对新环境；旧录像仍按自己的时间选旧环境。通过后发布。
+
+Core 或卡表变化时，差异包不够用，需要新的全量底稿：[规则打包](../scripts/build_replay_resources.py)、[Core 编译](../scripts/build_replay_runtime.py) 目前固定输出 v1，届时先改成新的底稿名再运行，不能覆盖 v1。
 
 ```powershell
 # 仅 Core 改动时需要；固定 SDK 见 replay-usage.md
 python scripts/build_replay_runtime.py --emsdk <固定SDK目录>
-
-# 当前工具固定 v1，更新规则之前先改好新 revision 的输出和锁
-python scripts/build_replay_resources.py --server-root <服务器项目目录> --specials-root <固定specials目录>
-npm run check:replay
-npm run test:replay-runtime
-npm run test:replay-scene
-npm run build:static
 ```
 
 ### special.lua 与旧录像
 
 当前 `utility.lua` 已嵌入经过审查的 `special.lua`，只调用一次 `PreloadUds()`。更新时从相应的干净 utility 合成，或审查现成 bootstrap；不能再次追加同一补丁。生成器校验已有合成结果摘要及一次定义／一次调用，新补丁需更新锁并提供相应测试。
 
-YRP 没有完整脚本版本摘要。**当前播放器仅支持固定 `706-v1`，还没有按录像自动选择历史规则包的功能。** 保留 v1 文件不等于播放器会自动选中 v1。将来更新规则时，需同时明确旧录像的 profile 选择／兼容策略；新脚本可能改变旧录像的结果，不能承诺任意历史版本无条件兼容。
+YRP 没有脚本版本，也不记录来自哪台服务器。播放器按录像头的开局时间（偏移 20 的 `start_time`）选生效时间不晚于它的最后一个环境；时间为 0 或比当前时间晚一天以上时用最新环境，并提示无法判断。玩家始终可以手动指定版本，手选会记在录像上。
+
+只有本服的录像能按时间对应版本：网页在线对局收到的录像，以及经官网桥接交接、校验过来源的录像，显示"按录像时间自动选择"；普通导入的文件只显示"按本服时间表推测"。本地自行对局等其他来源的录像，用哪个环境都可能对不上，界面只做提示，不另提供"无 706 覆盖"的版本。第一条环境 `706-20260907` 是上线前取得的服务器快照，作为更早录像的兼容版本，没有严格的历史分界。
 
 ## 大陆播放是否需要访问 GitHub
 
-不需要。点击播放后，从当前静态网站的**同源路径**加载 `replay/706-v1/ocgcore.js`、`ocgcore.wasm`、`cards.data` 和 `scripts.data`。录像原件保存在本机，规则重演在本机 Worker 中完成，不连接天梯 WSS。音效也来自站点随包发布的 `neos-assets/sound/*.wav`，没有运行时 GitHub／raw.githubusercontent.com 请求。
+不需要。点击播放后，从当前静态网站的**同源路径**加载 `replay/706-v1/ocgcore.js`、`ocgcore.wasm`、`cards.data` 和 `scripts.data`，再加载所选环境的 `replay/revisions/<环境ID>/profile.json` 和 `delta.data`（几十 KB），并读一次 `replay/revisions/index.json` 检查本页的环境列表是否过时（读不到只提示，不影响播放）。录像原件保存在本机，规则重演在本机 Worker 中完成，不连接天梯 WSS。音效也来自站点随包发布的 `neos-assets/sound/*.wav`，没有运行时 GitHub／raw.githubusercontent.com 请求。
 
 GitHub 只用于维护者更新源码和 CI 发布。维护者暂时不能访问 GitHub，不影响已发布站点的现有规则包。普通静态构建只需要 Node/npm 和仓库固定资源，不下载旧裁定仓库，不依赖 Python、SQLite 模块或编译器。
 

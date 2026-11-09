@@ -109,6 +109,7 @@
     "test:duel-clock-ui": "node scripts/duel_clock_ui.mjs",
     "test:card-image-cache": "node scripts/card_image_cache_ui.mjs",
     "test:card-fallback-name-ui": "node scripts/card_fallback_name_ui.mjs",
+    "test:replay-environment-ui": "node scripts/replay_environment_ui.mjs",
     "test:match-game": "node --experimental-strip-types scripts/test_match_game.mjs",
     "test:room-fill-tt": "node scripts/room_fill_tt_ui.mjs",
     "test:duel-feedback": "python scripts/build_environment_assets.py && node scripts/duel_feedback_ui.mjs",

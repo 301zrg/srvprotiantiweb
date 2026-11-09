@@ -13,7 +13,11 @@ export type ReplayImportError =
   | "invalid-file"
   | "too-large";
 interface Snapshot {
-  input?: { bytes: Uint8Array; filename: string };
+  /**
+   * verified: delivered over the bridge from an allowed site origin and its opener
+   * window. An inline-data link can be built by anyone, so it never counts.
+   */
+  input?: { bytes: Uint8Array; filename: string; verified: boolean };
   error?: ReplayImportError;
 }
 
@@ -58,6 +62,7 @@ export class ReplayImportSession {
         this.accept(
           Uint8Array.from(binary, (c) => c.charCodeAt(0)),
           params.get("file"),
+          false,
         );
       } catch {
         this.fail("invalid-file");
@@ -76,7 +81,7 @@ export class ReplayImportSession {
     this.snapshot = snapshot;
     this.listeners.forEach((listener) => listener());
   }
-  private accept(bytes: Uint8Array, filename: unknown) {
+  private accept(bytes: Uint8Array, filename: unknown, verified: boolean) {
     if (
       typeof filename !== "string" ||
       filename.length > 240 ||
@@ -89,7 +94,7 @@ export class ReplayImportSession {
     clearTimeout(this.timeout);
     clearInterval(this.readyTimer);
     this.send("received");
-    this.notify({ input: { bytes, filename } });
+    this.notify({ input: { bytes, filename, verified } });
   }
   private send(status?: string) {
     try {
@@ -128,7 +133,8 @@ export class ReplayImportSession {
       try {
         if (data.format !== "yrp" || !(data.bytes instanceof ArrayBuffer))
           return this.fail("invalid-file");
-        this.accept(new Uint8Array(data.bytes), data.filename);
+        // Reached only after the origin, source window and request checks above.
+        this.accept(new Uint8Array(data.bytes), data.filename, true);
       } catch {
         this.fail("invalid-file");
       }
