@@ -7,13 +7,14 @@ import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const revision = "1103-201103-v1";
+const revision = "1103-201103-v2";
+const snapshot = "environment-v2";
 const locales = ["zh-CN", "en-US", "ja-JP", "ko-KR"];
 const staged = join(root, "resources-staging", "1103");
 const output = join(root, "public", "environment");
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const lock = JSON.parse(
-  readFileSync(join(staged, "environment-v1.json"), "utf8"),
+  readFileSync(join(staged, `${snapshot}.json`), "utf8"),
 );
 assert.equal(lock.version, 1);
 assert.equal(lock.revision, revision);
@@ -44,7 +45,7 @@ for (const path of inputs) {
     `${path} changed: rebuild, verify and repackage the environment snapshot before publishing`,
   );
 }
-assert.equal(lock.archive.file, "environment-v1.data");
+assert.equal(lock.archive.file, `${snapshot}.data`);
 const packed = readFileSync(join(staged, lock.archive.file));
 assert.equal(packed.length, lock.archive.bytes, "Snapshot size mismatch");
 assert.equal(sha(packed), lock.archive.sha256, "Snapshot checksum mismatch");

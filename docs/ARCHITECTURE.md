@@ -73,6 +73,8 @@
 
 卡图（[cardImageCache](../src/api/cardImageCache.ts)、`useCardImage`）：图源入口返回 `302 + no-store` 并跳转到不同的 CDN 节点，浏览器 HTTP 缓存经常重复下载同一张卡。最终图片允许 CORS，因此以入口地址（含图片语言）为键，把压缩文件存入 Cache Storage（`card-images-v1`）：最多约 600 张、先进先出，来源用量超过配额 60% 时停止写入；相同图片的并发请求合并，同时最多 12 个下载，失败的卡 60 秒内交给浏览器直接加载。运行时只保留引用计数的对象 URL 与 150 个空闲 URL，解码像素由页面元素负责。组卡卡片在进入滚动区域附近 400 px 内才加载。缓存不可用时回退到原地址；“画面与消息”可单独清理卡图缓存，不影响卡组、录像和联机输入。
 
+卡图没加载出来或加载失败时，[YgoCard](../src/ui/Shared/YgoCard/index.tsx) 在卡面位置显示卡名（对局、观战、手牌测试、录像场地与各选卡弹窗共用；组卡卡片由 `DeckCard` 自行处理）。卡图画在卡名上层的伪元素里，加载成功就盖住卡名，不需要监听加载事件。卡背和卡号为 0 的卡不显示卡名，暗牌不会因此暴露。盘面整体缩放时（`--scene-board-scale`／`--duel-board-scale`），字号按屏幕上 9～13 px 计算；卡片在屏幕上窄于约 40 px 时隐藏卡名，手机缩小后的场地上不显示。
+
 Match 局数（[matchGame](../src/variant/matchGame.ts)）按 MSG_START 计数，离开房间清零；观战重连清零后随服务端补发的整场历史重新计数，对战玩家对局中重连跳过补发的那一次。
 
 联机音效（`audioContextManger.playEffect`）只使用一个效果 AudioContext 和缓存的解码结果，由任意点击／触摸／按键解锁；未处于运行状态时直接丢弃该音效，不排队。此前每个音效新建一个 context，iOS 在无手势时保持暂停，下一次触摸会把积压的音效一次播完，暂停的 context 也不会释放。最多同时 6 个声音，解码超过 600 ms 的音效丢弃。背景音乐不在此范围。
@@ -298,7 +300,7 @@ sequenceDiagram
 | WSS 地址 | 公开 `window.__SRVPRO_DUEL_CONFIG__.duelWebSocketUrl` 存在时优先于 `VITE_DUEL_WS_URL`，显式空值禁用联机；玩家不能编辑地址 |
 | 交接来源 | `deckImportOrigins` 是站方精确 Origin 白名单；参数只能选择允许来源，不能扩大白名单。消息还要校验 source／request／版本／负载 |
 | 语言 | 有效 Hash `lang` → 网页 query `lang` → 已存选择 → 支持的浏览器语言 → en；初始化前捕获，切语不重连 |
-| 资源地址 | `BASE_URL` 形成 `environment/1103-201103-v1` 与 `neos-assets` 路径；卡图源集中配置，不接收玩家任意 URL |
+| 资源地址 | `BASE_URL` 形成 `environment/1103-201103-v2` 与 `neos-assets` 路径；卡图源集中配置，不接收玩家任意 URL |
 | 完整联机输入 | 内存草稿、各标签页 `joinFormDraft`（sessionStorage）及持久的 `joinFormSaved`（站点 localStorage，含密码）；普通退出保留，主动清空保持为空，一键观战用临时表单、不写普通缓存，详见 [会话契约](session-recovery.md) |
 | 公开偏好 | localStorage 的语言、公开昵称／房名等，不含账号或房间密码 |
 | 卡组 | 卡组 IndexedDB 与编辑 store；不会随观战输入清空而删除 |
@@ -318,7 +320,7 @@ flowchart LR
   Raw["resources-staging/1103<br/>原始四语 CDB / strings / 禁表"] --> Generate["Python 生成 / 校验<br/>中文 ID与datas + 各语文本"]
   Generate --> Snapshot["固定环境快照 / 指纹锁"]
   Snapshot --> Restore["Node 还原 / 校验"]
-  Generate --> Env["public/environment/1103-201103-v1"]
+  Generate --> Env["public/environment/1103-201103-v2"]
   Restore --> Env
   Native["固定 Core / Lua / LZMA 源码<br/>third-party/replay + runtime/replay"] --> Compile["资源维护时编译 / 打包"]
   Compile --> Replay["public/replay/706-v1<br/>JS / WASM / scripts / cards / profile"]

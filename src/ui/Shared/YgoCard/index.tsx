@@ -1,7 +1,7 @@
 import classNames from "classnames";
 import { CSSProperties, useMemo } from "react";
 
-import { getCardImgUrl } from "@/api/cards";
+import { fetchCard, getCardImgUrl } from "@/api/cards";
 import { useConfig } from "@/config";
 import { useCardImage } from "@/hook/useCardImage";
 
@@ -41,6 +41,12 @@ export const YgoCard: React.FC<Props> = (props) => {
     onLoad,
   } = props;
   const image = useCardImage(code, isBack);
+  // Shown under the art until it paints (slow or failed downloads). Never for
+  // backs or unknown codes, so hidden cards reveal nothing.
+  const name = useMemo(
+    () => (isBack || !code ? "" : fetchCard(code).text.name || ""),
+    [code, isBack],
+  );
 
   return useMemo(
     () => (
@@ -57,8 +63,17 @@ export const YgoCard: React.FC<Props> = (props) => {
         // 加载完成
         onLoad={onLoad}
       >
-        {/* 暂时不能这么写...但如果用onload的话来判断可能又很消耗性能，再看看吧 */}
-        {/* {cardName} */}
+        {/* The art is painted by ::after above this layer, so no load events
+            are needed: the name shows only while the image is missing. */}
+        {name && (
+          <div
+            className={styles.name}
+            data-testid="card-fallback-name"
+            aria-hidden="true"
+          >
+            <span>{name}</span>
+          </div>
+        )}
         {peek && !isBack && (
           <div
             className={styles.peekBack}
@@ -93,6 +108,7 @@ export const YgoCard: React.FC<Props> = (props) => {
     ),
     [
       image,
+      name,
       code,
       isBack,
       peek,

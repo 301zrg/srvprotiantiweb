@@ -104,7 +104,7 @@ function prepareRuntime() {
     projectRoot,
     "public",
     "environment",
-    "1103-201103-v1",
+    "1103-201103-v2",
   );
   for (const name of ["cards.cdb", "strings.conf"]) {
     copy(join(environment, "zh-CN", name), join(runtime, "ygopro", name));

@@ -40,8 +40,8 @@ for (const name of ["ygopro.exe", "cards.cdb", "strings.conf", "lflist.conf"]) {
     name === "ygopro.exe"
       ? join(server, "ygopro", name)
       : name === "lflist.conf"
-      ? join(root, "public/environment/1103-201103-v1", name)
-      : join(root, "public/environment/1103-201103-v1/zh-CN", name);
+      ? join(root, "public/environment/1103-201103-v2", name)
+      : join(root, "public/environment/1103-201103-v2/zh-CN", name);
   copy(source, join(game, name));
 }
 symlinkSync(join(server, "ygopro/script"), join(game, "script"), "junction");

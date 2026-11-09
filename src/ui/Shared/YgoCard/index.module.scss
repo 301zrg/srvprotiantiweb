@@ -10,9 +10,60 @@
   overflow: hidden; //超出的文本隐藏
   text-overflow: ellipsis; //溢出用省略号显示
   background-color: #313746;
-  background-image: var(--src);
-  background-size: contain;
   text-align: center;
+
+  // Card art above the fallback name: once it paints it hides the name, and
+  // while it is loading (or after a failed download) the name shows through.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--src);
+    background-size: contain;
+  }
+}
+
+.name {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6%;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  // The layer, not the card, is the size container: the card's own stacking
+  // and layout stay as before.
+  container-type: size;
+  // Boards are drawn at layout size and then CSS-scaled (replay/hand test,
+  // online duel). Sizes below are in on-screen pixels; cards outside a board
+  // (dialogs, lists) are not scaled.
+  --board-scale: var(--scene-board-scale, var(--duel-board-scale, 1));
+
+  span {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    color: #e8edf5;
+    // At least 9px and at most 13px as seen on screen.
+    font-size: clamp(
+      calc(9px / var(--board-scale)),
+      15cqw,
+      calc(13px / var(--board-scale))
+    );
+    line-height: 1.2;
+    text-shadow: 0 1px 2px #000;
+    // Hidden when the card is narrower than 40px on screen (small phone
+    // boards, chain icons): the text would be unreadable clutter. A negative
+    // result clamps to 0.
+    max-height: max(0px, calc((100cqw * var(--board-scale) - 34px) * 100));
+  }
 }
 
 // The back stays recognisable; the face shows through it.

@@ -15,7 +15,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "1103-201103-v1"
+REVISION = "1103-201103-v2"
+# One snapshot per immutable revision; older snapshots stay in Git as published records.
+SNAPSHOT = "environment-" + REVISION.rsplit("-", 1)[1]
 LOCALES = ("zh-CN", "en-US", "ja-JP", "ko-KR")
 SOURCE = ROOT / "resources-staging" / "1103"
 OUTPUT = ROOT / "public" / "environment"
@@ -62,15 +64,15 @@ def main() -> None:
         "version": 1,
         "revision": REVISION,
         "inputs": {path: input_sha(path) for path in inputs},
-        "archive": {"file": "environment-v1.data", "bytes": len(compressed),
+        "archive": {"file": f"{SNAPSHOT}.data", "bytes": len(compressed),
                     "sha256": sha(compressed), "decodedBytes": len(body)},
         "files": files,
     }
-    previous = SOURCE / "environment-v1.json"
+    previous = SOURCE / f"{SNAPSHOT}.json"
     if previous.exists() and json.loads(previous.read_text(encoding="utf-8")) != lock:
         raise ValueError("Immutable snapshot changed: use a new resource revision before repackaging")
-    (SOURCE / "environment-v1.data").write_bytes(compressed)
-    (SOURCE / "environment-v1.json").write_text(
+    (SOURCE / f"{SNAPSHOT}.data").write_bytes(compressed)
+    (SOURCE / f"{SNAPSHOT}.json").write_text(
         json.dumps(lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
     )
     print(f"Locked {REVISION}: {len(files)} files, {len(compressed):,} compressed bytes")

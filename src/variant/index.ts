@@ -44,7 +44,7 @@ export const duelWebSocketUrl =
       : ""
     : (import.meta.env.VITE_DUEL_WS_URL ?? "").trim();
 
-export const environmentId = "1103-201103-v1";
+export const environmentId = "1103-201103-v2";
 export const basePath = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;

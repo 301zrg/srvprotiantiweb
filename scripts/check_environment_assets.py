@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = ROOT / "public" / "environment" / "1103-201103-v1"
+BASE = ROOT / "public" / "environment" / "1103-201103-v2"
 MANIFEST = json.loads((BASE / "manifest.json").read_text(encoding="utf-8"))
 LOCALES = ("zh-CN", "en-US", "ja-JP", "ko-KR")
 
@@ -55,6 +55,13 @@ def main() -> None:
             if locale in ("zh-CN", "en-US"):
                 assert all("706 nexus environment" not in (row[2] or "") for row in texts)
                 assert all("706环境" not in (row[2] or "") for row in texts)
+
+    # Reviewed v2 text correction: Gargoyle Comedian targets any face-up monster.
+    with sqlite3.connect(BASE / "zh-CN" / "cards.cdb") as db:
+        desc = db.execute("SELECT desc FROM texts WHERE id=42647539").fetchone()[0]
+        assert "可以使对象1只表侧表示" in desc and "对方1只" not in desc
+    assert MANIFEST["locales"]["zh-CN"]["correctedTextCount"] == 1
+    assert all(MANIFEST["locales"][locale]["correctedTextCount"] == 0 for locale in LOCALES if locale != "zh-CN")
 
     sample = ROOT / "neos-assets" / "structure-decks" / "1103-sample.ydk"
     ids = [int(line) for line in sample.read_text(encoding="utf-8").splitlines() if line.isdigit()]

@@ -83,7 +83,7 @@ def main():
         'workingTreeDirty': bool(status.stdout.strip()) if status.returncode == 0 else None,
         'wssUrl': endpoint,
         'publicConfig': public_config,
-        'environment': '1103-201103-v1',
+        'environment': '1103-201103-v2',
         'status': 'online-test-candidate-not-accepted' if endpoint else 'awaiting-public-endpoint',
     }
     (web / 'deployment-info.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
