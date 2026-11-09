@@ -34,6 +34,7 @@ const guess = {
   ko: "이 서버 기록으로 추정",
 };
 const label = { cn: "规则版本", en: "Rule version", ja: "ルールバージョン", ko: "규칙 버전" };
+const mindMaster = { cn: "精神脑魔", en: "Mind Master", ja: "メンタルマスター", ko: "멘탈마스터" };
 
 const browser = await chromium.launch({
   headless: true,
@@ -91,6 +92,13 @@ try {
     await expect(line(page)).toContainText(guess[language]);
     await loaded(page);
     assert.ok(deltas.includes(oldest), `${language}: Worker loaded the ${oldest} delta`);
+    // Plan 04 §1.1: the picker says from which date Mind Master plays as on the server.
+    await line(page).click();
+    const mind = page.getByTestId("replay-environment-mind-master");
+    await expect(mind).toContainText(mindMaster[language]);
+    await expect(mind).not.toContainText("{{");
+    await page.locator(".ant-modal-close").click();
+    await expect(page.getByTestId("replay-environment-list")).toBeHidden();
     await back(page);
     await start(page, "env-after-boundary", language);
     await expect(line(page)).toHaveAttribute("data-environment", newest);

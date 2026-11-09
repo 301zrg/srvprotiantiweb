@@ -276,6 +276,7 @@
     "ReplayEnvStale": "网站已更新，请刷新页面后再播放，以免规则版本表不是最新的。",
     "ReplayEnvIndexUnknown": "暂时无法确认网站的规则版本表是否最新，先按本页版本播放。",
     "ReplayEnvPicked": "已手选规则版本",
+    "ReplayEnvMindMaster": "{{date}} 之前，网页版播放含「精神脑魔」的录像可能与实际对局不一致，现已修正。",
     "ReplaySpeed": "播放速度",
     "ReplayTarget": "目标回合",
     "ReplaySeeking": "正在重演至回合 {{turn}}…",

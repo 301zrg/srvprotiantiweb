@@ -276,6 +276,7 @@
     "ReplayEnvStale": "The site has been updated. Reload the page before playing so the rule version list is current.",
     "ReplayEnvIndexUnknown": "Could not check whether the site's rule version list is current; playing with this page's list.",
     "ReplayEnvPicked": "Rule version picked by hand",
+    "ReplayEnvMindMaster": "Before {{date}}, replays containing \"Mind Master\" could play back differently from the real duel in the browser client; this is now fixed.",
     "ReplaySpeed": "Playback speed",
     "ReplayTarget": "Target turn",
     "ReplaySeeking": "Replaying to turn {{turn}}…",

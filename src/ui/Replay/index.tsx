@@ -65,6 +65,10 @@ import {
   selectEnvironment,
 } from "@/replay/revisions";
 import { type HistoryOrder, settingStore } from "@/stores/settingStore";
+
+const mindMasterFixedAt =
+  environments.find((e) => e.effectiveFromUnix !== null)?.effectiveFromUnix ??
+  null;
 import { useI18N } from "@/ui/I18N";
 import { disconnectSrvpro } from "@/ui/Match/util";
 import { openSettingPanel } from "@/ui/Setting";
@@ -1623,6 +1627,21 @@ function Player({
           destroyOnClose
         >
           <p className="replay-environment-hint">{t("ReplayEnvHint")}</p>
+          {mindMasterFixedAt !== null && (
+            <p
+              className="replay-environment-hint"
+              data-testid="replay-environment-mind-master"
+            >
+              {t("ReplayEnvMindMaster", {
+                // The first dated environment is the one that brought the
+                // server's Mind Master script to the browser (plan 04 §1.1).
+                date: new Date(mindMasterFixedAt * 1000).toLocaleDateString(
+                  languageLocales[language as Language],
+                ),
+                interpolation: { escapeValue: false },
+              })}
+            </p>
+          )}
           <div
             className="replay-environment-list"
             data-testid="replay-environment-list"

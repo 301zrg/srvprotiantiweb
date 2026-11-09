@@ -276,6 +276,7 @@
     "ReplayEnvStale": "サイトが更新されました。ルールバージョン一覧を最新にするため、ページを再読み込みしてから再生してください。",
     "ReplayEnvIndexUnknown": "サイトのルールバージョン一覧が最新か確認できないため、このページの一覧で再生します。",
     "ReplayEnvPicked": "ルールバージョンを手動選択",
+    "ReplayEnvMindMaster": "{{date}} より前は、「メンタルマスター」を含むリプレイがブラウザ版で実際の対戦と異なって再生されることがありましたが、現在は修正済みです。",
     "ReplaySpeed": "再生速度",
     "ReplayTarget": "移動先のターン",
     "ReplaySeeking": "ターン {{turn}} まで再生中…",
