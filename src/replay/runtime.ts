@@ -19,18 +19,34 @@ export async function loadReplayResource(
   status: (text: string) => void,
 ): Promise<Uint8Array> {
   const record = profile.files[name];
+  status(`正在加载 ${name}`);
+  return loadVerifiedBytes(
+    new URL(name, base).href,
+    record,
+    "srvpro-replay-706-v1",
+  );
+}
+
+/**
+ * Fetches one immutable resource whose exact size and SHA-256 are known in
+ * advance; a cached copy that no longer verifies is dropped and refetched.
+ */
+export async function loadVerifiedBytes(
+  url: string,
+  record: { bytes: number; sha256: string } | undefined,
+  cacheName: string,
+): Promise<Uint8Array> {
   if (
     !record ||
     !Number.isSafeInteger(record.bytes) ||
     record.bytes < 0 ||
-    record.bytes > 16 * 1024 * 1024
+    record.bytes > 16 * 1024 * 1024 ||
+    !/^[a-f0-9]{64}$/.test(record.sha256)
   )
     throw new Error("播放资源清单异常");
-  const url = new URL(name, base).href;
-  status(`正在加载 ${name}`);
   let cache: Cache | undefined;
   try {
-    cache = await caches.open("srvpro-replay-706-v1");
+    cache = await caches.open(cacheName);
   } catch {
     /* Storage may be disabled. */
   }

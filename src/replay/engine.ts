@@ -2,6 +2,7 @@ import { Gunzip } from "fflate";
 
 import { inspectReplay, parseReplayBody, type ReplayBody } from "./format";
 import { parseQuery, type ReplayCard, splitCoreMessages } from "./messages";
+import { loadEnvironmentScripts } from "./revisions";
 import {
   loadReplayResource,
   loadReplayRuntime,
@@ -315,18 +316,26 @@ export class ReplayEngine {
   }
 }
 
+/**
+ * @param environment  a rule environment applied as a delta over the v1 bundle
+ *   (plan 02 §3); omitted, the plain v1 bundle is used (existing fixtures and tests).
+ */
 export async function loadReplayEngine(
   base: string,
   profile: ReplayProfile,
   status: (text: string) => void,
+  environment?: { id: string; revisionsBase: string },
 ): Promise<ReplayEngine> {
   const [core, cards, compressed] = await Promise.all([
     loadReplayRuntime(base, profile, status),
     loadReplayResource(base, profile, "cards.data", status),
     loadReplayResource(base, profile, "scripts.data", status),
   ]);
+  let scripts = unpackScripts(compressed, profile.unpackedScriptBytes);
+  if (environment)
+    scripts = await loadEnvironmentScripts(environment.revisionsBase, environment.id, scripts, status);
   status("正在初始化旧裁定脚本");
   const engine = new ReplayEngine(core);
-  engine.install(cards, unpackScripts(compressed, profile.unpackedScriptBytes));
+  engine.install(cards, scripts);
   return engine;
 }

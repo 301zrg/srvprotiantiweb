@@ -60,6 +60,7 @@
     "scripts/test_replay_card_state.mjs",
     "scripts/test_replay_extract.mjs",
     "scripts/test_replay_runtime.mjs",
+    "scripts/test_replay_revisions.mjs",
     "scripts/test_replay_scene.mjs",
     "scripts/test_replay_storage.mjs",
     "scripts/test_rps_feedback.mjs",

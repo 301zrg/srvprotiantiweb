@@ -10,8 +10,11 @@ self.onmessage = async ({ data }) => {
   try {
     if (data.type === "open") {
       original = new Uint8Array(data.bytes);
-      engine = await loadReplayEngine(data.base, profile, (text) =>
-        self.postMessage({ type: "status", text }),
+      engine = await loadReplayEngine(
+        data.base,
+        profile,
+        (text) => self.postMessage({ type: "status", text }),
+        data.environment,
       );
       self.postMessage({ type: "frame", frame: engine.open(original) });
     } else if (data.type === "next" && engine) {

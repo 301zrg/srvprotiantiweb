@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "base": "706-v1",
+  "environments": [
+    {
+      "id": "706-20260907",
+      "effectiveFromUnix": null,
+      "profileSha256": "245f0c61ab996fefbf59714da7321ea2632fc2334dac905268aeff82120cc2ff"
+    },
+    {
+      "id": "706-20261110",
+      "effectiveFromUnix": 1794276001,
+      "profileSha256": "b84d8bb4fe85ac53fade18adaf4c1bc45706da64d2d18a31086ca3711de0368a"
+    }
+  ]
+}
