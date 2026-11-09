@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "resources-staging" / "1103"
 AUDIT = ROOT / "docs" / "1103-resource-audit.json"
-REVISION = "1103-201103-v1"
+REVISION = "1103-201103-v2"
 OUTPUT = ROOT / "public" / "environment"
 REVISION_DIR = OUTPUT / REVISION
 LOCALES = ("zh-CN", "en-US", "ja-JP", "ko-KR")
@@ -26,6 +26,13 @@ SUFFIXES = {
     "en-US": "★706 nexus environment",
 }
 ENGLISH_BROKEN_BULLETS = {17032740, 33900648, 52675689, 63485233, 73853830}
+# Reviewed display-text fixes (revision v2). Each source phrase must appear exactly once.
+# 42647539 Gargoyle Comedian: the staged Chinese text says "对方1只" but the card targets
+# any face-up monster; the production engine CDB and the Japanese text both say "对象".
+# Confirmed by the project owner on 2026-11-09. datas, Lua and replay cards.data are unchanged.
+TEXT_CORRECTIONS = {
+    ("zh-CN", 42647539): ("可以使对方1只表侧表示", "可以使对象1只表侧表示"),
+}
 EXPECTED_INPUT_ROWS = {"zh-CN": 5267, "en-US": 5240, "ja-JP": 5267, "ko-KR": 5267}
 
 
@@ -60,6 +67,16 @@ def corrected_english_bullets(description: str, card_id: int) -> tuple[str, int]
     # The five reviewed source descriptions contain U+FFFD pairs at list starts.
     corrected, count = re.subn(r"(?m)^(?:\ufffd){2}", "• ", description)
     return corrected, count
+
+
+def corrected_text(description: str, locale: str, card_id: int) -> tuple[str, int]:
+    fix = TEXT_CORRECTIONS.get((locale, card_id))
+    if fix is None:
+        return description, 0
+    before, after = fix
+    if description.count(before) != 1:
+        raise ValueError(f"Reviewed text correction no longer matches {locale} card {card_id}")
+    return description.replace(before, after), 1
 
 
 def verify_banlist(path: Path) -> None:
@@ -143,7 +160,7 @@ def main() -> None:
         target = target_dir / "cards.cdb"
         shutil.copyfile(source_cdb["zh-CN"], target)
         missing_texts = []
-        suffix_count = bullet_count = 0
+        suffix_count = bullet_count = text_fix_count = 0
         with sqlite3.connect(target) as conn:
             conn.execute("DELETE FROM texts")
             placeholders = ",".join("?" for _ in TEXT_FIELDS)
@@ -162,6 +179,8 @@ def main() -> None:
                 if locale == "en-US":
                     description, corrected = corrected_english_bullets(description, card_id)
                     bullet_count += corrected
+                description, fixed = corrected_text(description, locale, card_id)
+                text_fix_count += fixed
                 if "\ufffd" in description:
                     raise ValueError(f"Unreviewed replacement character in {locale} card {card_id}")
                 conn.execute(query, (text_row[0], text_row[1], description, *text_row[3:]))
@@ -171,6 +190,9 @@ def main() -> None:
             raise ValueError(f"Unexpected {locale} suffix count: {suffix_count}")
         if locale == "en-US" and bullet_count != 13:
             raise ValueError(f"Unexpected English bullet repair count: {bullet_count}")
+        expected_fixes = sum(1 for fix_locale, _ in TEXT_CORRECTIONS if fix_locale == locale)
+        if text_fix_count != expected_fixes:
+            raise ValueError(f"Unexpected {locale} text correction count: {text_fix_count}")
         output_data = source_rows(target, "datas")
         output_texts = source_rows(target, "texts")
         if output_data != canonical_data or set(output_texts) != set(canonical_data):
@@ -185,6 +207,7 @@ def main() -> None:
             "strings": f"./{locale}/strings.conf", "stringsSha256": digest(strings),
             "recoveredAlternativeArtTextCount": len(missing_texts),
             "removedSearchSuffixCount": suffix_count, "correctedBulletCount": bullet_count,
+            "correctedTextCount": text_fix_count,
         }
 
     shutil.copyfile(banlist, REVISION_DIR / "lflist.conf")

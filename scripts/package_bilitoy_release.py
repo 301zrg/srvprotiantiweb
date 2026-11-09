@@ -92,7 +92,7 @@ def main():
         'createdAt': datetime.now(timezone.utc).isoformat(),
         'sourceCommit': commit.stdout.strip() if commit.returncode == 0 else None,
         'workingTreeDirty': bool(status.stdout.strip()) if status.returncode == 0 else None,
-        'target': 'bilitoy', 'basePath': './', 'environment': '1103-201103-v1',
+        'target': 'bilitoy', 'basePath': './', 'environment': '1103-201103-v2',
         'wssUrl': endpoint, 'publicConfig': public_config,
         'status': 'awaiting-platform-approval-and-live-test',
         'resourceMappings': mappings, 'omittedDeploymentFiles': removed,
