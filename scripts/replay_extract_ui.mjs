@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium, expect } from "@playwright/test";
 import { extractionFixture } from "./replay_extract_fixture.mjs";
+import { expectReplayControl, replayControl } from "./replay_controls.mjs";
 
 const origin = process.env.SMOKE_URL || "http://127.0.0.1:4173";
 const out = ".audit-tmp/replay-extract-ui";
@@ -265,13 +266,10 @@ try {
       }
     }
     await native.getByRole("button", { name: "播放", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "音效：关", exact: true }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "音效：关", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "音效：开", exact: true }),
-    ).toBeVisible();
+    // Toolbar on wide screens, under "more" on narrow ones: the shared helpers handle both.
+    await expectReplayControl(page, "音效：关");
+    await replayControl(page, "音效：关");
+    await expectReplayControl(page, "音效：开");
     await expect
       .poll(() =>
         page.evaluate(
@@ -281,7 +279,7 @@ try {
         ),
       )
       .toBe(true);
-    await page.getByRole("button", { name: "音效：开", exact: true }).click();
+    await replayControl(page, "音效：开");
     await expect
       .poll(() =>
         page.evaluate(
@@ -291,13 +289,20 @@ try {
         ),
       )
       .toBe(false);
-    await page.getByTestId("open-settings").click();
+    // The player is a full-screen duel layout without the site header (fda3839f):
+    // its own menu opens the settings, as a player does.
+    await replayControl(page, "设置");
+    // Opened from the player the panel starts on the replay section; narrow screens show
+    // every section, wide ones switch by navigation. Reach the audio section either way.
+    const audio = page.getByTestId("settings-section-audio");
+    const tabs = page.getByTestId("settings-navigation").getByRole("button");
+    for (let i = 0; !(await audio.isVisible()) && i < (await tabs.count()); i++)
+      await tabs.nth(i).click();
     await page.getByTestId("shared-sound-setting").click();
     await page.getByTestId("settings-close").click();
-    await expect(
-      page.getByRole("button", { name: "音效：开", exact: true }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "提取卡组", exact: true }).click();
+    await expectReplayControl(page, "音效：开");
+    // In the player the action lives in the replay menu (or under "more" when narrow).
+    await replayControl(page, "提取卡组");
     await expect(panel.locator(".replay-extracted-deck")).toHaveCount(2, {
       timeout: 60000,
     });
