@@ -8,5 +8,7 @@ third-party/replay/** -text -whitespace
 public/replay/706-v1/** -text -whitespace
 # Environment profiles are pinned by SHA-256 in revisions/index.json.
 public/replay/revisions/** -text -whitespace
+# Bundled copy of revisions/index.json; the build requires both to be byte-identical.
+src/replay/revisions.json -text -whitespace
 tests/fixtures/replay/*.yrp -text
 protocol-source/** -text
