@@ -11,6 +11,11 @@
       "id": "706-20261110",
       "effectiveFromUnix": 1794252902,
       "profileSha256": "1b65fbc4f46f4ae6203f3b87e2ca50b0f4dbf6d5658101ff4e822a7ccfbaeb63"
+    },
+    {
+      "id": "706-20261110-2",
+      "effectiveFromUnix": 1794276814,
+      "profileSha256": "271a7ff19b43dd064e5feda510c74c5da9b791c33d1b9a816a5ed8bc181bec67"
     }
   ]
 }
