@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "id": "706-20261110-3",
+  "effectiveFromUnix": 1794295259,
+  "evidence": "release-receipt",
+  "base": {
+    "revision": "706-v1",
+    "scriptsDataSha256": "0f5164122d3be0c82d5a432daecee4598f7419eba0c62af2a61549dea5b3eadd",
+    "profileSha256": "ae65a857ab64d74d1208e3ef4735ef14c5e4282172d4faf36381f7276a8351e8"
+  },
+  "specials": {
+    "commit": "832fae822f73385b42019f08ee479d54e7d1a998",
+    "tree706": "f15857af133b9e7a57bd91e01448daf605d8f487"
+  },
+  "core": "e04144d62499c17d0cfa8313f9742434ef99c3a7",
+  "cardsDataSha256": "6e3701ff8e5998938c8659f332a1a32ea573e761e73b8b97c86a10cde5457cb9",
+  "luaTreeSha256": "515670051227e9ae3bb4583eca57223114a93484f668dcd710461c0f561a12de",
+  "scriptCount": 13530,
+  "delta": {
+    "bytes": 63964,
+    "sha256": "03ef169c7c44d634152ed45e2a6922b0a70c0a4bdaea487f4ee6f499a0b12a0c",
+    "unpackedBytes": 344527,
+    "set": 85,
+    "delete": 12
+  },
+  "limits": {
+    "maxFiles": 20000,
+    "maxFileBytes": 1048576,
+    "maxUnpackedBytes": 16777216
+  }
+}
