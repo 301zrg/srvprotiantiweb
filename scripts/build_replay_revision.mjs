@@ -57,6 +57,7 @@ if (mergedTree.length > LIMITS.maxFiles) throw new Error("too many files");
 const v1ProfileSha256 = sha256(v1ProfileBytes);
 const v1ScriptsSha256 = v1Profile.files["scripts.data"].sha256;
 const unpacked = pack(set, { base: v1ScriptsSha256, delete: del });
+if (unpacked.length > LIMITS.maxUnpackedBytes) throw new Error("delta exceeds unpacked size limit");
 const delta = zlib.gzipSync(unpacked, { level: 9 });
 const profile = {
   format: 1,
@@ -73,24 +74,54 @@ const profile = {
   limits: LIMITS,
 };
 const dir = path.join(OUT, id);
-fs.mkdirSync(dir, { recursive: true });
-fs.writeFileSync(path.join(dir, "delta.data"), delta);
 const profileText = JSON.stringify(profile, null, 2) + "\n";
-fs.writeFileSync(path.join(dir, "profile.json"), profileText);
 
-// Environment list: append or replace this id, then enforce the table rules (02 §2).
+// Validate both the existing table and the complete candidate before writing.
+function validateIndex(index, allowEmpty = false) {
+  if (index.format !== 1 || index.base !== v1Profile.revision ||
+      !Array.isArray(index.environments) || index.environments.length > 1000 ||
+      (!allowEmpty && !index.environments.length)) throw new Error("invalid environment index");
+  const ids = new Set();
+  index.environments.forEach((entry, i, entries) => {
+    if (!entry || !/^706-\d{8}(-\d+)?$/.test(entry.id) || ids.has(entry.id))
+      throw new Error("invalid or duplicate existing environment id");
+    ids.add(entry.id);
+    if (!/^[a-f0-9]{64}$/.test(entry.profileSha256)) throw new Error("invalid profile sha256");
+    if (i === 0 ? entry.effectiveFromUnix !== null :
+        !Number.isSafeInteger(entry.effectiveFromUnix) ||
+        (i > 1 && entry.effectiveFromUnix <= entries[i - 1].effectiveFromUnix))
+      throw new Error("only the first environment may have a null start; boundaries must strictly increase");
+  });
+}
 const indexFile = path.join(OUT, "index.json");
-const index = fs.existsSync(indexFile) ? JSON.parse(fs.readFileSync(indexFile, "utf8")) : { format: 1, base: v1Profile.revision, environments: [] };
-index.environments = index.environments.filter((e) => e.id !== id);
-index.environments.push({ id, effectiveFromUnix, profileSha256: sha256(Buffer.from(profileText)) });
-index.environments.sort((a, b) => (a.effectiveFromUnix ?? -Infinity) - (b.effectiveFromUnix ?? -Infinity));
-const envs = index.environments;
-if (new Set(envs.map((e) => e.id)).size !== envs.length) throw new Error("duplicate environment id");
-envs.forEach((e, i) => {
-  if ((e.effectiveFromUnix === null) !== (i === 0)) throw new Error("only the first environment may have a null start");
-  if (i > 1 && !(e.effectiveFromUnix > envs[i - 1].effectiveFromUnix)) throw new Error("boundaries must strictly increase");
-});
-const indexText = JSON.stringify(index, null, 2) + "\n";
-fs.writeFileSync(indexFile, indexText);
-fs.writeFileSync(SRC_INDEX, indexText);
+const indexBytes = fs.existsSync(indexFile) ? fs.readFileSync(indexFile) : null;
+const sourceBytes = fs.existsSync(SRC_INDEX) ? fs.readFileSync(SRC_INDEX) : null;
+if (Boolean(indexBytes) !== Boolean(sourceBytes) ||
+    (indexBytes && !indexBytes.equals(sourceBytes))) throw new Error("source and public environment indexes differ");
+const index = indexBytes ? JSON.parse(indexBytes) : { format: 1, base: v1Profile.revision, environments: [] };
+validateIndex(index, !indexBytes);
+
+const entry = { id, effectiveFromUnix, profileSha256: sha256(Buffer.from(profileText)) };
+const existing = index.environments.find((e) => e.id === id);
+if (existing) {
+  // Immutable IDs include metadata and the exact bytes pinned by the index.
+  // A matching rerun is a true no-op, not a rewrite of published files.
+  if (existing.effectiveFromUnix !== entry.effectiveFromUnix || existing.profileSha256 !== entry.profileSha256 ||
+      !fs.readFileSync(path.join(dir, "profile.json")).equals(Buffer.from(profileText)) ||
+      !fs.readFileSync(path.join(dir, "delta.data")).equals(delta) ||
+      fs.readdirSync(dir).some((name) => !["profile.json", "delta.data"].includes(name)))
+    throw new Error(`existing environment ${id} is immutable; use a new id if content differs`);
+} else {
+  if (fs.existsSync(dir)) throw new Error(`existing unindexed environment directory: ${id}`);
+  index.environments.push(entry);
+  index.environments.sort((a, b) => (a.effectiveFromUnix ?? -Infinity) - (b.effectiveFromUnix ?? -Infinity));
+  validateIndex(index);
+  const indexText = JSON.stringify(index, null, 2) + "\n";
+  fs.mkdirSync(OUT, { recursive: true });
+  fs.mkdirSync(dir); // Exclusive creation also refuses a concurrently created ID.
+  fs.writeFileSync(path.join(dir, "delta.data"), delta, { flag: "wx" });
+  fs.writeFileSync(path.join(dir, "profile.json"), profileText, { flag: "wx" });
+  fs.writeFileSync(indexFile, indexText);
+  fs.writeFileSync(SRC_INDEX, indexText);
+}
 console.log(JSON.stringify({ id, set: set.length, delete: del.length, deltaBytes: delta.length, scripts: mergedTree.length, digest: expected }));
