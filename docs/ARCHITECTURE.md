@@ -12,6 +12,7 @@
 | 共享入口 | 内容 | 使用者 |
 | --- | --- | --- |
 | [geometry.ts](../src/ui/Shared/DuelBoard/geometry.ts) | 纯函数：布局参数（横屏／≥700×600 加大行距／MR4+）、区域外框 `zoneRect`、卡片姿态 `cardPose`（场地、手牌扇形、牌堆、素材扇形）、CSS 变量和适配缩放 | 在线 springs 与 `Bg`、`SceneBoard`、几何回归 |
+| [AttackArrow.tsx](../src/ui/Shared/DuelBoard/AttackArrow.tsx) | 无状态攻击箭头；直接攻击落点位于对方玩家区域。联机动画与离线动作步骤各自控制显示周期，不共享会话状态 | 联机决斗、观战、测试手牌、录像 |
 | [ZoneBlock.tsx](../src/ui/Shared/DuelBoard/ZoneBlock.tsx) | 无状态区域块、牌堆数量角标、禁用叉号；样式在 [index.module.scss](../src/ui/Shared/DuelBoard/index.module.scss) | 在线 `Bg`、`SceneBoard` |
 | [SceneBoard.tsx](../src/ui/Shared/DuelBoard/SceneBoard.tsx)、[BoardCard.tsx](../src/ui/Shared/DuelBoard/BoardCard.tsx) | 离线平面牌桌：区域、牌堆、连锁标记、素材扇形及练习素材收集暂存；卡片按共享姿态摆放 | 测试手牌、录像 |
 | [CardDetail.tsx](../src/ui/Shared/DuelBoard/CardDetail.tsx) | 详情正文：卡图、攻守表、指示物、身份对照、关联卡片、卡面原文 | 在线 `CardModal`、练习与录像抽屉 |

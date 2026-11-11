@@ -115,9 +115,6 @@
   font: bold 17px/20px sans-serif;
   pointer-events: none;
 }
-.replay-field-arrows {
-  z-index: 45;
-}
 .replay-field-pile-list {
   display: flex;
   flex-wrap: wrap;
