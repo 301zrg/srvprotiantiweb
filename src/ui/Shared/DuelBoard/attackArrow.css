@@ -1,0 +1,47 @@
+.duel-attack-arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* A zero-size SVG viewport suppresses painting even with overflow:visible. */
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 45;
+  /* Clear resting card faces without magnifying the board coordinates. */
+  transform: translateZ(1px);
+  --attack-color: #ffce59;
+}
+.duel-attack-arrow[data-direct="true"] {
+  --attack-color: #ff8b45;
+}
+.duel-attack-arrow line {
+  stroke: var(--attack-color);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.duel-attack-arrow[data-direct="true"] line {
+  stroke-width: 14;
+}
+.duel-attack-outline {
+  fill: none;
+  stroke: #221509;
+  stroke-width: 15;
+  stroke-linecap: round;
+}
+.duel-attack-arrow[data-direct="true"] .duel-attack-outline {
+  stroke-width: 20;
+}
+.duel-attack-tip,
+.duel-attack-source {
+  fill: var(--attack-color);
+  stroke: #221509;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.duel-attack-target {
+  fill: #ff8b4533;
+  stroke: #fff2c5;
+  stroke-width: 5;
+  paint-order: stroke fill;
+}

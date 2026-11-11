@@ -96,8 +96,9 @@ try {
       ].map((node) => {
         const span = node.querySelector("span");
         const scale =
-          parseFloat(getComputedStyle(node).getPropertyValue("--board-scale")) ||
-          1;
+          parseFloat(
+            getComputedStyle(node).getPropertyValue("--board-scale"),
+          ) || 1;
         return {
           text: span.textContent,
           visible: span.getBoundingClientRect().height > 1,
@@ -122,6 +123,34 @@ try {
         `small phone boards hide unreadable names: ${JSON.stringify(names)}`,
       );
     }
+    const mountedCard = await page
+      .locator(".replay-field-card")
+      .first()
+      .elementHandle();
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("neos:open-settings", {
+          detail: { defaultKey: "language" },
+        }),
+      ),
+    );
+    await expect(page.getByTestId("settings-section-language")).toBeVisible();
+    // Wait for the settings drawer to finish opening before its Select mounts.
+    await page.waitForTimeout(350);
+    await page
+      .getByTestId("settings-section-language")
+      .locator(".ant-select")
+      .click();
+    await page.getByText("English", { exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-US");
+    await expect(
+      page.locator('.replay-field-viewport [data-testid="card-fallback-name"]'),
+    ).toHaveText(["Ryu-Kishin Clown", "Dark Magician"]);
+    assert.equal(
+      await mountedCard.evaluate((el) => el.isConnected),
+      true,
+      "Changing language updates the existing card without remounting",
+    );
     await context.close();
   }
   assert.deepEqual(errors, []);

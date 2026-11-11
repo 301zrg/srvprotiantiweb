@@ -30,7 +30,13 @@ import { showCardModal as displayCardModal } from "@/ui/Duel/Message/CardModal";
 import { useI18N } from "@/ui/I18N";
 import { YgoCard } from "@/ui/Shared";
 import { counterDescription } from "@/ui/Shared/CardInformation";
+import {
+  AttackArrow,
+  attackPlayerPoint,
+} from "@/ui/Shared/DuelBoard/AttackArrow";
 import { replayCardWords } from "@/ui/Shared/DuelBoard/cardState";
+import { zoneRect } from "@/ui/Shared/DuelBoard/geometry";
+import { replayFieldWords } from "@/ui/Shared/DuelBoard/sceneWords";
 import { fieldPosition, fieldPositionLabel } from "@/variant/fieldSelection";
 import { previewMessages } from "@/variant/previewMessages";
 import { rememberedCode } from "@/variant/rememberedCard";
@@ -46,6 +52,8 @@ import {
   interactTypeToIcon,
   interactTypeToString,
 } from "../../utils";
+import { onlineSpot } from "../boardSpot";
+import { matConfig } from "../css";
 import { visibleDeckCode } from "../deckVisibility";
 import styles from "./index.module.scss";
 import {
@@ -111,6 +119,7 @@ export const Card: React.FC<{
       }) satisfies SpringApiProps,
   );
 
+  const [attackOptions, setAttackOptions] = useState<AttackOptions>();
   const [glowing, setGrowing] = useState(false);
   const [classFocus, setClassFocus] = useState(false);
 
@@ -156,11 +165,20 @@ export const Card: React.FC<{
       Task.Attack,
       card.uuid,
       async (options: AttackOptions) => {
-        await addToAnimation(() => attack({ card, api, options, signal }));
+        await addToAnimation(async () => {
+          setAttackOptions(options);
+          try {
+            await attack({ card, api, options, signal });
+          } finally {
+            if (!signal.aborted) setAttackOptions(undefined);
+          }
+        });
       },
     );
     // State may already contain catch-up messages received before this mount.
     const relayout = () => {
+      // Geometry lives outside React; redraw an active arrow at the new slots.
+      setAttackOptions((current) => current && { ...current });
       void addToAnimation(() => move({ card, api, signal })).catch(() => {
         if (import.meta.env.DEV) console.warn("Card placement failed.");
       });
@@ -170,6 +188,7 @@ export const Card: React.FC<{
     window.addEventListener("neos:duel-layout", relayout);
     const cleanup = () => {
       lifetime.abort();
+      setAttackOptions(undefined);
       window.removeEventListener("neos:duel-layout", relayout);
       if (relayoutCard.current === relayout) relayoutCard.current = () => {};
       unregisterMove();
@@ -494,7 +513,7 @@ export const Card: React.FC<{
     ({ interactType }) => interactType === InteractType.ATTACK,
   );
 
-  return (
+  const element = (
     <animated.div
       data-testid="duel-card"
       data-card-uuid={snap.uuid}
@@ -673,6 +692,23 @@ export const Card: React.FC<{
       )}
       {snap.targeted ? <div className={styles.streamer} /> : <></>}
     </animated.div>
+  );
+  return (
+    <>
+      {attackOptions && (
+        <AttackArrow
+          from={zoneRect(matConfig, onlineSpot(location)!)}
+          to={
+            attackOptions.directAttack
+              ? attackPlayerPoint(matConfig, !isMe(location.controller))
+              : zoneRect(matConfig, onlineSpot(attackOptions.target!)!)
+          }
+          direct={attackOptions.directAttack}
+          label={replayFieldWords(language).attack}
+        />
+      )}
+      {element}
+    </>
   );
 });
 

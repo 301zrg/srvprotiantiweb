@@ -7,6 +7,7 @@ import { fetchCard } from "@/api";
 import { useMediaQuery } from "@/hook";
 import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
+import { SceneAttackArrow } from "@/ui/Shared/DuelBoard/AttackArrow";
 import { BoardCard } from "@/ui/Shared/DuelBoard/BoardCard";
 import {
   concealReplayCard,
@@ -248,35 +249,14 @@ export function FieldBoard({
                     aria-hidden
                   />
                 )}
-              {action?.kind === "attack" && action.from && action.to && (
-                <svg
-                  className="replay-field-arrows scene-board-overlay"
-                  aria-label={t.attack}
-                >
-                  <defs>
-                    <marker
-                      id="replay-attack-tip"
-                      viewBox="0 0 10 10"
-                      refX="9"
-                      refY="5"
-                      markerWidth="8"
-                      markerHeight="8"
-                      orient="auto"
-                    >
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffca57" />
-                    </marker>
-                  </defs>
-                  <line
-                    x1={point(action.from).x}
-                    y1={point(action.from).y}
-                    x2={point(action.to).x}
-                    y2={point(action.to).y}
-                    stroke="#ffca57"
-                    strokeWidth="9"
-                    markerEnd="url(#replay-attack-tip)"
-                  />
-                </svg>
-              )}
+              <SceneAttackArrow
+                action={action}
+                geometry={geometry}
+                point={point}
+                view={view}
+                label={t.attack}
+                className="replay-field-arrows"
+              />
             </>
           );
         }}

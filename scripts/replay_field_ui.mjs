@@ -98,6 +98,7 @@ try {
           move(43711255, [0, 8, 0, 8], [0, 8, 0, 1]),
           [70, ...u32(43711255), 0, 8, 0, 1, 0, 8, 0, ...u32(0), 1],
           [110, 0, 4, 1, 4, 1, 4, 2, 1],
+          [110, 1, 4, 2, 1, 0, 0, 0, 0],
           [101, 1, 0, 0, 4, 1, 2, 0],
           [91, 1, ...u32(1000)],
           [74],
@@ -337,6 +338,9 @@ try {
     await expect(page.locator('.replay-field-viewport [data-testid="duel-chain-marker"]')).toHaveCount(1);
     await until("attack");
     await expect(page.locator(".replay-field-arrows line")).toHaveCount(1);
+    const arrowBox = await page.getByTestId("attack-arrow").boundingBox();
+    assert.ok(arrowBox?.width > 0 && arrowBox?.height > 0,
+      "The production SVG has a nonzero viewport and can paint");
     const before = await page
       .locator(".replay-field-arrows line")
       .getAttribute("y1");

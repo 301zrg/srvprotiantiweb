@@ -4,6 +4,7 @@ import { CSSProperties, useMemo } from "react";
 import { fetchCard, getCardImgUrl } from "@/api/cards";
 import { useConfig } from "@/config";
 import { useCardImage } from "@/hook/useCardImage";
+import { useI18N } from "@/ui/I18N";
 
 import styles from "./index.module.scss";
 
@@ -40,12 +41,13 @@ export const YgoCard: React.FC<Props> = (props) => {
     onClick,
     onLoad,
   } = props;
+  const { language } = useI18N();
   const image = useCardImage(code, isBack);
   // Shown under the art until it paints (slow or failed downloads). Never for
   // backs or unknown codes, so hidden cards reveal nothing.
   const name = useMemo(
     () => (isBack || !code ? "" : fetchCard(code).text.name || ""),
-    [code, isBack],
+    [code, isBack, language],
   );
 
   return useMemo(

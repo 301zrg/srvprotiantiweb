@@ -10,6 +10,7 @@ import type { ReplayCard } from "@/replay/messages";
 import { settingStore } from "@/stores/settingStore";
 import { YgoCard } from "@/ui/Shared";
 import { counterDescription } from "@/ui/Shared/CardInformation";
+import { SceneAttackArrow } from "@/ui/Shared/DuelBoard/AttackArrow";
 import { BoardCard } from "@/ui/Shared/DuelBoard/BoardCard";
 import {
   positionLabel,
@@ -326,6 +327,15 @@ export const PracticeBoard = ({
         showCounts={showZoneCounts}
         showIndexes={showZoneIndexes}
         names={{ slot: "practice-field-slot", pile: "practice-field-pile" }}
+        overlay={({ geometry, point }) => (
+          <SceneAttackArrow
+            action={frame.action}
+            geometry={geometry}
+            point={point}
+            view={0}
+            label={actions.attack}
+          />
+        )}
         renderCard={(placed) => cardButton(placed.card, placed.key, placed)}
         slotProps={(address) => {
           const choice =
