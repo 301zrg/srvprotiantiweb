@@ -1,5 +1,7 @@
 # SRVPro WSS 配置与本地联调
 
+本文包含早期直连／Quick Tunnel 候选和带日期的联调记录。当前静态站点与分支见 [自动部署](cloudflare-ci.md)，当前 WSS 读取站点公开配置；下文旧候选的“尚未部署”不描述今天的线上状态。
+
 现有 `121.4.34.71:7911` 是原生 YGOPro TCP 入口，浏览器不能直接连接。网页和四语卡池继续由外部 HTTPS 静态站点托管；SRVPro 只承担对战连接和现有天梯逻辑。站方通过 `duel-config.js` 或构建变量 `VITE_DUEL_WS_URL=wss://...` 固定入口，玩家只填写昵称和房名：`TT` 进天梯，其他房名进普通房。
 
 ## 联机交互编号
@@ -72,8 +74,8 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 
 只读检查 `srvprotianti` 的开发文档，未找到明确记载“境外域名、当前无法备案”的条目。找到的相关背景是：
 
-- [Windows HTTPS 草案](../../srvprotianti/docs/CADDY_HTTPS_DEPLOYMENT.md) 的状态日期为 2026-09-15，当时没有可用自有域名，维护者决定本期保持 HTTP；Caddy 和 Tailscale 均为未执行的未来方案。
-- [天梯玩家与使用规范](../../srvprotianti/docs/LADDER_PLAYER_AND_USAGE_SPEC.md) §15.3 保留 Tailscale Funnel 备选，§15.5 记录本期使用 HTTP。
+- [Windows HTTPS 草案](https://github.com/301zrg/srvprotianti/blob/main/docs/CADDY_HTTPS_DEPLOYMENT.md) 的状态日期为 2026-09-15，当时没有可用自有域名，维护者决定本期保持 HTTP；Caddy 和 Tailscale 均为未执行的未来方案。
+- [天梯玩家与使用规范](https://github.com/301zrg/srvprotianti/blob/main/docs/LADDER_PLAYER_AND_USAGE_SPEC.md) §15.3 保留 Tailscale Funnel 备选，§15.5 记录本期使用 HTTP。
 
 旧 Funnel 草案代理的是网站端口 **7922**，其“不影响游戏 TCP 7911 延迟”的判断只针对该架构。网页客户端需要代理 **7977 对战连接**，对局消息会经过中继；不能直接套用旧草案的性能结论。上述相邻项目链接供本地联合开发查阅，不是网页仓库单独检出必需的文件。
 

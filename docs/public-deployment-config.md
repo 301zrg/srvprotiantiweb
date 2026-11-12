@@ -6,7 +6,7 @@
 
 | 环境变量 | Python 打包参数 | 发布字段 | 缺省行为 |
 | --- | --- | --- | --- |
-| `VITE_DUEL_WS_URL` | `--wss-url` | `duelWebSocketUrl` | Cloudflare 必须设置；手工包未设置或显式空字符串时禁用在线入场 |
+| `VITE_DUEL_WS_URL` | `--wss-url` | `duelWebSocketUrl` | Cloudflare 正式构建必须设置，预览构建从正式站公开元数据读取（仅 WSS，官网及白名单仍取本次构建变量）；手工包未设置或显式空字符串时禁用在线入场 |
 | `VITE_DECK_IMPORT_ORIGINS` | `--deck-import-origins` | `deckImportOrigins` | 未设置则不写此字段，沿用原有 `http://121.4.34.71:7922`、`https://duel.ygomatch.xyz`；`[]` 显式禁用卡组及录像消息交接 |
 | `VITE_WEBSITE_BASE_URL` | `--website-base-url` | `websiteBaseUrl` | 未设置沿用首页官网链接 `http://121.4.34.71:7922/` |
 

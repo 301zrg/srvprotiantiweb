@@ -1,5 +1,7 @@
 # Client preview implementation plan
 
+> Historical execution record for the 2026-10-19 preview. The completed client update was subsequently merged into `main` (PR #41); the branch names, task assignments and preview-only authorization below describe that original run. Current behavior and release rules are maintained in [PROJECT_STATUS](PROJECT_STATUS.md), [ARCHITECTURE](ARCHITECTURE.md) and [cloudflare-ci](cloudflare-ci.md).
+
 > Agentic workers: implement the scoped tasks below, using meaningful regression tests and a final independent review. This is a preview-only change; do not merge or deploy the production branch.
 
 **Goal:** Implement the user's approved 12-item client update and provide a Cloudflare non-production preview.

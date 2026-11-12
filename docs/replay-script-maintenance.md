@@ -15,6 +15,19 @@ Lua 更新通常不需要重编译 WASM，但不能复制一个散落的 `.lua` 
 
 **资源结构（2026-11 起）**：`706-v1` 是不再改动的底稿，固定来源、大小及 SHA-256 在 [公开 profile](../public/replay/706-v1/profile.json)，客户端也嵌入[相同清单](../src/replay/profile.json)。服务器每个规则环境是 v1 之上的一个差异包：`public/replay/revisions/<环境ID>/{profile.json,delta.data}`。环境列表 `public/replay/revisions/index.json` 与打包进页面的 [src/replay/revisions.json](../src/replay/revisions.json) 必须逐字节相同；列表记每个 profile 的 SHA，profile 记差异包的大小和 SHA，任一级不符就停止加载，不换用别的版本。环境 ID、生效时间等规则见 specials 仓库的 `706-meta/`。
 
+当前 `main` 中的环境（2026-11-12 源码核对；不是本次线上验收）：
+
+| 环境 profile | 生效分界（Unix 秒，包含该秒） |
+| --- | --- |
+| [706-20260907](../public/replay/revisions/706-20260907/profile.json) | `null`，早期兼容快照 |
+| [706-20261110](../public/replay/revisions/706-20261110/profile.json) | `1794252902` |
+| [706-20261110-2](../public/replay/revisions/706-20261110-2/profile.json) | `1794276814` |
+| [706-20261110-3](../public/replay/revisions/706-20261110-3/profile.json) | `1794295259` |
+| [706-20261110-4](../public/replay/revisions/706-20261110-4/profile.json) | `1794303979` |
+| [706-20261112](../public/replay/revisions/706-20261112/profile.json) | `1794432616` |
+
+精确来源提交、有效 Lua 树摘要、差异数量及 SHA 保存在各 profile；两份索引是版本表的机器依据。练习使用页面打包的最后一项，重试期间不切换；打开录像时的公开索引刷新提示不会在当前页面热替换这张表。
+
 **脚本更新时的维护顺序**（只换 Lua，不换 Core 和卡表）：
 
 1. 服务器按一次性上线流程切换，取得回执：生效分界 T（整数秒）、切换前后的完整生效 Lua 树摘要。
@@ -30,7 +43,8 @@ Lua 更新通常不需要重编译 WASM，但不能复制一个散落的 `.lua` 
    npm run build:static
    ```
 
-   生成器把目标树与 v1 逐文件比较（按 LF 归一后的内容），合并后的摘要必须等于回执的值。已有环境 ID 的文件字节、分界和来源信息必须完全一致；相同输入幂等成功，不重写文件，不同内容必须使用新 ID。生成器在写入前检查候选版本表、两份索引的一致性及目标目录；校验失败不留下候选文件，也不自动修补已有的残缺目录。已发布的环境不改动。
+   生成器把目标树与 v1 逐文件比较（按 LF 归一后的内容），合并后的摘要必须等于回执的值。输入分层快照及 `706-v1` 全程只读；输出仅为新环境目录和两份索引。`readLayers` 按 `specials/` → `expansions/script/` → `script/` 取首次命中的文件；当前上线流程要求 `specials/` 不存在，这是快照准备约束，生成器本身支持读取此层。已有环境 ID 的文件字节、分界和来源信息必须完全一致；相同输入幂等成功，不重写文件，不同内容必须使用新 ID。生成器在写入前检查候选版本表、两份索引的一致性及目标目录；输入、索引或既有目录的预检失败不留下候选文件，也不自动修补已有的残缺目录；这不承诺磁盘写入中断时的事务回滚。已发布的环境不改动。
+   生成器回归：`node scripts/test_replay_revision_generator.mjs`（已加入 `test:unit`）。该测试在临时目录使用合成分层树执行真实 CLI，验证既有 ID 重跑不改字节或修改时间，以及坏分界、索引不一致和残缺目录在写入前拒绝；不读取真实服务器快照。
 4. 用正式服切换后实测得到的自有录像核对新环境；旧录像仍按自己的时间选旧环境。通过后发布。
 
 Core 或卡表变化时，差异包不够用，需要新的全量底稿：[规则打包](../scripts/build_replay_resources.py)、[Core 编译](../scripts/build_replay_runtime.py) 目前固定输出 v1，届时先改成新的底稿名再运行，不能覆盖 v1。

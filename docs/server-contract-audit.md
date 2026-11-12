@@ -1,5 +1,7 @@
 # SRVPro 接入契约核查（2026-09-28）
 
+> 历史源码审计：下文的“当前设计”“尚未知”和行号属于所列 2026-09-28 快照及早期补充，不能代替现行服务端或前端契约。联机凭据当前按用户选择保存在浏览器，观战使用临时表单，唯一现行说明见 [会话恢复](session-recovery.md)。
+
 本记录只确认本地源码与公开配置默认值，不代表生产运行配置或真实客户端联调结果。
 未读取 `config/config.json`、`config/admin_user.json`、插件本地 `config.json`、日志、录像或数据库账户。
 未启动服务、创建 TT 账户、修改服务端文件或访问生产接口。
@@ -17,19 +19,19 @@
 
 ## 1. WSS 与原始协议
 
-- [ygopro-server.coffee](../../srvprotianti/ygopro-server.coffee) 第 688–697 行为独立的
+- [ygopro-server.coffee](https://github.com/301zrg/srvprotianti/blob/f253da853bf15c2742b1effafe222bbb54fc3813/ygopro-server.coffee) 第 688–697 行为独立的
   `modules.neos` WebSocket 服务。SSL 使用 `modules.http.ssl` 的证书设置；未启用 SSL 时为 WS。
-  [data/default_config.json](../../srvprotianti/data/default_config.json) 第 209–212 行默认禁用 Neos、端口为 7977。
+  [data/default_config.json](https://github.com/301zrg/srvprotianti/blob/f253da853bf15c2742b1effafe222bbb54fc3813/data/default_config.json) 第 209–212 行默认禁用 Neos、端口为 7977。
   7911 是默认游戏 TCP，7922 是既有部署文档的 Web/API；两者都不能直接当作 Neos WSS 地址。
 - 处理器第 4515–4523 行设置 `client.isWs` 后进入通用 `netRequestHandler`。
   第 2411–2428 行分别监听 WS `message` / TCP `data`，共享协议处理链。
-- [YGOProMessages.ts](../../srvprotianti/YGOProMessages.ts) 第 194–214 行确认 WS 和 TCP
+- [YGOProMessages.ts](https://github.com/301zrg/srvprotianti/blob/f253da853bf15c2742b1effafe222bbb54fc3813/YGOProMessages.ts) 第 194–214 行确认 WS 和 TCP
   发送同一种原始二进制封包：`uint16LE(payload.length + 1) + uint8 opcode + payload`。
   没有额外 JSON、Base64 或 Protobuf 外壳。第 242–267 行按长度重组拆包/粘包。
-- [gframe/config.h](../../srvprotianti/ygopro/gframe/config.h) 第 29 行为 `PRO_VERSION = 0x1362`；
+- [gframe/config.h](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/config.h) 第 29 行为 `PRO_VERSION = 0x1362`；
   默认配置的 4945 为 `0x1351`。宿主第 456–463 行优先从该源码读取版本，失败才回退配置。
   第 2507–2544 行处理版本拒绝和 alternative version；前端不能只改版本号便宣称兼容。
-- [gframe/network.h](../../srvprotianti/ygopro/gframe/network.h) 第 75–97 行定义
+- [gframe/network.h](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/network.h) 第 75–97 行定义
   `PLAYER_INFO.name` 为 20 个 `uint16_t`，`JOIN_GAME` 为 48 字节，包含 version、padding、gameid、
   20 个 `uint16_t` 的 pass。前端应按 UTF-16 代码单元限制文本并预留终止符，禁止静默截断凭据。
 
@@ -51,9 +53,9 @@ HTTPS 静态站对接可信 WSS 是上线门槛；现有 HTTP 部署草案不能
 
 ## 3. TT 身份、Match 与房间命令
 
-- [ladder-core/index.js](../../srvprotianti/plugins/ladder-core/index.js) 第 9 行用
+- [ladder-core/index.js](https://github.com/301zrg/srvprotianti/blob/f253da853bf15c2742b1effafe222bbb54fc3813/plugins/ladder-core/index.js) 第 9 行用
   `trim().toLowerCase()` 作为账户键；第 41–60 行首次天梯认证创建账户，已有账户验证密码。
-  [config.default.json](../../srvprotianti/plugins/ladder-core/config.default.json) 默认
+  [config.default.json](https://github.com/301zrg/srvprotianti/blob/f253da853bf15c2742b1effafe222bbb54fc3813/plugins/ladder-core/config.default.json) 默认
   `mode=TT`、`requirePassword=true`。无新账号后端/无 SSO 不等于 TT 无需账户密码。
 - 宿主第 2470–2490 行从 `PLAYER_INFO.name` 的 `nickname$password` 解析虚拟密码，
   会先删除全部反斜杠、再 `split('$')`，只取第二段作为密码。按后续明确的产品设计，
@@ -71,19 +73,19 @@ HTTPS 静态站对接可信 WSS 是上线门槛；现有 HTTP 部署草案不能
   `hostinfo.mode=1`（Match）。G1–G3、换备、换备确认/错误和完整 Match 结束是首版必需验收。
 - 插件第 298–307 行禁止通过具体 TT 房名选对手：等待阶段拒绝，开局后转为观战。
   第 311–328 行处理同名席位、认证和匿名/重连策略。不能把 TT 房间列表的“加入”做成指定对战入口。
-- [public-room-web/README.md](../../srvprotianti/plugins/public-room-web/README.md) 定义
+- [public-room-web/README.md](https://github.com/301zrg/srvprotianti/blob/f253da853bf15c2742b1effafe222bbb54fc3813/plugins/public-room-web/README.md) 定义
   `GET /api/public/rooms` 为脱敏接口；`users` 可含观战席，`roommode` 不是 TT 模式标识。
   不应调用管理员 `/api/getrooms`。首版若不做房间列表，可完全不依赖这类 HTTP API。
 
 ## 4. 规则、卡池与禁卡表
 
 - 默认 `hostinfo.duel_rule=5`，TT 插件没有将其改为 2。
-  [single_duel.cpp](../../srvprotianti/ygopro/gframe/single_duel.cpp) 第 586 行把
+  [single_duel.cpp](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/single_duel.cpp) 第 586 行把
   `host_info.duel_rule << 16` 传入 core，不能从“706”名字推断生产已运行 MR2。
-- [game.cpp](../../srvprotianti/ygopro/gframe/game.cpp) 第 109–115 行的服务器入口读取
+- [game.cpp](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/game.cpp) 第 109–115 行的服务器入口读取
   `cards.cdb` 及 expansions。`plugins/card-catalog/databases` 是卡片目录插件的输入，
   不能仅凭它存在便证明与决斗 core 实际加载数据库一致。
-- [deck_manager.cpp](../../srvprotianti/ygopro/gframe/deck_manager.cpp) 第 82–151 行使用
+- [deck_manager.cpp](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/deck_manager.cpp) 第 82–151 行使用
   `hostinfo.rule` 映射 `AVAIL_OCG/TCG/SC/CUSTOM/OCGTCG`，通过 `(ot & avail) == avail` 判断可用性，
   并按 `get_duel_code()` 合并同名/alias 的总张数、检查禁限卡。
   `single_duel.cpp` 第 360–364 行仅在 `no_check_deck=false` 时执行合法性检查。
@@ -118,8 +120,8 @@ HTTPS 静态站对接可信 WSS 是上线门槛；现有 HTTP 部署草案不能
 - `network.h` 第 296 行定义 `STOC_REPLAY=0x17`。
   `single_duel.cpp` 第 553–568 行创建 `YRP2`、`REPLAY_UNIFORM`、多值随机种子头，
   第 1829–1845 行把 `ExtendedReplayHeader + compressed bytes` 发给双方/允许的观战席。
-  [replay.h](../../srvprotianti/ygopro/gframe/replay.h) 第 28–45 行给出头结构，
-  [replay.cpp](../../srvprotianti/ygopro/gframe/replay.cpp) 第 119–139 行采用 LZMA 压缩。
+  [replay.h](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/replay.h) 第 28–45 行给出头结构，
+  [replay.cpp](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/replay.cpp) 第 119–139 行采用 LZMA 压缩。
   因此应区分“文件扩展名 .yrp”与“内部 YRP1/YRP2 格式”，不能只实现旧的单 seed YRP1。
 - 宿主第 4151–4158 行已捕获并按设置拦截即时录像；默认 `replay_delay=true`。
   第 3431–3445 行在完整 Match `DUEL_END` 前发送积累的逐局录像，

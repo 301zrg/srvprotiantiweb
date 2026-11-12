@@ -1,18 +1,17 @@
 # 当前架构与数据流
 
-更新：2026-10-26。本文描述源码边界，不断言正式站点今天的部署版本。功能和测试状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，
+更新：2026-11-12。本文描述源码边界，不断言正式站点今天的部署版本。功能和测试状态见 [PROJECT_STATUS](PROJECT_STATUS.md)，
 设计理由见 [设计文档](../YGOPro_706_Web_Client_Design.md)。
 
 ## 共享牌桌
 
 联机／观战、录像和测试手牌使用同一套牌桌几何与场面构件；三种模式各自保留数据来源、请求、动画驱动和外壳。
-2026-10-25 用户确认录像改为与联机相同的牌桌外观，2026-10-26 确认实施范围并要求一次发布到固定测试版；正式合入另行授权。
-实现基于 `deploy/cloudflare` 的 `db49ec6b`，分支 `codex/shared-duel-board-20261025`。
+共享牌桌与录像外壳已合入 `main`（原测试版内容于 PR #41 整体合入）。2026-10-25／26 的测试版授权与基线仅是实现历史，不表示当前仍待正式合入。
 
 | 共享入口 | 内容 | 使用者 |
 | --- | --- | --- |
 | [geometry.ts](../src/ui/Shared/DuelBoard/geometry.ts) | 纯函数：布局参数（横屏／≥700×600 加大行距／MR4+）、区域外框 `zoneRect`、卡片姿态 `cardPose`（场地、手牌扇形、牌堆、素材扇形）、CSS 变量和适配缩放 | 在线 springs 与 `Bg`、`SceneBoard`、几何回归 |
-| [AttackArrow.tsx](../src/ui/Shared/DuelBoard/AttackArrow.tsx) | 无状态攻击箭头；直接攻击落点位于对方玩家区域。联机动画与离线动作步骤各自控制显示周期，不共享会话状态 | 联机决斗、观战、测试手牌、录像 |
+| [AttackArrow.tsx](../src/ui/Shared/DuelBoard/AttackArrow.tsx) | 无状态 SVG 攻击箭头；四种模式共用样式与几何，直接攻击落点位于对方玩家区域。在线 `boardSpot` 和离线 `sceneSpot` 各自转换视角；联机动画与离线动作步骤各自控制显示周期及清理，不共享会话状态 | 联机决斗、观战、测试手牌、录像 |
 | [ZoneBlock.tsx](../src/ui/Shared/DuelBoard/ZoneBlock.tsx) | 无状态区域块、牌堆数量角标、禁用叉号；样式在 [index.module.scss](../src/ui/Shared/DuelBoard/index.module.scss) | 在线 `Bg`、`SceneBoard` |
 | [SceneBoard.tsx](../src/ui/Shared/DuelBoard/SceneBoard.tsx)、[BoardCard.tsx](../src/ui/Shared/DuelBoard/BoardCard.tsx) | 离线平面牌桌：区域、牌堆、连锁标记、素材扇形及练习素材收集暂存；卡片按共享姿态摆放 | 测试手牌、录像 |
 | [CardDetail.tsx](../src/ui/Shared/DuelBoard/CardDetail.tsx) | 详情正文：卡图、攻守表、指示物、身份对照、关联卡片、卡面原文 | 在线 `CardModal`、练习与录像抽屉 |
@@ -74,7 +73,7 @@
 
 卡图（[cardImageCache](../src/api/cardImageCache.ts)、`useCardImage`）：图源入口返回 `302 + no-store` 并跳转到不同的 CDN 节点，浏览器 HTTP 缓存经常重复下载同一张卡。最终图片允许 CORS，因此以入口地址（含图片语言）为键，把压缩文件存入 Cache Storage（`card-images-v1`）：最多约 600 张、先进先出，来源用量超过配额 60% 时停止写入；相同图片的并发请求合并，同时最多 12 个下载，失败的卡 60 秒内交给浏览器直接加载。运行时只保留引用计数的对象 URL 与 150 个空闲 URL，解码像素由页面元素负责。组卡卡片在进入滚动区域附近 400 px 内才加载。缓存不可用时回退到原地址；“画面与消息”可单独清理卡图缓存，不影响卡组、录像和联机输入。
 
-卡图没加载出来或加载失败时，[YgoCard](../src/ui/Shared/YgoCard/index.tsx) 在卡面位置显示卡名（对局、观战、手牌测试、录像场地与各选卡弹窗共用；组卡卡片由 `DeckCard` 自行处理）。卡图画在卡名上层的伪元素里，加载成功就盖住卡名，不需要监听加载事件。卡背和卡号为 0 的卡不显示卡名，暗牌不会因此暴露。盘面整体缩放时（`--scene-board-scale`／`--duel-board-scale`），字号按屏幕上 9～13 px 计算；卡片在屏幕上窄于约 40 px 时隐藏卡名，手机缩小后的场地上不显示。
+卡图没加载出来或加载失败时，[YgoCard](../src/ui/Shared/YgoCard/index.tsx) 在卡面位置显示卡名（对局、观战、手牌测试、录像场地与各选卡弹窗共用；组卡卡片由 `DeckCard` 自行处理）。卡图画在卡名上层的伪元素里，加载成功就盖住卡名，不需要监听加载事件。卡名计算依赖卡号、卡背状态和当前语言，渲染层 memo 也依赖计算后的卡名，缺图时切换四语无需重新下载卡图即可更新文字。卡背和卡号为 0 的卡不显示卡名，暗牌不会因此暴露。盘面整体缩放时（`--scene-board-scale`／`--duel-board-scale`），字号按屏幕上 9～13 px 计算；卡片在屏幕上窄于约 40 px 时隐藏卡名，手机缩小后的场地上不显示。
 
 Match 局数（[matchGame](../src/variant/matchGame.ts)）按 MSG_START 计数，离开房间清零；观战重连清零后随服务端补发的整场历史重新计数，对战玩家对局中重连跳过补发的那一次。
 
@@ -290,7 +289,7 @@ sequenceDiagram
   UI->>Worker: 离开 / 取消时终止
 ```
 
-固定 `706-v1` profile 与 SHA 锁保护重演的底稿；服务器每个规则环境是 v1 之上的差异包（`public/replay/revisions/`）。页面按录像开局时间选环境（`src/replay/revisions.ts`），玩家可手动指定并记在录像上；校验链为打包的环境列表 → 环境 profile 的 SHA → 差异包的大小和 SHA，任一级不符就停止，不换用别的版本。练习模式开局时固定使用最新环境。录像头不记录服务器，只能证明时间，不能证明生产 Core／Lua 全部版本；维护见 [规则维护说明](replay-script-maintenance.md)。
+固定 `706-v1` profile 与 SHA 锁保护重演的底稿；服务器每个规则环境是 v1 之上的差异包（`public/replay/revisions/`）。页面按录像开局时间选环境（`src/replay/revisions.ts`），玩家可手动指定并记在录像上；校验链为打包的环境列表 → 环境 profile 的 SHA → 差异包的大小和 SHA，任一级不符就停止，不换用别的版本。当前两份索引均有六个环境，最新为 `706-20261112`；练习模式开局时固定使用页面打包的最新环境。录像头不记录服务器，只能证明时间，不能证明生产 Core／Lua 全部版本；维护见 [规则维护说明](replay-script-maintenance.md)。
 标准双人 YRP2／UNIFORM `0x1362` 扩展头 1 是当前支持格式；其他格式可保存／下载。
 响应耗尽或不兼容时如实停止，不补造胜负。切视角、暂停和场地动画只影响展示；
 不运行在线选择 handler，不向 WSS 发送响应。详细格式和已有样本见 [录像使用](replay-usage.md)。
@@ -303,9 +302,9 @@ sequenceDiagram
 | 交接来源 | `deckImportOrigins` 是站方精确 Origin 白名单；参数只能选择允许来源，不能扩大白名单。消息还要校验 source／request／版本／负载 |
 | 语言 | 有效 Hash `lang` → 网页 query `lang` → 已存选择 → 支持的浏览器语言 → en；初始化前捕获，切语不重连 |
 | 资源地址 | `BASE_URL` 形成 `environment/1103-201103-v2` 与 `neos-assets` 路径；卡图源集中配置，不接收玩家任意 URL |
-| 完整联机输入 | 内存草稿、各标签页 `joinFormDraft`（sessionStorage）及持久的 `joinFormSaved`（站点 localStorage，含密码）；普通退出保留，主动清空保持为空，一键观战用临时表单、不写普通缓存，详见 [会话契约](session-recovery.md) |
+| 完整联机输入 | 内存草稿、各标签页 `joinFormDraft`（sessionStorage）及持久的 `joinFormSaved`（站点 localStorage，含密码）；普通退出保留，主动清空保持为空，匿名观战用临时表单、不写普通缓存，带账号观战保留身份并清空普通房号，详见 [会话契约](session-recovery.md) |
 | 公开偏好 | localStorage 的语言、公开昵称／房名等，不含账号或房间密码 |
-| 卡组 | 卡组 IndexedDB 与编辑 store；不会随观战输入清空而删除 |
+| 卡组 | 卡组 IndexedDB 与编辑 store；不随观战或普通联机输入变化而删除 |
 | 换备编辑器 | `SideStore.editor` 保存本阶段初始卡组、草稿和滚动，仅在同会话自动恢复时显式复制；新阶段／离场清理，不持久化未提交草稿，不替代 sessionStorage 中的已提交卡组 |
 | 录像 | 独立 IndexedDB 的 blobs／entries／occurrences，原件 hash 去重；失败时有限临时内存并提示备份 |
 | 录像资源缓存 | 可选 Cache Storage，与玩家卡组／录像原件分开；不可当作玩家数据备份 |
@@ -343,7 +342,7 @@ flowchart LR
 | `npm run build:cloudflare` | 发布构建包装，共同校验公开 WSS／官网 URL／卡组与录像来源白名单，走静态构建并写版本信息；固定快照与录像资源随仓库提供 |
 | Python 两种发布包 | 普通包从 `dist` 复制，Toy 包单独构建；均调用同一公开配置校验器，支持迁址白名单与官网入口参数，见 [公开配置](public-deployment-config.md) |
 | 维护原始环境输入／快照 | [资源审计](1103-resource-audit.json)、[原件说明](../resources-staging/1103/README.md)、[还原脚本](../scripts/restore_environment_assets.mjs)；原件字节不变，生成规则／revision／指纹一起维护 |
-| 维护录像 Core／Lua | [脚本维护](replay-script-maintenance.md)、[profile](../src/replay/profile.json)；需要原生／WASM 编译工具，普通试用不用执行 |
+| 维护录像 Core／Lua | [脚本维护](replay-script-maintenance.md)、[profile](../src/replay/profile.json)；Lua 差异环境生成使用 Node 和只读分层快照，只有 Core／全量底稿维护需要原生／WASM 编译工具，普通试用不用执行 |
 | 维护协议 IDL | [固定来源说明](../protocol-source/README.md)；来源、许可证、指纹和生成 TS 一起更新 |
 
 发布仅将构建产物放在外部静态站点；静态文件不经天梯服务器中转。
