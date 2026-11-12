@@ -17,9 +17,9 @@
 
 不新增云存储、账号录像同步或分享链接；不把录像上传到天梯主机。主机继续只生成、发送及保存它原本负责的录像，播放运算在玩家浏览器进行。桌面助手和现网裁定脚本本轮不改。
 
-天梯官网原有公开录像下载仍可使用：下载文件后导入本地库即可。官网下载旁增加「网页版播放」是可行增强，标准播放器完成后可通过 HTTPS 公开下载代理，或由官网同源读取后向新页传递原件，进入同一本地库；它不需要新增云上传。小型公开卡组可用 hash 内容参数直接进入编辑器，文件与 deckbuffer 分别解析，后者须正确分开主／额外。实际接口、部署与手机限制见 [官网录像／卡组一键打开调研](website-replay-deck-handoff-research.md)。这些入口尚未实施，不作为核心本地导入／播放的前置条件。
+天梯官网原有公开录像下载仍可使用：下载文件后导入本地库即可。官网下载旁增加「网页版播放」是可行增强，标准播放器完成后可通过 HTTPS 公开下载代理，或由官网同源读取后向新页传递原件，进入同一本地库；它不需要新增云上传。小型公开卡组可用 hash 内容参数直接进入编辑器，文件与 deckbuffer 分别解析，后者须正确分开主／额外。实际接口、部署与手机限制见 [官网录像／卡组一键打开调研](website-replay-deck-handoff-research.md)。这些接收入口及官网配套已实现，当前契约见 [卡组接收](deck-import.md) 和 [录像接收](replay-import.md)；正式文件部署仍需独立核对，不作为核心本地导入／播放的前置条件。
 
-网页内直接检索服务器录像库是另一项可选增强：现有接口仅提供 GET 列表／下载，当前公网网关只配置了 `/neos`，若接入需解决 HTTPS 路由并核查实际 CORS，不开放公共上传接口。本地宿主已有 CORS 响应，不能据此绕过 HTTPS 页读取 HTTP 的限制。参见 [公开录像插件](../../srvprotianti/plugins/public-replay-web/README.md)。
+网页内直接检索服务器录像库是另一项可选增强：现有接口仅提供 GET 列表／下载，当前公网网关只配置了 `/neos`，若接入需解决 HTTPS 路由并核查实际 CORS，不开放公共上传接口。本地宿主已有 CORS 响应，不能据此绕过 HTTPS 页读取 HTTP 的限制。参见 [公开录像插件](https://github.com/301zrg/srvprotianti/blob/main/plugins/public-replay-web/README.md)。
 
 ## 2. 调研事实与未验证项
 
@@ -29,7 +29,7 @@
 | 原生录像接收 | [stream.ts](../src/infra/stream.ts) 已在动画队列之前用独立 framer 捕获 `0x17` 原件；[onSocketMessage.ts](../src/service/onSocketMessage.ts) 跳过该包，不打印完整录像 |
 | 清理行为 | [resetUniverse](../src/stores/index.ts) 会重置 `replayStore`；持久库和待保存队列必须独立于对局 UI 清理 |
 | 服务器尾包 | `CLIENT_send_replays()`、`DUEL_END` 和 `REPLAY` hook 可在 Match 末连续发送多局；大会模式可阻止给玩家录像。未下发不能宣称已保存 |
-| 本地原生格式 | [replay.h](../../srvprotianti/ygopro/gframe/replay.h) 定义 32 字节基础头；本地 YRP2 扩展头为 80 字节，含 8 个 32 位 seed 和扩展字段；解码按版本分支，不给其他格式套同一偏移 |
+| 本地原生格式 | [replay.h](https://github.com/mycard/ygopro/blob/5e63f18fb6b9a6ddc651bc2e8847eec9689ccbff/gframe/replay.h) 定义 32 字节基础头；本地 YRP2 扩展头为 80 字节，含 8 个 32 位 seed 和扩展字段；解码按版本分支，不给其他格式套同一偏移 |
 | 压缩与规则 | 当前源码是 raw LZMA1／LZMA1EXT，props 和解压长度在头中；`REPLAY_UNIFORM=0x10`，Tag 和单人谜题另有标志。不是 ZIP、gzip 或视频文件 |
 | 脚本初始化 | 本地 Core 的 interpreter 默认只加载 `constant.lua → utility.lua → procedure.lua`，没有自动加载 `special.lua` |
 
@@ -45,7 +45,7 @@
 | `special.lua` | 4,621 字节，SHA-256 `32b9580d09d7151d8123769fa826c21974c0d6d0b43e64f0088fc660e6efc356`；GitHub 固定版本与本地两种客户端的扩展副本一致 |
 | 桌面 utility 底稿 | 官方 scripts `14745a5a3908861bba65d79cf9c542605c83d9cb`，66,473 字节；与相邻服务器 scripts 的 utility 68,547 字节不同，不能直接整份替换 |
 
-706 来源：[固定补丁目录](https://github.com/301zrg/specials/tree/d6008e9832e5666e665a84dca2e8e59810b3cdfa/706)。桌面处理依据：[设计第 9 节](../../srvprotianti-desktop/DESIGN.md)、[scripts.rs](../../srvprotianti-desktop/src-tauri/src/scripts.rs)。Core/API 的上游定位参见 [Fluorohydride/ygopro-core](https://github.com/Fluorohydride/ygopro-core)，发布使用核对后的实际 fork 和 commit。
+706 来源：[固定补丁目录](https://github.com/301zrg/specials/tree/d6008e9832e5666e665a84dca2e8e59810b3cdfa/706)。桌面处理依据：[设计第 9 节](https://github.com/301zrg/srvprotianti-desktop/blob/main/DESIGN.md)、[scripts.rs](https://github.com/301zrg/srvprotianti-desktop/blob/main/src-tauri/src/scripts.rs)。Core/API 的上游定位参见 [Fluorohydride/ygopro-core](https://github.com/Fluorohydride/ygopro-core)，发布使用核对后的实际 fork 和 commit。
 
 开工后的第一道门槛是取得非敏感环境指纹：生产使用的 Core／主程序、Lua／liblzma、最终 CDB 合并顺序与摘要、基础和覆盖脚本版本／摘要，以及授权测试产生的同格式录像。只收版本和测试文件，不要求生产账号、数据库密码或私有配置。能先在隔离本地服务器推进的工作不依赖协作者即时答复。
 
@@ -154,7 +154,7 @@ Worker 先验证并加载固定资源，注册同步 CardReader／ScriptReader�
 
 ## 8. 资源版本、托管与运行限额
 
-播放资源 revision 与现有 `1103-201103-v1` 显示资源分开，manifest 锁定 Core fork／commit、Lua／liblzma 版本、工具链和异常处理选项、基础／706 commit、生成 bootstrap、Core 卡表和各文件 hash。录像关联固定一版，播放中不自动升级。录像头 version、联网协议版本和 Core commit 是不同信息，不能互相替代。导入文件只提供版本线索；相同录像头不能证明来自某个脚本 SHA，来源未知须明确显示。
+播放资源 revision 与现有 `1103-201103-v2` 显示资源分开，manifest 锁定 Core fork／commit、Lua／liblzma 版本、工具链和异常处理选项、基础／706 commit、生成 bootstrap、Core 卡表和各文件 hash。录像关联固定一版，播放中不自动升级。录像头 version、联网协议版本和 Core commit 是不同信息，不能互相替代。导入文件只提供版本线索；相同录像头不能证明来自某个脚本 SHA，来源未知须明确显示。
 
 保留完整有效 Lua 依赖树：公共脚本、`Duel.LoadScript`、跨卡引用及生成 Token 等都可能越出组卡 ID。初期不按 5267 个卡号随意裁剪。基础 Lua 约 30.36 MiB 的未压缩量不宜整份明文网络下载，建议外部静态站发布压缩 `.data` 包和索引，必要时按 manifest 分块；Worker 一次装入经校验的紧凑字节表，同步取脚本，不把全部 Lua 额外复制为 UTF-16 字符串。
 

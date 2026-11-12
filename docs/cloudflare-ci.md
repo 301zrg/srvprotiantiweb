@@ -4,7 +4,7 @@
 
 ## 仓库配置
 
-- [wrangler.json](../wrangler.json)：名称与现有站点一致，只发布 `dist/` 静态文件，不配置 `main`、资源绑定或 `run_worker_first`。静态文件由 Cloudflare 直接提供，请求免费且不限次数；旧配置让每个资源请求先运行 HTTPS 跳转脚本，计入 Workers 请求额度，超额后可能返回 429。正式 `workers_dev = false`，只使用受区域 HTTPS 规则保护的自定义域名；固定预览由 `previews: {}` 和原 `wrangler preview` 命令保留。`assets` 和兼容日期仍在顶层。保留项目名称、正式域名、Git 接入和发布命令。[静态请求计费与超额行为](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/)、[资源配置](https://developers.cloudflare.com/workers/static-assets/binding/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#what-goes-in-the-previews-block)
+- [wrangler.json](../wrangler.json)：名称与现有站点一致，只发布 `dist/` 静态文件，不配置 `main`、资源绑定或 `run_worker_first`。静态文件由 Cloudflare 直接提供，请求免费且不限次数；旧配置让每个资源请求先运行 HTTPS 跳转脚本，计入 Workers 请求额度，超额后可能返回 429。正式 `workers_dev = false`，只使用受区域 HTTPS 规则保护的自定义域名；固定预览由 `previews: {}`、`preview_urls = true` 和 `wrangler preview` 命令共同保留。`assets` 和兼容日期仍在顶层。保留项目名称、正式域名、Git 接入和发布命令。[静态请求计费与超额行为](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/)、[资源配置](https://developers.cloudflare.com/workers/static-assets/binding/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#what-goes-in-the-previews-block)
 - [package.json](../package.json)：`build:cloudflare` 通过 `build:static` 还原固定环境资源，再执行 Vite 构建及资源复制；`deploy:cloudflare` 和 `preview:cloudflare` 通过 [发布脚本](../scripts/release_cloudflare.mjs) 使用固定的 Wrangler `4.148.0`，对明确的 API 限流最多尝试三次。预览始终调用 `wrangler preview`，不会变成生产发布。
 - [build_cloudflare.mjs](../scripts/build_cloudflare.mjs)：生产要求显式传入公开 WSS；测试预览按下节读取正式站公开的当前 WSS。固定根路径与正常资源格式，生成公开 `duel-config.js` 和带源码提交号的 `deployment-info.json`。官网链接与卡组／录像消息白名单可通过公开构建变量一同发布，详见 [公开配置与迁址](public-deployment-config.md)。缺少或无效 WSS、白名单错误、构建失败时返回非零退出码，不执行后续部署。普通 `npm run build` 仍可用于离线组卡开发。
 - 2026-10-28 起生产分支为 **`main`**，测试分支为 **`preview`**，名称记录在 [deployment/preview.json](../deployment/preview.json)；`deploy/cloudflare` 停用，内容已并入 `main`。分支规范见下文 [分支与发布流程](#分支与发布流程)。
@@ -22,7 +22,7 @@
 | Git 仓库 | `301zrg/srvprotiantiweb` |
 | 生产分支 / Git branch | `main`（2026-10-28 由 `deploy/cloudflare` 改为 `main`） |
 | Root directory / 路径 | 保持界面默认的 `/`，表示仓库根目录；不要填本机路径或 `dist` |
-| Build command | `npm ci --include=dev && npm run build:cloudflare` |
+| Build command | `npm ci --include=dev && npm run build:cloudflare`（Cloudflare Linux 构建命令；PowerShell 本地分两行执行） |
 | Deploy command | `npm run deploy:cloudflare` |
 | API token | 选择 Cloudflare 界面自动创建／默认使用的构建 Token，无需发给开发者 |
 | 非生产分支预览 | 需要 PR 预览时勾选“启用预览构建”；预览用于检查功能，不替代生产发布 |
@@ -37,7 +37,7 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 | --- | --- | --- |
 | `SKIP_DEPENDENCY_INSTALL` | `1` | 由上述构建命令显式执行 `npm ci`，避免平台先自动装一次 |
 | `NODE_VERSION` | `24` | 使用 Node 24 系列，满足固定 Wrangler 的 Node ≥22 要求 |
-| `VITE_DUEL_WS_URL` | `wss://districts-studios-rear-representation.trycloudflare.com/neos` | 2026-10-08 读取现有站点公开配置确认的临时对战入口；如隧道地址已改变，填实际新地址 |
+| `VITE_DUEL_WS_URL` | `wss://<当前网关主机>/neos`（占位，须替换） | 正式构建显式设置当前已验收的公开 WSS；旧 Quick Tunnel 地址只是历史记录，不可直接复制。预览构建从正式站公开元数据取 WSS |
 
 上述值均为公开构建参数，不需要勾选“加密”；WSS 会写入发布的网页配置，勾选加密也不会对玩家隐藏入口。官网迁址时还可设置 `VITE_DECK_IMPORT_ORIGINS`（精确 origin 的 JSON 数组，例如 `["https://ladder.example.com"]`；`[]` 禁用消息交接）和 `VITE_WEBSITE_BASE_URL`（首页官网链接，例如 `https://ladder.example.com/`）。未设置时沿用原有默认值；不是 WSS 网关的网页版 Origin 白名单。三项发布值使用同一校验器并一起写入产物，完整规则和手工包参数见 [公开配置](public-deployment-config.md)。之前设置的 `PYTHON_VERSION=3.13.3` 可以删除，保留也不影响本项目构建，因为现在不调用 Python。不要放玩家凭据、证书私钥、隧道 Token 或 GitHub Token。Cloudflare 的构建环境支持 Node 版本覆盖与跳过自动依赖安装。[构建镜像说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/)、[构建缓存](https://developers.cloudflare.com/workers/ci-cd/builds/build-caching/)
 
@@ -49,7 +49,7 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 
 ## 固定测试入口与 WSS
 
-测试地址固定为 `https://codex-client-preview-20261019-black-surf-69e5.1627406938.workers.dev/`。[deployment/preview.json](../deployment/preview.json) 保存这个既有预览名称；发布脚本显式传入 `wrangler preview --name`，不再随工作分支名变化。不要更换名称或使用每次部署的唯一地址，否则浏览器缓存与网关 Origin 均会改变。Workers CI 会对每个非生产分支执行预览命令；发布脚本经 `releaseSkipReason` 只允许 `preview` 分支更新测试版、`main` 分支执行生产发布，其他分支的构建照常运行但跳过发布，测试链接不再被任意工作分支覆盖。本地手动执行不受此限制。[官方预览命名](https://developers.cloudflare.com/workers/previews/get-started/)
+测试地址固定为 `https://codex-client-preview-20261019-black-surf-69e5.1627406938.workers.dev/`。[deployment/preview.json](../deployment/preview.json) 保存这个既有预览名称；发布脚本显式传入 `wrangler preview --name`，不再随工作分支名变化。不要更换名称或使用每次部署的唯一地址，否则浏览器缓存与网关 Origin 均会改变。Workers CI 会对每个非生产分支执行预览命令；发布脚本经 `releaseSkipReason` 只允许 `preview` 分支更新测试版、`main` 分支执行生产发布，其他分支的构建照常运行但跳过发布，测试链接不再被任意工作分支覆盖。本地手动执行不受此限制，因此手动发布仍须有对应目标的明确授权；推送文档工作分支并创建 PR 不会更新正式／测试站。[官方预览命名](https://developers.cloudflare.com/workers/previews/get-started/)
 
 [preview_config.mjs](../scripts/preview_config.mjs) 根据官方 `WORKERS_CI=1` 与 `WORKERS_CI_BRANCH` 区分生产分支 `main` 和测试分支。测试构建从正式站 `https://ocg1103nexus.com/deployment-info.json` 读取公开 WSS，覆盖预览环境里陈旧的 `VITE_DUEL_WS_URL`；只读取这个公开字段，不读取服务器或 Cloudflare 机密。请求超时、元数据错误或无效 WSS 均使构建失败，不回退到旧地址。产物记录 `previewName`、`configurationSource` 供核验。生产构建仍只使用自己的显式环境变量，不访问测试配置来源。[官方 CI 变量](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
 

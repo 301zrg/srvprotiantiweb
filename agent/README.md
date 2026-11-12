@@ -1,6 +1,6 @@
 # Neos Duel Agent
 
-This is the initial runtime skeleton for an external LLM duel agent.
+This directory contains a separate external LLM duel agent and its original MyCard-oriented tooling. It is not an integrated 706/TT client feature: the web product does not initialize MyCard SSO or offer an AI opponent. The commands below describe this optional tooling; they do not prove compatibility with the current 706 client or authorize model requests. See the [current architecture](../docs/ARCHITECTURE.md) for supported product paths.
 
 The intended control path is:
 

@@ -21,7 +21,7 @@
 ## 边界与维护
 
 - `src/practice/session.ts` 只复制编辑器草稿，不写 IndexedDB，也不访问在线状态。
-- `src/variant/practice.ts` 集中固定环境的资源 revision 与 master rule；当前是 `706-v1`、MR2。页面没有玩家规则选择器。
+- `src/variant/practice.ts` 集中固定环境的资源 revision 与 master rule；当前底稿是 `706-v1`、MR2；`usePracticeSession.ts` 在开局时选择页面打包的最新 Lua 环境（当前 `706-20261112`），交给 Worker 验证并合并差异包，整局固定。页面没有玩家规则选择器。
 - `src/practice/worker.ts` 独占一个固定 706 WASM 实例，安装与录像相同的已校验 cards/Lua；不接收 Lua 源码，不加载任意脚本。
 - `src/practice/engine.ts` 创建本地 duel，返回事件、完整场地查询和当前待处理请求。响应必须同时匹配请求 id 与真实请求玩家。响应编码和旧协议提示解析集中在 `prompts.ts`。
 - `src/ui/Practice/usePracticeSession.ts` 管理 Worker、超时、音效和快照；`Board.tsx` 使用联机场地的响应式几何数值、卡图组件和区域样式，`PhaseBar` 是共享纯展示组件。`interactions.ts` 按 Core 卡片地址与命令构建交互，不生成规则动作。旧的独立操作长列表已移入按需选择面板。

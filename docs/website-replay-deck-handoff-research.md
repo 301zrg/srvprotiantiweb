@@ -1,6 +1,8 @@
 # 天梯官网的录像与卡组一键打开调研
 
-2026-10-08 当前进展：录像首版与官网配套已按用户后续授权实现。实际交接使用小文件同标签页内容链接、较大文件先读取后显式点击消息交接，不要求立即加 Nginx 文件代理。最新范围、限额和部署顺序以 [录像接收契约](replay-import.md) 和 [录像说明](replay-usage.md) 为准。以下内容保留为施工前调研，不代表仍在等待授权。
+> 历史调研（2026-10-07／08）：下文的“当前”“下一步”和源码行号只描述调研时点；已实现契约以 [卡组接收](deck-import.md)、[录像接收](replay-import.md) 和 [录像使用](replay-usage.md) 为准。
+
+2026-10-08 后续进展：录像首版与官网配套已按用户后续授权实现。实际交接使用小文件同标签页内容链接、较大文件先读取后显式点击消息交接，不要求立即加 Nginx 文件代理。最新范围、限额和部署顺序以 [录像接收契约](replay-import.md) 和 [录像说明](replay-usage.md) 为准。以下内容保留为施工前调研，不代表仍在等待授权。
 
 核查日期：2026-10-07；进展更新：2026-10-08。范围是 `srvprotianti` 官网增加入口、把已有下载内容送入 `srvprotiantiweb`。卡组接收已单独获授权并实现，实际契约见 [卡组接收说明](deck-import.md)；官网 HTML／按钮、下载接口和正式部署本轮未改，第二期录像仍待用户确认开工。下文官网及录像改造保持施工前方案。
 
@@ -18,8 +20,8 @@
 
 ### 2.1 录像
 
-[官网录像页](../../srvprotianti/plugins/ladder-web/web/replays.html) 从 `GET /api/public/replays` 取得文件名，每行下载指向 `GET /api/public/replay/:filename`。
-[公开录像插件](../../srvprotianti/plugins/public-replay-web/index.js) 读取固定录像目录里的原始 `.yrp` 字节，限制为单个文件名；没有数据库关联的历史文件也可能存在，不能据此隐藏播放入口。
+[官网录像页](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-web/web/replays.html) 从 `GET /api/public/replays` 取得文件名，每行下载指向 `GET /api/public/replay/:filename`。
+[公开录像插件](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/public-replay-web/index.js) 读取固定录像目录里的原始 `.yrp` 字节，限制为单个文件名；没有数据库关联的历史文件也可能存在，不能据此隐藏播放入口。
 
 新增按钮读取相同文件即可，不需要转换成视频、不需要新上传接口，也不需要让天梯服务器运行网页重放。文件取到后保留原始字节，播放运算在浏览器的匹配 Core 中进行。Match 的 G1／G2／G3 是各自的录像，不因文件名相似自动合并成一份。
 
@@ -29,11 +31,11 @@
 
 | 官网位置 | 当前取得内容的方法 | 一键编辑的处理 |
 | --- | --- | --- |
-| [介绍页示例卡组](../../srvprotianti/plugins/ladder-web/web/intro.html) | `GET /example_decks/:filename`，读取现存 YDK 文件 | 官网读取文本，或通过允许的 HTTPS 下载入口读取，送入 YDK 导入器 |
-| [卡组详情模板](../../srvprotianti/plugins/ladder-web/web/deck-detail.html) | `GET /api/ladder/deck-template?deckTypeId=...&filename=...` | 同一 YDK 导入器；明确这是识别模板，可能不是完整、可参战的卡组 |
-| [玩家战绩卡组](../../srvprotianti/plugins/ladder-web/web/player-stats.html) | `POST /api/ladder/player/deck`，请求体含 player／password／matchId／side；返回 YDK | 由官网继续调用原接口及权限验证，只把验证通过的卡组内容传给网页版 |
+| [介绍页示例卡组](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-web/web/intro.html) | `GET /example_decks/:filename`，读取现存 YDK 文件 | 官网读取文本，或通过允许的 HTTPS 下载入口读取，送入 YDK 导入器 |
+| [卡组详情模板](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-web/web/deck-detail.html) | `GET /api/ladder/deck-template?deckTypeId=...&filename=...` | 同一 YDK 导入器；明确这是识别模板，可能不是完整、可参战的卡组 |
+| [玩家战绩卡组](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-web/web/player-stats.html) | `POST /api/ladder/player/deck`，请求体含 player／password／matchId／side；返回 YDK | 由官网继续调用原接口及权限验证，只把验证通过的卡组内容传给网页版 |
 
-玩家战绩接口虽然底层读取数据库 buffer，但 [ladderAnalytics.profileDeck](../../srvprotianti/plugins/ladder-analytics/index.js) 已经在服务器生成 YDK，外部导入按「文件内容」处理。它取的是比赛初始 `startDeckBuffer`；录像列表用的是该局 `currentDeckBuffer`，换备后的 G2／G3 两者可能不同。按钮标签和来源记录必须保留这一区别，不能用战绩初始牌组替换录像中的当局牌组。
+玩家战绩接口虽然底层读取数据库 buffer，但 [ladderAnalytics.profileDeck](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-analytics/index.js) 已经在服务器生成 YDK，外部导入按「文件内容」处理。它取的是比赛初始 `startDeckBuffer`；录像列表用的是该局 `currentDeckBuffer`，换备后的 G2／G3 两者可能不同。按钮标签和来源记录必须保留这一区别，不能用战绩初始牌组替换录像中的当局牌组。
 
 密码仍只在官网页面内存与原 POST 请求体中，不送到新标签页、链接、日志或本地库。新增按钮不能通过公开 GET 绕过原有访问范围。
 
@@ -53,7 +55,7 @@ uint32LE sideIds[sideCount]          // 备牌区
 
 网页版已有 `ygopro-deck-encode@1.0.14`，其 `fromUpdateDeckPayload(buffer, predicate)` 能按 predicate 分区。predicate 收到的是**卡号**，而 [isExtraDeckCard](../src/common.ts) 接收的是**type 位掩码**；必须先查 `fetchCard(id).data.type`，不能把卡号直接传入类型判断。侧牌里的额外怪兽继续留在 side；不去重、不排序、不按当前禁表删卡，也不把异画号换成另一个 ID。
 
-建议给现有 [录像增强插件](../../srvprotianti/plugins/ladder-replay-enrichment/index.js) 增加可选的 `deck: {main, extra, side}` 字段，复用并声明 `cardCatalog` 服务依赖，由正确分区的数据同时生成官网 YDK 下载和编辑链接；保留原 deckbuffer 字段。基础公开录像插件继续可以独立工作，不强加天梯依赖。增强字段不可用时，网页版可用自身卡库解码原 buffer；官网不能继续默默导出区块错误的文件。
+建议给现有 [录像增强插件](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/plugins/ladder-replay-enrichment/index.js) 增加可选的 `deck: {main, extra, side}` 字段，复用并声明 `cardCatalog` 服务依赖，由正确分区的数据同时生成官网 YDK 下载和编辑链接；保留原 deckbuffer 字段。基础公开录像插件继续可以独立工作，不强加天梯依赖。增强字段不可用时，网页版可用自身卡库解码原 buffer；官网不能继续默默导出区块错误的文件。
 
 遇到卡库不识别的合并区卡号，buffer 本身没有主／额外分界，无法可靠推断。保留原件和全部 ID，显示待核对状态，不把未知卡静默认作已正确分区的主卡。已有分区的 YDK 则按原区块保留未知卡。
 
@@ -61,7 +63,7 @@ uint32LE sideIds[sideCount]          // 备牌区
 
 官网目前通过 `http://121.4.34.71:7922/` 访问，网页版在另一处 HTTPS 静态站点。HTTPS 客户端直接 `fetch(http://121.4.34.71:7922/...)` 会受到混合内容阻拦；端口、文件下载公开与否不改变这一点。[MDN 混合内容](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Mixed_content)。
 
-本地 [宿主 HTTP 处理](../../srvprotianti/ygopro-server.coffee) 已在插件分发前设置 `Access-Control-Allow-Origin: *` 并处理 OPTIONS。因此不能把问题归结为「完全没配 CORS」；它仍不能解除混合内容限制，且正式代理返回的响应头必须另验。公开 HTTPS 文件接口可使用不携带浏览器凭据的 GET；认证卡组仍走官网既有验证流程。[MDN CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS)。
+本地 [宿主 HTTP 处理](https://github.com/301zrg/srvprotianti/blob/92020e39b7ddae53be2a14ec93d487371d284042/ygopro-server.coffee) 已在插件分发前设置 `Access-Control-Allow-Origin: *` 并处理 OPTIONS。因此不能把问题归结为「完全没配 CORS」；它仍不能解除混合内容限制，且正式代理返回的响应头必须另验。公开 HTTPS 文件接口可使用不携带浏览器凭据的 GET；认证卡组仍走官网既有验证流程。[MDN CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS)。
 
 现有 [隧道网关模板](../deployment/windows/neos-tunnel.conf) 只代理 `/neos`，其余路径返回 404。WSS 对战通道不等于 HTTPS 文件下载接口；不可把 `.yrp` 地址简单换成这个域名就认为能用。
 

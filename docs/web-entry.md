@@ -1,6 +1,6 @@
 # 官网页面快捷入口（v1）
 
-本轮只准备 srvprotiantiweb 接收端并发布 `https://test.ocg1103nexus.com/`。正式地址 `https://ocg1103nexus.com/` 须待功能合入正式版后使用；发送端 HTML/JS 按下文接入，无需新增后端。卡组／录像文件交接继续使用独立的 [卡组接收](deck-import.md)、[录像接收](replay-import.md) 协议。
+srvprotiantiweb 接收端已合入 `main`，正式入口为 `https://ocg1103nexus.com/`，测试入口为 `https://test.ocg1103nexus.com/`；具体上线核对见 [当前状态](PROJECT_STATUS.md)。发送端配套由官网仓库维护，本文代码仅说明接入契约，无需新增后端。卡组／录像文件交接继续使用独立的 [卡组接收](deck-import.md)、[录像接收](replay-import.md) 协议。
 
 ## 公开参数
 
@@ -65,7 +65,7 @@ function openWebClient(clientBase, intent, {username, password, room, lang = "zh
 }
 ```
 
-只需打开列表、不传账号时直接使用公开链接即可。当前未修改发送端 HTML。
+只需打开列表、不传账号时直接使用公开链接即可。官网发送端的实现和部署以其 [接入说明](https://github.com/301zrg/srvprotianti/blob/main/plugins/ladder-web/WEB_CONFIG.md) 为准；本文不将接收端发布等同于官网已部署。
 
 ## 账号与临时房间
 

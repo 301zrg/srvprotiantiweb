@@ -1,6 +1,8 @@
 # 当前 Windows 服务器：网页版上线测试
 
-更新：2026-10-07。用户决定今年继续使用 `121.4.34.71`，明年更换服务器后再处理正式直连与备案。当前域名 DNS 尚未接入 Cloudflare，协作者能否调整 DNS 未确定。
+> 本文保留 2026-10-07 Windows／Quick Tunnel 上线测试与交付包操作；下述旧 `workers.dev` 静态入口已停止对外提供应用，现行正式／测试入口和命令见 [自动部署](cloudflare-ci.md)。旧隧道 URL、Origin 和禁表检查只描述当时，不能直接用于当前部署。新的 Linux 部署按服务端 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/main/ops/README.md) 执行。
+
+记录日期：2026-10-07。用户决定今年继续使用 `121.4.34.71`，明年更换服务器后再处理正式直连与备案。当前域名 DNS 尚未接入 Cloudflare，协作者能否调整 DNS 未确定。
 
 本轮采用 **Cloudflare 外部静态网页（Workers／Pages）+ Cloudflare Quick Tunnel 临时 WSS** 进行公网测试，不依赖调整 `ygomatch.xyz` 的 DNS。Quick Tunnel 是测试服务，地址随进程重启变化，没有可用性保证，不能当作已经完成的长期正式部署。若后续可调整 DNS，可升级为命名 Tunnel；若不能，可另验收旧文档已有的 Funnel 固定 `*.ts.net` 入口。[Quick Tunnel 官方说明](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)
 

@@ -63,7 +63,7 @@ window.__SRVPRO_DUEL_CONFIG__ = {
 
 原页应先注册监听，再在用户点击中同步打开标签页；不能使用 `noopener`／`noreferrer`，否则无法交接。发送时必须指定网页版的精确 origin，不使用 `*`。同一请求只接收第一份 payload，结束后移除监听并解除 opener。30 秒未收到有效内容会显示超时，玩家可返回编辑器并改用文件导入。
 
-下面是官网一侧的调用骨架，`getAuthorizedDeck()` 代表调用原接口并返回已分区结构。实际按钮、四语提示、取消和弹窗错误处理留给下一次官网施工：
+下面是官网一侧的调用骨架，`getAuthorizedDeck()` 代表调用原接口并返回已分区结构。实际按钮、四语提示、取消和弹窗错误处理已在文首链接的官网配套中实现；下面仅说明消息骨架：
 
 ```js
 function openAuthorizedDeck(clientEntry, getAuthorizedDeck, title) {
@@ -117,7 +117,7 @@ function openAuthorizedDeck(clientEntry, getAuthorizedDeck, title) {
 - 正常保存后刷新仍选中刚导入的卡组；编辑选择放在当前标签页的 sessionStorage，不改变其他标签页的对局／换备卡组。昵称、联机草稿及房间信息不随导入改变。
 - 本地文件及粘贴 YDK 使用同一个解析／保存入口。缓存不可用时音频缓存跳过，不阻止页面启动和临时编辑。
 
-官网 `replays.html` 目前仍把 deckbuffer 合并区全部写入 YDK 的 `#main`。后续按钮应发送原 buffer 或正确分区的 JSON，不复用该错误转换；旧下载转换问题归官网施工处理。本次接收器尊重已有 YDK 分区，不会猜测修正它。
+早期官网调研发现 `replays.html` 曾把 deckbuffer 合并区全部写入 YDK 的 `#main`；这属于历史问题，当前官网行为需按其源码及部署核对。接收器对 buffer 根据当前卡库区分主／额外，尊重已有 YDK 分区，不猜测修正收到的 YDK。
 
 ## 4. 本地试用与验证
 
