@@ -63,7 +63,9 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 
 移除主站脚本前，必须在 `ocg1103nexus.com` 区域的 **SSL/TLS → Edge Certificates → Always Use HTTPS** 确认已启用，由 Cloudflare 边缘规则负责 HTTP 跳转；仅看旧站返回 308 无法证明开关已开启，因为旧脚本也会返回 308。现有 Wrangler OAuth 的 Workers 发布权限不等于区域 SSL 设置权限，API 拒绝访问时不能记录成已核验。[Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/)
 
-`workers.dev` 不属于自己的区域，上述开关不覆盖它；纯静态预览的 HTTP 实测会直接返回 200。因此正式 `black-surf-69e5.1627406938.workers.dev` 备用入口经用户确认关闭（`workers_dev = false`），发布后同时核对 HTTP／HTTPS 不再提供应用。固定预览仍需可被测试入口通过 HTTPS 访问，但其原始 `workers.dev` 的 HTTP 不保证跳转；对外测试使用 `https://test.ocg1103nexus.com/`。正式域名与测试域名均检查跳转、路径、查询与 Hash。静态 `_redirects` 只支持路径匹配，不能区分 HTTP／HTTPS，不添加会让 HTTPS 自身循环的全站跳转。[静态重定向限制](https://developers.cloudflare.com/workers/static-assets/redirects/)
+`workers.dev` 不属于自己的区域，上述开关不覆盖它；纯静态预览的 HTTP 实测会直接返回 200。因此正式 `black-surf-69e5.1627406938.workers.dev` 备用入口经用户确认关闭（`workers_dev = false`），发布后同时核对 HTTP／HTTPS 不再提供应用。必须同时显式配置 **`preview_urls = true`**：固定版本 Wrangler 在未指定该项时默认跟随 `workers_dev`，会把固定测试预览一并关闭；空的 `previews: {}` 不能代替这个 URL 开关。生产发布后核对 API 状态为 `enabled: false`、`previews_enabled: true`。[预览 URL 的独立开关](https://developers.cloudflare.com/workers/versions-and-deployments/version-urls/)
+
+固定预览仍需可被测试入口通过 HTTPS 访问，但其原始 `workers.dev` 的 HTTP 不保证跳转；对外测试使用 `https://test.ocg1103nexus.com/`。正式域名与测试域名均检查跳转、路径、查询与 Hash。静态 `_redirects` 只支持路径匹配，不能区分 HTTP／HTTPS，不添加会让 HTTPS 自身循环的全站跳转。[静态重定向限制](https://developers.cloudflare.com/workers/static-assets/redirects/)
 
 `npm run test:static-hosting` 防止重新引入计费脚本入口、资源绑定和 Worker 优先路由，`npm run test:cloudflare-release` 与 `npm run test:preview-config` 继续覆盖原有发布隔离。发布前运行固定 Wrangler 的 `deploy --dry-run`，确认显示只上传静态资源；发布后核对 `deployment-info.json.sourceCommit`、HTML／JS／CSS、四语 CDB、SQLite／录像 WASM 和脚本资源，以及 HTTPS 安全上下文与既有 WSS 入场。
 
