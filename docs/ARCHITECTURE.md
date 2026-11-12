@@ -137,7 +137,7 @@ Core WASM 由录像播放、本地练习或压缩录像解包按需加载，二�
 
 独立自定义测试入口只转发固定预览的静态 HTTP 请求；测试浏览器的 WSS 仍直接进入既有网关，Origin 精确白名单独立于静态入口。该 Worker 没有服务端游戏状态，也不修改正式根域名绑定；不同 Origin 的浏览器存储互相隔离。
 
-Cloudflare 主入口先将 HTTP 以 308 跳转到相同主机、路径与查询的 HTTPS，再将 HTTPS 请求交给原有 ASSETS 绑定；独立测试入口在访问上游前同样跳转。主入口由 `wrangler.json` 的 `run_worker_first` 明确执行，不用会在 HTTPS 上循环的路径重定向。当前只随预览验证；正式站须以后合入发布分支才采用该入口。浏览器在跳转时保留 Hash 路由，但 HTTP 与 HTTPS 的本地存储仍互相隔离。
+Cloudflare 主站采用无脚本的纯静态 Assets 托管，`wrangler.json` 只指定静态目录，不配置 `main`、ASSETS 绑定或 `run_worker_first`，避免静态下载消耗 Workers 请求额度。正式域名的 HTTP 跳转由区域 Always Use HTTPS 接管，上线前须确认开关并单独验证 `workers.dev` 的 HTTP 行为；完整发布前提见 [自动部署](cloudflare-ci.md#纯静态托管与-https-验收)。独立测试入口仍在访问预览上游前执行 HTTPS 跳转和代理，仍计入 Workers 额度。浏览器在跳转时保留 Hash 路由，但 HTTP 与 HTTPS 的本地存储仍互相隔离。
 
 `service/mora/feedback.ts` 将实际提交的手势与收到的胜负结果分开计数，由 Layout 中唯一 `RpsFeedback` 展示；相同平局仍是新事件，不依赖手势值是否变化。`hidePlayerIds` 仅作用于显示层，固定八个星号，不改房间原名、身份、缓存或录像。非空主／额外牌堆的数量角标深度取当前叠牌高度之上，仍归原区域和同一开关。练习双方牌堆允许完整查看，在线主卡组保密约束继续保留；位置 count=0、选择面板路由和验证契约见 [本地练习](practice.md)。
 

@@ -1,10 +1,10 @@
 # 现有 Workers 站点的 GitHub 自动部署
 
-更新：2026-10-28。本文说明现有 `black-surf-69e5` Worker 的自动部署、固定测试入口和历史故障。项目级实现与验收统一见 [当前状态](PROJECT_STATUS.md)。自动部署仅负责 `srvprotiantiweb`，天梯服务器及 `srvprotianti` 官网页面由各自项目部署。
+更新：2026-11-12。本文说明现有 `black-surf-69e5` 静态站点的自动部署、固定测试入口和历史故障。项目级实现与验收统一见 [当前状态](PROJECT_STATUS.md)。自动部署仅负责 `srvprotiantiweb`，天梯服务器及 `srvprotianti` 官网页面由各自项目部署。
 
 ## 仓库配置
 
-- [wrangler.json](../wrangler.json)：Worker 名称与现有站点一致，发布 `dist/` 静态文件及最小 [HTTPS 入口](../deployment/static-entry.mjs)。`assets.binding = ASSETS`、`run_worker_first = true` 使入口在命中静态文件前运行：HTTP 返回同主机、路径和查询的 308；HTTPS 将原请求交给 `env.ASSETS.fetch`，保留资源响应。包含 `previews: {}`，供非生产分支的 `wrangler preview` 使用；`assets`（包括绑定）和兼容日期仍在顶层，不放进 `previews`。修改 Worker 名称必须同时调整此文件；CI 要求名称一致。[名称要求与 Git 接入](https://developers.cloudflare.com/workers/ci-cd/builds/)、[资源绑定与执行顺序](https://developers.cloudflare.com/workers/static-assets/binding/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#what-goes-in-the-previews-block)
+- [wrangler.json](../wrangler.json)：名称与现有站点一致，只发布 `dist/` 静态文件，不配置 `main`、资源绑定或 `run_worker_first`。静态文件由 Cloudflare 直接提供，请求免费且不限次数；旧配置让每个资源请求先运行 HTTPS 跳转脚本，计入 Workers 请求额度，超额后可能返回 429。包含 `previews: {}`，供非生产分支的 `wrangler preview` 使用；`assets` 和兼容日期仍在顶层。保留项目名称、域名、Git 接入和发布命令。[静态请求计费与超额行为](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/)、[资源配置](https://developers.cloudflare.com/workers/static-assets/binding/)、[预览配置](https://developers.cloudflare.com/workers/previews/configuration/#what-goes-in-the-previews-block)
 - [package.json](../package.json)：`build:cloudflare` 通过 `build:static` 还原固定环境资源，再执行 Vite 构建及资源复制；`deploy:cloudflare` 和 `preview:cloudflare` 通过 [发布脚本](../scripts/release_cloudflare.mjs) 使用固定的 Wrangler `4.148.0`，对明确的 API 限流最多尝试三次。预览始终调用 `wrangler preview`，不会变成生产发布。
 - [build_cloudflare.mjs](../scripts/build_cloudflare.mjs)：生产要求显式传入公开 WSS；测试预览按下节读取正式站公开的当前 WSS。固定根路径与正常资源格式，生成公开 `duel-config.js` 和带源码提交号的 `deployment-info.json`。官网链接与卡组／录像消息白名单可通过公开构建变量一同发布，详见 [公开配置与迁址](public-deployment-config.md)。缺少或无效 WSS、白名单错误、构建失败时返回非零退出码，不执行后续部署。普通 `npm run build` 仍可用于离线组卡开发。
 - 2026-10-28 起生产分支为 **`main`**，测试分支为 **`preview`**，名称记录在 [deployment/preview.json](../deployment/preview.json)；`deploy/cloudflare` 停用，内容已并入 `main`。分支规范见下文 [分支与发布流程](#分支与发布流程)。
@@ -31,7 +31,7 @@
 
 Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wrangler.json` 的 `assets.directory = ./dist` 指定。无需选择 `build:prod`，那是保留的上游构建命令，使用了上游 CDN 基路径。[Workers 构建配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[静态资源](https://developers.cloudflare.com/workers/static-assets/)
 
-4. 在 **Build variables and secrets（构建变量与机密）** 添加以下变量。它们是构建变量；HTTPS 入口不需要运行时变量或私钥。
+4. 在 **Build variables and secrets（构建变量与机密）** 添加以下变量。它们是构建变量；静态站点不需要运行时变量或私钥。
 
 | 变量名 | 值 | 作用 |
 | --- | --- | --- |
@@ -59,7 +59,15 @@ Workers 的页面没有 Pages 的“输出目录”项；静态目录已由 `wra
 
 此入口只需单独发布一次；以后已有 `preview:cloudflare` 更新固定预览时，自定义测试域名自动读取相同内容，不必重复发另一份静态资源。需要更新入口程序时，先运行 `node scripts/test_preview_entry.mjs`，再显式使用 `npx wrangler@4.148.0 deploy --config deployment/test-entry/wrangler.json`；该命令只属于独立测试 Worker，不能省略配置参数或用于主站发布。网关额外精确允许 `https://test.ocg1103nexus.com`，依然要求备份、配置校验及自建连接连续性检查。不同网页 Origin 的本地卡组与设置由浏览器隔离，不自动迁移。
 
-两个 HTTP 跳转分别随主候选和独立测试入口发布生效；仅发布预览不会更新正式根域名，合入并发布 `main` 才更新正式入口。无需修改根域名路由或控制台 HTTPS 开关。静态 `_redirects` 只支持路径匹配，不能精确区分 HTTP／HTTPS，因此不添加可能造成 HTTPS 自身循环的全站静态规则。[静态重定向限制](https://developers.cloudflare.com/workers/static-assets/redirects/)。`node scripts/test_https_entry.mjs` 覆盖主入口的 HTTP 308 和 HTTPS 原样透传；`node scripts/test_preview_entry.mjs` 覆盖独立入口。Hash 不发送到服务器，308 不写新 fragment，浏览器继续保留原 Hash 路由；发布后仍需实际浏览器核对跳转、安全上下文及入场。
+### 纯静态托管与 HTTPS 验收
+
+移除主站脚本前，必须在 `ocg1103nexus.com` 区域的 **SSL/TLS → Edge Certificates → Always Use HTTPS** 确认已启用，由 Cloudflare 边缘规则负责 HTTP 跳转；仅看旧站返回 308 无法证明开关已开启，因为旧脚本也会返回 308。现有 Wrangler OAuth 的 Workers 发布权限不等于区域 SSL 设置权限，API 拒绝访问时不能记录成已核验。[Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/)
+
+`workers.dev` 不属于自己的区域，不能假设上述开关也覆盖它。候选发布后单独检查正式域名、`black-surf-69e5.1627406938.workers.dev` 和固定预览入口的 HTTP／HTTPS 行为、路径、查询与 Hash；HTTP 若仍提供页面，不能宣称已保留强制 HTTPS，应先解决入口策略再上线。静态 `_redirects` 只支持路径匹配，不能区分 HTTP／HTTPS，不添加会让 HTTPS 自身循环的全站跳转。[静态重定向限制](https://developers.cloudflare.com/workers/static-assets/redirects/)
+
+`npm run test:static-hosting` 防止重新引入计费脚本入口、资源绑定和 Worker 优先路由，`npm run test:cloudflare-release` 与 `npm run test:preview-config` 继续覆盖原有发布隔离。发布前运行固定 Wrangler 的 `deploy --dry-run`，确认显示只上传静态资源；发布后核对 `deployment-info.json.sourceCommit`、HTML／JS／CSS、四语 CDB、SQLite／录像 WASM 和脚本资源，以及 HTTPS 安全上下文与既有 WSS 入场。
+
+独立 `srvprotiantiweb-test-entry` 仍保留代理和 HTTP 308；它的请求仍占 Workers 额度，主站纯静态配置不会移除这笔开销。账户邮件是所有 Workers／Pages Functions 的合计，不能仅由源码推算主站占比或承诺账户用量归零。独立入口调整须保留固定测试 Origin、预览同步和 noindex 契约，并另行验证。
 
 网关仅需授权上述固定测试 Origin 一次；不使用 `*.workers.dev` 通配符。按用户授权修改现有 Nginx Origin 表前，备份原文件、核对修改范围并运行 `nginx -t`，成功后仅平滑重载 Nginx，不重启游戏、PM2 或 cloudflared。未设强制关停超时的旧工作进程会继续处理已有连接；仍需用自建连接验证重载前后连续性，不能据此声称所有真实对局已验收。[Nginx 平滑重载](https://nginx.org/en/docs/control.html)
 
