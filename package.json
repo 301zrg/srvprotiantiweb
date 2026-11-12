@@ -63,6 +63,7 @@
     "deploy:cloudflare": "node scripts/release_cloudflare.mjs deploy",
     "preview:cloudflare": "node scripts/release_cloudflare.mjs preview",
     "test:cloudflare-release": "node scripts/test_cloudflare_release.mjs",
+    "test:static-hosting": "node scripts/test_static_assets_config.mjs",
     "test:preview-config": "node scripts/test_preview_config.mjs",
     "test:client-revision-ui": "node scripts/client_revision_ui.mjs",
     "test:client-followup-ui": "node scripts/client_followup_ui.mjs",
