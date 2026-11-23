@@ -44,7 +44,7 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 
 **`neos.enabled` 不支持热更新。** `config/config.json` 在进程启动时读取；Neos 监听器只在启动流程中按当时的配置创建一次。改动 JSON 文件不会让现有进程新增／关闭 Neos 端口，TLS 证书也在启动时读取。更改 `neos.enabled`、`neos.port`、`http.ssl` 或证书后，必须重启本地服务器进程。仅把 `neos.enabled` 设为 `true` 且保持 `http.ssl.enabled=false` 时，7977 提供的是明文 `ws://`，当前网页联机配置只接受 `wss://`。
 
-也可以让现有反向代理终止 TLS：SRVPro 开启 `modules.neos.enabled`，保持 `modules.http.ssl.enabled=false`，代理将公开的 `wss://` 路径转发到服务端 `ws://127.0.0.1:7977`。当前 Neos 源码只按端口监听，没有单独的监听地址配置；必须用防火墙限制 7977 的直接访问。代理应透传 WebSocket Upgrade，将 `X-Forwarded-For` **覆盖**为真实客户端 IP。源码读取的是 `modules.neos.trusted_proxy_header`，而默认配置写的是 `ip_header`；若使用代理，需明确设置 `trusted_proxy_header: "x-forwarded-for"`，并将代理的确切地址加入 `modules.trusted_proxies`。不要信任任意客户端自报的转发头。当前源码未对 Neos Upgrade 实施 Origin 白名单、握手限流或专门的消息大小限制；公开入口应在代理层落实这些边界，或先在服务端补齐。
+也可以让现有反向代理终止 TLS：SRVPro 开启 `modules.neos.enabled`，保持 `modules.http.ssl.enabled=false`，代理将公开的 `wss://` 路径转发到服务端 `ws://127.0.0.1:7977`。当前 Neos 源码只按端口监听，没有单独的监听地址配置；必须用防火墙限制 7977 的直接访问。代理应透传 WebSocket Upgrade，将 `X-Forwarded-For` **覆盖**为真实客户端 IP。服务端先读 `modules.neos.trusted_proxy_header`，缺失时兼容旧字段 `ip_header`，显式空字符串表示不取头；若使用代理，需明确设置 `trusted_proxy_header`（Nginx 一般为 `"x-forwarded-for"`，Windows 上 cloudflared 直连时为 `"cf-connecting-ip"`），并将代理的确切地址加入 `modules.trusted_proxies`。当前公网入口做法以服务端 [迁址](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/server-move.md) 的路线 D／T 为准。不要信任任意客户端自报的转发头。当前源码未对 Neos Upgrade 实施 Origin 白名单、握手限流或专门的消息大小限制；公开入口应在代理层落实这些边界，或先在服务端补齐。
 
 ## 已完成的本机测试
 
@@ -60,7 +60,9 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 
 正式服配置和重启由服主执行；仍需核验真实证书／域名／反代／防火墙、生产卡库及禁表顺序、外部静态站点到 WSS 的访问、手机真机、断线恢复、公网完整比赛和非法卡拒绝。没有可用 WSS URL 时，可使用本地卡组功能。
 
-## 正式入口与当前上线阻塞（2026-10-06）
+## 正式入口与当时的上线阻塞（2026-10-06，历史记录）
+
+> 本节记录 2026-10 当时的情况，地址与阻塞项已过时；当前做法见服务端 [迁址](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/server-move.md)。
 
 拟用连接地址为 `wss://duel.ygomatch.xyz/neos`，尚不是玩家可正常访问的正式入口。当前部署采用 Windows Nginx 在 443 终止 TLS，转发至 SRVPro 的 `ws://127.0.0.1:7977`；SRVPro 保持 `modules.http.ssl.enabled=false`，启用 Neos，并设置 `trusted_proxy_header: "x-forwarded-for"`。
 
