@@ -111,11 +111,11 @@ npm run test:replay-runtime
 | 真实本地 WSS     | 普通 Single 1 份与 TT G1–G3 3 份原生下发录像逐字节入库；两次换备、退出保留昵称／密码、首次重新入房通过                                            |
 | 浏览器           | Edge 桌面 1280×800、触控竖屏 390×844／横屏 844×390；导入／去重／刷新／原件下载／播放／单步／跳回合／视角／触摸关闭／跨标签删除通过，无 WSS 副作用 |
 
-额外验证：实际 Core 对象的素材与指示物完整查询通过；BiliToy 包为 10,840,330 字节 ZIP，本地桌面／触控 sandbox iframe 的相对路径录像播放、原件下载、作品版本间保留及不同作品存储隔离通过。这不是实际平台审核或 iOS WebView 证据。
+额外验证：实际 Core 对象的素材与指示物完整查询通过。
 
-测试命令：`npm run test:replay-runtime`、`npm run test:replay-storage`、`npm run test:replay-ui`（先启动静态预览）、`npm run test:replay-wss`（需要相邻服务器源码和 Python）。独立工作树可通过 `SRVPRO_TEST_ROOT` 指定只读测试服务器源码目录。包体校验用 `npm run check:replay`；BiliToy 上传包仍用原 `package:bilitoy` 命令。
+测试命令：`npm run test:replay-runtime`、`npm run test:replay-storage`、`npm run test:replay-ui`（先启动静态预览）、`npm run test:replay-wss`（需要相邻服务器源码和 Python）。独立工作树可通过 `SRVPRO_TEST_ROOT` 指定只读测试服务器源码目录。包体校验用 `npm run check:replay`。
 
-尚未用 Android／iOS 真机、BiliToy 实际投稿 iframe、正式服授权样本验收；完整神警对局及更广卡片交互还需扩充样本。不要把 Edge 触屏尺寸测试称为 Safari 真机通过。生产 Core／脚本指纹仍应由维护者核对。标准文件可下载后在对应桌面环境复核；出错原件不删除。
+尚未用 Android／iOS 真机、正式服授权样本验收；完整神警对局及更广卡片交互还需扩充样本。不要把 Edge 触屏尺寸测试称为 Safari 真机通过。生产 Core／脚本指纹仍应由维护者核对。标准文件可下载后在对应桌面环境复核；出错原件不删除。
 
 回退时回到上一前端发布即可，保留本地 IDB 库；不要清除用户站点数据。官网「网页播放」和文件接收已按后续授权实施，先发布接收器再手动上传官网文件，见 [接收契约](replay-import.md)。
 

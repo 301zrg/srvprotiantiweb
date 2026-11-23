@@ -308,7 +308,7 @@ sequenceDiagram
 | 换备编辑器 | `SideStore.editor` 保存本阶段初始卡组、草稿和滚动，仅在同会话自动恢复时显式复制；新阶段／离场清理，不持久化未提交草稿，不替代 sessionStorage 中的已提交卡组 |
 | 录像 | 独立 IndexedDB 的 blobs／entries／occurrences，原件 hash 去重；失败时有限临时内存并提示备份 |
 | 录像资源缓存 | 可选 Cache Storage，与玩家卡组／录像原件分开；不可当作玩家数据备份 |
-| BiliToy 命名空间 | 同作品版本更新共享、不同作品隔离；普通站点仍按浏览器 origin 分隔 |
+| 存储命名空间 | 按浏览器 origin 分隔；键名统一经 `storageKey` 生成，当前原样使用 |
 
 换网站 origin、浏览器或清除站点数据前导出玩家数据。
 卡组／录像接收的限额、精确字段和消息时序分别归 [卡组契约](deck-import.md)／[录像契约](replay-import.md)，
@@ -340,7 +340,7 @@ flowchart LR
 | `npm run build:static` | Node 从固定快照恢复环境、校验录像资源、Vite 构建与复制；不要求 Python、Emscripten、protoc 或 git submodule |
 | `npm run dev`／`npm run build` | 使用 Python 生成环境资源；适合修改生成规则和开发调试 |
 | `npm run build:cloudflare` | 发布构建包装，共同校验公开 WSS／官网 URL／卡组与录像来源白名单，走静态构建并写版本信息；固定快照与录像资源随仓库提供 |
-| Python 两种发布包 | 普通包从 `dist` 复制，Toy 包单独构建；均调用同一公开配置校验器，支持迁址白名单与官网入口参数，见 [公开配置](public-deployment-config.md) |
+| Python 发布包 | 普通包从 `dist` 复制，调用公开配置校验器，支持迁址白名单与官网入口参数，见 [公开配置](public-deployment-config.md) |
 | 维护原始环境输入／快照 | [资源审计](1103-resource-audit.json)、[原件说明](../resources-staging/1103/README.md)、[还原脚本](../scripts/restore_environment_assets.mjs)；原件字节不变，生成规则／revision／指纹一起维护 |
 | 维护录像 Core／Lua | [脚本维护](replay-script-maintenance.md)、[profile](../src/replay/profile.json)；Lua 差异环境生成使用 Node 和只读分层快照，只有 Core／全量底稿维护需要原生／WASM 编译工具，普通试用不用执行 |
 | 维护协议 IDL | [固定来源说明](../protocol-source/README.md)；来源、许可证、指纹和生成 TS 一起更新 |
