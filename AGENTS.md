@@ -35,7 +35,7 @@
 | 录像 Core、场地、原件存储 | [录像使用](docs/replay-usage.md)，再选 [场地](docs/replay-field-preview.md) 或 [脚本维护](docs/replay-script-maintenance.md) |
 | 双边测试手牌、忽略胜负 | [本地练习](docs/practice.md) |
 | 手机布局、准备页、换备 | [移动界面](docs/mobile-ui.md) 或 [准备页](docs/waitroom-ui.md) |
-| 静态构建／发布、托管 | [自动部署](docs/cloudflare-ci.md)，按需 [BiliToy](docs/bilitoy-feasibility.md) |
+| 静态构建／发布、托管 | [自动部署](docs/cloudflare-ci.md) |
 
 文档改动检查链接、事实与 diff；协议／状态／权限／卡池改动使用能区分正确与错误行为的样本。UI 改动按模块运行浏览器脚本，类型检查、lint 与构建。没有做真机或正式服验证时如实记录。
 

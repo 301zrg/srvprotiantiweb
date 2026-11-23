@@ -145,7 +145,7 @@ test("Base64url and UTF-8 validation fail closed without exposing received conte
   );
 });
 
-test("public import links round-trip all formats while retaining Toy subpaths", () => {
+test("public import links round-trip all formats while retaining nested subpaths", () => {
   for (const input of [
     { format: "ydk", text: ydk },
     { format: "ygopro-update-deck", bytes: raw },

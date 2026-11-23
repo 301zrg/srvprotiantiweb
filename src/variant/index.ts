@@ -1,4 +1,4 @@
-import { publishedResourceName, siteStorage } from "./deployment";
+import { siteStorage } from "./deployment";
 import {
   type Language,
   languageLocales,
@@ -91,14 +91,10 @@ export function getEnvironmentFile(
   file: "cards.cdb" | "strings.conf",
   language = getLanguage(),
 ) {
-  return `${environmentPath}/${
-    languageLocales[language]
-  }/${publishedResourceName(file)}`;
+  return `${environmentPath}/${languageLocales[language]}/${file}`;
 }
 
-export const banlistUrl = `${environmentPath}/${publishedResourceName(
-  "lflist.conf",
-)}`;
+export const banlistUrl = `${environmentPath}/lflist.conf`;
 
 export function serverLanguageCommand(language: Language): string {
   return language === "cn" ? "/zh" : `/${language}`;

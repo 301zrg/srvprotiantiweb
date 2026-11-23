@@ -1,6 +1,6 @@
 # 网页发布与服务器迁址的公开配置
 
-这份配置只包含公开地址和精确来源白名单。不会携带玩家身份、密码、服务器数据库连接、隧道 Token 或私钥。Cloudflare 自动构建、普通手工 ZIP 和 BiliToy ZIP 均使用 [同一个校验器](../scripts/public_operator_config.mjs)，在开始构建／复制发布目录前检查输入；校验失败返回非零退出码。
+这份配置只包含公开地址和精确来源白名单。不会携带玩家身份、密码、服务器数据库连接、隧道 Token 或私钥。Cloudflare 自动构建和普通手工 ZIP 均使用 [同一个校验器](../scripts/public_operator_config.mjs)，在开始构建／复制发布目录前检查输入；校验失败返回非零退出码。
 
 ## 自建站点
 
@@ -56,7 +56,7 @@ python scripts/package_test_release.py \
   --site-origin https://ocg1103nexus.com
 ```
 
-`--site-origin` 指网页版自己的来源，用于 Windows 测试套件的 Nginx 示例；它不会自动写进官网消息白名单，也不会改变网站的域名。Linux 正式代理配置见统一运维指南。Python 两种包均支持同一组公开参数；BiliToy 使用 `python scripts/package_bilitoy_release.py`，它自行构建新目录，不需要提前覆盖普通 `dist`。
+`--site-origin` 指网页版自己的来源，用于 Windows 测试套件的 Nginx 示例；它不会自动写进官网消息白名单，也不会改变网站的域名。Linux 正式代理配置见统一运维指南。
 
 Windows PowerShell 可使用环境变量，避免旧版 PowerShell 将命令行 JSON 的双引号移除：
 
@@ -66,8 +66,6 @@ $env:VITE_DECK_IMPORT_ORIGINS = '["https://ladder.example.com"]'
 $env:VITE_WEBSITE_BASE_URL = 'https://ladder.example.com/'
 npm run build:static
 python scripts/package_test_release.py --site-origin https://ocg1103nexus.com
-# 或专用平台包：
-python scripts/package_bilitoy_release.py
 ```
 
 需要离线包时，显式 `--wss-url ''` 覆盖仍存在的环境变量；也可先清除 `VITE_DUEL_WS_URL`。要禁用消息交接设置 `VITE_DECK_IMPORT_ORIGINS=[]`，不要把变量改成空字符串。

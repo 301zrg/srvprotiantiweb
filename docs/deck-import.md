@@ -105,7 +105,7 @@ function openAuthorizedDeck(clientEntry, getAuthorizedDeck, title) {
 }
 ```
 
-如果使用 YDK，发送 `format: "ydk", text`；原 buffer 发送 `format: "ygopro-update-deck", bytes`，其中 `bytes` 必须是 `ArrayBuffer`。使用 transfer list 时发送侧会失去 buffer，需保留副本以供重试。`COOP: same-origin`、平台 iframe 或浏览器后台暂停可能断开／延迟交接；公开内容优先使用链接，失败仍可下载后本地导入。iOS Safari 真机和 BiliToy 外壳尚待实测。
+如果使用 YDK，发送 `format: "ydk", text`；原 buffer 发送 `format: "ygopro-update-deck", bytes`，其中 `bytes` 必须是 `ArrayBuffer`。使用 transfer list 时发送侧会失去 buffer，需保留副本以供重试。`COOP: same-origin`、平台 iframe 或浏览器后台暂停可能断开／延迟交接；公开内容优先使用链接，失败仍可下载后本地导入。iOS Safari 真机尚待实测。
 
 ## 3. 解析、保存及编辑行为
 
@@ -148,4 +148,4 @@ node scripts/deck_import_ui.mjs --built --https
 
 2026-10-08 验证通过：6 项解析测试、14 组生产 HTTPS 接收回归、类型检查、全量 lint 和构建；既有手机 UI 回归通过横屏、竖屏、小屏、桌面设置与缺卡图场景。
 
-UI 回归使用合成卡组、本机 HTTP 来源、本机 HTTPS 客户端和无头 Edge，保留默认弹窗限制，拦截外网资源，并确认没有对战 WSS 连接。覆盖桌面／390px 触控视口三格式、刷新、同名／同内容、未知分区、320px 分区控件边界、坏 buffer、双标签页竞争、消息来源拒绝／请求标识／重复发送、IDB 禁用／写入失败、临时草稿下载。HTTPS 测试只对本机临时证书忽略错误，不改变发布包证书要求；该验证不等同于 iOS Safari、正式服或 BiliToy 平台实测。
+UI 回归使用合成卡组、本机 HTTP 来源、本机 HTTPS 客户端和无头 Edge，保留默认弹窗限制，拦截外网资源，并确认没有对战 WSS 连接。覆盖桌面／390px 触控视口三格式、刷新、同名／同内容、未知分区、320px 分区控件边界、坏 buffer、双标签页竞争、消息来源拒绝／请求标识／重复发送、IDB 禁用／写入失败、临时草稿下载。HTTPS 测试只对本机临时证书忽略错误，不改变发布包证书要求；该验证不等同于 iOS Safari 或正式服实测。

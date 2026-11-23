@@ -13,25 +13,6 @@ export default defineConfig({
   optimizeDeps: { entries: ["index.html"] },
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [
-    ...(process.env.VITE_DEPLOY_TARGET === "bilitoy"
-      ? [
-          {
-            name: "bilitoy-system-fonts",
-            enforce: "pre" as const,
-            transform(code: string, id: string) {
-              if (!id.replace(/\\/g, "/").endsWith("/src/styles/core.scss"))
-                return;
-              return {
-                code: code.replace(
-                  /^@import url\("https:\/\/fonts\.font\.im\/[^"\n]+"\);\r?\n?/m,
-                  "",
-                ),
-                map: null,
-              };
-            },
-          },
-        ]
-      : []),
     react(),
     svgr(),
     ydkLoader(),

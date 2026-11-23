@@ -2,15 +2,10 @@ import assert from "node:assert/strict";
 import vm from "node:vm";
 import { build } from "esbuild";
 
-async function compile(target = "") {
-  const result = await build({
-    entryPoints: ["src/variant/joinForm.ts"], bundle: true, write: false,
-    format: "cjs", platform: "browser", tsconfig: "tsconfig.json",
-    define: { "import.meta.env.VITE_DEPLOY_TARGET": JSON.stringify(target) },
-  });
-  return result.outputFiles[0].text;
-}
-const compiled = await compile();
+const compiled = (await build({
+  entryPoints: ["src/variant/joinForm.ts"], bundle: true, write: false,
+  format: "cjs", platform: "browser", tsconfig: "tsconfig.json",
+})).outputFiles[0].text;
 const store = () => {
   const values = new Map();
   return {
@@ -85,14 +80,11 @@ const other = store();
 load(legacyLocal, other).saveJoinForm({ nickname: "Newer$secret", roomName: "Other$room" });
 load(legacyLocal, legacySession).readJoinForm();
 assert.equal(load(legacyLocal, store()).readJoinForm().nickname, "Newer$secret");
-const toyCode = await compile("bilitoy");
-const toyLocal = store(), toySession = store();
-load(toyLocal, toySession, toyCode, "/toy/square/example-v1/index.html").saveJoinForm(input);
-assert.deepEqual(plain(load(toyLocal, toySession, toyCode, "/toy/square/example-v2/index.html").readJoinForm()), input);
-assert.deepEqual(plain(load(toyLocal, toySession, toyCode, "/toy/square/other-v1/index.html").readJoinForm()), { nickname: "", roomName: "TT" });
-const sessionKey = [...toySession.values.keys()][0];
+// A damaged tab draft falls back to the complete browser record.
+const damagedLocal = store(), damagedSession = store();
+load(damagedLocal, damagedSession).saveJoinForm(input);
 for (const damaged of ["{", "null", "[]", '{"nickname":1,"roomName":"x"}', '{"nickname":"x"}']) {
-  toySession.setItem(sessionKey, damaged);
-  assert.deepEqual(plain(load(toyLocal, toySession, toyCode, "/toy/square/example-v2/index.html").readJoinForm()), input);
+  damagedSession.setItem("joinFormDraft", damaged);
+  assert.deepEqual(plain(load(damagedLocal, damagedSession).readJoinForm()), input, damaged);
 }
-console.log("PASS join-form cache: browser reopen, exact inputs, migration, tab isolation, clearing, namespaces and blocked-storage fallback");
+console.log("PASS join-form cache: browser reopen, exact inputs, migration, tab isolation, clearing, damaged drafts and blocked-storage fallback");
