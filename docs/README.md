@@ -1,8 +1,8 @@
 # 文档索引
 
-三项目的 Linux 部署、数据库/录像恢复与换机交接见服务端仓库中的 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/b6ebeb19a2436ca5df442d41d1f8c749345be88c/ops/README.md)。
+三项目的部署、数据库/录像恢复与换机交接见服务端仓库中的 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/main/ops/README.md)；只用公开仓库自己搭一套服务（含本网页版）见服务端的 [从零搭建](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/from-scratch.md) 和本仓库的 [自建站点](public-deployment-config.md#自建站点)。
 
-更新：2026-10-19。项目介绍与最短本地运行见 [根 README](../README.md)。
+更新：2026-11-12。项目介绍与最短本地运行见 [根 README](../README.md)。
 项目级现状只维护在 [PROJECT_STATUS](PROJECT_STATUS.md)；专题记录具体契约、操作和证据，
 历史清单不能替代当前状态。下面的主题按任务选读，无需通读全部资料。
 
@@ -22,13 +22,13 @@
 | 网络等待、后台积压与被动延迟诊断 | [海外延迟与计时边界](overseas-latency.md) |
 | 反复掉线、计时确认与对手断线时的换备 | [连接稳定性排查与修复](connection-stability.md) |
 | 当前外部静态站点发布与 WSS 运维 | [公开配置与迁址](public-deployment-config.md)、[自动部署](cloudflare-ci.md)、[现有服务器上线测试](current-server-online-test.md)、[证书交接](wss-certificate-handoff.md)、[PM2 临时隧道](pm2-quick-tunnel.md) |
-| 其他托管平台的可行性 | [BiliToy](bilitoy-feasibility.md)、[微信](wechat-feasibility.md) |
+| 其他托管平台的可行性 | [微信](wechat-feasibility.md)；BiliToy 已取消，见 [归档](archive/bilitoy-feasibility_2026-10-07.md) |
 | 上游、早期审查与历史施工 | [上游审计](upstream-audit.md)、[官网交接调研](website-replay-deck-handoff-research.md)、[归档索引](archive/README.md) |
 
 `protocol-source/README.md` 是 [固定协议来源](../protocol-source/README.md) 的唯一说明；
 普通构建不要求旧子模块。相邻服务端的字段、权限和数据库契约由服务端仓库维护，
 本文不复制第二份。当前设计与交接入口链接到各仓库的公开源码与运维文档；
-部分旧专题仍保留用于同级检出工作区的相对路径说明。
+跨项目源码链接使用公开仓库；历史核查按其注明的提交固定，不能用旧行号推断今天的服务端状态。
 单独检出网页项目也能阅读本文、架构页、状态页和客户端接收契约。
 
 增加模块时给出对应源码和专题入口；修改现状时更新状态页及受影响专题。

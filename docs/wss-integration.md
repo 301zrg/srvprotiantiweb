@@ -1,5 +1,7 @@
 # SRVPro WSS 配置与本地联调
 
+本文包含早期直连／Quick Tunnel 候选和带日期的联调记录。当前静态站点与分支见 [自动部署](cloudflare-ci.md)，当前 WSS 读取站点公开配置；下文旧候选的“尚未部署”不描述今天的线上状态。
+
 现有 `121.4.34.71:7911` 是原生 YGOPro TCP 入口，浏览器不能直接连接。网页和四语卡池继续由外部 HTTPS 静态站点托管；SRVPro 只承担对战连接和现有天梯逻辑。站方通过 `duel-config.js` 或构建变量 `VITE_DUEL_WS_URL=wss://...` 固定入口，玩家只填写昵称和房名：`TT` 进天梯，其他房名进普通房。
 
 ## 联机交互编号
@@ -42,7 +44,7 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 
 **`neos.enabled` 不支持热更新。** `config/config.json` 在进程启动时读取；Neos 监听器只在启动流程中按当时的配置创建一次。改动 JSON 文件不会让现有进程新增／关闭 Neos 端口，TLS 证书也在启动时读取。更改 `neos.enabled`、`neos.port`、`http.ssl` 或证书后，必须重启本地服务器进程。仅把 `neos.enabled` 设为 `true` 且保持 `http.ssl.enabled=false` 时，7977 提供的是明文 `ws://`，当前网页联机配置只接受 `wss://`。
 
-也可以让现有反向代理终止 TLS：SRVPro 开启 `modules.neos.enabled`，保持 `modules.http.ssl.enabled=false`，代理将公开的 `wss://` 路径转发到服务端 `ws://127.0.0.1:7977`。当前 Neos 源码只按端口监听，没有单独的监听地址配置；必须用防火墙限制 7977 的直接访问。代理应透传 WebSocket Upgrade，将 `X-Forwarded-For` **覆盖**为真实客户端 IP。源码读取的是 `modules.neos.trusted_proxy_header`，而默认配置写的是 `ip_header`；若使用代理，需明确设置 `trusted_proxy_header: "x-forwarded-for"`，并将代理的确切地址加入 `modules.trusted_proxies`。不要信任任意客户端自报的转发头。当前源码未对 Neos Upgrade 实施 Origin 白名单、握手限流或专门的消息大小限制；公开入口应在代理层落实这些边界，或先在服务端补齐。
+也可以让现有反向代理终止 TLS：SRVPro 开启 `modules.neos.enabled`，保持 `modules.http.ssl.enabled=false`，代理将公开的 `wss://` 路径转发到服务端 `ws://127.0.0.1:7977`。当前 Neos 源码只按端口监听，没有单独的监听地址配置；必须用防火墙限制 7977 的直接访问。代理应透传 WebSocket Upgrade，将 `X-Forwarded-For` **覆盖**为真实客户端 IP。服务端先读 `modules.neos.trusted_proxy_header`，缺失时兼容旧字段 `ip_header`，显式空字符串表示不取头；若使用代理，需明确设置 `trusted_proxy_header`（Nginx 一般为 `"x-forwarded-for"`，Windows 上 cloudflared 直连时为 `"cf-connecting-ip"`），并将代理的确切地址加入 `modules.trusted_proxies`。当前公网入口做法以服务端 [迁址](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/server-move.md) 的路线 D／T 为准。不要信任任意客户端自报的转发头。当前源码未对 Neos Upgrade 实施 Origin 白名单、握手限流或专门的消息大小限制；公开入口应在代理层落实这些边界，或先在服务端补齐。
 
 ## 已完成的本机测试
 
@@ -58,7 +60,9 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 
 正式服配置和重启由服主执行；仍需核验真实证书／域名／反代／防火墙、生产卡库及禁表顺序、外部静态站点到 WSS 的访问、手机真机、断线恢复、公网完整比赛和非法卡拒绝。没有可用 WSS URL 时，可使用本地卡组功能。
 
-## 正式入口与当前上线阻塞（2026-10-06）
+## 正式入口与当时的上线阻塞（2026-10-06，历史记录）
+
+> 本节记录 2026-10 当时的情况，地址与阻塞项已过时；当前做法见服务端 [迁址](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/server-move.md)。
 
 拟用连接地址为 `wss://duel.ygomatch.xyz/neos`，尚不是玩家可正常访问的正式入口。当前部署采用 Windows Nginx 在 443 终止 TLS，转发至 SRVPro 的 `ws://127.0.0.1:7977`；SRVPro 保持 `modules.http.ssl.enabled=false`，启用 Neos，并设置 `trusted_proxy_header: "x-forwarded-for"`。
 
@@ -72,8 +76,8 @@ Copy-Item ssl\key.pem ssl\privkey.pem -Force
 
 只读检查 `srvprotianti` 的开发文档，未找到明确记载“境外域名、当前无法备案”的条目。找到的相关背景是：
 
-- [Windows HTTPS 草案](../../srvprotianti/docs/CADDY_HTTPS_DEPLOYMENT.md) 的状态日期为 2026-09-15，当时没有可用自有域名，维护者决定本期保持 HTTP；Caddy 和 Tailscale 均为未执行的未来方案。
-- [天梯玩家与使用规范](../../srvprotianti/docs/LADDER_PLAYER_AND_USAGE_SPEC.md) §15.3 保留 Tailscale Funnel 备选，§15.5 记录本期使用 HTTP。
+- [Windows HTTPS 草案](https://github.com/301zrg/srvprotianti/blob/main/docs/CADDY_HTTPS_DEPLOYMENT.md) 的状态日期为 2026-09-15，当时没有可用自有域名，维护者决定本期保持 HTTP；Caddy 和 Tailscale 均为未执行的未来方案。
+- [天梯玩家与使用规范](https://github.com/301zrg/srvprotianti/blob/main/docs/LADDER_PLAYER_AND_USAGE_SPEC.md) §15.3 保留 Tailscale Funnel 备选，§15.5 记录本期使用 HTTP。
 
 旧 Funnel 草案代理的是网站端口 **7922**，其“不影响游戏 TCP 7911 延迟”的判断只针对该架构。网页客户端需要代理 **7977 对战连接**，对局消息会经过中继；不能直接套用旧草案的性能结论。上述相邻项目链接供本地联合开发查阅，不是网页仓库单独检出必需的文件。
 

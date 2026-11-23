@@ -17,7 +17,6 @@ execSync("npm run build:static", {
   env: {
     ...process.env,
     VITE_BASE_PATH: "/",
-    VITE_DEPLOY_TARGET: "",
     VITE_DUEL_WS_URL: publicConfig.duelWebSocketUrl,
   },
 });

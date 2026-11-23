@@ -2,13 +2,13 @@
 
 基于 [DarkNeos/neos-ts](https://github.com/DarkNeos/neos-ts) 的 1103 历史环境客户端，支持手机和桌面。玩家填写昵称与房间名：`TT` 进入天梯，其他房名沿用服务器规则。对战地址由站方固定；网页、卡库和录像资源放在外部 HTTPS 静态站点，在线裁定由 SRVPro 执行。
 
-当前提供四语卡库与界面、卡组编辑和 YDK 导入／导出、Single／Match 联机与换备、房间链接观战、后台恢复、本地录像库和固定环境的只读录像重演，以及官网卡组／录像接收入口。录像播放仅支持已确认的格式与固定资源；完整双打、其他 Core 版本和云同步不属于已完成能力。具体范围和已测证据见 [当前状态](docs/PROJECT_STATUS.md)，模块与数据流见 [架构图](docs/ARCHITECTURE.md)。
+当前提供四语卡库与界面、卡组编辑和 YDK 导入／导出、Single／Match 联机与换备、房间链接观战、后台恢复、本地录像库和按规则环境的只读录像重演，以及官网卡组／录像接收入口。录像播放仅支持已确认的格式与固定资源；完整双打、其他 Core 版本和云同步不属于已完成能力。具体范围和已测证据见 [当前状态](docs/PROJECT_STATUS.md)，模块与数据流见 [架构图](docs/ARCHITECTURE.md)。
 
-首次未保存房名时预填 `TT`，仍需手动连接。账号 `昵称$密码` 与 `房名$房间密码` 分开处理；完整输入（含两种密码）按部署命名空间写入浏览器缓存 `joinFormSaved`，关闭浏览器后仍可回填，各标签页另有草稿；公开部分另存兼容字段。一键观战使用临时表单，不保存也不清空普通缓存。玩家主动清空的输入继续保持为空。详见 [输入与会话恢复](docs/session-recovery.md)。
+首次未保存房名时预填 `TT`，仍需手动连接。账号 `昵称$密码` 与 `房名$房间密码` 分开处理；完整输入（含两种密码）按部署命名空间写入浏览器缓存 `joinFormSaved`，关闭浏览器后仍可回填，各标签页另有草稿；公开部分另存兼容字段。匿名一键观战使用临时表单，不保存也不清空普通缓存；带账号观战保留完整身份并清空普通房号，目标房间仍临时。玩家主动清空的输入继续保持为空。详见 [输入与会话恢复](docs/session-recovery.md)。
 
 ## 本地静态试用
 
-安装 Node.js 和 npm；这条路径使用仓库内固定资源，不需要 Python、Emscripten 或初始化 git submodule：
+安装 Node.js 24 和 npm；这条路径使用仓库内固定资源，不需要 Python、Emscripten 或初始化 git submodule：
 
 ```sh
 npm ci --include=dev
@@ -29,6 +29,7 @@ npm run preview:static
 - [当前架构与数据流](docs/ARCHITECTURE.md)：实际目录、四张图、配置和存储归属。
 - [开发约束与任务入口](AGENTS.md)、[设计理由](YGOPro_706_Web_Client_Design.md)、[剩余工作](IMPLEMENTATION_PLAN.md)。
 - [录像使用](docs/replay-usage.md)、[卡组接收](docs/deck-import.md)、[录像接收](docs/replay-import.md)、[观战链接](docs/room-spectator-links.md)。
+- [自建站点](docs/public-deployment-config.md#自建站点)：只用公开仓库自己托管网页版；服务端搭建见 [从零搭建](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/from-scratch.md)。
 - [外部静态站点自动发布](docs/cloudflare-ci.md)：`main` 发布正式版、`preview` 发布测试版，推送即上线；其他工作分支不会发布。分支规范见该文档。
 
 按改动选检查：文档检查链接与事实；协议改动运行相应封包／会话回归；资源改动核对 SHA 与 revision；UI 改动运行对应浏览器脚本、类型检查、lint 和构建。浏览器模拟不代替 Android／iOS 真机。原始输入与私密配置保持不变，未授权卡组、录像和凭据不入库。

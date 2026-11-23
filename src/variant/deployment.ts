@@ -1,27 +1,10 @@
-/** Compile-time publishing profile; normal static deployments keep their format. */
-export const isBiliToy = import.meta.env.VITE_DEPLOY_TARGET === "bilitoy";
-
-export function publishedResourceName(file: string): string {
-  return isBiliToy ? file.replace(/\.(cdb|conf)$/, ".data") : file;
-}
-
-/** Toy content shares an origin. Keep keys stable across a Toy's version paths. */
+/**
+ * Single entry point for browser storage key names. Every published build uses
+ * the plain key; keep callers going through here so a future hosting target
+ * can namespace keys without touching each store.
+ */
 export function storageKey(key: string): string {
-  if (!isBiliToy) return key;
-  const parts =
-    typeof window === "undefined"
-      ? []
-      : window.location.pathname.split("/").filter(Boolean);
-  // Published paths are /toy/<channel>/<work-id>-v<revision>/index.html.
-  // The channel (e.g. "square") is shared by multiple works.
-  const work = parts[2]?.match(/^(.+)-v\d+$/)?.[1];
-  const slug =
-    parts[0] === "toy" && parts[1]
-      ? work
-        ? `${parts[1]}/${work}`
-        : parts[1]
-      : "default";
-  return `srvprotiantiweb:bilitoy:${encodeURIComponent(slug)}:${key}`;
+  return key;
 }
 
 export const siteStorage = {

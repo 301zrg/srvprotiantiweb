@@ -105,10 +105,10 @@ test("Cloudflare rejects an invalid whitelist before changing the existing dist 
   if (before) assert.deepEqual(readFileSync("dist/duel-config.js"), before);
 });
 
-test("both actual Python release entrypoints reject bad public input before making a release", () => {
+test("the Python release entrypoint rejects bad public input before making a release", () => {
   const releases = () => existsSync("releases") ? readdirSync("releases").sort() : [];
   const before = releases();
-  for (const script of ["package_test_release.py", "package_bilitoy_release.py"]) {
+  for (const script of ["package_test_release.py"]) {
     const result = spawnSync("python", ["scripts/" + script], {
       encoding: "utf8", env: { ...process.env, VITE_DUEL_WS_URL: input.duelWebSocketUrl,
         VITE_DECK_IMPORT_ORIGINS: '["https://ladder.example.com/path"]' },

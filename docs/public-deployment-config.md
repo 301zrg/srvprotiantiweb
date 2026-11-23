@@ -1,12 +1,29 @@
 # 网页发布与服务器迁址的公开配置
 
-这份配置只包含公开地址和精确来源白名单。不会携带玩家身份、密码、服务器数据库连接、隧道 Token 或私钥。Cloudflare 自动构建、普通手工 ZIP 和 BiliToy ZIP 均使用 [同一个校验器](../scripts/public_operator_config.mjs)，在开始构建／复制发布目录前检查输入；校验失败返回非零退出码。
+这份配置只包含公开地址和精确来源白名单。不会携带玩家身份、密码、服务器数据库连接、隧道 Token 或私钥。Cloudflare 自动构建和普通手工 ZIP 均使用 [同一个校验器](../scripts/public_operator_config.mjs)，在开始构建／复制发布目录前检查输入；校验失败返回非零退出码。
+
+## 自建站点
+
+自己搭一套服务（服务端见 [从零搭建](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/from-scratch.md)）时，网页版托管在你自己的 HTTPS 静态站点上，不需要本项目的 Cloudflare 账号或自动部署。
+
+1. 固定一个提交，执行 `npm ci --include=dev` 和 `npm run build:static`。
+2. 三个公开值**都要显式设置**：缺省值指向本项目原服务器（见下表），自建站点不能沿用。
+   - WSS 写 `wss://<你的游戏域名>/neos`；
+   - 官网写你的官网地址；
+   - 消息白名单写你官网的精确 origin。
+3. 用下文“手工发布”生成包，把 `dist/` 整个上传到你的 HTTPS 托管；或者上传后再编辑 `/duel-config.js`（见“不重新构建时”）。
+4. 服务端要做两处对应设置：
+   - WSS 入口的 Origin 白名单加入你网页版的精确 origin（Nginx 见服务端 [迁址](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/server-move.md)；Windows 隧道路线用 Cloudflare WAF 规则）；
+   - 官网指向网页版的入口地址在服务端 `plugins/ladder-web/web/assets/web-client-config.js` 的 `SRVPRO_WEB_CLIENT_URL` 里，改成你的网页版地址。
+5. 按下文“迁址检查顺序”第 4、5 步验收。
+
+[自动部署](cloudflare-ci.md) 是本项目自己的发布方式（Worker 名、预览名、正式站元数据都属于本项目），自建时可以不用。
 
 ## 输入及缺省行为
 
 | 环境变量 | Python 打包参数 | 发布字段 | 缺省行为 |
 | --- | --- | --- | --- |
-| `VITE_DUEL_WS_URL` | `--wss-url` | `duelWebSocketUrl` | Cloudflare 必须设置；手工包未设置或显式空字符串时禁用在线入场 |
+| `VITE_DUEL_WS_URL` | `--wss-url` | `duelWebSocketUrl` | Cloudflare 正式构建必须设置，预览构建从正式站公开元数据读取（仅 WSS，官网及白名单仍取本次构建变量）；手工包未设置或显式空字符串时禁用在线入场 |
 | `VITE_DECK_IMPORT_ORIGINS` | `--deck-import-origins` | `deckImportOrigins` | 未设置则不写此字段，沿用原有 `http://121.4.34.71:7922`、`https://duel.ygomatch.xyz`；`[]` 显式禁用卡组及录像消息交接 |
 | `VITE_WEBSITE_BASE_URL` | `--website-base-url` | `websiteBaseUrl` | 未设置沿用首页官网链接 `http://121.4.34.71:7922/` |
 
@@ -39,7 +56,7 @@ python scripts/package_test_release.py \
   --site-origin https://ocg1103nexus.com
 ```
 
-`--site-origin` 指网页版自己的来源，用于 Windows 测试套件的 Nginx 示例；它不会自动写进官网消息白名单，也不会改变网站的域名。Linux 正式代理配置见统一运维指南。Python 两种包均支持同一组公开参数；BiliToy 使用 `python scripts/package_bilitoy_release.py`，它自行构建新目录，不需要提前覆盖普通 `dist`。
+`--site-origin` 指网页版自己的来源，用于 Windows 测试套件的 Nginx 示例；它不会自动写进官网消息白名单，也不会改变网站的域名。Linux 正式代理配置见统一运维指南。
 
 Windows PowerShell 可使用环境变量，避免旧版 PowerShell 将命令行 JSON 的双引号移除：
 
@@ -49,8 +66,6 @@ $env:VITE_DECK_IMPORT_ORIGINS = '["https://ladder.example.com"]'
 $env:VITE_WEBSITE_BASE_URL = 'https://ladder.example.com/'
 npm run build:static
 python scripts/package_test_release.py --site-origin https://ocg1103nexus.com
-# 或专用平台包：
-python scripts/package_bilitoy_release.py
 ```
 
 需要离线包时，显式 `--wss-url ''` 覆盖仍存在的环境变量；也可先清除 `VITE_DUEL_WS_URL`。要禁用消息交接设置 `VITE_DECK_IMPORT_ORIGINS=[]`，不要把变量改成空字符串。
