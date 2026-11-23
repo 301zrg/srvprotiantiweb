@@ -1,4 +1,22 @@
-# 706 天梯 YGOPRO 网页客户端
+# 706 天梯网页客户端 / 706 Ladder Web Client
+
+在浏览器里玩游戏王 OCG **1103 环境**（2011 年 3 月禁限表、大师规则 2），手机和电脑都能用，不用下载任何软件。
+
+**👉 现在就玩：<https://ocg1103nexus.com>**　昵称栏填 `昵称$密码`（新昵称会自动注册，请不要用你在别处的常用密码），房间名填 `TT` 就进入天梯匹配。界面与卡片支持中、日、英、韩四种语言；可以组卡、导入 YDK、观战和看录像。
+
+> **项目已进入维护状态**：只处理严重 bug，不再开发新功能。代码公开，欢迎自己部署一份，或者接着做下去。
+
+- 有问题、想约战：[Discord](https://discord.gg/mkRz8mWRdq)
+- 自己托管网页版：[自建站点](docs/public-deployment-config.md#自建站点)；服务端见 [srvprotianti 从零搭建](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/from-scratch.md)
+- 参与开发：大部分代码是维护者指挥 AI 写的，欢迎你也用自己的 AI 来改。先读 [AGENTS.md](AGENTS.md)，一个 PR 只做一件事
+
+**English:** Play the Yu-Gi-Oh! OCG **"1103" format** (March 2011 banlist, Master Rule 2) in your browser, on phone or desktop — nothing to install.
+**Play now: <https://ocg1103nexus.com>** — enter `nickname$password` (new nicknames register automatically; do not reuse a password from elsewhere) and use room name `TT` for ranked matchmaking. Available in Chinese, Japanese, English and Korean, with a deck editor, YDK import, spectating and replays. Questions or friendly matches: [Discord](https://discord.gg/mkRz8mWRdq).
+**The project is in maintenance mode** — only serious bugs are fixed. The code is open: host your own copy ([self-hosting](docs/public-deployment-config.md#自建站点), [server setup](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/from-scratch.md)) or carry the work on. Most of it was written by directing AI agents — feel free to use yours; read [AGENTS.md](AGENTS.md) first.
+
+---
+
+## 706 天梯 YGOPRO 网页客户端
 
 基于 [DarkNeos/neos-ts](https://github.com/DarkNeos/neos-ts) 的 1103 历史环境客户端，支持手机和桌面。玩家填写昵称与房间名：`TT` 进入天梯，其他房名沿用服务器规则。对战地址由站方固定；网页、卡库和录像资源放在外部 HTTPS 静态站点，在线裁定由 SRVPro 执行。
 
