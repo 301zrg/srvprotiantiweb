@@ -1,6 +1,6 @@
 # 文档索引
 
-三项目的 Linux 部署、数据库/录像恢复与换机交接见服务端仓库中的 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/b6ebeb19a2436ca5df442d41d1f8c749345be88c/ops/README.md)。
+三项目的部署、数据库/录像恢复与换机交接见服务端仓库中的 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/main/ops/README.md)；只用公开仓库自己搭一套服务（含本网页版）见服务端的 [从零搭建](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/from-scratch.md) 和本仓库的 [自建站点](public-deployment-config.md#自建站点)。
 
 更新：2026-11-12。项目介绍与最短本地运行见 [根 README](../README.md)。
 项目级现状只维护在 [PROJECT_STATUS](PROJECT_STATUS.md)；专题记录具体契约、操作和证据，

@@ -2,6 +2,23 @@
 
 这份配置只包含公开地址和精确来源白名单。不会携带玩家身份、密码、服务器数据库连接、隧道 Token 或私钥。Cloudflare 自动构建、普通手工 ZIP 和 BiliToy ZIP 均使用 [同一个校验器](../scripts/public_operator_config.mjs)，在开始构建／复制发布目录前检查输入；校验失败返回非零退出码。
 
+## 自建站点
+
+自己搭一套服务（服务端见 [从零搭建](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/from-scratch.md)）时，网页版托管在你自己的 HTTPS 静态站点上，不需要本项目的 Cloudflare 账号或自动部署。
+
+1. 固定一个提交，执行 `npm ci --include=dev` 和 `npm run build:static`。
+2. 三个公开值**都要显式设置**：缺省值指向本项目原服务器（见下表），自建站点不能沿用。
+   - WSS 写 `wss://<你的游戏域名>/neos`；
+   - 官网写你的官网地址；
+   - 消息白名单写你官网的精确 origin。
+3. 用下文“手工发布”生成包，把 `dist/` 整个上传到你的 HTTPS 托管；或者上传后再编辑 `/duel-config.js`（见“不重新构建时”）。
+4. 服务端要做两处对应设置：
+   - WSS 入口的 Origin 白名单加入你网页版的精确 origin（Nginx 见服务端 [迁址](https://github.com/301zrg/srvprotianti/blob/main/ops/docs/server-move.md)；Windows 隧道路线用 Cloudflare WAF 规则）；
+   - 官网指向网页版的入口地址在服务端 `plugins/ladder-web/web/assets/web-client-config.js` 的 `SRVPRO_WEB_CLIENT_URL` 里，改成你的网页版地址。
+5. 按下文“迁址检查顺序”第 4、5 步验收。
+
+[自动部署](cloudflare-ci.md) 是本项目自己的发布方式（Worker 名、预览名、正式站元数据都属于本项目），自建时可以不用。
+
 ## 输入及缺省行为
 
 | 环境变量 | Python 打包参数 | 发布字段 | 缺省行为 |
