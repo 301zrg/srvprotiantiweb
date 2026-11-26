@@ -221,6 +221,8 @@ for (const credentials of [
   { username: "", password: "x" },
   { username: "LongerThanNineteen", password: "123" },
   { username: "Name$bad", password: "x" },
+  { username: "Name＄bad", password: "x" },
+  { username: "Name﹩bad", password: "x" },
   { username: "Name", password: "" },
   { username: "Name", password: "a\\b" },
 ]) {

@@ -107,6 +107,11 @@ export function readWebEntry(
   };
 }
 
+// Full-width (U+FF04) and small (U+FE69) dollar signs are what some mobile
+// keyboards type instead of the "$" separator. The ladder refuses new accounts
+// whose nickname contains them, so the website handoff refuses them too.
+const LOOKALIKE_DOLLAR = /[＄﹩]/;
+
 export function entryNickname(credentials: unknown): string | undefined {
   if (credentials === undefined) return;
   if (!credentials || typeof credentials !== "object")
@@ -118,6 +123,7 @@ export function entryNickname(credentials: unknown): string | undefined {
     !username ||
     !password ||
     username.includes("$") ||
+    LOOKALIKE_DOLLAR.test(username) ||
     password.includes("$")
   )
     throw new Error("invalid-link");
